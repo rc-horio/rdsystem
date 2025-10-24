@@ -114,7 +114,7 @@ export function SwipeableRow({
         aria-hidden
         className="absolute inset-y-0 right-0 z-0 flex items-center justify-end"
         style={{ width: revealWidth }}
-        {...(!opened ? { inert: true } : {})}
+        {...(!opened ? ({ inert: "" } as any) : {})}
       >
         {rightAction ?? (
           <button

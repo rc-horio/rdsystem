@@ -3,12 +3,8 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./index.css";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
 import { Amplify } from "aws-amplify";
-import Login from "./pages/Login";
-import AuthCallback from "./routes/AuthCallback";
-import SelectProject from "./pages/SelectProject";
-import { RequireAuth } from "./components/RequireAuth";
 
 const ORIGIN = window.location.origin;
 const BASEPATH = import.meta.env.BASE_URL; // 例: '/auth/'
@@ -45,18 +41,6 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <App />
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/callback" element={<AuthCallback />} />
-        <Route
-          path="/select"
-          element={
-            <RequireAuth>
-              <SelectProject />
-            </RequireAuth>
-          }
-        />
-      </Routes>
     </BrowserRouter>
   </React.StrictMode>
 );

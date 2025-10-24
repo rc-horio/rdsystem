@@ -51,7 +51,7 @@ export function TopBar({
 }) {
   return (
     <>
-      {/* ← 追加：セーフエリアの上部を TopBar と同色で塗る固定カバー */}
+      {/* セーフエリアの上部を TopBar と同色で塗る固定カバー */}
       <div
         aria-hidden
         className="fixed left-0 right-0 top-0 z-[50] pointer-events-none"
@@ -73,7 +73,6 @@ export function TopBar({
             <LogoButton
               size={50}
               className="mr-1 md:mr-3"
-              label="メニュー画面へ戻る"
             />
           </div>
 

@@ -7,6 +7,7 @@ import path from 'path'
 export default defineConfig({
   plugins: [react()],
   base: '/auth/',
+  envDir: path.resolve(__dirname, '../../'),
   publicDir: path.resolve(__dirname, '../../static'),
   resolve: {
     alias: {

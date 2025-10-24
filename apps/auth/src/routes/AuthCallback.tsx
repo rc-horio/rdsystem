@@ -1,20 +1,23 @@
-// apps/auth/src/routes/AuthCallback.tsx
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { signInWithRedirect } from "aws-amplify/auth";
+import { fetchAuthSession } from "aws-amplify/auth";
 
 export default function AuthCallback() {
-  const navigate = useNavigate();
+  const nav = useNavigate();
   useEffect(() => {
     (async () => {
       try {
-        await signInWithRedirect(); // ★これが必須
-        navigate("/select", { replace: true });
+        await fetchAuthSession();
+        const back = sessionStorage.getItem("postLoginUrl");
+        sessionStorage.removeItem("postLoginUrl");
+        nav(back ? back.replace(location.origin, "") : "/select", {
+          replace: true,
+        });
       } catch (e) {
-        console.error("handleSignIn error", e);
-        navigate("/login", { replace: true }); // 失敗時はログインへ
+        console.error("AuthCallback error", e);
+        nav("/", { replace: true });
       }
     })();
-  }, [navigate]);
+  }, [nav]);
   return null;
 }

@@ -29,6 +29,7 @@ export default defineConfig({
     // })
   ],
   base: '/map/',
+  envDir: path.resolve(__dirname, '../../'),
   publicDir: path.resolve(__dirname, '../../static'),
   resolve: {
     alias: {
@@ -40,7 +41,7 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5175,
-    
+
     // proxy: {
     //   "/s3": {
     //     target: "https://rc-rdsystem-dev-catalog.s3.ap-northeast-1.amazonaws.com",

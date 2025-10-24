@@ -1,4 +1,4 @@
-// src/pages/parts/SideListBar.tsx
+// apps/map/src/pages/parts/SideListBar.tsx
 import { memo, useEffect, useRef, useState, useMemo } from "react";
 import {
   FilterButton,
@@ -28,7 +28,6 @@ import { upsertScheduleGeometry } from "./areasApi";
 import { AREA_NAME_NONE } from "./constants/events";
 import type { ScheduleLite, Point } from "@/features/types";
 import {
-  RDHUB_PATH,
   EV_SIDEBAR_SET_ACTIVE,
   EV_DETAILBAR_RESPOND_DATA,
   EV_MAP_FOCUS_ONLY,
@@ -448,7 +447,7 @@ function SideListBarBase({
   return (
     <div id="sidebar" ref={rootRef} role="complementary" aria-label="Sidebar">
       <div className="mb-3">
-        <LogoButton href={RDHUB_PATH} height={70} />
+        <LogoButton size={70} />
       </div>
 
       <div id="searchWrap" role="search" aria-label="Search markers">

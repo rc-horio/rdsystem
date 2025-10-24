@@ -17,7 +17,6 @@ export const AREA_NAME_NONE = "（エリア名なし）";
 export const OPEN_INFO_ON_SELECT = false;
 
 export const EV_DETAILBAR_SET_METRICS = "detailbar:set-metrics";
-export const RDHUB_PATH = "https://d3jv4hxjgqnm4c.cloudfront.net/select";
 export const CLS_DETAILBAR_OPEN = "detailbar-open";
 
 export const EV_DETAILBAR_REQUEST_DATA = "detailbar:request-data";

@@ -1,40 +1,64 @@
-// src/components/atoms/buttons/LogoButton.tsx
+// apps/map/src/components/atoms/buttons/LogoButton.tsx
 import { Link } from "react-router-dom";
 import clsx from "clsx";
 
 type Props = {
-  onClick?: () => void;
   to?: string;
-  href?: string;
+  onClick?: () => void;
   src?: string;
-  /** 画像の高さ（px or CSS長さ）。例: 20, 28, "32px", "2rem" */
-  height?: number | string;
+  size?: number | string;
   className?: string;
-  title?: string;
+  label?: string;
 };
+
+// 末尾/先頭スラッシュを吸収して結合
+const join = (base: string, path: string) =>
+  `${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
 
 export function LogoButton({
   onClick,
   to,
-  href,
-  src = `${import.meta.env.BASE_URL}apple-touch-icon.png`,
-  height = 28,
+  src,
   className = "",
-  title = "メニューへ",
+  size = 28,
+  label = "メニューへ",
 }: Props) {
-  const h = typeof height === "number" ? `${height}px` : height;
+  const h = typeof size === "number" ? `${size}px` : size;
+  const imgSrc = src ?? `${import.meta.env.BASE_URL}apple-touch-icon.png`;
 
-  const outerClass = clsx(
-    // 外側は高さを持たない。行高さなどの影響を排除
-    "inline-flex items-center justify-center p-0 bg-transparent border-0 cursor-pointer select-none leading-none",
-    className
-  );
+  // 既定は Auth アプリの /auth/select に移動
+  const authBase =
+    import.meta.env.VITE_AUTH_BASE_URL || `${window.location.origin}/auth/`;
+  const defaultHref = join(authBase, "select");
+  const href = to ?? defaultHref;
 
-  // 画像に高さを直指定（width は比率で自動）
+  // 同一アプリ（現在の basename 配下）かどうか判定
+  const sameApp = (() => {
+    const base = import.meta.env.BASE_URL || "/";
+    try {
+      const u = new URL(href, window.location.origin);
+      return u.origin === window.location.origin && u.pathname.startsWith(base);
+    } catch {
+      // 相対パス指定など
+      return (
+        href.startsWith(base) || href.startsWith("./") || href.startsWith("../")
+      );
+    }
+  })();
+
+  const common = {
+    className: clsx(
+      "inline-flex items-center justify-center p-0 bg-transparent border-0 cursor-pointer select-none leading-none",
+      className
+    ),
+    "aria-label": label,
+    style: { width: size, height: size },
+  } as const;
+
   const img = (
     <img
-      src={src}
-      alt={title}
+      src={imgSrc}
+      alt={label}
       draggable={false}
       style={{
         height: h,
@@ -48,43 +72,20 @@ export function LogoButton({
 
   if (onClick) {
     return (
-      <button
-        type="button"
-        onClick={onClick}
-        title={title}
-        aria-label={title}
-        className={outerClass}
-        // 外側は高さ未指定（= 中の画像サイズに従う）
-        style={{}}
-      >
+      <button {...common} onClick={onClick} type="button">
         {img}
       </button>
     );
   }
 
-  if (href) {
-    return (
-      <a
-        href={href}
-        title={title}
-        aria-label={title}
-        className={outerClass}
-        style={{}}
-      >
-        {img}
-      </a>
-    );
-  }
-
-  return (
-    <Link
-      to={to ?? "/select"}
-      title={title}
-      aria-label={title}
-      className={outerClass}
-      style={{}}
-    >
+  // 別アプリや外部 → a でフルページ遷移（/auth/select など）
+  return sameApp ? (
+    <Link to={href.replace(window.location.origin, "")} {...common}>
       {img}
     </Link>
+  ) : (
+    <a href={href} {...common}>
+      {img}
+    </a>
   );
 }

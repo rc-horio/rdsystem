@@ -8,7 +8,11 @@ import { Amplify } from "aws-amplify";
 import AuthCallback from "./routes/AuthCallback";
 import { RequireAuth } from "./components/RequireAuth";
 
-const BASE = import.meta.env.BASE_URL;
+const BASE = import.meta.env.BASE_URL; // 例: '/hub/'
+const ORIGIN = window.location.origin;
+const DEV_REDIRECT_IN = `${ORIGIN}${BASE}callback`;
+const PROD_REDIRECT_IN =
+  import.meta.env.VITE_REDIRECT_SIGNIN || DEV_REDIRECT_IN;
 const AUTH_BASE =
   import.meta.env.VITE_AUTH_BASE_URL || "http://localhost:5173/auth/";
 
@@ -19,11 +23,10 @@ Amplify.configure({
       userPoolClientId: import.meta.env.VITE_COGNITO_APP_CLIENT_ID,
       loginWith: {
         oauth: {
-          domain: import.meta.env.VITE_COGNITO_DOMAIN, // 'https://'なし・末尾'/'なし
+          // 'https://' なし・末尾 '/' なし
+          domain: import.meta.env.VITE_COGNITO_DOMAIN,
           scopes: ["openid", "email", "profile"],
-          redirectSignIn: [
-            `${window.location.origin}${import.meta.env.BASE_URL}callback`,
-          ], // /hub/callback は維持
+          redirectSignIn: [DEV_REDIRECT_IN, PROD_REDIRECT_IN],
           redirectSignOut: [AUTH_BASE],
           responseType: "code",
         },
