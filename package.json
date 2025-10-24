@@ -1,0 +1,25 @@
+{
+    "name": "rdsystem",
+    "private": true,
+    "workspaces": [
+        "apps/*",
+        "packages/*"
+    ],
+    "scripts": {
+        "dev:hub": "pnpm --filter ./apps/hub dev",
+        "dev:map": "pnpm --filter ./apps/map dev",
+        "build": "pnpm -r --filter \"./apps/**\" build",
+        "build:hub": "pnpm --filter ./apps/hub build",
+        "build:map": "pnpm --filter ./apps/map build",
+        "deploy:hub": "pnpm --filter ./apps/hub deploy",
+        "deploy:map": "pnpm --filter ./apps/map deploy"
+    },
+    "pnpm": {
+        "overrides": {
+            "react": "18.2.0",
+            "react-dom": "18.2.0",
+            "@types/react": "18.2.64",
+            "@types/react-dom": "18.2.25"
+        }
+    }
+}

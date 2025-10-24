@@ -1,0 +1,210 @@
+:root {
+  /* --- レイアウト可変パラメータ --- */
+  --grad-from: #e00022; /* 赤 */
+  --grad-to: #ffd23a; /* 黄 */
+  --left-w: 740px; /* 左ペインの幅 */
+
+  /* 真ん中ペインの幅は残り全部 */
+  --mid-top-fr: 2fr; /* 真ん中ペインの上  */
+  --mid-bottom-fr: 1fr; /* 真ん中ペインの下 */
+
+  --right-w: 380px; /* 右ペインの幅（サイドバー） */
+
+  --gutter-x: 36px; /* カラム間の余白 */
+  --top-offset: 120px; /* 上余白（見出し/罫線の下） */
+  --bottom-offset: 36px; /* 下余白 */
+  --mid-bottom-h: 180px; /* 中央下段の固定高さ */
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+/* ページ共通：16:9 固定 */
+.page {
+  width: 1920px;
+  height: 1080px;
+  font-family: "Zen Kaku Gothic New", "Noto Sans JP", system-ui, sans-serif;
+  position: relative;
+}
+
+/* ── 1ページ目（黒背景） ───────────────────────── */
+#page1 {
+  background: #000;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+#page1 .logo {
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  width: 300px;
+  height: auto;
+}
+#page1 #title {
+  font-weight: 550;
+  font-size: var(--title-size, 50px);
+  text-align: center;
+  padding: 0 48px 18px;
+  max-width: 90%;
+  margin: 0 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  line-height: 1.2;
+}
+#page1 .grad {
+  width: 100%;
+  height: 6px;
+  margin-top: 32px;
+  background: linear-gradient(90deg, var(--grad-from), var(--grad-to));
+}
+#page1 #company {
+  margin-top: 18px;
+  font-size: 28px;
+  color: #ccc;
+  padding-bottom: 8px;
+}
+
+/* ── 2ページ目（白背景） ───────────────────────── */
+#page2 {
+  background: #fff;
+  color: #000;
+  position: relative;
+}
+
+/* 見出し＋下線 */
+#page2 #page2-header {
+  position: absolute;
+  left: 36px;
+  top: 20px;
+  font-weight: 500;
+  font-size: 36px;
+  line-height: 1.3;
+  z-index: 2;
+}
+#page2 .grad {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 80px;
+  height: 6px;
+  background: linear-gradient(90deg, var(--grad-from), var(--grad-to));
+  z-index: 1;
+}
+
+/* ── 3ペインの親グリッド（左・中・右） ───────────── */
+#page2 .page2-grid {
+  position: absolute;
+  left: 36px;
+  right: 36px;
+  top: var(--top-offset);
+  bottom: var(--bottom-offset);
+  display: grid;
+  grid-template-columns: var(--left-w) 1fr var(--right-w);
+  column-gap: var(--gutter-x);
+  grid-template-areas: "left mid right";
+}
+
+/* それぞれ独立ペイン */
+#page2 .pane-left {
+  grid-area: left;
+  position: relative;
+  display: block;
+}
+#page2 .pane-mid {
+  grid-area: mid;
+  position: relative;
+  display: grid;
+  grid-template-rows: var(--mid-top-fr) var(--mid-bottom-fr);
+  row-gap: 28px;
+  min-height: 0;
+}
+#page2 .pane-right {
+  grid-area: right;
+  position: relative;
+}
+
+/* ── 共通の枠スタイル（まとめ先） ─────────────── */
+.frame {
+  border: 3px solid #cfcfcf;
+  border-radius: 6px;
+  background: transparent;
+  width: 100%;
+}
+
+/* 各枠の最小指定のみ */
+.frame-left {
+  height: 100%;
+}
+.frame-mid-top {
+  position: relative;
+  min-height: 0;
+}
+.frame-mid-bottom {
+  position: relative;
+}
+
+/* 中央・下段枠の中身を左右 1:1 で分割し中央見出し配置（フラットクラス） */
+.midbottom-grid {
+  position: absolute;
+  inset: 0; /* 枠いっぱい */
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  pointer-events: none; /* 将来画像等を重ねても操作妨げない */
+}
+.midbottom-cell {
+  display: flex;
+  justify-content: center; /* 横中央 */
+  align-items: flex-start; /* 縦中央（上寄せなら flex-start） */
+}
+.midbottom-title {
+  font-weight: 600;
+  font-size: 22px;
+  color: #222;
+}
+
+/* 右サイド（サイドバー） */
+#page2 .sidebar {
+  position: absolute;
+  inset: 0;
+  padding-left: 40px;
+}
+#page2 .sidebar .vline {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #b0b6bf;
+}
+
+/* ラベル＆値（ラベル下に値、少し右） */
+#page2 .side-dl {
+  margin: 0;
+  padding: 0;
+}
+#page2 .side-dl dt {
+  color: #cb1b23;
+  font-weight: 500;
+  font-size: 20px;
+  line-height: 1.35;
+  margin: 30px 0 10px;
+}
+#page2 .side-dl dt:first-of-type {
+  margin-top: 0px;
+}
+#page2 .side-dl dd {
+  margin: 0 0 30px 28px;
+  font-size: 17px;
+  color: #222;
+  line-height: 1.7;
+  white-space: pre-line;
+}

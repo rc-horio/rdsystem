@@ -1,0 +1,1157 @@
+/* =========================================
+   Map Page Styles (map.css)
+   -----------------------------------------
+   - 本ファイルは地図ページ全体のスタイル定義
+   - セクションごとに論理順に整理
+   - 既存の見た目/挙動は維持（ノーデグレ）
+   ========================================= */
+
+/* =========================================
+   0) Design Tokens / Global Helpers
+   -----------------------------------------
+   - ページ全体・UI共通で使う CSS 変数やヘルパ
+   - 必要に応じて上書き可能（後勝ち）
+   ========================================= */
+
+/* トグル/レイアウト/ディテールバー寸法など */
+:root {
+  /* Sidebar */
+  --sidebar-w: 300px;
+  /* Toggle Button */
+  --toggle-size: 48px;
+  /* Toolbar buttons (検索下のアイコン群) */
+  --toolbar-btn-size: 28px;
+
+  /* Detailbar box */
+  --detailbar-w: 300px; /* 詳細バーの幅 */
+  --detailbar-h: 98%; /* 詳細バーの高さ */
+  --detailbar-gap: 5px; /* サイドバーとの距離 */
+  --detailbar-pad: 16px; /* 詳細バー内パディング */
+
+  /* ========== Map overlay tokens ========== */
+  /* 離発着 長方形（赤系） */
+  --map-takeoff-stroke: #ed1b24;
+  --map-takeoff-fill: #ed1b24;
+  --map-takeoff-stroke-opacity: 0.9;
+  --map-takeoff-fill-opacity: 0.15;
+  --map-takeoff-stroke-width: 2;
+
+  /* 飛行エリア 楕円（緑系） */
+  --map-flight-stroke: #00c853;
+  --map-flight-fill: #00c853;
+  --map-flight-stroke-opacity: 1;
+  --map-flight-fill-opacity: 0.15;
+  --map-flight-stroke-width: 2;
+
+  /* 保安エリア（黄色系） */
+  --map-safety-stroke: #ffd54f;
+  --map-safety-fill: #ffd54f;
+  --map-safety-stroke-opacity: 0.9;
+  --map-safety-fill-opacity: 0.12;
+  --map-safety-stroke-width: 2;
+
+  /* 矢印（ルート） */
+  --map-arrow-stroke: #ffffff;
+  --map-arrow-stroke-opacity: 1;
+  --map-arrow-stroke-width: 2;
+  --map-arrow-head-scale: 3;
+
+  /* 離発着 基準点（白丸マーカー） */
+  --map-refcorner-fill: #ffffff;
+  --map-refcorner-stroke: #000000;
+  --map-refcorner-stroke-width: 2;
+  --map-refcorner-scale: 6;
+}
+
+/* スクロールバー（Sidebar / Detailbar 共通） */
+:root {
+  --sb-size: 10px; /* スクロールバー太さ */
+  --sb-radius: 10px; /* 角丸 */
+  --sb-track: rgba(255, 255, 255, 0.06); /* トラック色 */
+  --sb-thumb: rgba(255, 255, 255, 0.28); /* 通常サム */
+  --sb-thumb-hover: rgba(255, 255, 255, 0.42); /* hover */
+  --sb-thumb-active: rgba(255, 255, 255, 0.6); /* active/drag */
+  --sb-border: rgba(0, 0, 0, 0.35); /* 外周の微ボーダー */
+  --sb-inset: inset 0 0 0 1px var(--sb-border);
+}
+
+/* 入力UI（Textarea/InputBox）共通トークン */
+:root {
+  --rc-input-font-size: 0.7rem; /* 入力本体の既定フォントサイズ */
+  --rc-input-radius: 4px; /* 角丸の既定 */
+}
+
+/* macOS などでコントラスト強化時の微調整 */
+@media (prefers-contrast: more) {
+  :root {
+    --sb-thumb: rgba(255, 255, 255, 0.55);
+    --sb-thumb-hover: rgba(255, 255, 255, 0.7);
+    --sb-thumb-active: rgba(255, 255, 255, 0.85);
+  }
+}
+
+/* =========================================
+   1) Base / Layout
+   ========================================= */
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+.map-page {
+  position: relative;
+  height: 100%;
+}
+
+/* Google Map 埋め込み領域 */
+#map {
+  position: absolute;
+  inset: 0;
+}
+
+/* Google 左上コントロールの退避
+   - 固定サイドバーと被らないように左オフセット
+   - サイドバー幅 300px + 余白を考慮して 320px */
+.gm-top-left {
+  left: 320px !important;
+}
+
+/* =========================================
+   2) Sidebar（左側リスト・検索・ツールバー）
+   ========================================= */
+
+#sidebar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--sidebar-w);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+  padding: 10px;
+  color: #fff;
+
+  /* ガラス風トーン（MapView背後がぼける） */
+  background: rgba(0, 0, 0, 0.75);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  backdrop-filter: blur(12px) saturate(120%);
+
+  border-right: 1px solid rgba(29, 29, 29, 0.35);
+  box-shadow: 0 0 24px rgba(0, 0, 0, 0.25);
+  z-index: 10;
+  transform: translateX(0);
+  transition: transform 0.25s ease; /* 折りたたみアニメーション */
+}
+
+/* 折りたたみ時（ボディに .sidebar-collapsed が付与される） */
+.sidebar-collapsed #sidebar {
+  transform: translateX(-100%);
+}
+
+#sidebar button {
+  cursor: pointer;
+}
+
+/* --- 2-1) Search Header（検索エリア） --- */
+
+#searchWrap {
+  position: sticky;
+  top: 0; /* スクロールしても検索エリアを固定 */
+  z-index: 11;
+  flex: 0 0 auto;
+  padding: 10px 0 8px;
+}
+
+.search-field {
+  position: relative;
+  width: 100%;
+}
+
+#searchBox {
+  width: 100%;
+  height: 36px;
+  box-sizing: border-box;
+  padding: 8px 12px; /* 左アイコン無しの通常パディング */
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.137) !important;
+  color: #fff;
+  outline: none;
+  box-shadow: none !important;
+}
+#searchBox::placeholder {
+  color: rgba(255, 255, 255, 0.65);
+}
+#searchBox:focus {
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+#searchHint {
+  margin-top: 6px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* --- 2-2) Toolbar（検索の直下のアイコン群） --- */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* グループ化（左側のアイコン群） */
+.toolbar-group {
+  display: flex;
+  gap: 8px;
+}
+
+/* 右側へ押し広げるスペーサー */
+.toolbar .spacer {
+  flex: 1 1 auto;
+}
+
+/* クリック領域（幅/高さ） */
+.toolbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--toolbar-btn-size);
+  height: var(--toolbar-btn-size);
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  line-height: 0;
+}
+
+/* PNGアイコンは親ボタン高さにフィット（比率維持） */
+.toolbar button img {
+  height: 100% !important;
+  width: auto;
+  display: block;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* --- 2-3) Sidebar List（エリア一覧） --- */
+
+#locationList {
+  padding-left: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+#locationList li {
+  position: relative;
+  padding: 6px 0 6px 16px; /* 行間＆左側に点マーカーの余白 */
+  line-height: 1.5; /* 少し広め */
+  cursor: pointer; /* クリックできる見た目 */
+}
+
+/* 左の赤いドット */
+#locationList li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e03333;
+}
+#locationList li:hover::before,
+#locationList li.active::before {
+  background: #ff5a5f;
+}
+#locationList li.active {
+  color: #ff4040;
+  font-weight: 400;
+}
+
+/* --- 2-4) Context menu（未使用の予約領域） --- */
+
+#controls {
+  position: absolute;
+  z-index: 20;
+  display: none; /* 現状は非表示 */
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* =========================================
+   3) Sidebar Toggle Button（中央の丸ボタン）
+   ========================================= */
+
+#sidebarToggle {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--sidebar-w) + 30px); /* サイドバー右から少し離す */
+  transform: translateY(-50%);
+  z-index: 30;
+  width: var(--toggle-size);
+  height: var(--toggle-size);
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #fa0000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(var(--toggle-size) * 1);
+  font-weight: 700;
+  -webkit-text-stroke: 0.6px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+/* 詳細バーオープン時は、さらに右へ逃がす（横幅分スライド） */
+body.detailbar-open #sidebarToggle {
+  left: calc(
+    var(--sidebar-w) + var(--detailbar-gap) + var(--detailbar-w) + 30px
+  );
+}
+
+/* Sidebar 折りたたみ時は左端付近へ */
+.sidebar-collapsed #sidebarToggle {
+  left: 8px;
+}
+
+/* 選択/キャレットの抑止（ドラッグ選択やIビームを出さない） */
+#sidebarToggle,
+#sidebarToggle * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -ms-user-select: none !important;
+  caret-color: transparent !important;
+}
+
+/* =========================================
+   4) A11y Helpers
+   ========================================= */
+
+/* 画面外読み上げ用（スクリーンリーダーのみ対象） */
+.sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* キャレット/選択を無効化したい領域に付与（ツールバーなど） */
+.no-caret {
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  caret-color: transparent;
+}
+.no-caret * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -ms-user-select: none !important;
+  caret-color: transparent !important;
+}
+
+/* =========================================
+   5) Detailbar（右側の詳細パネル）
+   ========================================= */
+
+/* パネル本体（デフォは非表示。body.detailbar-open で表示） */
+#detailbar {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--sidebar-w) + var(--detailbar-gap));
+  transform: translateY(-50%);
+  width: var(--detailbar-w);
+  height: var(--detailbar-h);
+
+  /* サイドバーに合わせたガラス風 */
+  background: rgba(0, 0, 0, 0.75);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  backdrop-filter: blur(12px) saturate(120%);
+  border: 1px solid rgba(29, 29, 29, 0.35);
+  border-radius: 10px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
+
+  z-index: 20;
+  opacity: 0; /* 非表示 */
+  pointer-events: none; /* 非活性 */
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+#detailbar button:hover {
+  cursor: pointer;
+}
+
+/* 表示時（ボディに .detailbar-open が付く） */
+body.detailbar-open #detailbar {
+  opacity: 1;
+  transform: translateY(-50%) translateZ(0);
+  pointer-events: auto;
+
+  /* 二段構成：上=ヘッダー固定、下=本文スクロール */
+  display: grid;
+  grid-template-rows: auto 1fr;
+  padding: var(--detailbar-pad);
+  gap: 12px;
+  overflow: hidden; /* 外側は隠す（本文は内側 .detailbar-panel でスクロール） */
+}
+
+/* Sidebar を折りたたんだら Detailbar も不可視に */
+.sidebar-collapsed #detailbar {
+  opacity: 0;
+}
+
+/* ヘッダー全体（ヒーロー・タイトル・タブ） */
+.detailbar-header {
+  display: grid;
+  grid-template-rows: auto auto auto; /* ヒーロー / タイトル / タブ */
+  gap: 10px;
+  background: transparent; /* 透過（ガラス風は外側で実現） */
+}
+
+/* ヒーロー（画像など差し替え想定）
+   - 高さは CSS 変数で制御（--detailbar-hero-h、デフォルトは 140px）
+   - fullbleed（左右余白を打ち消して全幅表示）も併用可能 */
+.detailbar-hero-slot {
+  --detailbar-hero-h: 140px;
+  height: var(--detailbar-hero-h);
+  margin-bottom: 10px;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+}
+
+/* fullbleed: 左右のパディングを打ち消して全幅に広げる */
+.detailbar-hero-fullbleed {
+  margin-left: calc(-1 * var(--detailbar-pad));
+  margin-right: calc(-1 * var(--detailbar-pad));
+  width: calc(100% + (var(--detailbar-pad) * 2));
+  display: block;
+}
+/* fullbleed をヘッダー上端まで広げる */
+.detailbar-hero-fullbleed-top {
+  margin-top: calc(-1 * var(--detailbar-pad));
+}
+
+/* タイトル（横幅固定・中央寄せ・省略対応） */
+.detailbar-title {
+  margin: 0;
+  align-self: center;
+
+  /* サイズ/外観 */
+  width: 260px; /* 固定幅（必要に応じて調整） */
+  padding: 0 14px; /* 高さはパディングで確保 */
+  border-radius: 4px;
+  font-size: 50px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  letter-spacing: 0.02em;
+
+  /* 中央寄せ（上下左右） */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+
+  /* 文字が多いときは「…」で省略 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  /* Flex + ellipsis の安定化（Safari等ケア） */
+  min-width: 0;
+
+  margin-top: 0;
+
+  /* タイトル内に置く InputBox 用のカスタム（変数で枠消し） */
+  --rc-inp-bg: transparent;
+  --rc-inp-border: 0;
+  --rc-inp-label-w: 0px;
+}
+/* タイトル内 InputBox の文字中央寄せ＆ellipsis */
+.detailbar-title .rc-inp-input {
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* タブバー */
+.detailbar-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  position: relative;
+  border-bottom: 1px solid #ed1b24;
+  margin-top: 0;
+}
+
+/* タブボタン（最小幅指定で pill を広げやすく） */
+.tab-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  padding: 4px 14px;
+  position: relative;
+  outline: none;
+  border-radius: 4px;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--tab-pill-min-w, 60px);
+}
+
+/* アクティブタブ */
+.tab-btn.is-active,
+.tab-btn[aria-selected="true"] {
+  background: #ed1b24;
+  color: #fff;
+  margin-bottom: -1px; /* 下線と底辺を同列に */
+}
+
+/* 本文パネル（スクロール領域） */
+.detailbar-panel {
+  flex: 1 1 auto;
+  min-height: 0; /* Grid子要素のスクロール可にするキモ */
+  overflow: auto; /* パネル内をスクロール */
+}
+
+/* 右上の「隠す」ボタンを前面に */
+.detailbar-hide {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 5;
+}
+
+/* =========================================
+   6) Detailbar Forms（Textarea / InputBox の配置）
+   -----------------------------------------
+   - タブごとの入力フォームのグリッド
+   - JS側の inline grid/gap を撤去した置換先
+   ========================================= */
+
+.detailbar-form {
+  display: grid;
+  gap: 8px; /* 概要タブの既定の間隔 */
+}
+
+.detailbar-form--lg {
+  gap: 20px; /* 詳細タブなど広めにしたいとき */
+}
+
+/* =========================================
+   7) Scrollbar Styling（Sidebar / Detailbar）
+   ========================================= */
+
+/* Firefox */
+#locationList,
+.detailbar-panel {
+  scrollbar-width: thin; /* auto | thin | none */
+  scrollbar-color: var(--sb-thumb) transparent; /* thumb track */
+}
+
+/* WebKit 系（Chrome/Safari/Edge） */
+#locationList::-webkit-scrollbar,
+.detailbar-panel::-webkit-scrollbar {
+  width: var(--sb-size);
+  height: var(--sb-size);
+}
+
+/* トラック（背景） */
+#locationList::-webkit-scrollbar-track,
+.detailbar-panel::-webkit-scrollbar-track {
+  background: var(--sb-track);
+  border-radius: var(--sb-radius);
+  box-shadow: var(--sb-inset);
+}
+
+/* サム（つまみ） */
+#locationList::-webkit-scrollbar-thumb,
+.detailbar-panel::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    var(--sb-thumb) 0%,
+    rgba(255, 255, 255, 0.22) 100%
+  );
+  border-radius: var(--sb-radius);
+  box-shadow: var(--sb-inset), 0 1px 6px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(2px);
+}
+
+#locationList::-webkit-scrollbar-thumb:active,
+.detailbar-panel::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(
+    180deg,
+    var(--sb-thumb-active) 0%,
+    rgba(255, 255, 255, 0.36) 100%
+  );
+}
+
+/* 角の見切れ対策（必要な場合のみ） */
+#locationList::-webkit-scrollbar-corner,
+.detailbar-panel::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* キーボード操作時の視認性（アクセシビリティ） */
+#locationList:focus-visible,
+.detailbar-panel:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.25);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* =========================================
+   8) DS History（履歴リストの見た目）
+   ========================================= */
+
+/* トークン（文字サイズ・色など） */
+:root {
+  --ds-history-gap: 20px;
+  --ds-date-fz: 12px; /* 日付文字サイズ */
+  --ds-date-lh: 1.2;
+  --ds-date-color: rgba(255, 255, 255, 0.9);
+  --ds-date-tracking: 0.3px;
+
+  --ds-name-fz: 12px; /* イベント名文字サイズ */
+  --ds-name-lh: 1.2;
+  --ds-name-color: rgba(255, 255, 255, 0.95);
+}
+
+/* リスト全体 */
+.ds-history-list {
+  display: grid;
+  gap: 14px;
+}
+
+/* 8pxだけ左に余白 */
+.ds-history-leftgap {
+  margin-left: 10px;
+  display: inline-flex; /* ボタンの高さに合わせるため */
+}
+
+/* 1行 */
+.ds-history-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-history-gap);
+  white-space: nowrap;
+}
+
+/* 日付 */
+.ds-history-date {
+  width: 60px; /* 桁ズレ防止 */
+  font-size: var(--ds-date-fz);
+  line-height: var(--ds-date-lh);
+  color: var(--ds-date-color);
+  letter-spacing: var(--ds-date-tracking);
+}
+
+/* イベント名（残り幅で省略） */
+.ds-history-name {
+  flex: 1 1 auto;
+  min-width: 0; /* flex 子要素の ellipsis に必須 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--ds-name-fz);
+  line-height: var(--ds-name-lh);
+  color: var(--ds-name-color);
+}
+
+/* =========================================
+   9) Inputs（Textarea / InputBox）
+   -----------------------------------------
+   - 既存のコンポーネントの <style> をこのCSSへ移行
+   - ボディ .editing-on クラスにより活性/非活性を制御
+   ========================================= */
+
+/* ===== Textarea ===== */
+
+.rc-txa-field {
+  color: #fff;
+}
+
+.rc-txa-label,
+.rc-txa-note {
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+}
+
+.rc-txa-label {
+  display: block;
+  margin: 0 0 6px;
+  font-size: 0.8rem;
+}
+
+.rc-txa-shell {
+  padding: 12px 16px;
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--rc-txa-radius, var(--rc-input-radius));
+  transition: box-shadow 0.15s ease, border-color 0.15s ease,
+    background 0.15s ease, opacity 0.15s ease;
+  user-select: none;
+  font-size: var(--rc-input-font-size);
+}
+
+/* 活性時フォーカス（視認性は境界線のみ僅かに明るく） */
+.rc-txa-shell:not([aria-disabled="true"]):focus-within {
+  box-shadow: none;
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+/* 非活性見た目（hover/focus 演出オフ） */
+.rc-txa-shell[aria-disabled="true"] {
+  opacity: 0.9;
+  filter: grayscale(0.05);
+  box-shadow: none !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+.rc-txa-shell[aria-disabled="true"]:hover,
+.rc-txa-shell[aria-disabled="true"]:focus-within {
+  box-shadow: none !important;
+  background: rgba(0, 0, 0, 0.25) !important;
+}
+
+.rc-txa-input {
+  display: block;
+  width: 100%;
+  min-height: 6rem;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #fff;
+  line-height: 1.6;
+  padding: 0;
+  margin: 0;
+  resize: vertical;
+  caret-color: auto;
+  font: inherit;
+  font-size: var(--rc-input-font-size);
+}
+
+/* 非活性：選択不可・キャレット非表示・完全無反応 */
+.rc-txa-input:disabled {
+  color: #fff;
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  caret-color: transparent;
+  pointer-events: none;
+}
+
+/* ===== InputBox ===== */
+
+.rc-inp-field {
+  color: #fff;
+}
+
+/* 横一列：固定ラベル列 + 可変入力列（ラベル幅は CSS 変数で統一） */
+.rc-inp-row {
+  display: grid;
+  grid-template-columns: var(--rc-inp-label-w, 120px) 1fr;
+  align-items: center;
+  column-gap: 12px;
+  width: 100%;
+}
+
+/* ラベル：折返しなしで高さブレ防止 */
+.rc-inp-label {
+  margin: 0;
+  font-size: 0.8rem;
+  text-align: left;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+}
+
+/* 補足文は入力列の下段（2列目に揃える） */
+.rc-inp-note {
+  grid-column: 2 / 3;
+  margin: 6px 0 0;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+/* 入力シェル（外枠）。横幅は 1fr にフィット */
+.rc-inp-shell {
+  padding: 10px 16px;
+  box-sizing: border-box;
+  background: var(--rc-inp-bg, rgba(0, 0, 0, 0.25));
+  border: var(--rc-inp-border, 1px solid rgba(255, 255, 255, 0.12));
+  border-radius: var(--rc-txa-radius, var(--rc-input-radius));
+  transition: border-color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  width: var(--rc-inp-input-w, 100%);
+  max-width: 100%;
+  justify-self: end;
+  font-size: var(--rc-input-font-size);
+}
+
+/* 活性時フォーカスでも影は出さない */
+.rc-inp-shell:not([aria-disabled="true"]):focus-within {
+  box-shadow: none;
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+/* 非活性見た目（hover/focus 演出オフ） */
+.rc-inp-shell[aria-disabled="true"] {
+  opacity: 0.9;
+  filter: grayscale(0.05);
+  box-shadow: none !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+.rc-inp-shell[aria-disabled="true"]:focus-within {
+  box-shadow: none !important;
+  background: rgba(0, 0, 0, 0.25) !important;
+}
+
+/* 入力本体 */
+.rc-inp-input {
+  display: block;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #fff;
+  line-height: 1.6;
+  padding: 0;
+  margin: 0;
+  caret-color: auto;
+  font: inherit;
+  font-size: var(--rc-input-font-size);
+}
+
+/* 非活性：選択不可・キャレット非表示・無反応 */
+.rc-inp-input:disabled {
+  color: rgba(255, 255, 255);
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  caret-color: transparent;
+  pointer-events: none;
+}
+
+/* === DS History: selected row === */
+.ds-history-row.is-selected,
+.ds-history-row[aria-selected="true"] {
+  background: rgba(255, 255, 255, 0.08); /* うっすら反転 */
+  border-left: 3px solid #ed1b24; /* 既存のブランド赤 */
+  border-radius: 6px;
+}
+/* ===== SelectBox (rc-inp-input on <select>) ===== */
+/* 基本トーンをダークに（UAが対応していればポップアップも暗色になる） */
+select.rc-inp-input {
+  color-scheme: dark; /* Safari/Chrome/Edge などでドロップダウンの基調が暗色に */
+}
+
+/* ポップアップ内の各 option の配色（UAが許す範囲で反映） */
+:root {
+  --rc-select-popup-bg: rgba(0, 0, 0, 0.8);
+  --rc-select-popup-fg: #fff;
+}
+
+/* 通常時の行 */
+select.rc-inp-input option,
+select.rc-inp-input optgroup {
+  background: var(--rc-select-popup-bg);
+  color: var(--rc-select-popup-fg);
+}
+
+/* =========================================
+   10) Geometry Metrics Floating Panel
+   ========================================= */
+
+/* Panel */
+.geom-metrics-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 22; /* map(0) < sidebar(10) < detailbar(20) < this(22) */
+  width: min(600px, 60vw); /* 60%のビューポート幅に基づく最大幅 */
+  max-width: 90vw; /* ビューポートの90%以内 */
+  padding: 10px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.75);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  backdrop-filter: blur(12px) saturate(120%);
+  border: 1px solid rgba(29, 29, 29, 0.35);
+  border-radius: 10px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
+  overflow: hidden; /* 内容がはみ出さないように */
+  word-wrap: break-word; /* 長い単語が折り返される */
+  cursor: move;
+}
+
+/* Panelがドラッグ中の動きを表すスタイル */
+.geom-metrics-panel.dragging {
+  opacity: 0.8;
+}
+
+/* Title */
+.geom-metrics-title {
+  margin-bottom: 8px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+/* Columns */
+.geom-cols {
+  display: flex;
+  gap: 0;
+  flex-wrap: wrap; /* 子要素が折り返されるように設定 */
+  justify-content: space-between; /* 各カラムの間隔を広げる */
+  overflow-x: auto; /* 横スクロール防止 */
+}
+
+/* 各カラム */
+.geom-col {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 140px; /* 最小幅を調整 */
+  padding: 6px 12px;
+  box-sizing: border-box;
+  width: 100%; /* 横幅を親に合わせる */
+  max-width: 100%; /* 横幅制限 */
+}
+
+/* カラム間の区切り線 */
+.geom-col:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  right: 0;
+  bottom: 6px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* Column title (pill) */
+.geom-col-title {
+  display: block;
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.95);
+  text-align: center;
+  white-space: nowrap;
+  word-break: keep-all;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 5px;
+
+  /* 控えめな幅 */
+  width: auto; /* 自動で幅を調整 */
+  max-width: 80%; /* 最大80%に制限 */
+  min-width: 120px; /* 最小幅を120pxに設定 */
+}
+
+/* Rows */
+.geom-rows {
+  display: grid;
+  gap: 6px;
+  overflow: visible; /* 行はみ出し時のスクロールバー回避 */
+}
+
+/* k | v | u */
+.geom-row {
+  display: grid;
+  grid-template-columns: 10px 1fr 12px;
+  align-items: baseline;
+  column-gap: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.geom-row .k {
+  opacity: 0.85;
+}
+
+.geom-row .v {
+  font-weight: 700;
+  text-align: right;
+}
+
+.geom-row .u {
+  opacity: 0.9;
+}
+
+/* 入力欄のカーソル設定 */
+.geom-input {
+  width: 50%; /* 入力ボックスの幅を調整 */
+  min-width: 0;
+  box-sizing: content-box;
+  text-align: center; /* 入力欄の中身も中央揃え */
+  font-variant-numeric: tabular-nums; /* 桁揃え */
+  margin: 0 auto; /* 自動で中央揃え */
+}
+
+/* プレースホルダーも中央揃え */
+.geom-input::placeholder {
+  text-align: center;
+}
+
+/* Inputs */
+.geom-metrics-panel .geom-input {
+  width: 7ch; /* 桁数基準で安定 */
+  min-width: 0;
+  box-sizing: content-box;
+  text-align: right;
+  font-variant-numeric: tabular-nums; /* 桁揃え */
+}
+
+/* 入力欄を .v と同じタイポに */
+.geom-metrics-panel .geom-row input.v.geom-input {
+  font: inherit; /* family/size/weight/line-height を継承 */
+  text-align: center;
+}
+
+/* disabled の視認性（Safari対策含む） */
+.geom-metrics-panel .geom-input:disabled {
+  opacity: 0.85;
+  pointer-events: none;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.95);
+}
+
+/* Number input: hide spin buttons */
+.geom-metrics-panel input[type="number"].geom-input::-webkit-outer-spin-button,
+.geom-metrics-panel input[type="number"].geom-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.geom-metrics-panel input[type="number"].geom-input {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+/* 入力欄以外の場所では、ドラッグカーソル */
+.geom-metrics-panel:not(:has(input)) {
+  cursor: move;
+}
+
+/* =========================================
+   11) Create Geometry CTA Overlay（中央ボタン）
+   ========================================= */
+
+/* 既存の #controls { display:none } を上書きして中央に配置 */
+#controls.cta-overlay {
+  position: absolute;
+  top: 18%;
+  left: 93%;
+  transform: translate(-50%, -50%);
+  z-index: 24; /* map(0) < sidebar(10) < detailbar(20) < panel(22) < これ(24) < toggle(30) */
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  /* 中央の空エリアでマップ操作を邪魔しない */
+  pointer-events: none;
+}
+#controls.cta-overlay > * {
+  pointer-events: auto; /* 子（ボタン）はクリック可能に戻す */
+}
+
+/* ボタン本体：赤系テーマ（エリア情報作成） */
+.create-geom-button {
+  appearance: none;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 0, 0, 0.35); /* 赤ボーダー */
+  background: rgba(255, 0, 0, 0.75); /* 赤バックグラウンド */
+  
+  color: #fff;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
+  transition: background 0.15s ease, border-color 0.15s ease,
+    transform 0.06s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.create-geom-button:hover {
+  background: rgba(255, 0, 0, 0.82); /* 赤バックグラウンド（ホバー時） */
+  border-color: rgba(255, 255, 255, 0.24); /* ホバー時ボーダー */
+}
+
+.create-geom-button:active {
+  transform: translateY(1px);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+}
+
+.create-geom-button:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.25);
+  outline-offset: 2px;
+}
+
+/* コントラスト強化時の微調整 */
+@media (prefers-contrast: more) {
+  .create-geom-button {
+    border-color: rgba(255, 255, 255, 0.55);
+  }
+}
+
+/* ボタン本体：黒系テーマ（エリア情報削除） */
+.delete-geom-button {
+  appearance: none;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(29, 29, 29, 0.35); /* 黒ボーダー */
+  background: rgba(0, 0, 0, 0.75); /* 黒バックグラウンド */
+  
+  color: #fff;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
+  transition: background 0.15s ease, border-color 0.15s ease,
+    transform 0.06s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.delete-geom-button:hover {
+  background: rgba(0, 0, 0, 0.82); /* 黒バックグラウンド（ホバー時） */
+  border-color: rgba(255, 255, 255, 0.24); /* ホバー時ボーダー */
+}
+
+.delete-geom-button:active {
+  transform: translateY(1px);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+}
+
+.delete-geom-button:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.25);
+  outline-offset: 2px;
+}
+
+/* コントラスト強化時の微調整 */
+@media (prefers-contrast: more) {
+  .delete-geom-button {
+    border-color: rgba(255, 255, 255, 0.55);
+  }
+}

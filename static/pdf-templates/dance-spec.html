@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="/pdf-templates/dance-spec.css" />
+</head>
+
+<body>
+    <!-- ページ1 -->
+    <section id="page1" class="page">
+        <img class="logo" src="/sc_REDCLIFF-透過.png" alt="REDCLIFF" />
+        <div id="title"></div>
+        <div class="grad"></div>
+        <div id="company"></div>
+    </section>
+
+    <!-- ページ2 -->
+    <section id="page2" class="page">
+        <div id="page2-header">離発着情報</div>
+        <div class="grad" aria-hidden="true"></div>
+
+        <div class="page2-grid">
+            <!-- 左ペイン -->
+            <div class="pane-left">
+                <div class="frame frame-left" aria-hidden="true"></div>
+            </div>
+
+            <!-- 中央ペイン -->
+            <div class="pane-mid">
+                <div class="frame frame-mid-top" aria-hidden="true"></div>
+
+                <div class="frame frame-mid-bottom" aria-hidden="true">
+                    <!-- 下段枠：左右に2分割し、それぞれ中央にタイトル -->
+                    <div class="midbottom-grid">
+                        <div class="midbottom-cell">
+                            <span class="midbottom-title">機体の向き</span>
+                        </div>
+                        <div class="midbottom-cell">
+                            <span class="midbottom-title">並べる間隔</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右ペイン（サイドバー） -->
+            <div class="pane-right">
+                <div class="sidebar" aria-label="右サイド情報">
+                    <span class="vline" aria-hidden="true"></span>
+                    <dl class="side-dl">
+                        <dt>■機体数</dt>
+                        <dd id="v-aircraft"></dd>
+
+                        <dt>■最低、最高高度</dt>
+                        <dd id="v-altitude"></dd>
+
+                        <dt>■移動</dt>
+                        <dd id="v-move"></dd>
+
+                        <dt>■旋回</dt>
+                        <dd id="v-turn"></dd>
+
+                        <dt>■障害物情報</dt>
+                        <dd id="v-obstacles"></dd>
+
+                        <dt>■離発着演出</dt>
+                        <dd id="v-show"></dd>
+
+                        <dt>■アニメーションエリア</dt>
+                        <dd id="v-anim"></dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </section>
+</body>
+
+</html>
