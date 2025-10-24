@@ -26,9 +26,9 @@ Amplify.configure({
         oauth: {
           domain: import.meta.env.VITE_COGNITO_DOMAIN,
           scopes: ["openid", "email", "profile"],
-          // ★ コールバック先は /auth/callback（Cognito 側の許可URLにも登録済みであること）
+          // コールバック先は /auth/callback（Cognito 側の許可URLにも登録済みであること）
           redirectSignIn: [DEV_REDIRECT_SIGN_IN, PROD_REDIRECT_SIGN_IN],
-          // サインアウト後は /auth/ に戻すと分かりやすい（Cognito 側にも登録が必要）
+          // サインアウト後は /auth/ に戻すと分かりやすい（Cognito 側にも登録）
           redirectSignOut: [DEV_REDIRECT_SIGN_OUT, PROD_REDIRECT_SIGN_OUT],
           responseType: "code",
         },

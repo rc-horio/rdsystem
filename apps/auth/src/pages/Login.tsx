@@ -1,11 +1,12 @@
 // apps/auth/src/pages/Login.tsx
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BrandHeader } from "@/components";
 import { signInWithRedirect, fetchAuthSession } from "aws-amplify/auth";
 
 export default function Login() {
   const navigate = useNavigate();
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -17,7 +18,26 @@ export default function Login() {
   }, [navigate]);
 
   const handleGoogle = async () => {
-    await signInWithRedirect({ provider: "Google" as const });
+    if (busy) return;
+    setBusy(true);
+    try {
+      // 既にログイン済みならボタン押下時も素直に /select へ
+      const s = await fetchAuthSession().catch(() => null);
+      if (s?.tokens?.idToken) {
+        navigate("/select", { replace: true });
+        return;
+      }
+      await signInWithRedirect({ provider: "Google" as const });
+    } catch (e: any) {
+      if (e?.name === "UserAlreadyAuthenticatedException") {
+        // 二重サインインを避けてダッシュボードへ
+        navigate("/select", { replace: true });
+      } else {
+        console.error(e);
+      }
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -51,6 +71,7 @@ export default function Login() {
             <div className="flex justify-center">
               <button
                 onClick={handleGoogle}
+                disabled={busy}
                 className="w-10/12 max-w-80 mx-auto rounded-lg bg-red-600 py-3 font-semibold text-white shadow hover:bg-red-700 active:scale-95 transition select-none caret-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
               >
                 Login with Google
