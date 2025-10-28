@@ -24,7 +24,7 @@ import {
   buildAreaHistoryFromProjects,
   updateScheduleTakeoffReferencePoint,
 } from "./areasApi";
-import { upsertScheduleGeometry } from "./areasApi";
+import { upsertScheduleGeometry, clearScheduleGeometry } from "./areasApi";
 import { AREA_NAME_NONE } from "./constants/events";
 import type { ScheduleLite, Point } from "@/features/types";
 import {
@@ -285,6 +285,7 @@ function SideListBarBase({
           projectUuid?: string;
           scheduleUuid?: string;
           geometry?: any;
+          deleted?: boolean;
         }>((resolve, reject) => {
           let timer: number | null = null;
           const onGeom = (e: Event) => {
@@ -312,22 +313,33 @@ function SideListBarBase({
           }, 1500);
         }).catch(() => ({} as any));
 
-        if (
-          geomPayload?.projectUuid &&
-          geomPayload?.scheduleUuid &&
-          geomPayload?.geometry
-        ) {
-          const okGeomSave = await upsertScheduleGeometry({
-            projectUuid: geomPayload.projectUuid,
-            scheduleUuid: geomPayload.scheduleUuid,
-            geometry: geomPayload.geometry,
-          });
-          if (!okGeomSave) {
-            console.warn("[save] geometry save failed");
+        if (geomPayload?.projectUuid && geomPayload?.scheduleUuid) {
+          if (geomPayload?.deleted === true) {
+            // ★ 削除指定：geometry キーごと除去して保存
+            const okGeomDel = await clearScheduleGeometry({
+              projectUuid: geomPayload.projectUuid,
+              scheduleUuid: geomPayload.scheduleUuid,
+            });
+            if (!okGeomDel) {
+              console.warn("[save] geometry delete failed");
+            } else {
+              console.info("[save] geometry deleted");
+            }
+          } else if (geomPayload?.geometry) {
+            // 通常の upsert
+            const okGeomSave = await upsertScheduleGeometry({
+              projectUuid: geomPayload.projectUuid,
+              scheduleUuid: geomPayload.scheduleUuid,
+              geometry: geomPayload.geometry,
+            });
+            if (!okGeomSave) {
+              console.warn("[save] geometry save failed");
+            }
+          } else {
+            // geometry なし & deleted でもない → 何もしない
+            if (import.meta.env.DEV)
+              console.debug("[save] geometry payload not available — skipped");
           }
-        } else {
-          if (import.meta.env.DEV)
-            console.debug("[save] geometry payload not available — skipped");
         }
       } catch (e) {
         console.warn("[save] geometry save skipped:", e);

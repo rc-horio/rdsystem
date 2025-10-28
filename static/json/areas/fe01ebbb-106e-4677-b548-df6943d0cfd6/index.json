@@ -1,0 +1,60 @@
+{
+    "area": {
+        "id": "rakuten_miyagi",
+        "name": "楽天モバイルパーク宮城",
+        "updated_at": "2025-10-08T06:22:13Z",
+        "updated_by": "seed-script"
+    },
+    "overview": {
+        "address": "宮城県仙台市 楽天モバイルパーク宮城",
+        "prefecture": "宮城",
+        "manager": "佐藤",
+        "droneRecord": "あり",
+        "droneCountEstimate": "10",
+        "heightLimitM": "120",
+        "availability": "可",
+        "overview": "[object Object]"
+    },
+    "details": {
+        "statusMemo": "近隣イベントと日程調整が必要。",
+        "permitMemo": "自治体の占用許可が別途必要。",
+        "restrictionsMemo": "学校上空は終業後のみ可。",
+        "remarks": "雨天時は翌日に順延。"
+    },
+    "flightArea": {
+        "polygon": [
+            {
+                "lat": 38.2562056,
+                "lon": 140.9025
+            },
+            {
+                "lat": 38.2570000,
+                "lon": 140.9030000
+            },
+            {
+                "lat": 38.2550000,
+                "lon": 140.9040000
+            },
+            {
+                "lat": 38.2540000,
+                "lon": 140.9010000
+            }
+        ],
+        "altitudeMaxM": 120,
+        "safetyBufferM": 40
+    },
+    "history": [
+        {
+            "projectuuid": "",
+            "scheduleuuid": "",
+            "actualCoordinate": {
+                "lat": 38.2562056,
+                "lon": 140.9025
+            }
+        }
+    ],
+    "updated_at": "2025-10-25T17:40:10.418Z",
+    "updated_by": "ui",
+    "areaId": "rakuten_miyagi",
+    "areaName": "楽天モバイルパーク宮城"
+}

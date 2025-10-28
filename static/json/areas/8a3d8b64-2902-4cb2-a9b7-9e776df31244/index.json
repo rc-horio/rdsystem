@@ -1,0 +1,60 @@
+{
+    "area": {
+        "id": "omagari_daisen",
+        "name": "大曲",
+        "updated_at": "2025-10-08T06:22:13Z",
+        "updated_by": "seed-script"
+    },
+    "overview": {
+        "address": "秋田県大仙市 大曲エリア",
+        "prefecture": "秋田",
+        "manager": "佐藤",
+        "droneRecord": "あり",
+        "droneCountEstimate": "10",
+        "heightLimitM": "90",
+        "availability": "可",
+        "overview": "[object Object]"
+    },
+    "details": {
+        "statusMemo": "近隣イベントと日程調整が必要。",
+        "permitMemo": "自治体の占用許可が別途必要。",
+        "restrictionsMemo": "学校上空は終業後のみ可。",
+        "remarks": "雨天時は翌日に順延。"
+    },
+    "flightArea": {
+        "polygon": [
+            {
+                "lat": 39.4576,
+                "lon": 140.457605
+            },
+            {
+                "lat": 39.4580000,
+                "lon": 140.4580000
+            },
+            {
+                "lat": 39.4560000,
+                "lon": 140.4590000
+            },
+            {
+                "lat": 39.4550000,
+                "lon": 140.4560000
+            }
+        ],
+        "altitudeMaxM": 90,
+        "safetyBufferM": 30
+    },
+    "history": [
+        {
+            "projectuuid": "",
+            "scheduleuuid": "",
+            "actualCoordinate": {
+                "lat": 39.4576,
+                "lon": 140.457605
+            }
+        }
+    ],
+    "updated_at": "2025-10-25T17:40:10.418Z",
+    "updated_by": "ui",
+    "areaId": "omagari_daisen",
+    "areaName": "大曲"
+}

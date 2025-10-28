@@ -148,7 +148,6 @@ export async function fetchAreaInfo(
     return { title, history, meta: parseDetailMeta(info, fallbackAreaName) };
 }
 
-
 /** =========================
  *  プロジェクト一覧の取得
  *  ========================= */
@@ -422,5 +421,34 @@ export async function upsertScheduleGeometry(params: {
 
     const ok = await saveProjectIndex(projectUuid, next);
     if (!ok) console.error("[upsertScheduleGeometry] saveProjectIndex failed");
+    return ok;
+}
+
+/** 指定スケジュールの geometry を削除（キーごと除去）して保存します。成功: true */
+export async function clearScheduleGeometry(params: {
+    projectUuid: string;
+    scheduleUuid: string;
+}): Promise<boolean> {
+    const { projectUuid, scheduleUuid } = params;
+    if (!projectUuid || !scheduleUuid) return false;
+
+    const proj = await fetchProjectIndex(projectUuid);
+    if (!proj || !Array.isArray(proj?.schedules)) return false;
+
+    const idx = proj.schedules.findIndex((s: any) => s?.id === scheduleUuid);
+    if (idx < 0) return false;
+
+    // geometry キーを除去したスケジュールを構築
+    const nextSchedules = proj.schedules.map((s: any, i: number) => {
+        if (i !== idx) return s;
+        const { geometry, ...rest } = s ?? {};
+        // 保存時に undefined は JSON から落ちるので OK
+        return { ...rest };
+    });
+
+    const next = { ...proj, schedules: nextSchedules };
+
+    const ok = await saveProjectIndex(projectUuid, next);
+    if (!ok) console.error("[clearScheduleGeometry] saveProjectIndex failed");
     return ok;
 }

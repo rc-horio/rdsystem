@@ -1,0 +1,60 @@
+{
+    "area": {
+        "id": "hiroshima_honkawa_elem",
+        "name": "本川小学校",
+        "updated_at": "2025-10-08T06:22:13Z",
+        "updated_by": "seed-script"
+    },
+    "overview": {
+        "address": "広島県広島市 本川小学校",
+        "prefecture": "広島",
+        "manager": "佐藤",
+        "droneRecord": "あり",
+        "droneCountEstimate": "5",
+        "heightLimitM": "60",
+        "availability": "可",
+        "overview": "[object Object]"
+    },
+    "details": {
+        "statusMemo": "近隣イベントと日程調整が必要。",
+        "permitMemo": "自治体の占用許可が別途必要。",
+        "restrictionsMemo": "学校上空は終業後のみ可。",
+        "remarks": "雨天時は翌日に順延。"
+    },
+    "flightArea": {
+        "polygon": [
+            {
+                "lat": 34.393738,
+                "lon": 132.454619
+            },
+            {
+                "lat": 34.3945000,
+                "lon": 132.4555000
+            },
+            {
+                "lat": 34.3920000,
+                "lon": 132.4560000
+            },
+            {
+                "lat": 34.3910000,
+                "lon": 132.4530000
+            }
+        ],
+        "altitudeMaxM": 60,
+        "safetyBufferM": 20
+    },
+    "history": [
+        {
+            "projectuuid": "",
+            "scheduleuuid": "",
+            "actualCoordinate": {
+                "lat": 34.393738,
+                "lon": 132.454619
+            }
+        }
+    ],
+    "updated_at": "2025-10-25T17:40:10.418Z",
+    "updated_by": "ui",
+    "areaId": "hiroshima_honkawa_elem",
+    "areaName": "本川小学校"
+}

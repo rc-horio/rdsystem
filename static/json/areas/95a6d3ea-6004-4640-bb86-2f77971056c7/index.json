@@ -1,0 +1,60 @@
+{
+    "area": {
+        "id": "shimonoseki_port",
+        "name": "下関港",
+        "updated_at": "2025-10-08T06:22:13Z",
+        "updated_by": "seed-script"
+    },
+    "overview": {
+        "address": "山口県下関市 下関港エリア",
+        "prefecture": "山口",
+        "manager": "佐藤",
+        "droneRecord": "あり",
+        "droneCountEstimate": "8",
+        "heightLimitM": "100",
+        "availability": "可",
+        "overview": "[object Object]"
+    },
+    "details": {
+        "statusMemo": "近隣イベントと日程調整が必要。",
+        "permitMemo": "自治体の占用許可が別途必要。",
+        "restrictionsMemo": "学校上空は終業後のみ可。",
+        "remarks": "雨天時は翌日に順延。"
+    },
+    "flightArea": {
+        "polygon": [
+            {
+                "lat": 33.94848464,
+                "lon": 130.93537663
+            },
+            {
+                "lat": 33.9490000,
+                "lon": 130.9360000
+            },
+            {
+                "lat": 33.9470000,
+                "lon": 130.9370000
+            },
+            {
+                "lat": 33.9460000,
+                "lon": 130.9340000
+            }
+        ],
+        "altitudeMaxM": 100,
+        "safetyBufferM": 40
+    },
+    "history": [
+        {
+            "projectuuid": "",
+            "scheduleuuid": "",
+            "actualCoordinate": {
+                "lat": 33.94848464,
+                "lon": 130.93537663
+            }
+        }
+    ],
+    "updated_at": "2025-10-25T17:40:10.418Z",
+    "updated_by": "ui",
+    "areaId": "shimonoseki_port",
+    "areaName": "下関港"
+}

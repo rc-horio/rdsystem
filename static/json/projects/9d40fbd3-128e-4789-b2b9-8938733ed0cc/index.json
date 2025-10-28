@@ -11,7 +11,6 @@
       "label": "取手リハーサル",
       "date": "2026-01-01",
       "location": "",
-      "photosMemo": "写真テスト3",
       "resources": {
         "drones": [
           {
@@ -255,6 +254,8 @@
         },
         "area_name": "取手リハーサル"
       },
+      "geometry": {},
+      "photosMemo": "写真テスト1",
       "photos": []
     },
     {
@@ -262,7 +263,6 @@
       "label": "現地リハーサル",
       "date": "2026-08-02",
       "location": "",
-      "photosMemo": "現地リハーサル写真テスト3",
       "resources": {
         "drones": [
           {
@@ -554,14 +554,76 @@
         },
         "area_name": "現地リハーサル"
       },
-      "photos": []
+      "geometry": {
+        "flightAltitude_m": 150,
+        "takeoffArea": {
+          "type": "rectangle",
+          "coordinates": [
+            [
+              133.0480280512333,
+              35.4663683711578
+            ],
+            [
+              133.0482762784625,
+              35.46665681011182
+            ],
+            [
+              133.0481168641109,
+              35.466747813253654
+            ],
+            [
+              133.0478686368817,
+              35.46645937429966
+            ]
+          ],
+          "referencePointIndex": 0
+        },
+        "flightArea": {
+          "type": "ellipse",
+          "center": [
+            133.050034,
+            35.465701
+          ],
+          "radiusX_m": 150,
+          "radiusY_m": 60,
+          "rotation_deg": 0
+        },
+        "safetyArea": {
+          "type": "ellipse",
+          "buffer_m": 50
+        },
+        "audienceArea": {
+          "type": "rectangle",
+          "coordinates": [
+            [
+              133.0380280512333,
+              35.4563683711578
+            ],
+            [
+              133.0382762784625,
+              35.45665681011182
+            ],
+            [
+              133.0381168641109,
+              35.456747813253654
+            ],
+            [
+              133.0378686368817,
+              35.45645937429966
+            ]
+          ]
+        },
+        "updatedAt": "2025-10-16T12:34:56.789Z",
+        "updatedBy": "テストユーザー"
+      },
+      "photos": [],
+      "photosMemo": "写真テスト2"
     },
     {
       "id": "2c911348-c518-43d6-b3d0-c85597505641",
       "label": "本番1日目",
       "date": "2026-08-03",
       "location": "",
-      "photosMemo": "本番1日目取手リハーサル写真テスト3",
       "resources": {
         "drones": [
           {
@@ -865,14 +927,76 @@
         },
         "area_name": "本番1日目"
       },
-      "photos": []
+      "geometry": {
+        "flightAltitude_m": 150,
+        "takeoffArea": {
+          "type": "rectangle",
+          "coordinates": [
+            [
+              133.0480280512333,
+              35.4663683711578
+            ],
+            [
+              133.0482762784625,
+              35.46665681011182
+            ],
+            [
+              133.0481168641109,
+              35.466747813253654
+            ],
+            [
+              133.0478686368817,
+              35.46645937429966
+            ]
+          ],
+          "referencePointIndex": 0
+        },
+        "flightArea": {
+          "type": "ellipse",
+          "center": [
+            133.050034,
+            35.465701
+          ],
+          "radiusX_m": 150,
+          "radiusY_m": 60,
+          "rotation_deg": 0
+        },
+        "safetyArea": {
+          "type": "ellipse",
+          "buffer_m": 50
+        },
+        "audienceArea": {
+          "type": "rectangle",
+          "coordinates": [
+            [
+              133.0380280512333,
+              35.4563683711578
+            ],
+            [
+              133.0382762784625,
+              35.45665681011182
+            ],
+            [
+              133.0381168641109,
+              35.456747813253654
+            ],
+            [
+              133.0378686368817,
+              35.45645937429966
+            ]
+          ]
+        },
+        "updatedAt": "2025-10-16T12:34:56.789Z",
+        "updatedBy": "テストユーザー"
+      },
+      "photos": [],
+      "photosMemo": "写真テスト3"
     },
     {
       "id": "2c911348-c518-43d6-b3d0-c85597501234",
       "label": "本番2日目",
       "date": "2026-08-04",
       "location": "",
-      "photosMemo": "本番2日目写真テスト3",
       "resources": {
         "drones": [
           {
@@ -1176,7 +1300,71 @@
         },
         "area_name": "本番2日目"
       },
-      "photos": []
+      "geometry": {
+        "flightAltitude_m": 150,
+        "takeoffArea": {
+          "type": "rectangle",
+          "coordinates": [
+            [
+              133.0480280512333,
+              35.4663683711578
+            ],
+            [
+              133.0482762784625,
+              35.46665681011182
+            ],
+            [
+              133.0481168641109,
+              35.466747813253654
+            ],
+            [
+              133.0478686368817,
+              35.46645937429966
+            ]
+          ],
+          "referencePointIndex": 0
+        },
+        "flightArea": {
+          "type": "ellipse",
+          "center": [
+            133.050034,
+            35.465701
+          ],
+          "radiusX_m": 150,
+          "radiusY_m": 60,
+          "rotation_deg": 0
+        },
+        "safetyArea": {
+          "type": "ellipse",
+          "buffer_m": 50
+        },
+        "audienceArea": {
+          "type": "rectangle",
+          "coordinates": [
+            [
+              133.0380280512333,
+              35.4563683711578
+            ],
+            [
+              133.0382762784625,
+              35.45665681011182
+            ],
+            [
+              133.0381168641109,
+              35.456747813253654
+            ],
+            [
+              133.0378686368817,
+              35.45645937429966
+            ]
+          ]
+        },
+        "updatedAt": "2025-10-16T12:34:56.789Z",
+        "updatedBy": "テストユーザー"
+      },
+      "photos": [],
+      "photosMemo": "写真テスト4"
+
     }
   ]
 }

@@ -1,0 +1,60 @@
+{
+    "area": {
+        "id": "isuzu_fujisawa_e",
+        "name": "いすゞ自動車",
+        "updated_at": "2025-10-08T06:22:13Z",
+        "updated_by": "seed-script"
+    },
+    "overview": {
+        "address": "神奈川県藤沢市 いすゞ自動車",
+        "prefecture": "神奈川",
+        "manager": "佐藤",
+        "droneRecord": "あり",
+        "droneCountEstimate": "15",
+        "heightLimitM": "150",
+        "availability": "可",
+        "overview": "[object Object]"
+    },
+    "details": {
+        "statusMemo": "近隣イベントと日程調整が必要。",
+        "permitMemo": "自治体の占用許可が別途必要。",
+        "restrictionsMemo": "学校上空は終業後のみ可。",
+        "remarks": "雨天時は翌日に順延。"
+    },
+    "flightArea": {
+        "polygon": [
+            {
+                "lat": 35.39973,
+                "lon": 139.450815
+            },
+            {
+                "lat": 35.4000000,
+                "lon": 139.4510000
+            },
+            {
+                "lat": 35.3980000,
+                "lon": 139.4520000
+            },
+            {
+                "lat": 35.3970000,
+                "lon": 139.4490000
+            }
+        ],
+        "altitudeMaxM": 150,
+        "safetyBufferM": 40
+    },
+    "history": [
+        {
+            "projectuuid": "",
+            "scheduleuuid": "",
+            "actualCoordinate": {
+                "lat": 35.39973,
+                "lon": 139.450815
+            }
+        }
+    ],
+    "updated_at": "2025-10-25T17:40:10.418Z",
+    "updated_by": "ui",
+    "areaId": "isuzu_fujisawa_e",
+    "areaName": "いすゞ自動車"
+}

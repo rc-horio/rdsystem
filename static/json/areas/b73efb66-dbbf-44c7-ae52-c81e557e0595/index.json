@@ -1,0 +1,60 @@
+{
+    "area": {
+        "id": "sendai_kawauchi",
+        "name": "東北大学 川内キャンパス",
+        "updated_at": "2025-10-08T06:22:13Z",
+        "updated_by": "seed-script"
+    },
+    "overview": {
+        "address": "宮城県仙台市 東北大学 川内キャンパス",
+        "prefecture": "宮城",
+        "manager": "佐藤",
+        "droneRecord": "あり",
+        "droneCountEstimate": "10",
+        "heightLimitM": "100",
+        "availability": "可",
+        "overview": "[object Object]"
+    },
+    "details": {
+        "statusMemo": "近隣イベントと日程調整が必要。",
+        "permitMemo": "自治体の占用許可が別途必要。",
+        "restrictionsMemo": "学校上空は終業後のみ可。",
+        "remarks": "雨天時は翌日に順延。"
+    },
+    "flightArea": {
+        "polygon": [
+            {
+                "lat": 38.26009,
+                "lon": 140.84156
+            },
+            {
+                "lat": 38.2610000,
+                "lon": 140.8420000
+            },
+            {
+                "lat": 38.2590000,
+                "lon": 140.8430000
+            },
+            {
+                "lat": 38.2580000,
+                "lon": 140.8410000
+            }
+        ],
+        "altitudeMaxM": 100,
+        "safetyBufferM": 30
+    },
+    "history": [
+        {
+            "projectuuid": "",
+            "scheduleuuid": "",
+            "actualCoordinate": {
+                "lat": 38.26009,
+                "lon": 140.84156
+            }
+        }
+    ],
+    "updated_at": "2025-10-25T17:40:10.418Z",
+    "updated_by": "ui",
+    "areaId": "sendai_kawauchi",
+    "areaName": "東北大学 川内キャンパス"
+}

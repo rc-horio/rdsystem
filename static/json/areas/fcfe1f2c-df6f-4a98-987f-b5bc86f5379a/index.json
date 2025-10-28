@@ -1,0 +1,60 @@
+{
+    "area": {
+        "id": "fcfe1f2c-df6f-4a98-987f-b5bc86f5379a",
+        "name": "十勝大橋 河川敷",
+        "updated_at": "2025-10-08T06:22:13Z",
+        "updated_by": "seed-script"
+    },
+    "overview": {
+        "address": "北海道帯広市 十勝大橋 河川敷",
+        "prefecture": "北海道",
+        "manager": "佐藤",
+        "droneRecord": "あり",
+        "droneCountEstimate": "6",
+        "heightLimitM": "70",
+        "availability": "可",
+        "overview": "[object Object]"
+    },
+    "details": {
+        "statusMemo": "近隣イベントと日程調整が必要。",
+        "permitMemo": "自治体の占用許可が別途必要。",
+        "restrictionsMemo": "学校上空は終業後のみ可。",
+        "remarks": "雨天時は翌日に順延。"
+    },
+    "flightArea": {
+        "polygon": [
+            {
+                "lat": 42.9375,
+                "lon": 143.20222
+            },
+            {
+                "lat": 42.9380000,
+                "lon": 143.2030000
+            },
+            {
+                "lat": 42.9360000,
+                "lon": 143.2040000
+            },
+            {
+                "lat": 42.9350000,
+                "lon": 143.2010000
+            }
+        ],
+        "altitudeMaxM": 70,
+        "safetyBufferM": 20
+    },
+    "history": [
+        {
+            "projectuuid": "",
+            "scheduleuuid": "",
+            "actualCoordinate": {
+                "lat": 42.9375,
+                "lon": 143.20222
+            }
+        }
+    ],
+    "updated_at": "2025-10-25T17:40:10.418Z",
+    "updated_by": "ui",
+    "areaId": "kachimai_tokachi_bridge",
+    "areaName": "十勝大橋 河川敷"
+}

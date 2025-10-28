@@ -545,6 +545,10 @@ export default function MapView({ onLoaded }: Props) {
             type="button"
             className="delete-geom-button"
             onClick={() => {
+              // 現在の図形を全て消去し、未設定フラグを立てる
+              geomRef.current?.deleteCurrentGeometry();
+              setShowCreateGeomCta(true);
+              console.info("[map] geometry delete requested (not saved yet)");
             }}
             aria-label="エリア情報を削除する"
           >

@@ -1,0 +1,60 @@
+{
+    "area": {
+        "id": "takanawa_gateway_st",
+        "name": "高輪ゲートウェイ駅",
+        "updated_at": "2025-10-08T06:22:13Z",
+        "updated_by": "seed-script"
+    },
+    "overview": {
+        "address": "東京都港区 高輪ゲートウェイ駅エリア",
+        "prefecture": "東京",
+        "manager": "佐藤",
+        "droneRecord": "あり",
+        "droneCountEstimate": "15",
+        "heightLimitM": "120",
+        "availability": "可",
+        "overview": "[object Object]"
+    },
+    "details": {
+        "statusMemo": "近隣イベントと日程調整が必要。",
+        "permitMemo": "自治体の占用許可が別途必要。",
+        "restrictionsMemo": "学校上空は終業後のみ可。",
+        "remarks": "雨天時は翌日に順延。"
+    },
+    "flightArea": {
+        "polygon": [
+            {
+                "lat": 35.6355,
+                "lon": 139.7407
+            },
+            {
+                "lat": 35.6360000,
+                "lon": 139.7410000
+            },
+            {
+                "lat": 35.6340000,
+                "lon": 139.7420000
+            },
+            {
+                "lat": 35.6330000,
+                "lon": 139.7390000
+            }
+        ],
+        "altitudeMaxM": 120,
+        "safetyBufferM": 40
+    },
+    "history": [
+        {
+            "projectuuid": "",
+            "scheduleuuid": "",
+            "actualCoordinate": {
+                "lat": 35.6355,
+                "lon": 139.7407
+            }
+        }
+    ],
+    "updated_at": "2025-10-25T17:40:10.418Z",
+    "updated_by": "ui",
+    "areaId": "takanawa_gateway_st",
+    "areaName": "高輪ゲートウェイ駅"
+}

@@ -12,6 +12,7 @@ import { AudienceEditor } from "./geometry/AudienceEditor";
 export class MapGeometry {
     // 地図を取得
     private getMap: () => google.maps.Map | null;
+    private deletedRef: boolean = false;
 
     // オーバーレイのリスト
     private overlaysRef: Array<
@@ -138,6 +139,7 @@ export class MapGeometry {
                     projectUuid: this.currentScheduleRef?.projectUuid,
                     scheduleUuid: this.currentScheduleRef?.scheduleUuid,
                     geometry: this.currentGeomRef ?? null,
+                    deleted: this.deletedRef,
                 };
                 window.dispatchEvent(
                     new CustomEvent(EV_GEOMETRY_RESPOND_DATA, { detail })
@@ -159,6 +161,7 @@ export class MapGeometry {
      *  ========================= */
     setCurrentSchedule(projectUuid?: string, scheduleUuid?: string) {
         this.currentScheduleRef = { projectUuid, scheduleUuid };
+        this.deletedRef = false;
     }
 
     /** =========================
@@ -219,7 +222,7 @@ export class MapGeometry {
         const geom = geomLike as Geometry;
         this.clearOverlays();
         this.currentGeomRef = geom;
-
+        this.deletedRef = false;
         const bounds = new gmaps.LatLngBounds();
         const metrics: Partial<GeometryMetrics> = {};
 
@@ -473,6 +476,18 @@ export class MapGeometry {
             MapGeometry.DIST_TABLE.find((r) => r.h === usedAlt) ??
             MapGeometry.DIST_TABLE[MapGeometry.DIST_TABLE.length - 1];
         return { usedAlt, dist_m: row.d };
+    }
+    // ジオメトリを削除
+    deleteCurrentGeometry() {
+        // 表示物を全削除
+        this.clearOverlays();
+        // 内部状態：未設定
+        this.currentGeomRef = null;
+        this.deletedRef = true;
+        // メトリクスもリセット
+        setDetailBarMetrics({});
+        // ちょっとログ
+        console.info("[geometry] current geometry marked as DELETED (pending save)");
     }
 
     // ログ出力

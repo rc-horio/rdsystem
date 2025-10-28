@@ -1,0 +1,60 @@
+{
+    "area": {
+        "id": "ginowan_marina",
+        "name": "宜野湾港マリーナ",
+        "updated_at": "2025-10-08T06:22:13Z",
+        "updated_by": "seed-script"
+    },
+    "overview": {
+        "address": "沖縄県宜野湾市 宜野湾港マリーナエリア",
+        "prefecture": "沖縄",
+        "manager": "佐藤",
+        "droneRecord": "あり",
+        "droneCountEstimate": "7",
+        "heightLimitM": "50",
+        "availability": "可",
+        "overview": "[object Object]"
+    },
+    "details": {
+        "statusMemo": "近隣イベントと日程調整が必要。",
+        "permitMemo": "自治体の占用許可が別途必要。",
+        "restrictionsMemo": "学校上空は終業後のみ可。",
+        "remarks": "雨天時は翌日に順延。"
+    },
+    "flightArea": {
+        "polygon": [
+            {
+                "lat": 26.2816,
+                "lon": 127.7269
+            },
+            {
+                "lat": 26.2820000,
+                "lon": 127.7270000
+            },
+            {
+                "lat": 26.2800000,
+                "lon": 127.7280000
+            },
+            {
+                "lat": 26.2790000,
+                "lon": 127.7250000
+            }
+        ],
+        "altitudeMaxM": 50,
+        "safetyBufferM": 20
+    },
+    "history": [
+        {
+            "projectuuid": "",
+            "scheduleuuid": "",
+            "actualCoordinate": {
+                "lat": 26.2816,
+                "lon": 127.7269
+            }
+        }
+    ],
+    "updated_at": "2025-10-25T17:40:10.418Z",
+    "updated_by": "ui",
+    "areaId": "ginowan_marina",
+    "areaName": "宜野湾港マリーナ"
+}

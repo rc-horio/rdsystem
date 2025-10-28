@@ -249,7 +249,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
             className={`tab-btn ${active === "history" ? "is-active" : ""}`}
             onClick={() => setActive("history")}
           >
-            DS履歴
+            飛行エリア
           </button>
         </div>
       </div>
@@ -350,9 +350,9 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
           </section>
         )}
 
-        {/* 履歴タブ */}
+        {/* 飛行エリア */}
         {active === "history" && (
-          <section role="tabpanel" aria-label="DS履歴一覧">
+          <section role="tabpanel" aria-label="飛行エリア一覧">
             <div className="ds-history-list">
               {history.length === 0 ? (
                 <div className="ds-history-empty" aria-live="polite">
