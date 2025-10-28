@@ -1,0 +1,10 @@
+{
+    "project": {
+        "uuid": "bf3ecfa0-74c0-44ee-9bd5-4d078331d7b5",
+        "id": "250101test2",
+        "name": "テストプロジェクト2",
+        "updated_at": "2025-10-22T06:18:04.227Z",
+        "updated_by": "テストユーザー"
+    },
+    "schedules": []
+}

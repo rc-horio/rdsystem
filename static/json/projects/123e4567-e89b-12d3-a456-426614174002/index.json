@@ -1,0 +1,1140 @@
+{
+  "project": {
+    "id": "250730lawsoncampaign",
+    "name": "ローソンキャンペーン",
+    "updated_at": "2025-10-05T05:36:14.315Z",
+    "updated_by": "テストユーザー"
+  },
+  "schedules": [
+    {
+      "id": "2c911348-c518-43d6-b3d0-c85597505648",
+      "label": "取手リハーサル",
+      "date": "2025-01-01",
+      "kind": "onsite_rehearsal",
+      "publishToMap": true,
+      "resources": {
+        "drones": [
+          {
+            "model": "EMO",
+            "color": "赤",
+            "count": 510
+          },
+          {
+            "model": "EMO",
+            "color": "青",
+            "count": 510
+          },
+          {
+            "model": "EMO",
+            "color": "白",
+            "count": 1010
+          }
+        ],
+        "batteries": [
+          {
+            "model": "EMO",
+            "count": 4000
+          }
+        ],
+        "modules": [
+          {
+            "type": "花火",
+            "count": 200
+          },
+          {
+            "type": "フラッシュ",
+            "count": 100
+          }
+        ],
+        "vehicles": {
+          "rows": [
+            {
+              "type": "トラックA",
+              "driver": "Aさん"
+            },
+            {
+              "type": "トラックB",
+              "driver": "Bさん"
+            },
+            {
+              "type": "レンタカーA本部車",
+              "driver": "オペAさん"
+            },
+            {
+              "type": "レンタカーB",
+              "driver": "Bさん"
+            },
+            {
+              "type": "レンタカーC",
+              "driver": "Cさん"
+            }
+          ],
+          "memo": "ニッポンレンタカー○○店あ"
+        },
+        "equipment": [
+          {
+            "name": "いす",
+            "qty": 10
+          },
+          {
+            "name": "充電器",
+            "qty": 1
+          },
+          {
+            "name": "テント",
+            "qty": 1
+          },
+          {
+            "name": "時計",
+            "qty": 10
+          },
+          {
+            "name": "バッテリー充電器",
+            "qty": 0
+          },
+          {
+            "name": "ポタ電",
+            "qty": 0
+          },
+          {
+            "name": "本部BOX",
+            "qty": 2
+          },
+          {
+            "name": "クライアントBOX",
+            "qty": 0
+          },
+          {
+            "name": "スピーカー",
+            "qty": 0
+          },
+          {
+            "name": "テーブル",
+            "qty": 0
+          },
+          {
+            "name": "ビブス",
+            "qty": 10
+          },
+          {
+            "name": "クーラーボックス",
+            "qty": 0
+          },
+          {
+            "name": "シーバー",
+            "qty": 10
+          },
+          {
+            "name": "デジタル簡易",
+            "qty": 10
+          },
+          {
+            "name": "AP",
+            "qty": 300
+          },
+          {
+            "name": "RTK新型",
+            "qty": 2
+          },
+          {
+            "name": "AP脚",
+            "qty": 300
+          },
+          {
+            "name": "照明",
+            "qty": 5
+          },
+          {
+            "name": "アルミシート",
+            "qty": 3
+          },
+          {
+            "name": "防炎シート",
+            "qty": 5
+          }
+        ],
+        "hotels": [
+          {
+            "name": "宿泊なし",
+            "memo": ""
+          }
+        ],
+        "members": {
+          "producer": [
+            {
+              "name": "あああ",
+              "role": "メイン",
+              "memo": ""
+            },
+            {
+              "name": "aいい",
+              "role": "サブ",
+              "memo": ""
+            },
+            {
+              "name": "うう",
+              "role": "サブ",
+              "memo": ""
+            }
+          ],
+          "director": [
+            {
+              "name": "うう",
+              "role": "制作",
+              "memo": ""
+            },
+            {
+              "name": "うう",
+              "role": "現場",
+              "memo": ""
+            }
+          ],
+          "operator": [
+            {
+              "name": "ええ",
+              "role": "メイン",
+              "memo": ""
+            },
+            {
+              "name": "おお",
+              "role": "現場監督",
+              "memo": ""
+            },
+            {
+              "name": "おお",
+              "role": "花火",
+              "memo": ""
+            }
+          ],
+          "veteran_part_time": {
+            "members": [
+              {
+                "name": "バイト1",
+                "role": "",
+                "memo": "時給"
+              },
+              {
+                "name": "バイト2",
+                "role": "",
+                "memo": ""
+              },
+              {
+                "name": "バイト3",
+                "role": "",
+                "memo": ""
+              }
+            ]
+          },
+          "local_staff": {
+            "members": [
+              {
+                "source": "タイミー",
+                "count": 1,
+                "memo": "タイミーメモ"
+              },
+              {
+                "source": "大学",
+                "count": 2,
+                "memo": "大学メモ"
+              },
+              {
+                "source": "ボランティア",
+                "count": 10,
+                "memo": ""
+              }
+            ]
+          },
+          "memo": "あ"
+        }
+      },
+      "operation": {
+        "placement": {
+          "x": 75,
+          "y": 20,
+          "spacing_m": 0.85
+        },
+        "modules": [
+          {
+            "name": "あ",
+            "ids": [
+              1,
+              2,
+              3,
+              11,
+              1425
+            ]
+          },
+          {
+            "name": "い",
+            "ids": [
+              0,
+              2,
+              3,
+              4
+            ]
+          }
+        ],
+        "measurement": {
+          "target_id": 400,
+          "result": "x:17.5m　y:5.0m"
+        },
+        "memo": "memo100１"
+      },
+      "area": {
+        "name": "取手",
+        "id": "toride_dec",
+        "drone_count": {
+          "model": "",
+          "count": 0,
+          "x_count": 100,
+          "y_count": 7
+        },
+        "flight_area": {
+          "altitude_min_m": null,
+          "altitude_max_m": null,
+          "safety_area_m": null
+        },
+        "actions": {
+          "liftoff": "",
+          "turn": ""
+        },
+        "obstacle_note": "なし",
+        "lights": {
+          "takeoff": "",
+          "landing": ""
+        },
+        "return_note": "",
+        "animation_area": {
+          "width_m": null,
+          "depth_m": null
+        },
+        "distance_from_viewers_m": null,
+        "spacing_between_drones_m": {
+          "horizontal": "",
+          "vertical": ""
+        }
+      },
+      "geometry": {
+        "flightAltitude_m": 150,
+        "takeoffArea": {
+          "type": "rectangle",
+          "coordinates": [
+            [
+              133.0480280512333,
+              35.4663683711578
+            ],
+            [
+              133.0482762784625,
+              35.46665681011182
+            ],
+            [
+              133.0481168641109,
+              35.466747813253654
+            ],
+            [
+              133.0478686368817,
+              35.46645937429966
+            ]
+          ],
+          "referencePointIndex": 0
+        },
+        "flightArea": {
+          "type": "ellipse",
+          "center": [
+            133.050034,
+            35.465701
+          ],
+          "radiusX_m": 150,
+          "radiusY_m": 60,
+          "rotation_deg": 0
+        },
+        "safetyArea": {
+          "type": "ellipse",
+          "buffer_m": 50
+        },
+        "audienceArea": {
+          "type": "rectangle",
+          "coordinates": [
+            [
+              133.0380280512333,
+              35.4563683711578
+            ],
+            [
+              133.0382762784625,
+              35.45665681011182
+            ],
+            [
+              133.0381168641109,
+              35.456747813253654
+            ],
+            [
+              133.0378686368817,
+              35.45645937429966
+            ]
+          ]
+        },
+        "updatedAt": "2025-10-16T12:34:56.789Z",
+        "updatedBy": "テストユーザー"
+      },
+      "photos": [],
+      "photosMemo": "写真テスト3"
+    },
+    {
+      "id": "2c911348-c518-43d6-b3d0-c8559750564b",
+      "label": "現地リハーサル",
+      "date": "2025-07-29",
+      "kind": "offsite_rehearsal",
+      "publishToMap": false,
+      "resources": {
+        "drones": [
+          {
+            "model": "EMO",
+            "color": "赤",
+            "count": 510
+          },
+          {
+            "model": "EMO",
+            "color": "青",
+            "count": 510
+          },
+          {
+            "model": "EMO",
+            "color": "白",
+            "count": 1010
+          }
+        ],
+        "batteries": [
+          {
+            "model": "EMO",
+            "count": 4000
+          }
+        ],
+        "modules": [
+          {
+            "type": "花火",
+            "count": 200
+          },
+          {
+            "type": "フラッシュ",
+            "count": 100
+          }
+        ],
+        "vehicles": {
+          "rows": [
+            {
+              "type": "トラックA",
+              "driver": "Aさん"
+            },
+            {
+              "type": "トラックB",
+              "driver": "Bさん"
+            },
+            {
+              "type": "レンタカーA本部車",
+              "driver": "オペAさん"
+            },
+            {
+              "type": "レンタカーB",
+              "driver": "Bさん"
+            },
+            {
+              "type": "レンタカーC",
+              "driver": "Cさん"
+            }
+          ],
+          "memo": "ニッポンレンタカー○○店あ"
+        },
+        "equipment": [
+          {
+            "name": "いす",
+            "qty": 10
+          },
+          {
+            "name": "充電器",
+            "qty": 1
+          },
+          {
+            "name": "テント",
+            "qty": 1
+          },
+          {
+            "name": "時計",
+            "qty": 10
+          },
+          {
+            "name": "バッテリー充電器",
+            "qty": 0
+          },
+          {
+            "name": "ポタ電",
+            "qty": 0
+          },
+          {
+            "name": "本部BOX",
+            "qty": 2
+          },
+          {
+            "name": "クライアントBOX",
+            "qty": 0
+          },
+          {
+            "name": "スピーカー",
+            "qty": 0
+          },
+          {
+            "name": "テーブル",
+            "qty": 0
+          },
+          {
+            "name": "ビブス",
+            "qty": 10
+          },
+          {
+            "name": "クーラーボックス",
+            "qty": 0
+          },
+          {
+            "name": "シーバー",
+            "qty": 10
+          },
+          {
+            "name": "デジタル簡易",
+            "qty": 10
+          },
+          {
+            "name": "AP",
+            "qty": 300
+          },
+          {
+            "name": "RTK新型",
+            "qty": 2
+          },
+          {
+            "name": "AP脚",
+            "qty": 300
+          },
+          {
+            "name": "照明",
+            "qty": 5
+          },
+          {
+            "name": "アルミシート",
+            "qty": 3
+          },
+          {
+            "name": "防炎シート",
+            "qty": 5
+          }
+        ],
+        "hotels": [
+          {
+            "name": "宿泊なし",
+            "memo": ""
+          }
+        ],
+        "members": {
+          "producer": [
+            {
+              "name": "あああ",
+              "role": "メイン",
+              "memo": ""
+            },
+            {
+              "name": "aいい",
+              "role": "サブ",
+              "memo": ""
+            },
+            {
+              "name": "うう",
+              "role": "サブ",
+              "memo": ""
+            }
+          ],
+          "director": [
+            {
+              "name": "うう",
+              "role": "制作",
+              "memo": ""
+            },
+            {
+              "name": "うう",
+              "role": "現場",
+              "memo": ""
+            }
+          ],
+          "operator": [
+            {
+              "name": "ええ",
+              "role": "メイン",
+              "memo": ""
+            },
+            {
+              "name": "おお",
+              "role": "現場監督",
+              "memo": ""
+            },
+            {
+              "name": "おお",
+              "role": "花火",
+              "memo": ""
+            }
+          ],
+          "veteran_part_time": {
+            "members": [
+              {
+                "name": "バイト1",
+                "role": "",
+                "memo": "時給"
+              },
+              {
+                "name": "バイト2",
+                "role": "",
+                "memo": ""
+              },
+              {
+                "name": "バイト3",
+                "role": "",
+                "memo": ""
+              }
+            ]
+          },
+          "local_staff": {
+            "members": [
+              {
+                "source": "タイミー",
+                "count": 1,
+                "memo": "タイミーメモ"
+              },
+              {
+                "source": "大学",
+                "count": 2,
+                "memo": "大学メモ"
+              },
+              {
+                "source": "ボランティア",
+                "count": 10,
+                "memo": ""
+              }
+            ]
+          },
+          "memo": "あ"
+        }
+      },
+      "operation": {
+        "placement": {
+          "x": 75,
+          "y": 20,
+          "spacing_m": 0.85
+        },
+        "modules": [
+          {
+            "name": "あ",
+            "ids": [
+              1,
+              2,
+              3,
+              11,
+              1425
+            ]
+          },
+          {
+            "name": "い",
+            "ids": [
+              0,
+              2,
+              3,
+              4
+            ]
+          }
+        ],
+        "measurement": {
+          "target_id": 400,
+          "result": "x:17.5m　y:5.0m"
+        },
+        "memo": "memo100１"
+      },
+      "area": {
+        "name": "松江",
+        "id": "matsue",
+        "drone_count": {
+          "model": "",
+          "count": 0,
+          "x_count": 100,
+          "y_count": 7
+        },
+        "flight_area": {
+          "altitude_min_m": null,
+          "altitude_max_m": null,
+          "safety_area_m": null
+        },
+        "actions": {
+          "liftoff": "",
+          "turn": ""
+        },
+        "obstacle_note": "なし",
+        "lights": {
+          "takeoff": "",
+          "landing": ""
+        },
+        "return_note": "",
+        "animation_area": {
+          "width_m": null,
+          "depth_m": null
+        },
+        "distance_from_viewers_m": null,
+        "spacing_between_drones_m": {
+          "horizontal": "",
+          "vertical": ""
+        }
+      },
+      "geometry": {
+        "flightAltitude_m": 150,
+        "takeoffArea": {
+          "type": "rectangle",
+          "coordinates": [
+            [
+              133.0480280512333,
+              35.4663683711578
+            ],
+            [
+              133.0482762784625,
+              35.46665681011182
+            ],
+            [
+              133.0481168641109,
+              35.466747813253654
+            ],
+            [
+              133.0478686368817,
+              35.46645937429966
+            ]
+          ],
+          "referencePointIndex": 0
+        },
+        "flightArea": {
+          "type": "ellipse",
+          "center": [
+            133.050034,
+            35.465701
+          ],
+          "radiusX_m": 150,
+          "radiusY_m": 60,
+          "rotation_deg": 0
+        },
+        "safetyArea": {
+          "type": "ellipse",
+          "buffer_m": 50
+        },
+        "audienceArea": {
+          "type": "rectangle",
+          "coordinates": [
+            [
+              133.0380280512333,
+              35.4563683711578
+            ],
+            [
+              133.0382762784625,
+              35.45665681011182
+            ],
+            [
+              133.0381168641109,
+              35.456747813253654
+            ],
+            [
+              133.0378686368817,
+              35.45645937429966
+            ]
+          ]
+        },
+        "updatedAt": "2025-10-16T12:34:56.789Z",
+        "updatedBy": "テストユーザー"
+      },
+      "photos": [
+        {
+          "url": "https://rc-viewer-dev-a7c3f1e2.s3.ap-northeast-1.amazonaws.com/projects/2026/260909tokyodome/photos/20250101-2c911348/1758548506126-IMG_0397.JPG",
+          "caption": "IMG_0397.JPG",
+          "key": "projects/2026/260909tokyodome/photos/20250101-2c911348/1758548506126-IMG_0397.JPG"
+        },
+        {
+          "url": "https://rc-viewer-dev-a7c3f1e2.s3.ap-northeast-1.amazonaws.com/projects/2026/260909tokyodome/photos/20250101-2c911348/1758548508496-IMG_0398.JPG",
+          "caption": "IMG_0398.JPG",
+          "key": "projects/2026/260909tokyodome/photos/20250101-2c911348/1758548508496-IMG_0398.JPG"
+        }
+      ],
+      "photosMemo": "写真テスト2"
+    },
+    {
+      "id": "2c911348-c518-43d6-b3d0-c85597505642",
+      "label": "本番",
+      "date": "2025-07-30",
+      "kind": "show",
+      "publishToMap": true,
+      "resources": {
+        "drones": [
+          {
+            "model": "EMO",
+            "color": "赤",
+            "count": 510
+          },
+          {
+            "model": "EMO",
+            "color": "青",
+            "count": 510
+          },
+          {
+            "model": "EMO",
+            "color": "白",
+            "count": 1010
+          }
+        ],
+        "batteries": [
+          {
+            "model": "EMO",
+            "count": 4000
+          }
+        ],
+        "modules": [
+          {
+            "type": "花火",
+            "count": 200
+          },
+          {
+            "type": "フラッシュ",
+            "count": 100
+          }
+        ],
+        "vehicles": {
+          "rows": [
+            {
+              "type": "トラックA",
+              "driver": "Aさん"
+            },
+            {
+              "type": "トラックB",
+              "driver": "Bさん"
+            },
+            {
+              "type": "レンタカーA本部車",
+              "driver": "オペAさん"
+            },
+            {
+              "type": "レンタカーB",
+              "driver": "Bさん"
+            },
+            {
+              "type": "レンタカーC",
+              "driver": "Cさん"
+            }
+          ],
+          "memo": "ニッポンレンタカー○○店あ"
+        },
+        "equipment": [
+          {
+            "name": "いす",
+            "qty": 10
+          },
+          {
+            "name": "充電器",
+            "qty": 1
+          },
+          {
+            "name": "テント",
+            "qty": 1
+          },
+          {
+            "name": "時計",
+            "qty": 10
+          },
+          {
+            "name": "バッテリー充電器",
+            "qty": 0
+          },
+          {
+            "name": "ポタ電",
+            "qty": 0
+          },
+          {
+            "name": "本部BOX",
+            "qty": 2
+          },
+          {
+            "name": "クライアントBOX",
+            "qty": 0
+          },
+          {
+            "name": "スピーカー",
+            "qty": 0
+          },
+          {
+            "name": "テーブル",
+            "qty": 0
+          },
+          {
+            "name": "ビブス",
+            "qty": 10
+          },
+          {
+            "name": "クーラーボックス",
+            "qty": 0
+          },
+          {
+            "name": "シーバー",
+            "qty": 10
+          },
+          {
+            "name": "デジタル簡易",
+            "qty": 10
+          },
+          {
+            "name": "AP",
+            "qty": 300
+          },
+          {
+            "name": "RTK新型",
+            "qty": 2
+          },
+          {
+            "name": "AP脚",
+            "qty": 300
+          },
+          {
+            "name": "照明",
+            "qty": 5
+          },
+          {
+            "name": "アルミシート",
+            "qty": 3
+          },
+          {
+            "name": "防炎シート",
+            "qty": 5
+          }
+        ],
+        "hotels": [
+          {
+            "name": "宿泊なし",
+            "memo": ""
+          }
+        ],
+        "members": {
+          "producer": [
+            {
+              "name": "あああ",
+              "role": "メイン",
+              "memo": ""
+            },
+            {
+              "name": "aいい",
+              "role": "サブ",
+              "memo": ""
+            },
+            {
+              "name": "うう",
+              "role": "サブ",
+              "memo": ""
+            }
+          ],
+          "director": [
+            {
+              "name": "うう",
+              "role": "制作",
+              "memo": ""
+            },
+            {
+              "name": "うう",
+              "role": "現場",
+              "memo": ""
+            }
+          ],
+          "operator": [
+            {
+              "name": "ええ",
+              "role": "メイン",
+              "memo": ""
+            },
+            {
+              "name": "おお",
+              "role": "現場監督",
+              "memo": ""
+            },
+            {
+              "name": "おお",
+              "role": "花火",
+              "memo": ""
+            }
+          ],
+          "veteran_part_time": {
+            "members": [
+              {
+                "name": "バイト1",
+                "role": "",
+                "memo": "時給"
+              },
+              {
+                "name": "バイト2",
+                "role": "",
+                "memo": ""
+              },
+              {
+                "name": "バイト3",
+                "role": "",
+                "memo": ""
+              }
+            ]
+          },
+          "local_staff": {
+            "members": [
+              {
+                "source": "タイミー",
+                "count": 1,
+                "memo": "タイミーメモ"
+              },
+              {
+                "source": "大学",
+                "count": 2,
+                "memo": "大学メモ"
+              },
+              {
+                "source": "ボランティア",
+                "count": 10,
+                "memo": ""
+              }
+            ]
+          },
+          "memo": "あ"
+        }
+      },
+      "operation": {
+        "placement": {
+          "x": 75,
+          "y": 20,
+          "spacing_m": 0.85
+        },
+        "modules": [
+          {
+            "name": "あ",
+            "ids": [
+              1,
+              2,
+              3,
+              11,
+              1425
+            ]
+          },
+          {
+            "name": "い",
+            "ids": [
+              0,
+              2,
+              3,
+              4
+            ]
+          }
+        ],
+        "measurement": {
+          "target_id": 400,
+          "result": "x:17.5m　y:5.0m"
+        },
+        "memo": "memo100１"
+      },
+      "area": {
+        "name": "松江",
+        "id": "matsue",
+        "drone_count": {
+          "model": "",
+          "count": 0,
+          "x_count": 100,
+          "y_count": 7
+        },
+        "flight_area": {
+          "altitude_min_m": null,
+          "altitude_max_m": null,
+          "safety_area_m": null
+        },
+        "actions": {
+          "liftoff": "",
+          "turn": ""
+        },
+        "obstacle_note": "なし",
+        "lights": {
+          "takeoff": "",
+          "landing": ""
+        },
+        "return_note": "",
+        "animation_area": {
+          "width_m": null,
+          "depth_m": null
+        },
+        "distance_from_viewers_m": null,
+        "spacing_between_drones_m": {
+          "horizontal": "",
+          "vertical": ""
+        }
+      },
+      "geometry": {
+        "flightAltitude_m": 150,
+        "takeoffArea": {
+          "type": "rectangle",
+          "coordinates": [
+            [
+              139.74838,
+              35.65748
+            ],
+            [
+              139.7479,
+              35.6580
+            ],
+            [
+              139.7489,
+              35.6580
+            ],
+            [
+              139.7489,
+              35.6569
+            ]
+          ],
+          "referencePointIndex": 0
+        },
+        "flightArea": {
+          "type": "ellipse",
+          "center": [
+            139.74838,
+            35.65748
+          ],
+          "radiusX_m": 150,
+          "radiusY_m": 60,
+          "rotation_deg": 0
+        },
+        "safetyArea": {
+          "type": "ellipse",
+          "buffer_m": 50
+        },
+        "audienceArea": {
+          "type": "rectangle",
+          "coordinates": [
+            [
+              139.74838,
+              35.65748
+            ],
+            [
+              139.7489,
+              35.6580
+            ],
+            [
+              139.7489,
+              35.6580
+            ],
+            [
+              139.7479,
+              35.6569
+            ]
+          ]
+        },
+        "updatedAt": "2025-10-16T12:34:56.789Z",
+        "updatedBy": "テストユーザー"
+      },
+      "photos": [],
+      "photosMemo": "写真テスト3"
+    }
+  ]
+}

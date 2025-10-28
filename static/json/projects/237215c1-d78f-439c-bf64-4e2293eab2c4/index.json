@@ -1,0 +1,114 @@
+{
+    "project": {
+        "id": "237215c1-d78f-439c-bf64-4e2293eab2c4",
+        "name": "長岡花火2025",
+        "updated_at": "2025-10-28T09:10:02.558Z",
+        "updated_by": ""
+    },
+    "schedules": [
+        {
+            "id": "0e66c69d-1742-4ad1-985c-696086575271",
+            "label": "本番",
+            "date": "2025-08-01",
+            "location": "",
+            "photosMemo": "",
+            "resources": {
+                "drones": [
+                    {
+                        "model": "",
+                        "color": "",
+                        "count": 0
+                    }
+                ],
+                "batteries": [
+                    {
+                        "model": "",
+                        "count": 0
+                    }
+                ],
+                "modules": [
+                    {
+                        "type": "",
+                        "count": 0
+                    }
+                ],
+                "vehicles": {
+                    "rows": [
+                        {
+                            "type": "",
+                            "driver": ""
+                        }
+                    ],
+                    "memo": ""
+                },
+                "equipment": [],
+                "hotels": [],
+                "members": {
+                    "producer": [],
+                    "director": [],
+                    "operator": [],
+                    "veteran_part_time": {
+                        "members": []
+                    },
+                    "local_staff": {
+                        "members": []
+                    },
+                    "memo": ""
+                }
+            },
+            "operation": {
+                "placement": {
+                    "x": null,
+                    "y": null,
+                    "spacing_m": null
+                },
+                "modules": [],
+                "measurement": {
+                    "target_id": null,
+                    "result": null
+                },
+                "memo": ""
+            },
+            "area": {
+                "area_name": "",
+                "takeoff_land": {
+                    "coordinate": {
+                        "lat": null,
+                        "lon": null
+                    }
+                },
+                "drone_count": {
+                    "model": "",
+                    "count": 0,
+                    "x_count": null,
+                    "y_count": null
+                },
+                "flight_area": {
+                    "altitude_min_m": null,
+                    "altitude_max_m": null,
+                    "safety_area_m": null
+                },
+                "actions": {
+                    "liftoff": "",
+                    "turn": ""
+                },
+                "obstacle_note": "",
+                "lights": {
+                    "takeoff": "",
+                    "landing": ""
+                },
+                "return_note": "",
+                "animation_area": {
+                    "width_m": null,
+                    "depth_m": null
+                },
+                "distance_from_viewers_m": null,
+                "spacing_between_drones_m": {
+                    "horizontal": "",
+                    "vertical": ""
+                }
+            },
+            "photos": []
+        }
+    ]
+}

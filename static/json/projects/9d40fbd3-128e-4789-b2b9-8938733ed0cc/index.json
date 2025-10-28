@@ -1,156 +1,96 @@
 {
   "project": {
-    "id": "250803suigosai",
-    "name": "松江水郷祭2025",
-    "updated_at": "2025-10-05T05:36:14.315Z",
+    "id": "260803suigosai",
+    "name": "松江水郷祭2026",
+    "updated_at": "2025-10-10T09:28:49.996Z",
     "updated_by": "テストユーザー"
   },
   "schedules": [
     {
       "id": "2c911348-c518-43d6-b3d0-c85597505648",
       "label": "取手リハーサル",
-      "date": "2025-01-01",
-      "kind": "onsite_rehearsal",
-      "publishToMap": true,
+      "date": "2026-01-01",
+      "location": "",
+      "photosMemo": "写真テスト3",
       "resources": {
         "drones": [
           {
             "model": "EMO",
-            "color": "赤",
+            "color": "取手リハーサル",
             "count": 510
           },
           {
             "model": "EMO",
-            "color": "青",
+            "color": "取手リハーサル",
             "count": 510
           },
           {
             "model": "EMO",
-            "color": "白",
+            "color": "取手リハーサル",
             "count": 1010
           }
         ],
         "batteries": [
           {
-            "model": "EMO",
+            "model": "取手リハーサル",
             "count": 4000
           }
         ],
         "modules": [
           {
-            "type": "花火",
+            "type": "取手リハーサル",
             "count": 200
           },
           {
-            "type": "フラッシュ",
+            "type": "取手リハーサル",
             "count": 100
           }
         ],
         "vehicles": {
           "rows": [
             {
-              "type": "トラックA",
+              "type": "取手リハーサル",
               "driver": "Aさん"
             },
             {
-              "type": "トラックB",
+              "type": "取手リハーサル",
               "driver": "Bさん"
             },
             {
-              "type": "レンタカーA本部車",
+              "type": "取手リハーサル",
               "driver": "オペAさん"
             },
             {
-              "type": "レンタカーB",
+              "type": "取手リハーサル",
               "driver": "Bさん"
             },
             {
-              "type": "レンタカーC",
+              "type": "取手リハーサル",
               "driver": "Cさん"
             }
           ],
-          "memo": "ニッポンレンタカー○○店あ"
+          "memo": "取手リハーサル"
         },
         "equipment": [
           {
-            "name": "いす",
+            "name": "取手リハーサル",
             "qty": 10
           },
           {
-            "name": "充電器",
+            "name": "取手リハーサル",
             "qty": 1
           },
           {
-            "name": "テント",
+            "name": "取手リハーサル",
             "qty": 1
           },
           {
-            "name": "時計",
+            "name": "取手リハーサル",
             "qty": 10
           },
           {
-            "name": "バッテリー充電器",
+            "name": "取手リハーサル",
             "qty": 0
-          },
-          {
-            "name": "ポタ電",
-            "qty": 0
-          },
-          {
-            "name": "本部BOX",
-            "qty": 2
-          },
-          {
-            "name": "クライアントBOX",
-            "qty": 0
-          },
-          {
-            "name": "スピーカー",
-            "qty": 0
-          },
-          {
-            "name": "テーブル",
-            "qty": 0
-          },
-          {
-            "name": "ビブス",
-            "qty": 10
-          },
-          {
-            "name": "クーラーボックス",
-            "qty": 0
-          },
-          {
-            "name": "シーバー",
-            "qty": 10
-          },
-          {
-            "name": "デジタル簡易",
-            "qty": 10
-          },
-          {
-            "name": "AP",
-            "qty": 300
-          },
-          {
-            "name": "RTK新型",
-            "qty": 2
-          },
-          {
-            "name": "AP脚",
-            "qty": 300
-          },
-          {
-            "name": "照明",
-            "qty": 5
-          },
-          {
-            "name": "アルミシート",
-            "qty": 3
-          },
-          {
-            "name": "防炎シート",
-            "qty": 5
           }
         ],
         "hotels": [
@@ -162,46 +102,46 @@
         "members": {
           "producer": [
             {
-              "name": "あああ",
-              "role": "メイン",
+              "name": "取手リハーサル",
+              "role": "ｖ",
               "memo": ""
             },
             {
-              "name": "aいい",
+              "name": "取手リハーサル",
               "role": "サブ",
               "memo": ""
             },
             {
-              "name": "うう",
+              "name": "取手リハーサル",
               "role": "サブ",
               "memo": ""
             }
           ],
           "director": [
             {
-              "name": "うう",
+              "name": "取手リハーサル",
               "role": "制作",
               "memo": ""
             },
             {
-              "name": "うう",
+              "name": "取手リハーサル",
               "role": "現場",
               "memo": ""
             }
           ],
           "operator": [
             {
-              "name": "ええ",
+              "name": "取手リハーサル",
               "role": "メイン",
               "memo": ""
             },
             {
-              "name": "おお",
+              "name": "取手リハーサル",
               "role": "現場監督",
               "memo": ""
             },
             {
-              "name": "おお",
+              "name": "取手リハーサル",
               "role": "花火",
               "memo": ""
             }
@@ -209,17 +149,17 @@
           "veteran_part_time": {
             "members": [
               {
-                "name": "バイト1",
+                "name": "取手リハーサル",
                 "role": "",
                 "memo": "時給"
               },
               {
-                "name": "バイト2",
+                "name": "取手リハーサル",
                 "role": "",
                 "memo": ""
               },
               {
-                "name": "バイト3",
+                "name": "取手リハーサル",
                 "role": "",
                 "memo": ""
               }
@@ -228,40 +168,40 @@
           "local_staff": {
             "members": [
               {
-                "source": "タイミー",
-                "count": 1,
+                "source": "取手リハーサル",
+                "count": 0,
                 "memo": "タイミーメモ"
               },
               {
-                "source": "大学",
+                "source": "取手リハーサル",
                 "count": 2,
                 "memo": "大学メモ"
               },
               {
-                "source": "ボランティア",
+                "source": "取手リハーサル",
                 "count": 10,
                 "memo": ""
               }
             ]
           },
-          "memo": "あ"
+          "memo": "取手リハーサル"
         }
       },
       "operation": {
         "placement": {
-          "x": 75,
-          "y": 20,
-          "spacing_m": 0.85
+          "x": 100,
+          "y": 7,
+          "spacing_m": 1
         },
         "modules": [
           {
-            "name": "あ",
+            "name": "取手リハーサル",
             "ids": [
               1,
               2,
               3,
               11,
-              1425
+              1426
             ]
           },
           {
@@ -312,80 +252,67 @@
         "spacing_between_drones_m": {
           "horizontal": "",
           "vertical": ""
-        }
+        },
+        "area_name": "取手リハーサル"
       },
-      "geometry": {},
-      "photos": [],
-      "photosMemo": "写真テスト3"
+      "photos": []
     },
     {
       "id": "2c911348-c518-43d6-b3d0-c8559750564b",
       "label": "現地リハーサル",
-      "date": "2025-08-02",
-      "kind": "offsite_rehearsal",
-      "publishToMap": false,
+      "date": "2026-08-02",
+      "location": "",
+      "photosMemo": "現地リハーサル写真テスト3",
       "resources": {
         "drones": [
           {
-            "model": "EMO",
+            "model": "現地リハーサル",
             "color": "赤",
             "count": 510
           },
           {
-            "model": "EMO",
+            "model": "現地リハーサル",
             "color": "青",
             "count": 510
           },
           {
-            "model": "EMO",
+            "model": "現地リハーサル",
             "color": "白",
             "count": 1010
           }
         ],
         "batteries": [
           {
-            "model": "EMO",
+            "model": "現地リハーサル",
             "count": 4000
           }
         ],
         "modules": [
           {
-            "type": "花火",
+            "type": "現地リハーサル",
             "count": 200
           },
           {
-            "type": "フラッシュ",
+            "type": "フラッシュ現地リハーサル",
             "count": 100
           }
         ],
         "vehicles": {
           "rows": [
             {
-              "type": "トラックA",
+              "type": "現地リハーサル",
               "driver": "Aさん"
             },
             {
-              "type": "トラックB",
+              "type": "現地リハーサル",
               "driver": "Bさん"
-            },
-            {
-              "type": "レンタカーA本部車",
-              "driver": "オペAさん"
-            },
-            {
-              "type": "レンタカーB",
-              "driver": "Bさん"
-            },
-            {
-              "type": "レンタカーC",
-              "driver": "Cさん"
             }
           ],
-          "memo": "ニッポンレンタカー○○店あ"
+          "memo": "現地リハーサル"
         },
         "equipment": [
           {
-            "name": "いす",
+            "name": "現地リハーサル",
             "qty": 10
           },
           {
@@ -467,53 +394,53 @@
         ],
         "hotels": [
           {
-            "name": "宿泊なし",
+            "name": "現地リハーサル",
             "memo": ""
           }
         ],
         "members": {
           "producer": [
             {
-              "name": "あああ",
+              "name": "現地リハーサル",
               "role": "メイン",
               "memo": ""
             },
             {
-              "name": "aいい",
+              "name": "現地リハーサル",
               "role": "サブ",
               "memo": ""
             },
             {
-              "name": "うう",
+              "name": "現地リハーサル",
               "role": "サブ",
               "memo": ""
             }
           ],
           "director": [
             {
-              "name": "うう",
+              "name": "現地リハーサル",
               "role": "制作",
               "memo": ""
             },
             {
-              "name": "うう",
+              "name": "現地リハーサル",
               "role": "現場",
               "memo": ""
             }
           ],
           "operator": [
             {
-              "name": "ええ",
+              "name": "現地リハーサル",
               "role": "メイン",
               "memo": ""
             },
             {
-              "name": "おお",
+              "name": "現地リハーサル",
               "role": "現場監督",
               "memo": ""
             },
             {
-              "name": "おお",
+              "name": "現地リハーサル",
               "role": "花火",
               "memo": ""
             }
@@ -521,17 +448,17 @@
           "veteran_part_time": {
             "members": [
               {
-                "name": "バイト1",
+                "name": "現地リハーサル",
                 "role": "",
                 "memo": "時給"
               },
               {
-                "name": "バイト2",
+                "name": "現地リハーサル",
                 "role": "",
                 "memo": ""
               },
               {
-                "name": "バイト3",
+                "name": "現地リハーサル",
                 "role": "",
                 "memo": ""
               }
@@ -540,23 +467,23 @@
           "local_staff": {
             "members": [
               {
-                "source": "タイミー",
+                "source": "現地リハーサル",
                 "count": 1,
                 "memo": "タイミーメモ"
               },
               {
-                "source": "大学",
+                "source": "現地リハーサル",
                 "count": 2,
                 "memo": "大学メモ"
               },
               {
-                "source": "ボランティア",
+                "source": "現地リハーサル",
                 "count": 10,
                 "memo": ""
               }
             ]
           },
-          "memo": "あ"
+          "memo": "現地リハーサル"
         }
       },
       "operation": {
@@ -567,13 +494,13 @@
         },
         "modules": [
           {
-            "name": "あ",
+            "name": "現地リハーサル",
             "ids": [
               1,
               2,
               3,
               11,
-              1425
+              1426
             ]
           },
           {
@@ -624,83 +551,21 @@
         "spacing_between_drones_m": {
           "horizontal": "",
           "vertical": ""
-        }
+        },
+        "area_name": "現地リハーサル"
       },
-      "geometry": {
-        "flightAltitude_m": 150,
-        "takeoffArea": {
-          "type": "rectangle",
-          "coordinates": [
-            [
-              133.0480280512333,
-              35.4663683711578
-            ],
-            [
-              133.0482762784625,
-              35.46665681011182
-            ],
-            [
-              133.0481168641109,
-              35.466747813253654
-            ],
-            [
-              133.0478686368817,
-              35.46645937429966
-            ]
-          ],
-          "referencePointIndex": 0
-        },
-        "flightArea": {
-          "type": "ellipse",
-          "center": [
-            133.050034,
-            35.465701
-          ],
-          "radiusX_m": 150,
-          "radiusY_m": 60,
-          "rotation_deg": 0
-        },
-        "safetyArea": {
-          "type": "ellipse",
-          "buffer_m": 50
-        },
-        "audienceArea": {
-          "type": "rectangle",
-          "coordinates": [
-            [
-              133.0380280512333,
-              35.4563683711578
-            ],
-            [
-              133.0382762784625,
-              35.45665681011182
-            ],
-            [
-              133.0381168641109,
-              35.456747813253654
-            ],
-            [
-              133.0378686368817,
-              35.45645937429966
-            ]
-          ]
-        },
-        "updatedAt": "2025-10-16T12:34:56.789Z",
-        "updatedBy": "テストユーザー"
-      },
-      "photos": [],
-      "photosMemo": "写真テスト3"
+      "photos": []
     },
     {
       "id": "2c911348-c518-43d6-b3d0-c85597505641",
       "label": "本番1日目",
-      "date": "2025-08-03",
-      "kind": "show",
-      "publishToMap": true,
+      "date": "2026-08-03",
+      "location": "",
+      "photosMemo": "本番1日目取手リハーサル写真テスト3",
       "resources": {
         "drones": [
           {
-            "model": "EMO",
+            "model": "本番1日目",
             "color": "赤",
             "count": 510
           },
@@ -717,13 +582,13 @@
         ],
         "batteries": [
           {
-            "model": "EMO",
+            "model": "本番1日目EMO",
             "count": 4000
           }
         ],
         "modules": [
           {
-            "type": "花火",
+            "type": "花火本番1日目",
             "count": 200
           },
           {
@@ -734,7 +599,7 @@
         "vehicles": {
           "rows": [
             {
-              "type": "トラックA",
+              "type": "本番1日目",
               "driver": "Aさん"
             },
             {
@@ -754,11 +619,11 @@
               "driver": "Cさん"
             }
           ],
-          "memo": "ニッポンレンタカー○○店あ"
+          "memo": "ニッポンレンタカー○○店あ本番1日目"
         },
         "equipment": [
           {
-            "name": "いす",
+            "name": "本番1日目いす",
             "qty": 10
           },
           {
@@ -840,31 +705,31 @@
         ],
         "hotels": [
           {
-            "name": "宿泊なし",
+            "name": "宿泊なし本番1日目",
             "memo": ""
           }
         ],
         "members": {
           "producer": [
             {
-              "name": "あああ",
+              "name": "本番1日目",
               "role": "メイン",
               "memo": ""
             },
             {
-              "name": "aいい",
+              "name": "本番1日目",
               "role": "サブ",
               "memo": ""
             },
             {
-              "name": "うう",
+              "name": "本番1日目",
               "role": "サブ",
               "memo": ""
             }
           ],
           "director": [
             {
-              "name": "うう",
+              "name": "本番1日目",
               "role": "制作",
               "memo": ""
             },
@@ -876,7 +741,7 @@
           ],
           "operator": [
             {
-              "name": "ええ",
+              "name": "本番1日目",
               "role": "メイン",
               "memo": ""
             },
@@ -894,7 +759,7 @@
           "veteran_part_time": {
             "members": [
               {
-                "name": "バイト1",
+                "name": "本番1日目",
                 "role": "",
                 "memo": "時給"
               },
@@ -913,7 +778,7 @@
           "local_staff": {
             "members": [
               {
-                "source": "タイミー",
+                "source": "本番1日目",
                 "count": 1,
                 "memo": "タイミーメモ"
               },
@@ -929,7 +794,7 @@
               }
             ]
           },
-          "memo": "あ"
+          "memo": "本番1日目"
         }
       },
       "operation": {
@@ -940,13 +805,13 @@
         },
         "modules": [
           {
-            "name": "あ",
+            "name": "本番1日目",
             "ids": [
               1,
               2,
               3,
               11,
-              1425
+              1426
             ]
           },
           {
@@ -997,83 +862,21 @@
         "spacing_between_drones_m": {
           "horizontal": "",
           "vertical": ""
-        }
+        },
+        "area_name": "本番1日目"
       },
-      "geometry": {
-        "flightAltitude_m": 150,
-        "takeoffArea": {
-          "type": "rectangle",
-          "coordinates": [
-            [
-              133.0480280512333,
-              35.4663683711578
-            ],
-            [
-              133.0482762784625,
-              35.46665681011182
-            ],
-            [
-              133.0481168641109,
-              35.466747813253654
-            ],
-            [
-              133.0478686368817,
-              35.46645937429966
-            ]
-          ],
-          "referencePointIndex": 0
-        },
-        "flightArea": {
-          "type": "ellipse",
-          "center": [
-            133.050034,
-            35.465701
-          ],
-          "radiusX_m": 150,
-          "radiusY_m": 60,
-          "rotation_deg": 0
-        },
-        "safetyArea": {
-          "type": "ellipse",
-          "buffer_m": 50
-        },
-        "audienceArea": {
-          "type": "rectangle",
-          "coordinates": [
-            [
-              133.0380280512333,
-              35.4563683711578
-            ],
-            [
-              133.0382762784625,
-              35.45665681011182
-            ],
-            [
-              133.0381168641109,
-              35.456747813253654
-            ],
-            [
-              133.0378686368817,
-              35.45645937429966
-            ]
-          ]
-        },
-        "updatedAt": "2025-10-16T12:34:56.789Z",
-        "updatedBy": "テストユーザー"
-      },
-      "photos": [],
-      "photosMemo": "写真テスト3"
+      "photos": []
     },
     {
       "id": "2c911348-c518-43d6-b3d0-c85597501234",
       "label": "本番2日目",
-      "date": "2025-08-04",
-      "kind": "show",
-      "publishToMap": true,
+      "date": "2026-08-04",
+      "location": "",
+      "photosMemo": "本番2日目写真テスト3",
       "resources": {
         "drones": [
           {
-            "model": "EMO",
+            "model": "本番2日",
             "color": "赤",
             "count": 510
           },
@@ -1090,13 +893,13 @@
         ],
         "batteries": [
           {
-            "model": "EMO",
+            "model": "本番2日",
             "count": 4000
           }
         ],
         "modules": [
           {
-            "type": "花火",
+            "type": "本番2日",
             "count": 200
           },
           {
@@ -1107,7 +910,7 @@
         "vehicles": {
           "rows": [
             {
-              "type": "トラックA",
+              "type": "本番2日",
               "driver": "Aさん"
             },
             {
@@ -1127,11 +930,11 @@
               "driver": "Cさん"
             }
           ],
-          "memo": "ニッポンレンタカー○○店あ"
+          "memo": "本番2日"
         },
         "equipment": [
           {
-            "name": "いす",
+            "name": "いす本番2日",
             "qty": 10
           },
           {
@@ -1213,14 +1016,14 @@
         ],
         "hotels": [
           {
-            "name": "宿泊なし",
+            "name": "本番2日",
             "memo": ""
           }
         ],
         "members": {
           "producer": [
             {
-              "name": "あああ",
+              "name": "本番2日",
               "role": "メイン",
               "memo": ""
             },
@@ -1237,7 +1040,7 @@
           ],
           "director": [
             {
-              "name": "うう",
+              "name": "本番2日",
               "role": "制作",
               "memo": ""
             },
@@ -1249,7 +1052,7 @@
           ],
           "operator": [
             {
-              "name": "ええ",
+              "name": "本番2日",
               "role": "メイン",
               "memo": ""
             },
@@ -1267,7 +1070,7 @@
           "veteran_part_time": {
             "members": [
               {
-                "name": "バイト1",
+                "name": "バイ本番2日ト1",
                 "role": "",
                 "memo": "時給"
               },
@@ -1286,7 +1089,7 @@
           "local_staff": {
             "members": [
               {
-                "source": "タイミー",
+                "source": "本番2日タイミー",
                 "count": 1,
                 "memo": "タイミーメモ"
               },
@@ -1302,7 +1105,7 @@
               }
             ]
           },
-          "memo": "あ"
+          "memo": "本番2日"
         }
       },
       "operation": {
@@ -1313,7 +1116,7 @@
         },
         "modules": [
           {
-            "name": "あ",
+            "name": "本番2日目",
             "ids": [
               1,
               2,
@@ -1370,72 +1173,10 @@
         "spacing_between_drones_m": {
           "horizontal": "",
           "vertical": ""
-        }
+        },
+        "area_name": "本番2日目"
       },
-      "geometry": {
-        "flightAltitude_m": 150,
-        "takeoffArea": {
-          "type": "rectangle",
-          "coordinates": [
-            [
-              133.0480280512333,
-              35.4663683711578
-            ],
-            [
-              133.0482762784625,
-              35.46665681011182
-            ],
-            [
-              133.0481168641109,
-              35.466747813253654
-            ],
-            [
-              133.0478686368817,
-              35.46645937429966
-            ]
-          ],
-          "referencePointIndex": 0
-        },
-        "flightArea": {
-          "type": "ellipse",
-          "center": [
-            133.050034,
-            35.465701
-          ],
-          "radiusX_m": 150,
-          "radiusY_m": 60,
-          "rotation_deg": 0
-        },
-        "safetyArea": {
-          "type": "ellipse",
-          "buffer_m": 50
-        },
-        "audienceArea": {
-          "type": "rectangle",
-          "coordinates": [
-            [
-              133.0380280512333,
-              35.4563683711578
-            ],
-            [
-              133.0382762784625,
-              35.45665681011182
-            ],
-            [
-              133.0381168641109,
-              35.456747813253654
-            ],
-            [
-              133.0378686368817,
-              35.45645937429966
-            ]
-          ]
-        },
-        "updatedAt": "2025-10-16T12:34:56.789Z",
-        "updatedBy": "テストユーザー"
-      },
-      "photos": [],
-      "photosMemo": "写真テスト3"
+      "photos": []
     }
   ]
 }

@@ -1,0 +1,342 @@
+{
+    "project": {
+        "id": "250909test",
+        "name": "テストプロジェクト",
+        "updated_at": "2025-10-10T08:20:58.821Z",
+        "updated_by": "テストユーザー"
+    },
+    "schedules": [
+        {
+            "id": "5d19a792-dd98-422d-a91c-ac818c706d3b",
+            "label": "本番",
+            "date": "2025-09-09",
+            "location": "",
+            "resources": {
+                "drones": [
+                    {
+                        "model": "",
+                        "color": "",
+                        "count": 0
+                    }
+                ],
+                "batteries": [
+                    {
+                        "model": "",
+                        "count": 0
+                    }
+                ],
+                "modules": [
+                    {
+                        "type": "",
+                        "count": 0
+                    }
+                ],
+                "vehicles": {
+                    "rows": [
+                        {
+                            "type": "",
+                            "driver": ""
+                        }
+                    ],
+                    "memo": ""
+                },
+                "equipment": [],
+                "hotels": [],
+                "members": {
+                    "producer": [],
+                    "director": [],
+                    "operator": [],
+                    "veteran_part_time": {
+                        "members": []
+                    },
+                    "local_staff": {
+                        "members": []
+                    },
+                    "memo": ""
+                }
+            },
+            "operation": {
+                "placement": {
+                    "x": null,
+                    "y": null,
+                    "spacing_m": null
+                },
+                "modules": [],
+                "measurement": {
+                    "target_id": null,
+                    "result": null
+                },
+                "memo": ""
+            },
+            "area": {
+                "area_name": "",
+                "takeoff_land": {
+                    "coordinate": {
+                        "lat": null,
+                        "lon": null
+                    }
+                },
+                "drone_count": {
+                    "model": "",
+                    "count": 0,
+                    "x_count": null,
+                    "y_count": null
+                },
+                "flight_area": {
+                    "altitude_min_m": null,
+                    "altitude_max_m": null,
+                    "safety_area_m": null
+                },
+                "actions": {
+                    "liftoff": "",
+                    "turn": ""
+                },
+                "obstacle_note": "",
+                "lights": {
+                    "takeoff": "",
+                    "landing": ""
+                },
+                "return_note": "",
+                "animation_area": {
+                    "width_m": null,
+                    "depth_m": null
+                },
+                "distance_from_viewers_m": null,
+                "spacing_between_drones_m": {
+                    "horizontal": "",
+                    "vertical": ""
+                }
+            },
+            "geometry": {
+                "flightAltitude_m": 150,
+                "takeoffArea": {
+                    "type": "rectangle",
+                    "coordinates": [
+                        [
+                            133.0480280512333,
+                            35.4663683711578
+                        ],
+                        [
+                            133.0482762784625,
+                            35.46665681011182
+                        ],
+                        [
+                            133.0481168641109,
+                            35.466747813253654
+                        ],
+                        [
+                            133.0478686368817,
+                            35.46645937429966
+                        ]
+                    ],
+                    "referencePointIndex": 0
+                },
+                "flightArea": {
+                    "type": "ellipse",
+                    "center": [
+                        133.050034,
+                        35.465701
+                    ],
+                    "radiusX_m": 150,
+                    "radiusY_m": 60,
+                    "rotation_deg": 0
+                },
+                "safetyArea": {
+                    "type": "ellipse",
+                    "buffer_m": 50
+                },
+                "audienceArea": {
+                    "type": "rectangle",
+                    "coordinates": [
+                        [
+                            133.0380280512333,
+                            35.4563683711578
+                        ],
+                        [
+                            133.0382762784625,
+                            35.45665681011182
+                        ],
+                        [
+                            133.0381168641109,
+                            35.456747813253654
+                        ],
+                        [
+                            133.0378686368817,
+                            35.45645937429966
+                        ]
+                    ]
+                },
+                "updatedAt": "2025-10-16T12:34:56.789Z",
+                "updatedBy": "テストユーザー"
+            },
+            "photos": [],
+            "photosMemo": "写真テスト3"
+        },
+        {
+            "id": "ed659c35-0ebe-4b58-84fa-43e4aaa090e5",
+            "label": "本番 copy",
+            "date": "2025-09-09",
+            "location": "",
+            "resources": {
+                "drones": [
+                    {
+                        "model": "",
+                        "color": "",
+                        "count": 0
+                    }
+                ],
+                "batteries": [
+                    {
+                        "model": "",
+                        "count": 0
+                    }
+                ],
+                "modules": [
+                    {
+                        "type": "",
+                        "count": 0
+                    }
+                ],
+                "vehicles": {
+                    "rows": [
+                        {
+                            "type": "",
+                            "driver": ""
+                        }
+                    ],
+                    "memo": ""
+                },
+                "equipment": [],
+                "hotels": [],
+                "members": {
+                    "producer": [],
+                    "director": [],
+                    "operator": [],
+                    "veteran_part_time": {
+                        "members": []
+                    },
+                    "local_staff": {
+                        "members": []
+                    },
+                    "memo": ""
+                }
+            },
+            "operation": {
+                "placement": {
+                    "x": null,
+                    "y": null,
+                    "spacing_m": null
+                },
+                "modules": [],
+                "measurement": {
+                    "target_id": null,
+                    "result": null
+                },
+                "memo": ""
+            },
+            "area": {
+                "area_name": "",
+                "takeoff_land": {
+                    "coordinate": {
+                        "lat": null,
+                        "lon": null
+                    }
+                },
+                "drone_count": {
+                    "model": "",
+                    "count": 0,
+                    "x_count": null,
+                    "y_count": null
+                },
+                "flight_area": {
+                    "altitude_min_m": null,
+                    "altitude_max_m": null,
+                    "safety_area_m": null
+                },
+                "actions": {
+                    "liftoff": "",
+                    "turn": ""
+                },
+                "obstacle_note": "",
+                "lights": {
+                    "takeoff": "",
+                    "landing": ""
+                },
+                "return_note": "",
+                "animation_area": {
+                    "width_m": null,
+                    "depth_m": null
+                },
+                "distance_from_viewers_m": null,
+                "spacing_between_drones_m": {
+                    "horizontal": "",
+                    "vertical": ""
+                }
+            },
+            "geometry": {
+                "flightAltitude_m": 150,
+                "takeoffArea": {
+                    "type": "rectangle",
+                    "coordinates": [
+                        [
+                            133.0480280512333,
+                            35.4663683711578
+                        ],
+                        [
+                            133.0482762784625,
+                            35.46665681011182
+                        ],
+                        [
+                            133.0481168641109,
+                            35.466747813253654
+                        ],
+                        [
+                            133.0478686368817,
+                            35.46645937429966
+                        ]
+                    ],
+                    "referencePointIndex": 0
+                },
+                "flightArea": {
+                    "type": "ellipse",
+                    "center": [
+                        133.050034,
+                        35.465701
+                    ],
+                    "radiusX_m": 150,
+                    "radiusY_m": 60,
+                    "rotation_deg": 0
+                },
+                "safetyArea": {
+                    "type": "ellipse",
+                    "buffer_m": 50
+                },
+                "audienceArea": {
+                    "type": "rectangle",
+                    "coordinates": [
+                        [
+                            133.0380280512333,
+                            35.4563683711578
+                        ],
+                        [
+                            133.0382762784625,
+                            35.45665681011182
+                        ],
+                        [
+                            133.0381168641109,
+                            35.456747813253654
+                        ],
+                        [
+                            133.0378686368817,
+                            35.45645937429966
+                        ]
+                    ]
+                },
+                "updatedAt": "2025-10-16T12:34:56.789Z",
+                "updatedBy": "テストユーザー"
+            },
+            "photos": [],
+            "photosMemo": "写真テスト3"
+        }
+    ]
+}

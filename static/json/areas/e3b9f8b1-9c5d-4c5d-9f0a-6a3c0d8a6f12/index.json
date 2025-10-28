@@ -1,0 +1,55 @@
+{
+    "area": {
+        "id": "zojoji_temple",
+        "name": "増上寺",
+        "updated_at": "2025-10-12T00:00:00Z",
+        "updated_by": "ai-assistant"
+    },
+    "overview": {
+        "address": "東京都港区芝公園4-7-35",
+        "prefecture": "東京",
+        "manager": "未定",
+        "droneRecord": "なし",
+        "droneCountEstimate": 0,
+        "heightLimitM": 120,
+        "availability": "要調整"
+    },
+    "details": {
+        "statusMemo": "都心部のため各種制限に留意。近隣イベントや来訪者の多い時間帯は避ける。",
+        "permitMemo": "港区・寺院管理者との占用／使用許可、文化財保護関連の事前協議が必要となる可能性あり。",
+        "restrictionsMemo": "人口集中地区（DID）内。第三者上空・道路・東京タワー周辺空域等の安全対策を厳格に。夜間/目視外/UASレベル3以上は別途要件確認。",
+        "remarks": "電波環境の混雑が想定されるため予備経路・周波数計画を準備。雨天・強風時は中止または延期。"
+    },
+    "flightArea": {
+        "polygon": [
+            {
+                "lat": 35.6580,
+                "lon": 139.7479
+            },
+            {
+                "lat": 35.6580,
+                "lon": 139.7489
+            },
+            {
+                "lat": 35.6569,
+                "lon": 139.7489
+            },
+            {
+                "lat": 35.6569,
+                "lon": 139.7479
+            }
+        ],
+        "altitudeMaxM": 120,
+        "safetyBufferM": 50
+    },
+    "history": [
+        {
+            "projectuuid": "123e4567-e89b-12d3-a456-426614174002",
+            "scheduleuuid": "2c911348-c518-43d6-b3d0-c85597505642",
+            "actualCoordinate": {
+                "lat": 35.65748,
+                "lon": 139.74838
+            }
+        }
+    ]
+}

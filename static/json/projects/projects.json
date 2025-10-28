@@ -1,0 +1,32 @@
+[
+    {
+        "uuid": "5993a5fb-f60e-46a7-b6cb-8b58d2516796",
+        "projectId": "250909test",
+        "projectName": "テストプロジェクト"
+    },
+    {
+        "uuid": "bf3ecfa0-74c0-44ee-9bd5-4d078331d7b5",
+        "projectId": "250101test2",
+        "projectName": "テストプロジェクト2"
+    },
+    {
+        "uuid": "123e4567-e89b-12d3-a456-426614174002",
+        "projectId": "250730lawsoncampaign",
+        "projectName": "ローソンキャンペーン"
+    },
+    {
+        "uuid": "181b78b2-39d8-4c95-9fbd-9a8e827b321f",
+        "projectId": "250803suigosai",
+        "projectName": "松江水郷祭2025"
+    },
+    {
+        "uuid": "9d40fbd3-128e-4789-b2b9-8938733ed0cc",
+        "projectId": "260803suigosai",
+        "projectName": "松江水郷祭2026"
+    },
+    {
+        "uuid": "237215c1-d78f-439c-bf64-4e2293eab2c4",
+        "projectId": "237215c1-d78f-439c-bf64-4e2293eab2c4",
+        "projectName": "長岡花火2025"
+    }
+]

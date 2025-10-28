@@ -1,0 +1,84 @@
+{
+    "area": {
+        "id": "matsue_chidori",
+        "name": "松江",
+        "updated_at": "2025-10-08T06:22:13Z",
+        "updated_by": "seed-script"
+    },
+    "overview": {
+        "address": "島根県松江市 東エリアあ",
+        "prefecture": "山梨県",
+        "manager": "佐藤",
+        "droneRecord": "あり",
+        "droneCountEstimate": "12",
+        "heightLimitM": "120",
+        "availability": "可",
+        "overview": "[object Object]"
+    },
+    "details": {
+        "statusMemo": "近隣イベントと日程調整が必要。",
+        "permitMemo": "自治体の占用許可が別途必要。",
+        "restrictionsMemo": "学校上空は終業後のみ可。",
+        "remarks": "雨天時は翌日に順延。"
+    },
+    "flightArea": {
+        "polygon": [
+            {
+                "lat": 35.4681166,
+                "lon": 133.0440959
+            },
+            {
+                "lat": 35.4681166,
+                "lon": 133.0480665
+            },
+            {
+                "lat": 35.4648826,
+                "lon": 133.0480665
+            },
+            {
+                "lat": 35.4648826,
+                "lon": 133.0440959
+            }
+        ],
+        "altitudeMaxM": 120,
+        "safetyBufferM": 40
+    },
+    "history": [
+        {
+            "projectuuid": "181b78b2-39d8-4c95-9fbd-9a8e827b321f",
+            "scheduleuuid": "2c911348-c518-43d6-b3d0-c85597505641",
+            "actualCoordinate": {
+                "lat": 35.4664996,
+                "lon": 133.04608119
+            }
+        },
+        {
+            "projectuuid": "181b78b2-39d8-4c95-9fbd-9a8e827b321f",
+            "scheduleuuid": "2c911348-c518-43d6-b3d0-c85597501234",
+            "actualCoordinate": {
+                "lat": 35.4664996,
+                "lon": 133.04608119
+            }
+        },
+        {
+            "projectuuid": "9d40fbd3-128e-4789-b2b9-8938733ed0cc",
+            "scheduleuuid": "2c911348-c518-43d6-b3d0-c85597505641",
+            "actualCoordinate": {
+                "lat": 35.4664996,
+                "lon": 133.04608119
+            }
+        },
+        {
+            "projectuuid": "9d40fbd3-128e-4789-b2b9-8938733ed0cc",
+            "scheduleuuid": "2c911348-c518-43d6-b3d0-c85597501234",
+            "actualCoordinate": {
+                "lat": 35.4664996,
+                "lon": 133.04608119
+            }
+        }
+    ],
+    "updated_at": "2025-10-25T17:40:10.418Z",
+    "updated_by": "ui",
+    "areaId": "matsue_chidori",
+    "areaName": "松江"
+}

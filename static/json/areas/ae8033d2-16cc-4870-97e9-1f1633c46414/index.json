@@ -1,0 +1,60 @@
+{
+    "area": {
+        "id": "nagaoka_crvm4hj",
+        "name": "長岡",
+        "updated_at": "2025-10-08T06:22:13Z",
+        "updated_by": "seed-script"
+    },
+    "overview": {
+        "address": "新潟県長岡市あ",
+        "prefecture": "新潟",
+        "manager": "三浦",
+        "droneRecord": "あり",
+        "droneCountEstimate": "1500",
+        "heightLimitM": "120",
+        "availability": "可",
+        "overview": "[object Object]"
+    },
+    "details": {
+        "statusMemo": "近隣イベントと日程調整が必要。",
+        "permitMemo": "自治体の占用許可が別途必要。",
+        "restrictionsMemo": "学校上空は終業後のみ可。",
+        "remarks": "雨天時は翌日に順延。"
+    },
+    "flightArea": {
+        "polygon": [
+            {
+                "lat": 35.4681166,
+                "lon": 133.0440959
+            },
+            {
+                "lat": 35.4681166,
+                "lon": 133.0480665
+            },
+            {
+                "lat": 35.4648826,
+                "lon": 133.0480665
+            },
+            {
+                "lat": 35.4648826,
+                "lon": 133.0440959
+            }
+        ],
+        "altitudeMaxM": 120,
+        "safetyBufferM": 40
+    },
+    "history": [
+        {
+            "projectuuid": "237215c1-d78f-439c-bf64-4e2293eab2c4",
+            "scheduleuuid": "0e66c69d-1742-4ad1-985c-696086575271",
+            "actualCoordinate": {
+                "lat": 35.4681166,
+                "lon": 133.0440959
+            }
+        }
+    ],
+    "updated_at": "2025-10-27T07:59:38.362Z",
+    "updated_by": "ui",
+    "areaId": "nagaoka_crvm4hj",
+    "areaName": "長岡"
+}

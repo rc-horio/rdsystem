@@ -545,9 +545,6 @@ export default function MapView({ onLoaded }: Props) {
             type="button"
             className="delete-geom-button"
             onClick={() => {
-              console.info(
-                "[map] 'エリア情報を削除する' clicked (not implemented yet)"
-              );
             }}
             aria-label="エリア情報を削除する"
           >
