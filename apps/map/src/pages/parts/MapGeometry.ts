@@ -18,6 +18,7 @@ export class MapGeometry {
     private arrowRef: google.maps.Polyline | null = null;
     private arrow2Ref: google.maps.Polyline | null = null;
     private arrow3Ref: google.maps.Polyline | null = null;
+    private arrowLabel: google.maps.Marker | null = null;
 
     // オーバーレイのリスト
     private overlaysRef: Array<
@@ -284,6 +285,10 @@ export class MapGeometry {
             this.arrowRef = line;
             line.getPath().forEach((p: google.maps.LatLng) => bounds.extend(p));
 
+            // ラベルの作成
+            const distance = gmaps.geometry.spherical.computeDistanceBetween(new gmaps.LatLng(from[1], from[0]), new gmaps.LatLng(to[1], to[0]));
+            this.updateDistanceLabel(new gmaps.LatLng(from[1], from[0]), new gmaps.LatLng(to[1], to[0]), distance);
+
             // ②③を新規描画
             const { line2, line3 } = this.drawRightAngleArrows(from, to);
             if (line2) {
@@ -438,11 +443,49 @@ export class MapGeometry {
      *  ========================= */
     private updateArrowPath(from?: LngLat, to?: LngLat) {
         if (!this.arrowRef || !from || !to) return;
+
+        const gmaps = this.getGMaps();
+        const fromLatLng = this.latLng(from[1], from[0]);
+        const toLatLng = this.latLng(to[1], to[0]);
+
+        // 距離計算（google.maps.geometry.spherical.computeDistanceBetweenを使用）
+        const distance = gmaps.geometry.spherical.computeDistanceBetween(fromLatLng, toLatLng);
+
+        // 矢印のパス更新
         this.arrowRef.setOptions({ icons: [] });
-        this.arrowRef.setPath([this.latLng(from[1], from[0]),
-        this.latLng(to[1], to[0])]);
+        this.arrowRef.setPath([fromLatLng, toLatLng]);
+
+        // ラベル更新または作成
+        this.updateDistanceLabel(fromLatLng, toLatLng, distance);
     }
 
+    private updateDistanceLabel(fromLatLng: google.maps.LatLng, toLatLng: google.maps.LatLng, distance: number) {
+        const gmaps = this.getGMaps();
+        const map = this.getMap();
+
+        // 矢印①の中間地点を計算
+        const middleLatLng = google.maps.geometry.spherical.interpolate(fromLatLng, toLatLng, 0.5);
+
+        // 既存のラベルがあれば更新、なければ新しく作成
+        if (this.arrowLabel) {
+            this.arrowLabel.setPosition(middleLatLng);
+            this.arrowLabel.setLabel(`${distance.toFixed(2)}m`);
+        } else {
+            this.arrowLabel = new gmaps.Marker({
+                position: middleLatLng,
+                map: map,
+                label: `${distance.toFixed(2)}m`,
+                zIndex: Z.OVERLAY.ARROW,
+                clickable: false,
+                icon: {
+                    // 空のアイコンを設定して、ラベルだけを表示
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 0,
+                    strokeWeight: 0
+                }
+            });
+        }
+    }
 
     /** =========================
      *  矢印: 描画
@@ -547,7 +590,6 @@ export class MapGeometry {
         const refIdx = this.clampIndex(coords.length, t.referencePointIndex);
         const cur = coords[refIdx];
         const next = coords[(refIdx + 1) % 4];
-        const prev = coords[(refIdx + 3) % 4];
 
         // 中心（p0-p2 中点）
         const p0 = coords[0], p2 = coords[2];
@@ -556,7 +598,6 @@ export class MapGeometry {
         // RectEditor.computeRightLeftLengths と同じ判定（右手系 cross<0 が右）
         const c = toLocalXY(center, cur);
         const n = toLocalXY(center, next);
-        const p = toLocalXY(center, prev);
         const f = { x: -c.x, y: -c.y };
         const eNext = { x: n.x - c.x, y: n.y - c.y };
         const cross = (a: { x: number; y: number }, b: { x: number; y: number }) => a.x * b.y - a.y * b.x;
