@@ -7,6 +7,7 @@ export const EV_TAKEOFF_REF_CHANGED = "geometry:takeoff-ref-changed";
 export const EV_DETAILBAR_RESPOND_DATA = "detailbar:respond-data";
 // Geometryの「現在値」をMapGeometryから取得するための応答イベント
 export const EV_GEOMETRY_RESPOND_DATA = "geometry:respond-data";
+export const EV_GEOMETRY_REQUEST_DATA = "geometry:request-data";
 export const EV_DETAILBAR_SELECT_CANDIDATE = "detailbar:select-candidate";
 export const EV_DETAILBAR_SELECTED = "side-detailbar:selected";
 

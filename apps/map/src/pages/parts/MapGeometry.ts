@@ -1,7 +1,7 @@
 // src/pages/parts/MapGeometry.ts
 import { setDetailBarMetrics } from "./SideDetailBar";
 import type { Geometry, GeometryMetrics, LngLat, RectangleGeom } from "@/features/types";
-import { EV_DETAILBAR_APPLY_METRICS, EV_TAKEOFF_REF_CHANGED, EV_GEOMETRY_RESPOND_DATA, Z } from "./constants/events";
+import { EV_DETAILBAR_APPLY_METRICS, EV_TAKEOFF_REF_CHANGED, EV_GEOMETRY_RESPOND_DATA, Z, EV_GEOMETRY_REQUEST_DATA } from "./constants/events";
 import { EllipseEditor } from "./geometry/EllipseEditor";
 import { RectEditor } from "./geometry/RectEditor";
 import { AudienceEditor } from "./geometry/AudienceEditor";
@@ -133,7 +133,7 @@ export class MapGeometry {
 
         // === 現在のスケジュールUUIDとGeometryを問い合わせるブリッジ ===
         window.addEventListener(
-            "geometry:request-data",
+            EV_GEOMETRY_REQUEST_DATA,
             () => {
                 const detail = {
                     projectUuid: this.currentScheduleRef?.projectUuid,

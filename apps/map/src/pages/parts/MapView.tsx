@@ -335,13 +335,13 @@ export default function MapView({ onLoaded }: Props) {
     const areaUuid = currentAreaUuidRef.current;
 
     // 1) 履歴（プロジェクト/スケジュール）優先
-    if (pj && sch) {
-      return await upsertScheduleGeometry({
-        projectUuid: pj,
-        scheduleUuid: sch,
-        geometry,
-      });
-    }
+    // if (pj && sch) {
+    //   return await upsertScheduleGeometry({
+    //     projectUuid: pj,
+    //     scheduleUuid: sch,
+    //     geometry,
+    //   });
+    // }
 
     // 2) 候補（エリア）
     if (areaUuid) {
@@ -378,6 +378,15 @@ export default function MapView({ onLoaded }: Props) {
           },
         });
       }
+    }
+
+    // 2) 履歴（プロジェクト/スケジュール）
+    if (pj && sch) {
+      return await upsertScheduleGeometry({
+        projectUuid: pj,
+        scheduleUuid: sch,
+        geometry,
+      });
     }
 
     console.warn("[saveGeometryToS3] no context to save.");
@@ -642,6 +651,13 @@ export default function MapView({ onLoaded }: Props) {
         typeof detail.index === "number" ? detail.index : null;
       currentCandidateTitleRef.current =
         typeof detail.title === "string" ? detail.title : undefined;
+
+      // 履歴（プロジェクト）文脈はここで確実に無効化
+      currentProjectUuidRef.current = undefined;
+      currentScheduleUuidRef.current = undefined;
+      // MapGeometry がスケジュール文脈を内部保持している場合に備え、明示的に解除
+      geomRef.current?.setCurrentSchedule?.(undefined as any, undefined as any);
+
       geomRef.current?.renderGeometry(detail.geometry);
     };
 

@@ -23,9 +23,15 @@ import {
   upsertAreasListEntryFromInfo,
   buildAreaHistoryFromProjects,
   updateScheduleTakeoffReferencePoint,
+  clearAreaCandidateGeometryAtIndex,
+  upsertAreaCandidateAtIndex,
 } from "./areasApi";
 import { upsertScheduleGeometry, clearScheduleGeometry } from "./areasApi";
-import { AREA_NAME_NONE } from "./constants/events";
+import {
+  AREA_NAME_NONE,
+  EV_DETAILBAR_SELECT_CANDIDATE,
+  EV_GEOMETRY_REQUEST_DATA,
+} from "./constants/events";
 import type { ScheduleLite, Point } from "@/features/types";
 import {
   EV_SIDEBAR_SET_ACTIVE,
@@ -47,6 +53,10 @@ function SideListBarBase({
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const iconH = 25;
+  // 現在の保存コンテキスト（エリア／候補）
+  const currentAreaUuidRef = useRef<string | undefined>(undefined);
+  const currentCandidateIndexRef = useRef<number | null>(null);
+  const currentCandidateTitleRef = useRef<string | undefined>(undefined);
 
   // エリア名を正規化
   const normArea = (p?: { areaName?: string }) =>
@@ -148,6 +158,10 @@ function SideListBarBase({
     openDetailBar();
 
     const areaId = getAreaIdByAreaName(area);
+    currentAreaUuidRef.current = points.find(
+      (p) => p.areaId === areaId
+    )?.areaUuid;
+
     window.dispatchEvent(
       new CustomEvent(EV_MAP_FOCUS_ONLY, {
         detail: { areaId, areaName: area },
@@ -302,7 +316,8 @@ function SideListBarBase({
             { once: true }
           );
           // 現在のGeometryをリクエスト
-          window.dispatchEvent(new Event("geometry:request-data"));
+          window.dispatchEvent(new Event(EV_GEOMETRY_REQUEST_DATA));
+
           // 返ってこない場合はスキップ
           timer = window.setTimeout(() => {
             window.removeEventListener(
@@ -314,31 +329,66 @@ function SideListBarBase({
         }).catch(() => ({} as any));
 
         if (geomPayload?.projectUuid && geomPayload?.scheduleUuid) {
-          if (geomPayload?.deleted === true) {
-            // ★ 削除指定：geometry キーごと除去して保存
+          // プロジェクト/スケジュール文脈
+          if (geomPayload.deleted === true) {
             const okGeomDel = await clearScheduleGeometry({
               projectUuid: geomPayload.projectUuid,
               scheduleUuid: geomPayload.scheduleUuid,
             });
-            if (!okGeomDel) {
-              console.warn("[save] geometry delete failed");
-            } else {
-              console.info("[save] geometry deleted");
-            }
-          } else if (geomPayload?.geometry) {
-            // 通常の upsert
+            if (!okGeomDel) console.warn("[save] geometry delete failed");
+          } else if (geomPayload.geometry) {
             const okGeomSave = await upsertScheduleGeometry({
               projectUuid: geomPayload.projectUuid,
               scheduleUuid: geomPayload.scheduleUuid,
               geometry: geomPayload.geometry,
             });
-            if (!okGeomSave) {
-              console.warn("[save] geometry save failed");
-            }
+            if (!okGeomSave) console.warn("[save] geometry save failed");
           } else {
-            // geometry なし & deleted でもない → 何もしない
             if (import.meta.env.DEV)
               console.debug("[save] geometry payload not available — skipped");
+          }
+        } else if (geomPayload?.geometry || geomPayload?.deleted) {
+          // 候補文脈
+          const areaUuidToUse = currentAreaUuidRef.current ?? areaUuid;
+          const idx = currentCandidateIndexRef.current;
+          if (areaUuidToUse && typeof idx === "number" && idx >= 0) {
+            if (geomPayload.deleted === true) {
+              const okDel = await clearAreaCandidateGeometryAtIndex({
+                areaUuid: areaUuidToUse,
+                index: idx,
+              });
+              if (!okDel)
+                console.warn("[save] candidate geometry delete failed");
+            } else if (geomPayload.geometry) {
+              const g = geomPayload.geometry;
+              const okCand = await upsertAreaCandidateAtIndex({
+                areaUuid: areaUuidToUse,
+                index: idx,
+                candidate: {
+                  title: currentCandidateTitleRef.current,
+                  flightAltitude_m: g.flightAltitude_m,
+                  takeoffArea: g.takeoffArea,
+                  flightArea: g.flightArea,
+                  safetyArea: g.safetyArea,
+                  audienceArea: g.audienceArea,
+                },
+                preserveTitle: true,
+              });
+              if (!okCand)
+                console.warn("[save] candidate geometry save failed");
+            }
+            // 保存後、candidateの更新をUIへ反映
+            try {
+              const { meta: refreshedMeta } = await fetchAreaInfo(
+                areaUuidToUse,
+                activeKey || ""
+              );
+              setDetailBarMeta(refreshedMeta);
+            } catch {}
+          } else {
+            console.warn(
+              "[save] candidate context missing (areaUuid/index). Skipped."
+            );
           }
         }
       } catch (e) {
@@ -370,6 +420,32 @@ function SideListBarBase({
     }
   };
 
+  // 1回だけ geometry をもらう Promise
+  async function requestCurrentGeometryOnce(): Promise<{
+    geometry: any | null;
+    deleted?: boolean;
+  }> {
+    return new Promise((resolve) => {
+      const handler = (e: Event) => {
+        window.removeEventListener(
+          EV_GEOMETRY_RESPOND_DATA,
+          handler as EventListener
+        );
+        const detail = (e as CustomEvent).detail || {};
+        resolve({
+          geometry: detail.geometry ?? null,
+          deleted: !!detail.deleted,
+        });
+      };
+      window.addEventListener(
+        EV_GEOMETRY_RESPOND_DATA,
+        handler as EventListener,
+        { once: true } as any
+      );
+      window.dispatchEvent(new Event(EV_GEOMETRY_REQUEST_DATA));
+    });
+  }
+
   // 外部イベントでアクティブ切替
   useEffect(() => {
     const onSetActive = (e: Event) => {
@@ -393,6 +469,7 @@ function SideListBarBase({
       });
       if (idx < 0) return;
       const area = normArea(points[idx]);
+      currentAreaUuidRef.current = points[idx].areaUuid;
       setActiveKey(area);
       loadAndShowInfoForArea(area);
       openDetailBar();
@@ -453,6 +530,28 @@ function SideListBarBase({
       window.removeEventListener(
         EV_TAKEOFF_REF_CHANGED,
         onRefChanged as EventListener
+      );
+  }, []);
+
+  // 候補選択（どの candidate を保存対象にするか）
+  useEffect(() => {
+    const onCandidate = (e: Event) => {
+      const d =
+        (e as CustomEvent<{ index?: number; title?: string }>).detail || {};
+      currentCandidateIndexRef.current = Number.isInteger(d.index)
+        ? (d.index as number)
+        : null;
+      currentCandidateTitleRef.current =
+        typeof d.title === "string" ? d.title : undefined;
+    };
+    window.addEventListener(
+      EV_DETAILBAR_SELECT_CANDIDATE,
+      onCandidate as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        EV_DETAILBAR_SELECT_CANDIDATE,
+        onCandidate as EventListener
       );
   }, []);
 
