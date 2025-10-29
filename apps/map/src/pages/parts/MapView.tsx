@@ -4,7 +4,11 @@ import { Loader } from "@googlemaps/js-api-loader";
 import { createMarkerIcon } from "@/components";
 import type { Props, Point, Geometry } from "@/features/types";
 import { fetchAreaInfo, fetchProjectIndex } from "./areasApi";
-import { OPEN_INFO_ON_SELECT, S3_BASE } from "./constants/events";
+import {
+  EV_DETAILBAR_SELECTED,
+  OPEN_INFO_ON_SELECT,
+  S3_BASE,
+} from "./constants/events";
 import "../map.css";
 import {
   openDetailBar,
@@ -562,12 +566,9 @@ export default function MapView({ onLoaded }: Props) {
       setIsSelected(isSelected);
     };
 
-    window.addEventListener("side-detailbar:selected", onSelectedStateChange);
+    window.addEventListener(EV_DETAILBAR_SELECTED, onSelectedStateChange);
     return () => {
-      window.removeEventListener(
-        "side-detailbar:selected",
-        onSelectedStateChange
-      );
+      window.removeEventListener(EV_DETAILBAR_SELECTED, onSelectedStateChange);
     };
   }, []);
 
@@ -579,6 +580,9 @@ export default function MapView({ onLoaded }: Props) {
     } else {
       // 何も選ばれていない状態の処理
       console.log("No selection");
+      clearGeometryOverlays(); // すべての図形を消す
+      setShowCreateGeomCta(false); // CTAも隠す
+      setDetailBarMetrics({}); // メトリクス（寸法表示など）リセット
     }
   }, [isSelected]);
 

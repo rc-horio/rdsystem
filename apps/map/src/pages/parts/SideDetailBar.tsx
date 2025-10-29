@@ -109,6 +109,9 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     setSelectedHistoryIdx(idx); // 履歴のインデックスを設定
     setSelectedCandidateIdx(null); // 候補の選択状態を解除
     setIsSelected(true); // 履歴が選ばれた状態
+    window.dispatchEvent(
+      new CustomEvent(EV_DETAILBAR_SELECTED, { detail: { isSelected: true } })
+    );
 
     // イベントで選択状態を通知
     const ev = new CustomEvent(EV_DETAILBAR_SELECTED, {
@@ -127,6 +130,9 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     setSelectedCandidateIdx(idx); // 候補エリアのインデックスを設定
     setSelectedHistoryIdx(null); // 履歴の選択状態を解除
     setIsSelected(true); // 候補が選ばれた状態
+    window.dispatchEvent(
+      new CustomEvent(EV_DETAILBAR_SELECTED, { detail: { isSelected: true } })
+    );
 
     // イベントで選択状態を通知
     const ev = new CustomEvent(EV_DETAILBAR_SELECTED, {
@@ -247,6 +253,8 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   useEffect(() => {
     if (selectedHistoryIdx === null && selectedCandidateIdx === null) {
       setIsSelected(false); // 何も選択されていない状態
+      window.dispatchEvent(new CustomEvent(EV_DETAILBAR_SELECTED, { detail: { isSelected: false } }));
+
       window.dispatchEvent(
         new CustomEvent(EV_DETAILBAR_SELECTED, {
           detail: { isSelected: false },
