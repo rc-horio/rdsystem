@@ -511,7 +511,15 @@ export class RectEditor {
             mk.setPosition(this.opts.latLng(lat, lng));
         });
 
-        if (edit.refMarker != null && Number.isInteger(edit.refIndex)) {
+        // 一時的に currentGeomRef を更新して矢印計算に反映
+        const prev = this.opts.getCurrentGeom();
+        if (prev?.takeoffArea && edit.refMarker != null && Number.isInteger(edit.refIndex)) {
+            const tempGeom = {
+                ...prev,
+                takeoffArea: { ...prev.takeoffArea, coordinates: coords },
+            } as Geometry;
+            this.opts.setCurrentGeom(tempGeom);
+
             const [lng, lat] = coords[edit.refIndex!];
             const pos = this.opts.latLng(lat, lng);
             edit.refMarker!.setPosition(pos);
@@ -519,7 +527,7 @@ export class RectEditor {
             // 参照頂点が動いたことを通知（矢印更新用）
             this.opts.onReferencePointMoved?.([lng, lat]);
         }
-
+        
         if (edit.rotateMarker) {
             const rect = this.rectParamsFromCoords(coords);
             if (rect) {
