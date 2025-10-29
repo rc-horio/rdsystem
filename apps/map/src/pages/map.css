@@ -674,11 +674,32 @@ body.detailbar-open #detailbar {
   color: var(--ds-name-color);
 }
 
-/* Apply margin to the candidate section */
-.ds-history-list + section {
-  margin-top: 14px; /* Add space between history and candidate sections */
-  border-top: 1px solid white; /* Add a thin white line between sections */
-  padding-top: 14px; /* Optional: Adjust padding for better spacing */
+/* 候補エリアとの区切り線 */
+.ds-history-separator {
+  margin-top: 14px;
+  border-top: 1px solid white;
+  padding-top: 14px;
+}
+
+/* 候補エリア名 */
+.ds-candidate-title {
+  width: 30px; /* 桁ズレ防止 */
+  font-size: var(--ds-date-fz);
+  line-height: var(--ds-date-lh);
+  color: var(--ds-date-color);
+  letter-spacing: var(--ds-date-tracking);
+}
+
+/* 候補名 */
+.ds-candidate-name {
+  flex: 1 1 auto;
+  min-width: 0; /* flex 子要素の ellipsis に必須 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--ds-name-fz);
+  line-height: var(--ds-name-lh);
+  color: var(--ds-name-color);
 }
 
 /* =========================================

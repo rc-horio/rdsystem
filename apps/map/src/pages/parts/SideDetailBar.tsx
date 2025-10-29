@@ -11,6 +11,7 @@ import type {
   HistoryItem,
   GeometryMetrics,
   DetailMeta,
+  Candidate,
 } from "@/features/types";
 import {
   CLS_DETAILBAR_OPEN,
@@ -22,6 +23,7 @@ import {
   EV_DETAILBAR_SELECT_HISTORY,
   EV_DETAILBAR_SET_METRICS,
   PREFECTURES,
+  EV_DETAILBAR_SELECT_CANDIDATE,
 } from "./constants/events";
 import { SelectBox } from "@/components/inputs/SelectBox";
 
@@ -35,6 +37,10 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   const [selectedHistoryIdx, setSelectedHistoryIdx] = useState<number | null>(
     null
   );
+
+  const [selectedCandidateIdx, setSelectedCandidateIdx] = useState<
+    number | null
+  >(null);
 
   // index.json の内容を各フィールドに設定（初期値は空文字で統一）
   const [meta, setMeta] = useState<DetailMeta>({
@@ -96,6 +102,37 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     });
   };
 
+  // 候補エリア選択時の処理
+  const onSelectCandidate = (candidate: Candidate, idx: number) => {
+    setSelectedCandidateIdx(idx); // 候補エリアのインデックスを設定
+    setSelectedHistoryIdx(null); // 履歴の選択状態を解除
+
+    const selectedCandidate = meta.candidate.find(
+      (c) => c.title === candidate.title
+    );
+    if (selectedCandidate) {
+      const geometry = {
+        takeoffArea: selectedCandidate.takeoffArea,
+        flightArea: selectedCandidate.flightArea,
+        safetyArea: selectedCandidate.safetyArea,
+        audienceArea: selectedCandidate.audienceArea,
+      };
+      window.dispatchEvent(
+        new CustomEvent(EV_DETAILBAR_SELECT_CANDIDATE, { detail: geometry })
+      );
+    }
+  };
+
+  // 履歴選択時に候補選択状態を解除するように修正
+  const onSelectHistory = (item: HistoryItem, idx: number) => {
+    setSelectedHistoryIdx(idx); // 履歴のインデックスを設定
+    setSelectedCandidateIdx(null); // 候補の選択状態を解除
+
+    const ev = new CustomEvent(EV_DETAILBAR_SELECT_HISTORY, {
+      detail: { ...item, index: idx },
+    });
+    window.dispatchEvent(ev);
+  };
   /** =========================
    *  Event wiring
    *  ========================= */
@@ -314,7 +351,6 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
             </div>
           </section>
         )}
-
         {/* 詳細タブ */}
         {active === "detail" && (
           <section role="tabpanel" aria-label="詳細">
@@ -350,8 +386,6 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
             </div>
           </section>
         )}
-
-        {/* 飛行エリア */}
         {/* 飛行エリア */}
         {active === "history" && (
           <section role="tabpanel" aria-label="飛行エリアと候補エリア">
@@ -376,21 +410,10 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                         <DetailIconButton
                           height={23}
                           title="スケジュール詳細"
-                          onClick={() => {
-                            setSelectedHistoryIdx((prev) =>
-                              prev === i ? null : i
-                            );
-                            const ev = new CustomEvent(
-                              EV_DETAILBAR_SELECT_HISTORY,
-                              { detail: { ...item, index: i } }
-                            );
-                            window.dispatchEvent(ev);
-
-                            if (import.meta.env.DEV)
-                              console.debug("history select", i, item);
-                          }}
+                          onClick={() => onSelectHistory(item, i)}
                         />
                       </span>
+
                       <span className="ds-history-date">
                         {fmtDate(item.date)}
                       </span>
@@ -403,30 +426,33 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
               )}
             </div>
 
-            {/* 候補エリア */}
+            {/* 横線を追加 */}
+            {meta.candidate && meta.candidate.length > 0 && (
+              <div className="ds-history-separator"></div>
+            )}
+
             {meta.candidate && meta.candidate.length > 0 && (
               <section>
                 <div className="ds-history-list">
-                  {" "}
-                  {/* Apply same class for uniform gap */}
                   {meta.candidate.map((candidate, idx) => (
                     <div
                       key={idx}
-                      className="ds-history-row" // Use same row class for uniform layout
+                      className={`ds-history-row ${
+                        selectedCandidateIdx === idx ? "is-selected" : ""
+                      }`}
                       role="option"
-                      aria-selected={false}
+                      aria-selected={selectedCandidateIdx === idx}
                     >
                       <span className="ds-history-leftgap">
                         <DetailIconButton
                           height={23}
                           title="候補エリア詳細"
-                          onClick={() => {
-                            // 必要に応じて候補エリアの詳細表示処理を追加
-                            console.log(`候補エリア選択: ${candidate.title}`);
-                          }}
+                          onClick={() => onSelectCandidate(candidate, idx)}
                         />
                       </span>
-                      <span className="ds-history-name">{candidate.title}</span>
+
+                      <span className="ds-candidate-title">候補</span>
+                      <span className="ds-candidate-name">{candidate.title}</span>
                     </div>
                   ))}
                 </div>

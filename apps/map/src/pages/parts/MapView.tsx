@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { createMarkerIcon } from "@/components";
-import type { Props, Point } from "@/features/types";
+import type { Props, Point, Geometry } from "@/features/types";
 import { fetchAreaInfo, fetchProjectIndex } from "./areasApi";
 import { OPEN_INFO_ON_SELECT, S3_BASE } from "./constants/events";
 import "../map.css";
@@ -24,6 +24,7 @@ import {
   EV_SIDEBAR_OPEN,
   EV_SIDEBAR_SET_ACTIVE,
   EV_DETAILBAR_SELECT_HISTORY,
+  EV_DETAILBAR_SELECT_CANDIDATE,
 } from "./constants/events";
 
 /** =========================
@@ -516,6 +517,28 @@ export default function MapView({ onLoaded }: Props) {
         EV_DETAILBAR_SELECT_HISTORY,
         onSelect as EventListener
       );
+  }, []);
+
+  // 外部イベント：detailbar:select-candidate -> ジオメトリを描画
+  useEffect(() => {
+    const onCandidateSelect = async (e: Event) => {
+      const { detail } = e as CustomEvent<{ geometry: Geometry }>;
+      if (detail) {
+        geomRef.current?.renderGeometry(detail); // ここでジオメトリを描画
+      }
+    };
+
+    window.addEventListener(
+      EV_DETAILBAR_SELECT_CANDIDATE,
+      onCandidateSelect as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        EV_DETAILBAR_SELECT_CANDIDATE,
+        onCandidateSelect as EventListener
+      );
+    };
   }, []);
 
   /** =========================
