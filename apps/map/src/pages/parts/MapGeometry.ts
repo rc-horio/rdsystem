@@ -301,15 +301,17 @@ export class MapGeometry {
                 this.arrow2Ref = line2;
                 line2.getPath().forEach((p: google.maps.LatLng) => bounds.extend(p));
                 // 矢印2の長さを計算してラベルを更新
-                const distance2 = gmaps.geometry.spherical.computeDistanceBetween(line2.getPath().getAt(0), line2.getPath().getAt(1));
-                this.updateArrowLabel(this.arrow2Ref, line2.getPath().getAt(0), line2.getPath().getAt(1), distance2);
+                // ★ラベルバグ回避のためコメントアウト
+                // const distance2 = gmaps.geometry.spherical.computeDistanceBetween(line2.getPath().getAt(0), line2.getPath().getAt(1));
+                // this.updateArrowLabel(this.arrow2Ref, line2.getPath().getAt(0), line2.getPath().getAt(1), distance2);
             }
             if (line3) {
                 this.arrow3Ref = line3;
                 line3.getPath().forEach((p: google.maps.LatLng) => bounds.extend(p));
                 // 矢印3の長さを計算してラベルを更新
-                const distance3 = gmaps.geometry.spherical.computeDistanceBetween(line3.getPath().getAt(0), line3.getPath().getAt(1));
-                this.updateArrowLabel(this.arrow3Ref, line3.getPath().getAt(0), line3.getPath().getAt(1), distance3);
+                // ★ラベルバグ回避のためコメントアウト
+                // const distance3 = gmaps.geometry.spherical.computeDistanceBetween(line3.getPath().getAt(0), line3.getPath().getAt(1));
+                // this.updateArrowLabel(this.arrow3Ref, line3.getPath().getAt(0), line3.getPath().getAt(1), distance3);
             }
         }
 
@@ -566,34 +568,35 @@ export class MapGeometry {
     }
 
     // 矢印のラベルを更新または作成
+    // ★ラベルバグ回避のためコメントアウト
     private updateArrowLabel(arrow: google.maps.Polyline | null, fromLatLng: google.maps.LatLng, toLatLng: google.maps.LatLng, distance: number) {
-        const gmaps = this.getGMaps();
-        const map = this.getMap();
+        // const gmaps = this.getGMaps();
+        // const map = this.getMap();
 
-        // 矢印の中間地点を計算
-        const middleLatLng = google.maps.geometry.spherical.interpolate(fromLatLng, toLatLng, 0.5);
+        // // 矢印の中間地点を計算
+        // const middleLatLng = google.maps.geometry.spherical.interpolate(fromLatLng, toLatLng, 0.5);
 
-        // 既存のラベルがあれば更新、なければ新しく作成
-        let label = arrow?.get("label");
-        if (label) {
-            label.setPosition(middleLatLng);
-            label.setLabel(`${distance.toFixed(0)}m`);
-        } else {
-            label = new gmaps.Marker({
-                position: middleLatLng,
-                map: map,
-                label: `${distance.toFixed(0)}m`,
-                zIndex: Z.OVERLAY.ARROW,
-                clickable: false,
-                icon: {
-                    // 空のアイコンを設定して、ラベルだけを表示
-                    path: google.maps.SymbolPath.CIRCLE,
-                    scale: 0,
-                    strokeWeight: 0
-                }
-            });
-            arrow?.set("label", label); // ラベルを矢印に関連付け
-        }
+        // // 既存のラベルがあれば更新、なければ新しく作成
+        // let label = arrow?.get("label");
+        // if (label) {
+        //     label.setPosition(middleLatLng);
+        //     label.setLabel(`${distance.toFixed(0)}m`);
+        // } else {
+        //     label = new gmaps.Marker({
+        //         position: middleLatLng,
+        //         map: map,
+        //         label: `${distance.toFixed(0)}m`,
+        //         zIndex: Z.OVERLAY.ARROW,
+        //         clickable: false,
+        //         icon: {
+        //             // 空のアイコンを設定して、ラベルだけを表示
+        //             path: google.maps.SymbolPath.CIRCLE,
+        //             scale: 0,
+        //             strokeWeight: 0
+        //         }
+        //     });
+        //     arrow?.set("label", label); // ラベルを矢印に関連付け
+        // }
     }
 
     // ②③: 直角に折れる2本の矢印を描画
