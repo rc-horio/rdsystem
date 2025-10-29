@@ -289,16 +289,21 @@ export class MapGeometry {
             const distance = gmaps.geometry.spherical.computeDistanceBetween(new gmaps.LatLng(from[1], from[0]), new gmaps.LatLng(to[1], to[0]));
             this.updateDistanceLabel(new gmaps.LatLng(from[1], from[0]), new gmaps.LatLng(to[1], to[0]), distance);
 
-            // ②③を新規描画
+            // 矢印2と矢印3を新規描画
             const { line2, line3 } = this.drawRightAngleArrows(from, to);
             if (line2) {
                 this.arrow2Ref = line2;
                 line2.getPath().forEach((p: google.maps.LatLng) => bounds.extend(p));
+                // 矢印2の長さを計算してラベルを更新
+                const distance2 = gmaps.geometry.spherical.computeDistanceBetween(line2.getPath().getAt(0), line2.getPath().getAt(1));
+                this.updateArrowLabel(this.arrow2Ref, line2.getPath().getAt(0), line2.getPath().getAt(1), distance2);
             }
-            // ③
             if (line3) {
                 this.arrow3Ref = line3;
                 line3.getPath().forEach((p: google.maps.LatLng) => bounds.extend(p));
+                // 矢印3の長さを計算してラベルを更新
+                const distance3 = gmaps.geometry.spherical.computeDistanceBetween(line3.getPath().getAt(0), line3.getPath().getAt(1));
+                this.updateArrowLabel(this.arrow3Ref, line3.getPath().getAt(0), line3.getPath().getAt(1), distance3);
             }
         }
 
@@ -469,12 +474,12 @@ export class MapGeometry {
         // 既存のラベルがあれば更新、なければ新しく作成
         if (this.arrowLabel) {
             this.arrowLabel.setPosition(middleLatLng);
-            this.arrowLabel.setLabel(`${distance.toFixed(2)}m`);
+            this.arrowLabel.setLabel(`${distance.toFixed(0)}m`);
         } else {
             this.arrowLabel = new gmaps.Marker({
                 position: middleLatLng,
                 map: map,
-                label: `${distance.toFixed(2)}m`,
+                label: `${distance.toFixed(0)}m`,
                 zIndex: Z.OVERLAY.ARROW,
                 clickable: false,
                 icon: {
@@ -539,6 +544,50 @@ export class MapGeometry {
         // あればパスだけ更新
         this.arrow2Ref.setPath([pFrom, pCorner]); // ② depth方向
         this.arrow3Ref.setPath([pCorner, pTo]);   // ③ depthに垂直
+
+        // 矢印2の長さを計算
+        const gmaps = this.getGMaps();
+        const distance2 = gmaps.geometry.spherical.computeDistanceBetween(pFrom, pCorner);
+
+        // 矢印3の長さを計算
+        const distance3 = gmaps.geometry.spherical.computeDistanceBetween(pCorner, pTo);
+
+        // 矢印2のラベルを更新または作成
+        this.updateArrowLabel(this.arrow2Ref, pFrom, pCorner, distance2);
+
+        // 矢印3のラベルを更新または作成
+        this.updateArrowLabel(this.arrow3Ref, pCorner, pTo, distance3);
+    }
+
+    // 矢印のラベルを更新または作成
+    private updateArrowLabel(arrow: google.maps.Polyline | null, fromLatLng: google.maps.LatLng, toLatLng: google.maps.LatLng, distance: number) {
+        const gmaps = this.getGMaps();
+        const map = this.getMap();
+
+        // 矢印の中間地点を計算
+        const middleLatLng = google.maps.geometry.spherical.interpolate(fromLatLng, toLatLng, 0.5);
+
+        // 既存のラベルがあれば更新、なければ新しく作成
+        let label = arrow?.get("label");
+        if (label) {
+            label.setPosition(middleLatLng);
+            label.setLabel(`${distance.toFixed(0)}m`);
+        } else {
+            label = new gmaps.Marker({
+                position: middleLatLng,
+                map: map,
+                label: `${distance.toFixed(0)}m`,
+                zIndex: Z.OVERLAY.ARROW,
+                clickable: false,
+                icon: {
+                    // 空のアイコンを設定して、ラベルだけを表示
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 0,
+                    strokeWeight: 0
+                }
+            });
+            arrow?.set("label", label); // ラベルを矢印に関連付け
+        }
     }
 
     // ②③: 直角に折れる2本の矢印を描画
