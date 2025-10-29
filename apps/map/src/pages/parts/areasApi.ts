@@ -265,8 +265,15 @@ function parseDetailMeta(info: any, fallbackAreaName?: string): DetailMeta {
                 ? fl.altitudeMaxM
                 : "";
 
+    // もし overview が空であれば、デフォルトの内容を設定
+    const defaultOverview = "概要情報がありません";  // 必要に応じて変更
+
+    const candidate = Array.isArray(info?.candidate)
+        ? info.candidate
+        : [];
+
     return {
-        overview: toStr(ov.overview ?? info?.overview ?? ""),
+        overview: toStr(ov?.overview ?? defaultOverview),  // 修正: 空の場合にデフォルト値を設定
         address: toStr(ov.address ?? ""),
         manager: toStr(ov.manager ?? ""),
         prefecture: toStr(ov.prefecture ?? fallbackAreaName ?? ""),
@@ -278,6 +285,7 @@ function parseDetailMeta(info: any, fallbackAreaName?: string): DetailMeta {
         permitMemo: toStr(dt.permitMemo ?? dt.permitInfo ?? ""),
         restrictionsMemo: toStr(dt.restrictionsMemo ?? dt.restrictions ?? ""),
         remarks: toStr(dt.remarks ?? ""),
+        candidate,
     };
 }
 

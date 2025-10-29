@@ -674,6 +674,13 @@ body.detailbar-open #detailbar {
   color: var(--ds-name-color);
 }
 
+/* Apply margin to the candidate section */
+.ds-history-list + section {
+  margin-top: 14px; /* Add space between history and candidate sections */
+  border-top: 1px solid white; /* Add a thin white line between sections */
+  padding-top: 14px; /* Optional: Adjust padding for better spacing */
+}
+
 /* =========================================
    9) Inputs（Textarea / InputBox）
    -----------------------------------------
@@ -1081,7 +1088,7 @@ select.rc-inp-input optgroup {
   border-radius: 10px;
   border: 1px solid rgba(255, 0, 0, 0.35); /* 赤ボーダー */
   background: rgba(255, 0, 0, 0.75); /* 赤バックグラウンド */
-  
+
   color: #fff;
   font-size: 14px;
   letter-spacing: 0.02em;
@@ -1122,7 +1129,7 @@ select.rc-inp-input optgroup {
   border-radius: 10px;
   border: 1px solid rgba(29, 29, 29, 0.35); /* 黒ボーダー */
   background: rgba(0, 0, 0, 0.75); /* 黒バックグラウンド */
-  
+
   color: #fff;
   font-size: 14px;
   letter-spacing: 0.02em;

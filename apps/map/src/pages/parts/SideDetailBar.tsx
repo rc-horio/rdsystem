@@ -50,6 +50,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     permitMemo: "",
     restrictionsMemo: "",
     remarks: "",
+    candidate: [],
   });
 
   /** =========================
@@ -351,8 +352,9 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
         )}
 
         {/* 飛行エリア */}
+        {/* 飛行エリア */}
         {active === "history" && (
-          <section role="tabpanel" aria-label="飛行エリア一覧">
+          <section role="tabpanel" aria-label="飛行エリアと候補エリア">
             <div className="ds-history-list">
               {history.length === 0 ? (
                 <div className="ds-history-empty" aria-live="polite">
@@ -375,11 +377,9 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                           height={23}
                           title="スケジュール詳細"
                           onClick={() => {
-                            // トグルにしたい場合は次行の true/false を切替
                             setSelectedHistoryIdx((prev) =>
                               prev === i ? null : i
                             );
-
                             const ev = new CustomEvent(
                               EV_DETAILBAR_SELECT_HISTORY,
                               { detail: { ...item, index: i } }
@@ -402,6 +402,36 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                 })
               )}
             </div>
+
+            {/* 候補エリア */}
+            {meta.candidate && meta.candidate.length > 0 && (
+              <section>
+                <div className="ds-history-list">
+                  {" "}
+                  {/* Apply same class for uniform gap */}
+                  {meta.candidate.map((candidate, idx) => (
+                    <div
+                      key={idx}
+                      className="ds-history-row" // Use same row class for uniform layout
+                      role="option"
+                      aria-selected={false}
+                    >
+                      <span className="ds-history-leftgap">
+                        <DetailIconButton
+                          height={23}
+                          title="候補エリア詳細"
+                          onClick={() => {
+                            // 必要に応じて候補エリアの詳細表示処理を追加
+                            console.log(`候補エリア選択: ${candidate.title}`);
+                          }}
+                        />
+                      </span>
+                      <span className="ds-history-name">{candidate.title}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
           </section>
         )}
       </div>

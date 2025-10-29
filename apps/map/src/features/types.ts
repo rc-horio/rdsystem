@@ -73,7 +73,7 @@ export type GeometryMetrics = {
 // スケジュール情報
 export type ScheduleLite = { label: string; date: string; areaName: string };
 export type HistoryLite = { label: string; date: string };
-export type DetailMeta = {
+export interface DetailMeta {
     overview: string;
     address: string;
     manager: string;
@@ -86,4 +86,16 @@ export type DetailMeta = {
     permitMemo: string;
     restrictionsMemo: string;
     remarks: string;
-};
+    candidate: Candidate[];
+}
+
+export interface Candidate {
+    title: string;
+    flightAltitude_m?: number;
+    takeoffArea?: RectangleGeom;
+    flightArea?: EllipseGeom;
+    safetyArea?: SafetyGeom;
+    audienceArea?: RectangleGeom;
+    updatedAt?: string;
+    updatedBy?: string;
+}
