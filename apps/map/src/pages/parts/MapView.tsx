@@ -9,6 +9,8 @@ import {
   fetchProjectIndex,
   upsertScheduleGeometry,
   upsertAreaCandidateAtIndex,
+  clearAreaCandidateGeometryAtIndex,
+  clearScheduleGeometry,
 } from "./areasApi";
 import {
   EV_DETAILBAR_SELECTED,
@@ -790,7 +792,7 @@ export default function MapView({ onLoaded }: Props) {
     } catch (e) {
       console.error("[map] save created geometry error", e);
     }
-    
+
     // 作成後はCTAを隠し、削除ボタンを出す側へ遷移（既存）
     setShowCreateGeomCta(false);
 
@@ -804,6 +806,51 @@ export default function MapView({ onLoaded }: Props) {
     });
     // 作成後はCTAを隠し、削除ボタンを出す側へ遷移
     setShowCreateGeomCta(false);
+  }
+
+  async function deleteGeometry() {
+    const pj = currentProjectUuidRef.current;
+    const sch = currentScheduleUuidRef.current;
+    const areaUuid = currentAreaUuidRef.current;
+    const cIdx = currentCandidateIndexRef.current;
+
+    // 画面上の図形は先に消してOK（失敗してもUI破綻しない）
+    geomRef.current?.deleteCurrentGeometry();
+
+    let ok = true;
+    if (pj && sch) {
+      // 履歴（プロジェクト配下）
+      ok = await clearScheduleGeometry({
+        projectUuid: pj,
+        scheduleUuid: sch,
+      });
+      if (!ok)
+        console.error("[map] clearScheduleGeometry failed", {
+          pj,
+          sch,
+        });
+    } else if (areaUuid && typeof cIdx === "number" && cIdx >= 0) {
+      // 候補（エリア配下）
+      ok = await clearAreaCandidateGeometryAtIndex({
+        areaUuid,
+        index: cIdx,
+      });
+      if (!ok)
+        console.error("[map] clearAreaCandidateGeometryAtIndex failed", {
+          areaUuid,
+          cIdx,
+        });
+    } else {
+      console.warn(
+        "[map] delete requested but no context (project/schedule or area/candidate)."
+      );
+    }
+
+    // “未設定” 用の CTA を出す
+    setShowCreateGeomCta(true);
+    if (ok) {
+      console.info("[map] geometry delete persisted");
+    }
   }
 
   /** =========================
@@ -833,10 +880,7 @@ export default function MapView({ onLoaded }: Props) {
             type="button"
             className="delete-geom-button"
             onClick={() => {
-              // 現在の図形を全て消去し、未設定フラグを立てる
-              geomRef.current?.deleteCurrentGeometry();
-              setShowCreateGeomCta(true);
-              console.info("[map] geometry delete requested (not saved yet)");
+              deleteGeometry();
             }}
             aria-label="エリア情報を削除する"
           >

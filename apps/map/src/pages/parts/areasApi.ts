@@ -504,6 +504,44 @@ export async function upsertAreaCandidateAtIndex(params: {
     return ok;
 }
 
+/** 候補 index の図形情報（takeoff/flight/safety/audience など）を削除して保存 */
+export async function clearAreaCandidateGeometryAtIndex(params: {
+    areaUuid: string;
+    index: number;
+}): Promise<boolean> {
+    const { areaUuid, index } = params;
+    if (!areaUuid || !Number.isInteger(index) || index < 0) return false;
+
+    const info = await fetchRawAreaInfo(areaUuid);
+    const list: Candidate[] = Array.isArray(info?.candidate) ? info.candidate : [];
+    if (index >= list.length) return false;
+
+    const prev = list[index] ?? {};
+
+    // geometry 系キーを “未設定” にする（undefined は JSON.stringify で落ちる）
+    const next: any = {
+        ...prev,
+        flightAltitude_m: undefined,
+        takeoffArea: undefined,
+        flightArea: undefined,
+        safetyArea: undefined,
+        audienceArea: undefined,
+        updatedAt: new Date().toISOString(),
+        updatedBy: "ui",
+    };
+
+    const nextInfo = {
+        ...info,
+        candidate: list.map((c, i) => (i === index ? next : c)),
+        updated_at: new Date().toISOString(),
+        updated_by: "ui",
+    };
+
+    const ok = await saveAreaInfo(areaUuid, nextInfo);
+    if (!ok) console.error("[clearAreaCandidateGeometryAtIndex] saveAreaInfo failed");
+    return ok;
+}
+
 /** 指定スケジュールの geometry を削除（キーごと除去）して保存します。成功: true */
 export async function clearScheduleGeometry(params: {
     projectUuid: string;
