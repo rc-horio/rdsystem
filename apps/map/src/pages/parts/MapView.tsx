@@ -29,6 +29,7 @@ import {
   EV_SIDEBAR_SET_ACTIVE,
   EV_DETAILBAR_SELECT_HISTORY,
   EV_DETAILBAR_SELECT_CANDIDATE,
+  MARKERS_HIDE_ZOOM,
 } from "./constants/events";
 
 /** =========================
@@ -40,6 +41,7 @@ export default function MapView({ onLoaded }: Props) {
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const infoRef = useRef<google.maps.InfoWindow | null>(null);
+  const zoomListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const [showCreateGeomCta, setShowCreateGeomCta] = useState(false);
   const [isSelected, setIsSelected] = useState(false);
 
@@ -72,6 +74,19 @@ export default function MapView({ onLoaded }: Props) {
   /** 指定の全オーバーレイ（ジオメトリ側）を削除 */
   const clearGeometryOverlays = () => {
     geomRef.current?.clearOverlays();
+  };
+
+  /** ズームに応じてマーカーの可視状態を同期 */
+  const syncMarkersVisibilityForZoom = () => {
+    const map = mapRef.current;
+    if (!map) return;
+    const z = map.getZoom() ?? 0;
+    const hide = z >= MARKERS_HIDE_ZOOM;
+    markersRef.current.forEach((m) => m.setVisible(!hide));
+    if (hide) {
+      // マーカーを隠すときは InfoWindow も閉じる
+      infoRef.current?.close();
+    }
   };
 
   /** =========================
@@ -294,6 +309,7 @@ export default function MapView({ onLoaded }: Props) {
         }
       }
     };
+    syncMarkersVisibilityForZoom();
   }
 
   /** =========================
@@ -338,8 +354,13 @@ export default function MapView({ onLoaded }: Props) {
         infoRef.current = new gmaps.InfoWindow();
       }
 
-      // ★ Geometry controller
+      // Geometry controller
       geomRef.current = new MapGeometry(() => mapRef.current);
+
+      // ズーム変更でマーカーの可視状態を更新
+      zoomListenerRef.current = map.addListener("zoom_changed", () => {
+        syncMarkersVisibilityForZoom();
+      });
 
       const points = await loadAreasPoints();
       if (cancelled) return;
@@ -351,6 +372,10 @@ export default function MapView({ onLoaded }: Props) {
     init();
     return () => {
       cancelled = true;
+      // リスナーのクリーンアップ
+      zoomListenerRef.current?.remove();
+      zoomListenerRef.current = null;
+      
       // マップと付随オブジェクトをクリーンアップ
       markersRef.current.forEach((m) => m.setMap(null));
       markersRef.current = [];

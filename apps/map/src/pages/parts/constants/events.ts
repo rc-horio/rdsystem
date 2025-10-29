@@ -17,7 +17,7 @@ export const MIN_ZOOM_DELTA_TO_CHANGE = 0.75;
 export const NAME_UNSET = "（名称未設定）";
 export const AREA_NAME_NONE = "（エリア名なし）";
 export const OPEN_INFO_ON_SELECT = false;
-
+export const MARKERS_HIDE_ZOOM = 16;
 export const EV_DETAILBAR_SET_METRICS = "detailbar:set-metrics";
 export const CLS_DETAILBAR_OPEN = "detailbar-open";
 
