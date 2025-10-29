@@ -8,6 +8,7 @@ export const EV_DETAILBAR_RESPOND_DATA = "detailbar:respond-data";
 // Geometryの「現在値」をMapGeometryから取得するための応答イベント
 export const EV_GEOMETRY_RESPOND_DATA = "geometry:respond-data";
 export const EV_DETAILBAR_SELECT_CANDIDATE = "detailbar:select-candidate";
+export const EV_DETAILBAR_SELECTED = "side-detailbar:selected";
 
 export const ROTATE_HANDLE_GAP_M = 5;
 export const SELECT_ZOOM_DESKTOP = 10;

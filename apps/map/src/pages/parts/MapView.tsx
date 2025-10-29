@@ -37,6 +37,7 @@ export default function MapView({ onLoaded }: Props) {
   const markersRef = useRef<google.maps.Marker[]>([]);
   const infoRef = useRef<google.maps.InfoWindow | null>(null);
   const [showCreateGeomCta, setShowCreateGeomCta] = useState(false);
+  const [isSelected, setIsSelected] = useState(false);
 
   // Bodyクラスで編集状態を共有（editing-on で活性）
   const getEditable = () => document.body.classList.contains("editing-on");
@@ -554,6 +555,33 @@ export default function MapView({ onLoaded }: Props) {
     return () => mo.disconnect();
   }, []);
 
+  // SideDetailBar から選択状態を受け取る
+  useEffect(() => {
+    const onSelectedStateChange = (e: Event) => {
+      const { isSelected } = (e as CustomEvent).detail;
+      setIsSelected(isSelected);
+    };
+
+    window.addEventListener("side-detailbar:selected", onSelectedStateChange);
+    return () => {
+      window.removeEventListener(
+        "side-detailbar:selected",
+        onSelectedStateChange
+      );
+    };
+  }, []);
+
+  // 選択状態を表示
+  useEffect(() => {
+    if (isSelected) {
+      // 履歴か候補が選ばれている状態の処理
+      console.log("Selected history or candidate");
+    } else {
+      // 何も選ばれていない状態の処理
+      console.log("No selection");
+    }
+  }, [isSelected]);
+
   /** =========================
    *  Render
    *  ========================= */
@@ -561,7 +589,7 @@ export default function MapView({ onLoaded }: Props) {
     <div className="map-page app-fullscreen">
       <div id="map" ref={mapDivRef} />
       <div id="controls" className="cta-overlay">
-        {editable && showCreateGeomCta && (
+        {editable && showCreateGeomCta && isSelected && (
           <button
             id="create-geom-button"
             type="button"
@@ -576,8 +604,8 @@ export default function MapView({ onLoaded }: Props) {
             エリア情報を作成する
           </button>
         )}
-  
-        {editable && !showCreateGeomCta && (
+
+        {editable && !showCreateGeomCta && isSelected && (
           <button
             id="delete-geom-button"
             type="button"
@@ -596,4 +624,4 @@ export default function MapView({ onLoaded }: Props) {
       </div>
     </div>
   );
-  }
+}

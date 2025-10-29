@@ -24,6 +24,7 @@ import {
   EV_DETAILBAR_SET_METRICS,
   PREFECTURES,
   EV_DETAILBAR_SELECT_CANDIDATE,
+  EV_DETAILBAR_SELECTED,
 } from "./constants/events";
 import { SelectBox } from "@/components/inputs/SelectBox";
 
@@ -37,6 +38,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   const [selectedHistoryIdx, setSelectedHistoryIdx] = useState<number | null>(
     null
   );
+  const [isSelected, setIsSelected] = useState(false);
 
   const [selectedCandidateIdx, setSelectedCandidateIdx] = useState<
     number | null
@@ -102,10 +104,35 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     });
   };
 
-  // 候補エリア選択時の処理
+  // SideDetailBar.tsx
+  const onSelectHistory = (item: HistoryItem, idx: number) => {
+    setSelectedHistoryIdx(idx); // 履歴のインデックスを設定
+    setSelectedCandidateIdx(null); // 候補の選択状態を解除
+    setIsSelected(true); // 履歴が選ばれた状態
+
+    // イベントで選択状態を通知
+    const ev = new CustomEvent(EV_DETAILBAR_SELECTED, {
+      detail: { isSelected: true },
+    });
+    window.dispatchEvent(ev);
+
+    const event = new CustomEvent(EV_DETAILBAR_SELECT_HISTORY, {
+      detail: { ...item, index: idx },
+    });
+    window.dispatchEvent(event);
+  };
+
+  // 同様に候補エリア選択時も
   const onSelectCandidate = (candidate: Candidate, idx: number) => {
     setSelectedCandidateIdx(idx); // 候補エリアのインデックスを設定
     setSelectedHistoryIdx(null); // 履歴の選択状態を解除
+    setIsSelected(true); // 候補が選ばれた状態
+
+    // イベントで選択状態を通知
+    const ev = new CustomEvent(EV_DETAILBAR_SELECTED, {
+      detail: { isSelected: true },
+    });
+    window.dispatchEvent(ev);
 
     const selectedCandidate = meta.candidate.find(
       (c) => c.title === candidate.title
@@ -123,16 +150,6 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     }
   };
 
-  // 履歴選択時に候補選択状態を解除するように修正
-  const onSelectHistory = (item: HistoryItem, idx: number) => {
-    setSelectedHistoryIdx(idx); // 履歴のインデックスを設定
-    setSelectedCandidateIdx(null); // 候補の選択状態を解除
-
-    const ev = new CustomEvent(EV_DETAILBAR_SELECT_HISTORY, {
-      detail: { ...item, index: idx },
-    });
-    window.dispatchEvent(ev);
-  };
   /** =========================
    *  Event wiring
    *  ========================= */
@@ -226,6 +243,18 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     }
   }, [history, selectedHistoryIdx]);
 
+  // 履歴や候補が選ばれていない場合は「選択なし」にする
+  useEffect(() => {
+    if (selectedHistoryIdx === null && selectedCandidateIdx === null) {
+      setIsSelected(false); // 何も選択されていない状態
+      window.dispatchEvent(
+        new CustomEvent(EV_DETAILBAR_SELECTED, {
+          detail: { isSelected: false },
+        })
+      );
+    }
+  }, [selectedHistoryIdx, selectedCandidateIdx]);
+
   /** =========================
    *  Render
    *  ========================= */
@@ -241,6 +270,11 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
           height={28}
           onClick={() => {
             document.body.classList.remove(CLS_DETAILBAR_OPEN);
+            window.dispatchEvent(
+              new CustomEvent(EV_DETAILBAR_SELECTED, {
+                detail: { isSelected: false },
+              })
+            );
           }}
         />
       </div>
@@ -452,7 +486,9 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                       </span>
 
                       <span className="ds-candidate-title">候補</span>
-                      <span className="ds-candidate-name">{candidate.title}</span>
+                      <span className="ds-candidate-name">
+                        {candidate.title}
+                      </span>
                     </div>
                   ))}
                 </div>
