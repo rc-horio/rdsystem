@@ -1,5 +1,5 @@
 // src/pages/parts/areasApi.ts
-import type { HistoryLite, DetailMeta } from "@/features/types";
+import type { HistoryLite, DetailMeta, Candidate } from "@/features/types";
 import { S3_BASE } from "./constants/events";
 
 // ========= Internals =========
@@ -330,6 +330,39 @@ export async function saveProjectIndex(
     }
 }
 
+
+/**
+ * エリア index.json の candidate に 1 件追加して保存します（存在しなければ配列を作成）
+ * 成功: true / 失敗: false
+ */
+export async function appendAreaCandidate(params: {
+    areaUuid: string;
+    candidate: Candidate;
+}): Promise<boolean> {
+    const { areaUuid, candidate } = params;
+    if (!areaUuid || !candidate) return false;
+
+    // 現状の index を取得
+    const info = await fetchRawAreaInfo(areaUuid);
+    const list: Candidate[] = Array.isArray(info?.candidate) ? info.candidate : [];
+
+    // 監査情報を付けて末尾に追加
+    const nextCandidate: Candidate = {
+        ...candidate,
+        updatedAt: new Date().toISOString(),
+        updatedBy: "ui",
+    };
+
+    const nextInfo = {
+        ...info,
+        candidate: [...list, nextCandidate],
+    };
+
+    const ok = await saveAreaInfo(areaUuid, nextInfo);
+    if (!ok) console.error("[appendAreaCandidate] saveAreaInfo failed");
+    return ok;
+}
+
 /**
  * スケジュールの takeoff 基準点 index を更新する。
  * 既存構造を壊さないように、存在するときのみ上書き（追加はしない）。
@@ -429,6 +462,45 @@ export async function upsertScheduleGeometry(params: {
 
     const ok = await saveProjectIndex(projectUuid, next);
     if (!ok) console.error("[upsertScheduleGeometry] saveProjectIndex failed");
+    return ok;
+}
+
+/**
+ * エリア index.json の candidate[ index ] を上書き保存（merge）します。
+ * - index が不正な場合は false を返します（追記はしない）。
+ * - title は既存を優先（タイトル変更したい場合は preserveTitle=false を渡す等で調整可）。
+ */
+export async function upsertAreaCandidateAtIndex(params: {
+    areaUuid: string;
+    index: number;
+    candidate: Partial<Candidate>;
+    preserveTitle?: boolean; // 既存タイトルを守るか（既定 true）
+}): Promise<boolean> {
+    const { areaUuid, index, candidate, preserveTitle = true } = params;
+    if (!areaUuid || !Number.isInteger(index) || index < 0) return false;
+
+    const info = await fetchRawAreaInfo(areaUuid);
+    const list: Candidate[] = Array.isArray(info?.candidate) ? info.candidate : [];
+    if (index >= list.length) return false;
+
+    const prev = list[index] ?? {};
+    const next: Candidate = {
+        ...(preserveTitle ? { title: prev.title ?? candidate.title ?? `候補${index + 1}` } : {}),
+        ...prev,      // 既存をベース
+        ...candidate, // 変更点を上書き
+        updatedAt: new Date().toISOString(),
+        updatedBy: "ui",
+    };
+
+    const nextInfo = {
+        ...info,
+        candidate: list.map((c, i) => (i === index ? next : c)),
+        updated_at: new Date().toISOString(),
+        updated_by: "ui",
+    };
+
+    const ok = await saveAreaInfo(areaUuid, nextInfo);
+    if (!ok) console.error("[upsertAreaCandidateAtIndex] saveAreaInfo failed");
     return ok;
 }
 

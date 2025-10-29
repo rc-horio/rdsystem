@@ -2,8 +2,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { createMarkerIcon } from "@/components";
-import type { Props, Point, Geometry } from "@/features/types";
-import { fetchAreaInfo, fetchProjectIndex } from "./areasApi";
+import type { Props, Point, Geometry, Candidate } from "@/features/types";
+import {
+  appendAreaCandidate,
+  fetchAreaInfo,
+  fetchProjectIndex,
+  upsertScheduleGeometry,
+  upsertAreaCandidateAtIndex,
+} from "./areasApi";
 import {
   EV_DETAILBAR_SELECTED,
   OPEN_INFO_ON_SELECT,
@@ -46,6 +52,11 @@ export default function MapView({ onLoaded }: Props) {
   const zoomListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const [showCreateGeomCta, setShowCreateGeomCta] = useState(false);
   const [isSelected, setIsSelected] = useState(false);
+  const currentAreaUuidRef = useRef<string | undefined>(undefined);
+  const currentProjectUuidRef = useRef<string | undefined>(undefined);
+  const currentScheduleUuidRef = useRef<string | undefined>(undefined);
+  const currentCandidateIndexRef = useRef<number | null>(null);
+  const currentCandidateTitleRef = useRef<string | undefined>(undefined);
 
   // Bodyクラスで編集状態を共有（editing-on で活性）
   const getEditable = () => document.body.classList.contains("editing-on");
@@ -213,6 +224,8 @@ export default function MapView({ onLoaded }: Props) {
       p: Point,
       skipFetch = false
     ) => {
+      // エリアUUIDを保持（候補保存時に使用）
+      currentAreaUuidRef.current = p.areaUuid || undefined;
       const map = mapRef.current!;
       const gmaps = getGMaps();
 
@@ -312,6 +325,61 @@ export default function MapView({ onLoaded }: Props) {
       }
     };
     syncMarkersVisibilityForZoom();
+  }
+
+  async function saveGeometryToS3(geometry: Geometry) {
+    const pj = currentProjectUuidRef.current;
+    const sch = currentScheduleUuidRef.current;
+    const areaUuid = currentAreaUuidRef.current;
+
+    // 1) 履歴（プロジェクト/スケジュール）優先
+    if (pj && sch) {
+      return await upsertScheduleGeometry({
+        projectUuid: pj,
+        scheduleUuid: sch,
+        geometry,
+      });
+    }
+
+    // 2) 候補（エリア）
+    if (areaUuid) {
+      const idx = currentCandidateIndexRef.current;
+      if (typeof idx === "number" && idx >= 0) {
+        // ← ★ 編集中の候補があれば上書き
+        return await upsertAreaCandidateAtIndex({
+          areaUuid,
+          index: idx,
+          candidate: {
+            title: currentCandidateTitleRef.current, // 既存タイトルを維持
+            flightAltitude_m: geometry.flightAltitude_m,
+            takeoffArea: geometry.takeoffArea,
+            flightArea: geometry.flightArea!,
+            safetyArea: geometry.safetyArea!,
+            audienceArea: geometry.audienceArea,
+          },
+          preserveTitle: true,
+        });
+      } else {
+        // 新規作成時のみ追記
+        const title =
+          currentCandidateTitleRef.current ??
+          `候補 ${new Date().toISOString().replace(/[-:T]/g, "").slice(0, 12)}`;
+        return await appendAreaCandidate({
+          areaUuid,
+          candidate: {
+            title,
+            flightAltitude_m: geometry.flightAltitude_m,
+            takeoffArea: geometry.takeoffArea,
+            flightArea: geometry.flightArea!,
+            safetyArea: geometry.safetyArea!,
+            audienceArea: geometry.audienceArea,
+          },
+        });
+      }
+    }
+
+    console.warn("[saveGeometryToS3] no context to save.");
+    return false;
   }
 
   /** =========================
@@ -467,6 +535,10 @@ export default function MapView({ onLoaded }: Props) {
             }>
           ).detail || {};
 
+        // 現在のスケジュールを覚えておく（保存先の判定に使う）
+        currentProjectUuidRef.current = projectUuid || undefined;
+        currentScheduleUuidRef.current = scheduleUuid || undefined;
+
         // まずは非表示に（必要なケースのみ true にする）
         setShowCreateGeomCta(false);
 
@@ -558,10 +630,17 @@ export default function MapView({ onLoaded }: Props) {
   // 外部イベント：detailbar:select-candidate -> ジオメトリを描画
   useEffect(() => {
     const onCandidateSelect = async (e: Event) => {
-      const { detail } = e as CustomEvent<{ geometry: Geometry }>;
-      if (detail) {
-        geomRef.current?.renderGeometry(detail); // ここでジオメトリを描画
-      }
+      const { detail } = e as CustomEvent<{
+        geometry: Geometry;
+        index?: number;
+        title?: string;
+      }>;
+      if (!detail) return;
+      currentCandidateIndexRef.current =
+        typeof detail.index === "number" ? detail.index : null;
+      currentCandidateTitleRef.current =
+        typeof detail.title === "string" ? detail.title : undefined;
+      geomRef.current?.renderGeometry(detail.geometry);
     };
 
     window.addEventListener(
@@ -613,7 +692,7 @@ export default function MapView({ onLoaded }: Props) {
     }
   }, [isSelected]);
 
-  function abc() {
+  async function createDefaultGeometry() {
     const map = mapRef.current;
     const gmaps = getGMaps();
     if (!map || !geomRef.current) {
@@ -703,6 +782,18 @@ export default function MapView({ onLoaded }: Props) {
 
     // 描画（※カメラは動かさない）
     geomRef.current.renderGeometry(geometry, { fit: false });
+
+    // 保存は共通関数に一本化
+    try {
+      const ok = await saveGeometryToS3(geometry);
+      if (!ok) console.error("[map] saveGeometryToS3 failed");
+    } catch (e) {
+      console.error("[map] save created geometry error", e);
+    }
+    
+    // 作成後はCTAを隠し、削除ボタンを出す側へ遷移（既存）
+    setShowCreateGeomCta(false);
+
     gmaps.event.addListenerOnce(map, "idle", () => {
       if (prevCenter) map.setCenter(prevCenter);
       if (typeof prevZoom === "number") map.setZoom(prevZoom);
@@ -728,7 +819,7 @@ export default function MapView({ onLoaded }: Props) {
             type="button"
             className="create-geom-button"
             onClick={() => {
-              abc();
+              createDefaultGeometry();
             }}
             aria-label="エリア情報を作成する"
           >

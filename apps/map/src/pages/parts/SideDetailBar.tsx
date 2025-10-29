@@ -137,8 +137,11 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
         safetyArea: selectedCandidate.safetyArea,
         audienceArea: selectedCandidate.audienceArea,
       };
+      // どの候補かを Map 側に伝える（index と title を付与）
       window.dispatchEvent(
-        new CustomEvent(EV_DETAILBAR_SELECT_CANDIDATE, { detail: geometry })
+        new CustomEvent(EV_DETAILBAR_SELECT_CANDIDATE, {
+          detail: { geometry, index: idx, title: selectedCandidate.title },
+        })
       );
     }
   };
