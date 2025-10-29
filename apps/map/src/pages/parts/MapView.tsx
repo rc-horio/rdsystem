@@ -38,6 +38,10 @@ export default function MapView({ onLoaded }: Props) {
   const infoRef = useRef<google.maps.InfoWindow | null>(null);
   const [showCreateGeomCta, setShowCreateGeomCta] = useState(false);
 
+  // Bodyクラスで編集状態を共有（editing-on で活性）
+  const getEditable = () => document.body.classList.contains("editing-on");
+  const [editable, setEditable] = useState<boolean>(getEditable);
+
   /** マーカー管理（キー検索/逆引き用） */
   const markerByKeyRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const pointByMarkerRef = useRef<WeakMap<google.maps.Marker, Point>>(
@@ -541,6 +545,15 @@ export default function MapView({ onLoaded }: Props) {
     };
   }, []);
 
+  // Bodyクラスで編集状態を共有（editing-on で活性）
+  useEffect(() => {
+    const update = () => setEditable(getEditable());
+    update();
+    const mo = new MutationObserver(update);
+    mo.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+    return () => mo.disconnect();
+  }, []);
+
   /** =========================
    *  Render
    *  ========================= */
@@ -548,7 +561,7 @@ export default function MapView({ onLoaded }: Props) {
     <div className="map-page app-fullscreen">
       <div id="map" ref={mapDivRef} />
       <div id="controls" className="cta-overlay">
-        {showCreateGeomCta ? (
+        {editable && showCreateGeomCta && (
           <button
             id="create-geom-button"
             type="button"
@@ -562,7 +575,9 @@ export default function MapView({ onLoaded }: Props) {
           >
             エリア情報を作成する
           </button>
-        ) : (
+        )}
+  
+        {editable && !showCreateGeomCta && (
           <button
             id="delete-geom-button"
             type="button"
@@ -581,4 +596,4 @@ export default function MapView({ onLoaded }: Props) {
       </div>
     </div>
   );
-}
+  }
