@@ -25,6 +25,7 @@ import {
   PREFECTURES,
   EV_DETAILBAR_SELECT_CANDIDATE,
   EV_DETAILBAR_SELECTED,
+  EV_SIDEBAR_SET_ACTIVE,
 } from "./constants/events";
 import { SelectBox } from "@/components/inputs/SelectBox";
 
@@ -112,13 +113,6 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     window.dispatchEvent(
       new CustomEvent(EV_DETAILBAR_SELECTED, { detail: { isSelected: true } })
     );
-
-    // イベントで選択状態を通知
-    const ev = new CustomEvent(EV_DETAILBAR_SELECTED, {
-      detail: { isSelected: true },
-    });
-    window.dispatchEvent(ev);
-
     const event = new CustomEvent(EV_DETAILBAR_SELECT_HISTORY, {
       detail: { ...item, index: idx },
     });
@@ -133,13 +127,6 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     window.dispatchEvent(
       new CustomEvent(EV_DETAILBAR_SELECTED, { detail: { isSelected: true } })
     );
-
-    // イベントで選択状態を通知
-    const ev = new CustomEvent(EV_DETAILBAR_SELECTED, {
-      detail: { isSelected: true },
-    });
-    window.dispatchEvent(ev);
-
     const selectedCandidate = meta.candidate.find(
       (c) => c.title === candidate.title
     );
@@ -230,6 +217,15 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       setHistory(sanitized);
       if (import.meta.env.DEV)
         console.debug("[detailbar] history=", sanitized.length);
+      //  エリアが切り替わった（=新しい履歴が来た）ので選択状態を初期化
+      setSelectedHistoryIdx(null);
+      setSelectedCandidateIdx(null);
+      setIsSelected(false);
+      window.dispatchEvent(
+        new CustomEvent(EV_DETAILBAR_SELECTED, {
+          detail: { isSelected: false },
+        })
+      );
     };
     window.addEventListener(
       EV_DETAILBAR_SET_HISTORY,
@@ -253,8 +249,6 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   useEffect(() => {
     if (selectedHistoryIdx === null && selectedCandidateIdx === null) {
       setIsSelected(false); // 何も選択されていない状態
-      window.dispatchEvent(new CustomEvent(EV_DETAILBAR_SELECTED, { detail: { isSelected: false } }));
-
       window.dispatchEvent(
         new CustomEvent(EV_DETAILBAR_SELECTED, {
           detail: { isSelected: false },
@@ -262,6 +256,23 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       );
     }
   }, [selectedHistoryIdx, selectedCandidateIdx]);
+
+  // エリアがアクティブ化されたら（サイドバー/マップどちら発火でも）即リセット
+  useEffect(() => {
+    const reset = () => {
+      setSelectedHistoryIdx(null);
+      setSelectedCandidateIdx(null);
+      setIsSelected(false);
+      window.dispatchEvent(
+        new CustomEvent(EV_DETAILBAR_SELECTED, {
+          detail: { isSelected: false },
+        })
+      );
+    };
+    window.addEventListener(EV_SIDEBAR_SET_ACTIVE, reset as EventListener);
+    return () =>
+      window.removeEventListener(EV_SIDEBAR_SET_ACTIVE, reset as EventListener);
+  }, []);
 
   /** =========================
    *  Render
