@@ -5,6 +5,8 @@ import { EV_DETAILBAR_APPLY_METRICS, EV_TAKEOFF_REF_CHANGED, EV_GEOMETRY_RESPOND
 import { EllipseEditor } from "./geometry/EllipseEditor";
 import { RectEditor } from "./geometry/RectEditor";
 import { AudienceEditor } from "./geometry/AudienceEditor";
+import { toLocalXY, fromLocalXY } from "./geometry/math";
+
 
 /** =========================
  *  Geometry Controller
@@ -13,6 +15,9 @@ export class MapGeometry {
     // 地図を取得
     private getMap: () => google.maps.Map | null;
     private deletedRef: boolean = false;
+    private arrowRef: google.maps.Polyline | null = null;
+    private arrow2Ref: google.maps.Polyline | null = null;
+    private arrow3Ref: google.maps.Polyline | null = null;
 
     // オーバーレイのリスト
     private overlaysRef: Array<
@@ -78,6 +83,7 @@ export class MapGeometry {
             onCenterChanged: (center) => {
                 const from = this.pickReferenceCorner(this.currentGeomRef?.takeoffArea);
                 this.updateArrowPath(from, center);
+                this.updateRightAngleArrowPaths(from, center);
             },
         });
 
@@ -104,7 +110,10 @@ export class MapGeometry {
                         Array.isArray(this.currentGeomRef?.flightArea?.center)
                         ? (this.currentGeomRef!.flightArea!.center as LngLat)
                         : undefined;
+                // 矢印１の更新
                 this.updateArrowPath(refPoint, to);
+                // 矢印２と３の更新
+                this.updateRightAngleArrowPaths(refPoint, to);
             },
         });
 
@@ -204,6 +213,8 @@ export class MapGeometry {
         this.rectEditor.clear();
         this.audienceEditor.clear();
         this.arrowRef = null;
+        this.arrow2Ref = null;
+        this.arrow3Ref = null;
     }
 
     /** =========================
@@ -269,9 +280,21 @@ export class MapGeometry {
         const from = this.pickReferenceCorner(geom.takeoffArea);
         const to = flight?.center as LngLat | undefined;
         if (from && to) {
-            const line = this.drawArrow(from, to);
+            const line = this.drawArrow(from, to); // ①
             this.arrowRef = line;
-            line.getPath().forEach((p) => bounds.extend(p as google.maps.LatLng));
+            line.getPath().forEach((p: google.maps.LatLng) => bounds.extend(p));
+
+            // ②③を新規描画
+            const { line2, line3 } = this.drawRightAngleArrows(from, to);
+            if (line2) {
+                this.arrow2Ref = line2;
+                line2.getPath().forEach((p: google.maps.LatLng) => bounds.extend(p));
+            }
+            // ③
+            if (line3) {
+                this.arrow3Ref = line3;
+                line3.getPath().forEach((p: google.maps.LatLng) => bounds.extend(p));
+            }
         }
 
         const shouldFit = opts?.fit ?? true;
@@ -411,17 +434,15 @@ export class MapGeometry {
     }
 
     /** =========================
-     *  矢印
-     *  ========================= */
-    private arrowRef: google.maps.Polyline | null = null;
-
-    /** =========================
      *  矢印: パスを更新
      *  ========================= */
     private updateArrowPath(from?: LngLat, to?: LngLat) {
         if (!this.arrowRef || !from || !to) return;
-        this.arrowRef.setPath([this.latLng(from[1], from[0]), this.latLng(to[1], to[0])]);
+        this.arrowRef.setOptions({ icons: [] });
+        this.arrowRef.setPath([this.latLng(from[1], from[0]),
+        this.latLng(to[1], to[0])]);
     }
+
 
     /** =========================
      *  矢印: 描画
@@ -436,8 +457,66 @@ export class MapGeometry {
             strokeOpacity: 1,
             strokeWeight: 2,
             clickable: false,
-            icons: [
-                {
+            // ← ここにあった icons: [...] を削除
+            zIndex: Z.OVERLAY.ARROW,
+            map,
+        });
+        this.overlaysRef.push(line);
+        return line;
+    }
+
+    // 矢印2と3: パス更新（中心/基準点の変更時に呼ぶ）
+    private updateRightAngleArrowPaths(from?: LngLat, to?: LngLat) {
+        if (!from || !to) {
+            // 無効化（必要なら消す）
+            if (this.arrow2Ref) { this.arrow2Ref.setMap(null); this.arrow2Ref = null; }
+            if (this.arrow3Ref) { this.arrow3Ref.setMap(null); this.arrow3Ref = null; }
+            return;
+        }
+
+        const corner = this.computeRightAngleCorner(from, to);
+        if (!corner) {
+            if (this.arrow2Ref) { this.arrow2Ref.setMap(null); this.arrow2Ref = null; }
+            if (this.arrow3Ref) { this.arrow3Ref.setMap(null); this.arrow3Ref = null; }
+            return;
+        }
+
+        const pFrom = this.latLng(from[1], from[0]);
+        const pCorner = this.latLng(corner[1], corner[0]);
+        const pTo = this.latLng(to[1], to[0]);
+
+        if (!this.arrow2Ref || !this.arrow3Ref) {
+            // 無ければ新規作成
+            const { line2, line3 } = this.drawRightAngleArrows(from, to);
+            this.arrow2Ref = line2;
+            this.arrow3Ref = line3;
+            return;
+        }
+
+        // あればパスだけ更新
+        this.arrow2Ref.setPath([pFrom, pCorner]); // ② depth方向
+        this.arrow3Ref.setPath([pCorner, pTo]);   // ③ depthに垂直
+    }
+
+    // ②③: 直角に折れる2本の矢印を描画
+    private drawRightAngleArrows(fromLngLat: LngLat, toLngLat: LngLat) {
+        const corner = this.computeRightAngleCorner(fromLngLat, toLngLat);
+        if (!corner) return { line2: null as any, line3: null as any };
+
+        const gmaps = this.getGMaps();
+        const map = this.getMap()!;
+        const pFrom = this.latLng(fromLngLat[1], fromLngLat[0]);
+        const pCorner = this.latLng(corner[1], corner[0]);
+        const pTo = this.latLng(toLngLat[1], toLngLat[0]);
+
+        const mkLine = (path: google.maps.LatLng[]) =>
+            new gmaps.Polyline({
+                path,
+                strokeColor: "#ffffff",
+                strokeOpacity: 1,
+                strokeWeight: 2,
+                clickable: false,
+                icons: [{
                     icon: {
                         path: gmaps.SymbolPath.FORWARD_CLOSED_ARROW,
                         scale: 3,
@@ -445,13 +524,67 @@ export class MapGeometry {
                         strokeOpacity: 1,
                     },
                     offset: "100%",
-                },
-            ],
-            zIndex: Z.OVERLAY.ARROW,
-            map,
-        });
-        this.overlaysRef.push(line);
-        return line;
+                }],
+                zIndex: Z.OVERLAY.ARROW,
+                map,
+            });
+
+        // ②: from → corner（depth方向に平行）
+        const line2 = mkLine([pFrom, pCorner]);
+        // ③: corner → to（depthに垂直）
+        const line3 = mkLine([pCorner, pTo]);
+
+        this.overlaysRef.push(line2, line3);
+        return { line2, line3 };
+    }
+
+    // 離発着エリアの「d（depth）」単位ベクトル（fromを原点にローカルXY[m]）
+    private computeDepthUnit(from: LngLat): { dx: number; dy: number } | null {
+        const t = this.currentGeomRef?.takeoffArea;
+        if (t?.type !== "rectangle" || !Array.isArray(t.coordinates) || t.coordinates.length < 4) return null;
+
+        const coords = t.coordinates;
+        const refIdx = this.clampIndex(coords.length, t.referencePointIndex);
+        const cur = coords[refIdx];
+        const next = coords[(refIdx + 1) % 4];
+        const prev = coords[(refIdx + 3) % 4];
+
+        // 中心（p0-p2 中点）
+        const p0 = coords[0], p2 = coords[2];
+        const center: LngLat = [(p0[0] + p2[0]) / 2, (p0[1] + p2[1]) / 2];
+
+        // RectEditor.computeRightLeftLengths と同じ判定（右手系 cross<0 が右）
+        const c = toLocalXY(center, cur);
+        const n = toLocalXY(center, next);
+        const p = toLocalXY(center, prev);
+        const f = { x: -c.x, y: -c.y };
+        const eNext = { x: n.x - c.x, y: n.y - c.y };
+        const cross = (a: { x: number; y: number }, b: { x: number; y: number }) => a.x * b.y - a.y * b.x;
+        const rightIsNext = cross(f, eNext) < 0;
+
+        // depthは「左」方向の辺
+        const leftIdx = rightIsNext ? (refIdx + 3) % 4 : (refIdx + 1) % 4;
+        const leftPt = coords[leftIdx];
+
+        // from原点のローカルで depth ベクトル
+        const v = toLocalXY(from, leftPt);
+        const len = Math.hypot(v.x, v.y);
+        if (len < 1e-6) return null;
+        return { dx: v.x / len, dy: v.y / len };
+    }
+
+    // 直角の折れ点 corner を計算（②: depth平行, ③: depth垂直）
+    private computeRightAngleCorner(from: LngLat, to: LngLat): LngLat | null {
+        const d = this.computeDepthUnit(from);
+        if (!d) return null;
+
+        // from原点のローカルに to を変換
+        const rel = toLocalXY(from, to);
+        // 分解 rel = u*w + v*d
+        const v = rel.x * d.dx + rel.y * d.dy; // depth成分
+        // corner は depth 成分だけ進んだ点
+        const corner = fromLocalXY(from, d.dx * v, d.dy * v);
+        return corner;
     }
 
     /** =========================
@@ -496,4 +629,5 @@ export class MapGeometry {
         const note = alt_m !== usedAlt ? `（表は ${usedAlt}m 列を採用）` : "";
         console.log(`[safety] 入力高度 ${alt_m} m → 最大移動距離(保安距離) ≈ ${dist_m} m ${note}`);
     }
+
 }
