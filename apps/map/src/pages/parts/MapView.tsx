@@ -18,6 +18,7 @@ import {
   setDetailBarMetrics,
 } from "./SideDetailBar";
 import { MapGeometry } from "./MapGeometry";
+import { fromLocalXY } from "./geometry/math";
 import {
   NAME_UNSET,
   AREA_NAME_NONE,
@@ -30,6 +31,7 @@ import {
   EV_DETAILBAR_SELECT_HISTORY,
   EV_DETAILBAR_SELECT_CANDIDATE,
   MARKERS_HIDE_ZOOM,
+  DEFAULTS,
 } from "./constants/events";
 
 /** =========================
@@ -375,7 +377,7 @@ export default function MapView({ onLoaded }: Props) {
       // リスナーのクリーンアップ
       zoomListenerRef.current?.remove();
       zoomListenerRef.current = null;
-      
+
       // マップと付随オブジェクトをクリーンアップ
       markersRef.current.forEach((m) => m.setMap(null));
       markersRef.current = [];
@@ -611,6 +613,108 @@ export default function MapView({ onLoaded }: Props) {
     }
   }, [isSelected]);
 
+  function abc() {
+    const map = mapRef.current;
+    const gmaps = getGMaps();
+    if (!map || !geomRef.current) {
+      console.warn("[map] cannot create geometry: map or geom is null");
+      return;
+    }
+    const prevZoom = map.getZoom();
+    const prevCenter = map.getCenter();
+    const c = prevCenter;
+    if (!c) return;
+
+    // === 便利関数: 向き付き矩形（中心・幅W・奥行H・回転deg）→ 4頂点座標[LNG,LAT] ===
+    const rectCornersFromParams = (
+      centerLngLat: [number, number],
+      w: number,
+      h: number,
+      rotation_deg: number
+    ): [number, number][] => {
+      const theta = (rotation_deg * Math.PI) / 180;
+      const ux = Math.cos(theta),
+        uy = Math.sin(theta); // U軸（幅）
+      const vx = -Math.sin(theta),
+        vy = Math.cos(theta); // V軸（奥行）
+      const hw = w / 2,
+        hh = h / 2;
+      const off = (x: number, y: number) => fromLocalXY(centerLngLat, x, y); // x=東(+)m, y=北(+)m
+      const p0 = off(-hw * ux - hh * vx, -hw * uy - hh * vy);
+      const p1 = off(+hw * ux - hh * vx, +hw * uy - hh * vy);
+      const p2 = off(+hw * ux + hh * vx, +hw * uy + hh * vy);
+      const p3 = off(-hw * ux + hh * vx, -hw * uy + hh * vy);
+      return [p0, p1, p2, p3];
+    };
+
+    // 中心（マップ中央）
+    const centerLngLat: [number, number] = [c.lng(), c.lat()];
+
+    // 各エリア中心（マップ中央からのオフセット配置）
+    const takeoffCenter = fromLocalXY(
+      centerLngLat,
+      DEFAULTS.takeoff.offsetX,
+      DEFAULTS.takeoff.offsetY
+    );
+    const audienceCenter = fromLocalXY(
+      centerLngLat,
+      DEFAULTS.audience.offsetX,
+      DEFAULTS.audience.offsetY
+    );
+
+    // コーナー座標
+    const takeoffCoords = rectCornersFromParams(
+      takeoffCenter,
+      DEFAULTS.takeoff.w,
+      DEFAULTS.takeoff.h,
+      DEFAULTS.takeoff.rot
+    );
+    const audienceCoords = rectCornersFromParams(
+      audienceCenter,
+      DEFAULTS.audience.w,
+      DEFAULTS.audience.h,
+      DEFAULTS.audience.rot
+    );
+
+    // === Geometry 一式（飛行＋保安／離発着／観客） ===
+    const geometry: Geometry = {
+      flightAltitude_m: DEFAULTS.flight.altitude,
+      takeoffArea: {
+        type: "rectangle",
+        coordinates: takeoffCoords,
+        referencePointIndex: 0,
+      },
+      flightArea: {
+        type: "ellipse",
+        center: centerLngLat, // マップ中央
+        radiusX_m: DEFAULTS.flight.rx,
+        radiusY_m: DEFAULTS.flight.ry,
+        rotation_deg: DEFAULTS.flight.rot,
+      },
+      safetyArea: {
+        type: "ellipse",
+        buffer_m: DEFAULTS.flight.buffer, // 保安距離（飛行楕円に外付け）
+      },
+      audienceArea: {
+        type: "rectangle",
+        coordinates: audienceCoords,
+      },
+    };
+
+    // 描画（※カメラは動かさない）
+    geomRef.current.renderGeometry(geometry, { fit: false });
+    gmaps.event.addListenerOnce(map, "idle", () => {
+      if (prevCenter) map.setCenter(prevCenter);
+      if (typeof prevZoom === "number") map.setZoom(prevZoom);
+    });
+    gmaps.event.addListenerOnce(map, "idle", () => {
+      if (prevCenter) map.setCenter(prevCenter);
+      if (typeof prevZoom === "number") map.setZoom(prevZoom);
+    });
+    // 作成後はCTAを隠し、削除ボタンを出す側へ遷移
+    setShowCreateGeomCta(false);
+  }
+
   /** =========================
    *  Render
    *  ========================= */
@@ -624,9 +728,7 @@ export default function MapView({ onLoaded }: Props) {
             type="button"
             className="create-geom-button"
             onClick={() => {
-              console.info(
-                "[map] 'エリア情報を作成する' clicked (not implemented yet)"
-              );
+              abc();
             }}
             aria-label="エリア情報を作成する"
           >
