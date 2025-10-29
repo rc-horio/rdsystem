@@ -57,7 +57,7 @@ export default function DesktopLayout({ sidebar, children }: Props) {
   );
 
   return (
-    <div className={`relative grid ${gridCols} h-[100dvh]`}>
+    <div className={`relative grid ${gridCols} h-dvh`}>
       <aside
         className="overflow-auto bg-[#111827cc] text-white backdrop-blur p-3"
         aria-hidden={collapsed}

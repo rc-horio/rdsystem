@@ -4,7 +4,7 @@ import { type PropsWithChildren } from "react";
 export default function MobileLayout({ children }: PropsWithChildren) {
   // 1行レイアウト・ヘッダー無し
   return (
-    <div className="grid grid-rows-[1fr] h-[100dvh]">
+    <div className="grid grid-rows-[1fr] h-dvh">
       <main className="relative">{children}</main>
     </div>
   );

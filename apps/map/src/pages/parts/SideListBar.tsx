@@ -420,32 +420,6 @@ function SideListBarBase({
     }
   };
 
-  // 1回だけ geometry をもらう Promise
-  async function requestCurrentGeometryOnce(): Promise<{
-    geometry: any | null;
-    deleted?: boolean;
-  }> {
-    return new Promise((resolve) => {
-      const handler = (e: Event) => {
-        window.removeEventListener(
-          EV_GEOMETRY_RESPOND_DATA,
-          handler as EventListener
-        );
-        const detail = (e as CustomEvent).detail || {};
-        resolve({
-          geometry: detail.geometry ?? null,
-          deleted: !!detail.deleted,
-        });
-      };
-      window.addEventListener(
-        EV_GEOMETRY_RESPOND_DATA,
-        handler as EventListener,
-        { once: true } as any
-      );
-      window.dispatchEvent(new Event(EV_GEOMETRY_REQUEST_DATA));
-    });
-  }
-
   // 外部イベントでアクティブ切替
   useEffect(() => {
     const onSetActive = (e: Event) => {

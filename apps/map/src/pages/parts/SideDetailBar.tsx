@@ -39,7 +39,6 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   const [selectedHistoryIdx, setSelectedHistoryIdx] = useState<number | null>(
     null
   );
-  const [isSelected, setIsSelected] = useState(false);
 
   const [selectedCandidateIdx, setSelectedCandidateIdx] = useState<
     number | null
@@ -109,7 +108,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   const onSelectHistory = (item: HistoryItem, idx: number) => {
     setSelectedHistoryIdx(idx); // 履歴のインデックスを設定
     setSelectedCandidateIdx(null); // 候補の選択状態を解除
-    setIsSelected(true); // 履歴が選ばれた状態
+    // 履歴選択イベントを通知（UI 状態は indices で管理）
     window.dispatchEvent(
       new CustomEvent(EV_DETAILBAR_SELECTED, { detail: { isSelected: true } })
     );
@@ -123,7 +122,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   const onSelectCandidate = (candidate: Candidate, idx: number) => {
     setSelectedCandidateIdx(idx); // 候補エリアのインデックスを設定
     setSelectedHistoryIdx(null); // 履歴の選択状態を解除
-    setIsSelected(true); // 候補が選ばれた状態
+    // 候補選択イベントを通知（UI 状態は indices で管理）
     window.dispatchEvent(
       new CustomEvent(EV_DETAILBAR_SELECTED, { detail: { isSelected: true } })
     );
@@ -223,7 +222,6 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       //  エリアが切り替わった（=新しい履歴が来た）ので選択状態を初期化
       setSelectedHistoryIdx(null);
       setSelectedCandidateIdx(null);
-      setIsSelected(false);
       window.dispatchEvent(
         new CustomEvent(EV_DETAILBAR_SELECTED, {
           detail: { isSelected: false },
@@ -251,7 +249,6 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   // 履歴や候補が選ばれていない場合は「選択なし」にする
   useEffect(() => {
     if (selectedHistoryIdx === null && selectedCandidateIdx === null) {
-      setIsSelected(false); // 何も選択されていない状態
       window.dispatchEvent(
         new CustomEvent(EV_DETAILBAR_SELECTED, {
           detail: { isSelected: false },
@@ -265,7 +262,6 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     const reset = () => {
       setSelectedHistoryIdx(null);
       setSelectedCandidateIdx(null);
-      setIsSelected(false);
       window.dispatchEvent(
         new CustomEvent(EV_DETAILBAR_SELECTED, {
           detail: { isSelected: false },

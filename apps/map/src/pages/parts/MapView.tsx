@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
 import { createMarkerIcon } from "@/components";
-import type { Props, Point, Geometry, Candidate } from "@/features/types";
+import type { Props, Point, Geometry } from "@/features/types";
 import {
   appendAreaCandidate,
   fetchAreaInfo,
@@ -102,6 +102,36 @@ export default function MapView({ onLoaded }: Props) {
       // マーカーを隠すときは InfoWindow も閉じる
       infoRef.current?.close();
     }
+  };
+
+  // 追加: 候補ジオメトリの有無判定
+  const hasCandidateGeometry = (g?: Geometry | null): boolean => {
+    if (!g || typeof g !== "object") return false;
+
+    const hasCoords = (coords?: any) =>
+      Array.isArray(coords) && coords.length >= 3;
+
+    const hasEllipse = (ea?: any) =>
+      ea &&
+      ea.type === "ellipse" &&
+      Array.isArray(ea.center) &&
+      ea.center.length === 2 &&
+      Number.isFinite(ea.radiusX_m) &&
+      Number.isFinite(ea.radiusY_m);
+
+    const hasRect = (ra?: any) =>
+      ra && ra.type === "rectangle" && hasCoords(ra.coordinates);
+
+    const takeoff = hasRect(g.takeoffArea);
+    const flight = hasEllipse(g.flightArea) || hasRect(g.flightArea); // 念のため rectangle も許容
+    const safety =
+      (g.safetyArea &&
+        g.safetyArea.type === "ellipse" &&
+        Number.isFinite(g.safetyArea.buffer_m)) ||
+      hasRect(g.safetyArea);
+    const audience = hasRect(g.audienceArea);
+
+    return !!(takeoff || flight || safety || audience);
   };
 
   /** =========================
@@ -658,7 +688,16 @@ export default function MapView({ onLoaded }: Props) {
       // MapGeometry がスケジュール文脈を内部保持している場合に備え、明示的に解除
       geomRef.current?.setCurrentSchedule?.(undefined as any, undefined as any);
 
-      geomRef.current?.renderGeometry(detail.geometry);
+      //  ここで有無判定して CTA を制御
+      const hasGeom = hasCandidateGeometry(detail.geometry);
+      if (hasGeom) {
+        setShowCreateGeomCta(false); // 既存あり → 「削除」ボタンを見せる
+        geomRef.current?.renderGeometry(detail.geometry);
+      } else {
+        setShowCreateGeomCta(true); // 既存なし → 「作成」ボタンを見せる
+        clearGeometryOverlays(); // 何も描かない
+        setDetailBarMetrics({}); // メトリクスもリセット
+      }
     };
 
     window.addEventListener(
