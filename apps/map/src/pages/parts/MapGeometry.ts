@@ -16,9 +16,9 @@ export class MapGeometry {
     private getMap: () => google.maps.Map | null;
     private deletedRef: boolean = false;
     private arrowRef: google.maps.Polyline | null = null;
-    private arrow2Ref: google.maps.Polyline | null = null;
-    private arrow3Ref: google.maps.Polyline | null = null;
-    private arrowLabel: google.maps.Marker | null = null;
+    public arrow2Ref: google.maps.Polyline | null = null;
+    public arrow3Ref: google.maps.Polyline | null = null;
+    public arrowLabel: google.maps.Marker | null = null;
 
     // オーバーレイのリスト
     private overlaysRef: Array<
@@ -229,6 +229,12 @@ export class MapGeometry {
         if (!geomLike || typeof geomLike !== "object") {
             setDetailBarMetrics({});
             return;
+        }
+
+        // 既存ラベルの削除
+        if (this.arrowLabel) {
+            this.arrowLabel.setMap(null);
+            this.arrowLabel = null;
         }
 
         const geom = geomLike as Geometry;
