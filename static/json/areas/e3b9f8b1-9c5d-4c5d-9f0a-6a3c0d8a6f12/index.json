@@ -17,11 +17,7 @@
     "history": [
         {
             "projectuuid": "123e4567-e89b-12d3-a456-426614174002",
-            "scheduleuuid": "2c911348-c518-43d6-b3d0-c85597505642",
-            "actualCoordinate": {
-                "lat": 35.65748,
-                "lon": 139.74838
-            }
+            "scheduleuuid": "2c911348-c518-43d6-b3d0-c85597505642"
         }
     ],
     "candidate": [

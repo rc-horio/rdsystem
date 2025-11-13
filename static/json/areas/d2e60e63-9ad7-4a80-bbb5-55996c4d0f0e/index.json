@@ -18,35 +18,19 @@
     "history": [
         {
             "projectuuid": "181b78b2-39d8-4c95-9fbd-9a8e827b321f",
-            "scheduleuuid": "2c911348-c518-43d6-b3d0-c85597505641",
-            "actualCoordinate": {
-                "lat": 35.4664996,
-                "lon": 133.04608119
-            }
+            "scheduleuuid": "2c911348-c518-43d6-b3d0-c85597505641"
         },
         {
             "projectuuid": "181b78b2-39d8-4c95-9fbd-9a8e827b321f",
-            "scheduleuuid": "2c911348-c518-43d6-b3d0-c85597501234",
-            "actualCoordinate": {
-                "lat": 35.4664996,
-                "lon": 133.04608119
-            }
+            "scheduleuuid": "2c911348-c518-43d6-b3d0-c85597501234"
         },
         {
             "projectuuid": "9d40fbd3-128e-4789-b2b9-8938733ed0cc",
-            "scheduleuuid": "2c911348-c518-43d6-b3d0-c85597505641",
-            "actualCoordinate": {
-                "lat": 35.4664996,
-                "lon": 133.04608119
-            }
+            "scheduleuuid": "2c911348-c518-43d6-b3d0-c85597505641"
         },
         {
             "projectuuid": "9d40fbd3-128e-4789-b2b9-8938733ed0cc",
-            "scheduleuuid": "2c911348-c518-43d6-b3d0-c85597501234",
-            "actualCoordinate": {
-                "lat": 35.4664996,
-                "lon": 133.04608119
-            }
+            "scheduleuuid": "2c911348-c518-43d6-b3d0-c85597501234"
         }
     ],
     "candidate": [
@@ -109,9 +93,7 @@
                         35.46344471308534
                     ]
                 ]
-            },
-            "updatedAt": "2025-10-29T11:28:56.893Z",
-            "updatedBy": "ui"
+            }
         },
         {
             "title": "候補2",
@@ -172,9 +154,7 @@
                         35.46344471308534
                     ]
                 ]
-            },
-            "updatedAt": "2025-10-29T11:29:25.654Z",
-            "updatedBy": "ui"
+            }
         }
     ],
     "updated_at": "2025-10-29T11:29:26.474Z",

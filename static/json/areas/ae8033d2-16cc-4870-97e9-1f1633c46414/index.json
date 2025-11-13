@@ -18,23 +18,15 @@
     "history": [
         {
             "projectuuid": "237215c1-d78f-439c-bf64-4e2293eab2c4",
-            "scheduleuuid": "0e66c69d-1742-4ad1-985c-696086575271",
-            "actualCoordinate": {
-                "lat": 35.4681166,
-                "lon": 133.0440959
-            }
+            "scheduleuuid": "0e66c69d-1742-4ad1-985c-696086575271"
         }
     ],
     "candidate": [
         {
-            "title": "候補1",
-            "updatedAt": "2025-10-30T01:08:42.335Z",
-            "updatedBy": "ui"
+            "title": "候補1"
         },
         {
-            "title": "候補2",
-            "updatedAt": "2025-10-30T01:08:42.335Z",
-            "updatedBy": "ui"
+            "title": "候補2"
         }
     ],
     "updated_at": "2025-10-27T07:59:38.362Z",

@@ -18,23 +18,15 @@
     "history": [
         {
             "projectuuid": "",
-            "scheduleuuid": "",
-            "actualCoordinate": {
-                "lat": 34.393738,
-                "lon": 132.454619
-            }
+            "scheduleuuid": ""
         }
     ],
     "candidate": [
         {
-            "title": "候補1",
-            "updatedAt": "2025-10-30T01:08:42.335Z",
-            "updatedBy": "ui"
+            "title": "候補1"
         },
         {
-            "title": "候補2",
-            "updatedAt": "2025-10-30T01:08:42.335Z",
-            "updatedBy": "ui"
+            "title": "候補2"
         }
     ],
     "updated_at": "2025-10-25T17:40:10.418Z",
