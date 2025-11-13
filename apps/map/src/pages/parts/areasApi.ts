@@ -349,8 +349,6 @@ export async function appendAreaCandidate(params: {
     // 監査情報を付けて末尾に追加
     const nextCandidate: Candidate = {
         ...candidate,
-        updatedAt: new Date().toISOString(),
-        updatedBy: "ui",
     };
 
     const nextInfo = {
@@ -405,16 +403,11 @@ export async function updateScheduleTakeoffReferencePoint(params: {
                         ...(s?.geometry ?? {}),
                         takeoffArea: {
                             ...s?.geometry?.takeoffArea,
+
+                            // 離発着エリアの基準点を更新する
                             referencePointIndex,
-                        },
-                        // 既存に updatedAt / updatedBy があれば上書き、無ければ追加しない（デグレ防止）
-                        ...(s?.geometry?.updatedAt != null
-                            ? { updatedAt: new Date().toISOString() }
-                            : {}),
-                        ...(s?.geometry?.updatedBy != null
-                            ? { updatedBy: "ui" }
-                            : {}),
-                    },
+                        }
+                    }
                 }
                 : s
         ),
@@ -450,10 +443,7 @@ export async function upsertScheduleGeometry(params: {
                 ? {
                     ...s,
                     geometry: {
-                        ...geometry,
-                        // 既存構造に合わせて任意で更新メタを付与
-                        updatedAt: new Date().toISOString(),
-                        updatedBy: "ui",
+                        ...geometry
                     },
                 }
                 : s
@@ -488,15 +478,11 @@ export async function upsertAreaCandidateAtIndex(params: {
         ...(preserveTitle ? { title: prev.title ?? candidate.title ?? `候補${index + 1}` } : {}),
         ...prev,      // 既存をベース
         ...candidate, // 変更点を上書き
-        updatedAt: new Date().toISOString(),
-        updatedBy: "ui",
     };
 
     const nextInfo = {
         ...info,
         candidate: list.map((c, i) => (i === index ? next : c)),
-        updated_at: new Date().toISOString(),
-        updated_by: "ui",
     };
 
     const ok = await saveAreaInfo(areaUuid, nextInfo);
@@ -526,15 +512,11 @@ export async function clearAreaCandidateGeometryAtIndex(params: {
         flightArea: undefined,
         safetyArea: undefined,
         audienceArea: undefined,
-        updatedAt: new Date().toISOString(),
-        updatedBy: "ui",
     };
 
     const nextInfo = {
         ...info,
-        candidate: list.map((c, i) => (i === index ? next : c)),
-        updated_at: new Date().toISOString(),
-        updated_by: "ui",
+        candidate: list.map((c, i) => (i === index ? next : c))
     };
 
     const ok = await saveAreaInfo(areaUuid, nextInfo);

@@ -688,8 +688,6 @@ export default function MapView({ onLoaded }: Props) {
             }`,
             {
               geometryKeys: Object.keys(geom),
-              updatedAt: geom?.updatedAt,
-              updatedBy: geom?.updatedBy,
               center, // 例: [lng, lat]
             }
           );

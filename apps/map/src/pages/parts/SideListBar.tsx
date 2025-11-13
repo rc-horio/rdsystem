@@ -69,7 +69,7 @@ function SideListBarBase({
   };
 
   // 直近の基準点変更を保持（SAVE時に反映）
-  const pendingRefChangeRef = useRef<{
+  const takeoffRefPointChange = useRef<{
     projectUuid: string;
     scheduleUuid: string;
     referencePointIndex: number;
@@ -274,9 +274,8 @@ function SideListBarBase({
         window.dispatchEvent(new Event("areas:reload"));
       }
 
-      // （6）プロジェクト側のスケジュール geometry の基準点 index を反映
-      // 直近で変更があった場合のみパッチ。存在しなければ何もしない（スキップ）。
-      const refchg = pendingRefChangeRef.current;
+      // （6）プロジェクト側のスケジュール geometry の離発着エリアの基準点 index を反映
+      const refchg = takeoffRefPointChange.current;
       if (refchg) {
         const okGeom = await updateScheduleTakeoffReferencePoint(refchg);
         if (!okGeom) {
@@ -287,7 +286,7 @@ function SideListBarBase({
           );
         } else {
           // 成功したら消化
-          pendingRefChangeRef.current = null;
+          takeoffRefPointChange.current = null;
         }
       }
 
@@ -473,7 +472,6 @@ function SideListBarBase({
         projectUuid?: string;
         scheduleUuid?: string;
         referencePointIndex?: number;
-        referencePoint?: [number, number]; // 使わない（schema変更回避）
       }>;
       const d = ce.detail || {};
       if (
@@ -481,7 +479,7 @@ function SideListBarBase({
         typeof d?.scheduleUuid === "string" &&
         Number.isInteger(d?.referencePointIndex)
       ) {
-        pendingRefChangeRef.current = {
+        takeoffRefPointChange.current = {
           projectUuid: d.projectUuid,
           scheduleUuid: d.scheduleUuid,
           referencePointIndex: d.referencePointIndex as number,
@@ -489,7 +487,7 @@ function SideListBarBase({
         if (import.meta.env.DEV)
           console.debug(
             "[sidebar] takeoff ref changed",
-            pendingRefChangeRef.current
+            takeoffRefPointChange.current
           );
       }
     };

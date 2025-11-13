@@ -30,8 +30,6 @@ export type Geometry = {
     flightArea?: EllipseGeom;
     safetyArea?: SafetyGeom;
     audienceArea?: RectangleGeom;
-    updatedAt?: string;
-    updatedBy?: string;
 };
 
 export type Props = {
@@ -95,6 +93,4 @@ export interface Candidate {
     flightArea?: EllipseGeom;
     safetyArea?: SafetyGeom;
     audienceArea?: RectangleGeom;
-    updatedAt?: string;
-    updatedBy?: string;
 }

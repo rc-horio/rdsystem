@@ -195,7 +195,7 @@ export default function SelectProject() {
             id: newId,
             name: newName.trim() || newId,
             updated_at: new Date().toISOString(),
-            updated_by: "テストユーザー", // ★必要なら動的にユーザー名を渡す
+            updated_by: "テストユーザー",
           },
           schedules: [],
         };
