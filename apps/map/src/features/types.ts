@@ -94,3 +94,10 @@ export interface Candidate {
     safetyArea?: SafetyGeom;
     audienceArea?: RectangleGeom;
 }
+
+export type GeometryPayload = {
+    projectUuid?: string;
+    scheduleUuid?: string;
+    geometry?: any;
+    deleted?: boolean;
+};

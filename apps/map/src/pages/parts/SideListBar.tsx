@@ -25,19 +25,17 @@ import {
   updateScheduleTakeoffReferencePoint,
   clearAreaCandidateGeometryAtIndex,
   upsertAreaCandidateAtIndex,
+  upsertScheduleGeometry,
+  clearScheduleGeometry,
 } from "./areasApi";
-import { upsertScheduleGeometry, clearScheduleGeometry } from "./areasApi";
+import type { ScheduleLite, Point, GeometryPayload } from "@/features/types";
 import {
   AREA_NAME_NONE,
   EV_DETAILBAR_SELECT_CANDIDATE,
   EV_GEOMETRY_REQUEST_DATA,
-} from "./constants/events";
-import type { ScheduleLite, Point } from "@/features/types";
-import {
   EV_SIDEBAR_SET_ACTIVE,
   EV_DETAILBAR_RESPOND_DATA,
   EV_MAP_FOCUS_ONLY,
-  EV_TAKEOFF_REF_CHANGED,
   EV_GEOMETRY_RESPOND_DATA,
 } from "./constants/events";
 
@@ -68,14 +66,7 @@ function SideListBarBase({
     return idx >= 0 ? points[idx].areaUuid : undefined;
   };
 
-  // 直近の基準点変更を保持（SAVE時に反映）
-  const takeoffRefPointChange = useRef<{
-    projectUuid: string;
-    scheduleUuid: string;
-    referencePointIndex: number;
-  } | null>(null);
-
-  /** エリア集約（出現順維持） */
+  // エリア集約（出現順維持）
   const areaGroups = useMemo(() => {
     const map = new Map<string, number[]>();
     points.forEach((p, idx) => {
@@ -170,10 +161,139 @@ function SideListBarBase({
     logAreaHistory(area, points);
   };
 
+  // MapGeometry から現在編集中の geometry 情報（payload）を取得
+  const requestGeometryPayload = async (): Promise<GeometryPayload | null> => {
+    const payload = await new Promise<GeometryPayload>((resolve, reject) => {
+      let timer: number | null = null;
+
+      const onGeom = (e: Event) => {
+        window.removeEventListener(
+          EV_GEOMETRY_RESPOND_DATA,
+          onGeom as EventListener
+        );
+        if (timer != null) window.clearTimeout(timer);
+        resolve((e as CustomEvent).detail);
+      };
+
+      window.addEventListener(
+        EV_GEOMETRY_RESPOND_DATA,
+        onGeom as EventListener,
+        { once: true }
+      );
+
+      // 現在の Geometry をリクエスト
+      window.dispatchEvent(new Event(EV_GEOMETRY_REQUEST_DATA));
+
+      // 返ってこない場合はタイムアウト扱い
+      timer = window.setTimeout(() => {
+        window.removeEventListener(
+          EV_GEOMETRY_RESPOND_DATA,
+          onGeom as EventListener
+        );
+        reject(new Error("geometry からの応答がありません"));
+      }, 1500);
+    });
+
+    return payload;
+  };
+
+  // projects/<projectUuid>/index.json
+  // 案件に紐づく geometry を保存 or 削除
+  const applyProjectGeometryFromPayload = async (
+    payload: GeometryPayload
+  ): Promise<void> => {
+    const { projectUuid, scheduleUuid, geometry, deleted } = payload;
+    if (!projectUuid || !scheduleUuid) return;
+
+    if (deleted === true) {
+      const okGeomDel = await clearScheduleGeometry({
+        projectUuid,
+        scheduleUuid,
+      });
+      if (!okGeomDel) console.warn("[save] geometry delete failed");
+    } else if (geometry) {
+      const okGeomSave = await upsertScheduleGeometry({
+        projectUuid,
+        scheduleUuid,
+        geometry,
+      });
+      if (!okGeomSave) console.warn("[save] geometry save failed");
+    } else {
+      if (import.meta.env.DEV)
+        console.debug("[save] geometry payload not available — skipped");
+    }
+  };
+
+  // areas/<areaUuid>/index.json
+  // 候補エリアの geometry を保存 or 削除
+  const applyCandidateGeometryFromPayload = async (params: {
+    payload: GeometryPayload;
+    areaUuidToUse?: string;
+    candidateIndex: number | null;
+    candidateTitle?: string;
+    activeAreaName: string | null;
+  }): Promise<void> => {
+    const {
+      payload,
+      areaUuidToUse,
+      candidateIndex,
+      candidateTitle,
+      activeAreaName,
+    } = params;
+    const { geometry, deleted } = payload;
+
+    const idx = candidateIndex;
+    if (!areaUuidToUse || typeof idx !== "number" || idx < 0) {
+      console.warn(
+        "[save] candidate context missing (areaUuid/index). Skipped."
+      );
+      return;
+    }
+
+    if (deleted === true) {
+      const okDel = await clearAreaCandidateGeometryAtIndex({
+        areaUuid: areaUuidToUse,
+        index: idx,
+      });
+      if (!okDel) console.warn("[save] candidate geometry delete failed");
+    } else if (geometry) {
+      const g = geometry;
+      const okCand = await upsertAreaCandidateAtIndex({
+        areaUuid: areaUuidToUse,
+        index: idx,
+        candidate: {
+          title: candidateTitle,
+          flightAltitude_m: g.flightAltitude_m,
+          takeoffArea: g.takeoffArea,
+          flightArea: g.flightArea,
+          safetyArea: g.safetyArea,
+          audienceArea: g.audienceArea,
+        },
+        preserveTitle: true,
+      });
+      if (!okCand) console.warn("[save] candidate geometry save failed");
+    } else {
+      if (import.meta.env.DEV)
+        console.debug("[save] candidate geometry not available — skipped");
+    }
+
+    // 保存後、candidate の更新を UI へ反映
+    try {
+      if (!areaUuidToUse) return;
+      const { meta: refreshedMeta } = await fetchAreaInfo(
+        areaUuidToUse,
+        activeAreaName || ""
+      );
+      setDetailBarMeta(refreshedMeta);
+    } catch (e) {
+      console.warn("[save] refresh candidate meta failed:", e);
+    }
+  };
+
   // 保存
   const handleSave = async () => {
     try {
-      // 保存対象のエリアを選択しているか確認
+      // （0）保存対象のエリアを選択しているか確認
       if (!activeKey) {
         window.alert("保存対象のエリアを選択してください。");
         return;
@@ -217,11 +337,11 @@ function SideListBarBase({
         }, 3000);
       });
 
-      // （2）現状 index.json を merge 用に取得
+      // （2-1）現状 areas/<areaUuid>/index.json を merge 用に取得
       // あとで「古い値＋新しい値」をマージしたオブジェクトを作るために使用
       const raw = await fetchRawAreaInfo(areaUuid);
 
-      // （3）画面入力値→ エリアのindex.json 形式
+      // （2-2）画面入力値からareas/<areaUuid>/index.json 形式
       const infoToSave = {
         ...(typeof raw === "object" && raw ? raw : {}),
         overview: {
@@ -241,13 +361,15 @@ function SideListBarBase({
           restrictionsMemo: data.meta.restrictionsMemo ?? "",
           remarks: data.meta.remarks ?? "",
         },
+        // TODO
         history: Array.isArray(raw?.history) ? raw.history : [],
+        // TODO
         candidate: Array.isArray(raw?.candidate) ? raw.candidate : [],
         updated_at: new Date().toISOString(),
         updated_by: "ui",
       };
 
-      // （4）areas/<areaUuid>/index.json を保存
+      // （2-3）areas/<areaUuid>/index.json を保存
       const okInfo = await saveAreaInfo(areaUuid!, infoToSave);
       if (!okInfo) {
         window.alert(
@@ -256,7 +378,7 @@ function SideListBarBase({
         return;
       }
 
-      // （5）areas.json を 更新
+      // （2-4）areas.json エリア一覧を更新
       const pos = points.find((p) => p.areaUuid === areaUuid);
       const okAreas = await upsertAreasListEntryFromInfo({
         uuid: areaUuid,
@@ -269,130 +391,37 @@ function SideListBarBase({
         window.alert(
           "保存に失敗しました（areas.json）。S3 の CORS/権限設定をご確認ください。"
         );
-        // index.json は保存済みなので続行可能
+        // areas/<areaUuid>/index.json は保存済みなので続行可能
       } else {
         window.dispatchEvent(new Event("areas:reload"));
       }
 
-      // （6）プロジェクト側のスケジュール geometry の離発着エリアの基準点 index を反映
-      const refchg = takeoffRefPointChange.current;
-      if (refchg) {
-        const okGeom = await updateScheduleTakeoffReferencePoint(refchg);
-        if (!okGeom) {
-          // ここでは UI メッセージは変えず、ログだけ残す（デグレ防止）
-          console.warn(
-            "[save] project geometry takeoff reference update failed or skipped",
-            refchg
-          );
-        } else {
-          // 成功したら消化
-          takeoffRefPointChange.current = null;
-        }
-      }
-
-      // （6.5）編集中の geometry を MapGeometry から受け取り、projects/<uuid>/index.json へ保存
+      // （3-1）MapGeometry から現在編集中の geometry 情報（payload）を取得
+      let geomPayload: GeometryPayload | null = null;
       try {
-        const geomPayload = await new Promise<{
-          projectUuid?: string;
-          scheduleUuid?: string;
-          geometry?: any;
-          deleted?: boolean;
-        }>((resolve, reject) => {
-          let timer: number | null = null;
-          const onGeom = (e: Event) => {
-            window.removeEventListener(
-              EV_GEOMETRY_RESPOND_DATA,
-              onGeom as EventListener
-            );
-            if (timer != null) window.clearTimeout(timer);
-            resolve((e as CustomEvent).detail);
-          };
-          window.addEventListener(
-            EV_GEOMETRY_RESPOND_DATA,
-            onGeom as EventListener,
-            { once: true }
-          );
-          // 現在のGeometryをリクエスト
-          window.dispatchEvent(new Event(EV_GEOMETRY_REQUEST_DATA));
-
-          // 返ってこない場合はスキップ
-          timer = window.setTimeout(() => {
-            window.removeEventListener(
-              EV_GEOMETRY_RESPOND_DATA,
-              onGeom as EventListener
-            );
-            reject(new Error("geometry からの応答がありません"));
-          }, 1500);
-        }).catch(() => ({} as any));
-
-        if (geomPayload?.projectUuid && geomPayload?.scheduleUuid) {
-          // プロジェクト/スケジュール文脈
-          if (geomPayload.deleted === true) {
-            const okGeomDel = await clearScheduleGeometry({
-              projectUuid: geomPayload.projectUuid,
-              scheduleUuid: geomPayload.scheduleUuid,
-            });
-            if (!okGeomDel) console.warn("[save] geometry delete failed");
-          } else if (geomPayload.geometry) {
-            const okGeomSave = await upsertScheduleGeometry({
-              projectUuid: geomPayload.projectUuid,
-              scheduleUuid: geomPayload.scheduleUuid,
-              geometry: geomPayload.geometry,
-            });
-            if (!okGeomSave) console.warn("[save] geometry save failed");
-          } else {
-            if (import.meta.env.DEV)
-              console.debug("[save] geometry payload not available — skipped");
-          }
-        } else if (geomPayload?.geometry || geomPayload?.deleted) {
-          // 候補文脈
-          const areaUuidToUse = currentAreaUuidRef.current ?? areaUuid;
-          const idx = currentCandidateIndexRef.current;
-          if (areaUuidToUse && typeof idx === "number" && idx >= 0) {
-            if (geomPayload.deleted === true) {
-              const okDel = await clearAreaCandidateGeometryAtIndex({
-                areaUuid: areaUuidToUse,
-                index: idx,
-              });
-              if (!okDel)
-                console.warn("[save] candidate geometry delete failed");
-            } else if (geomPayload.geometry) {
-              const g = geomPayload.geometry;
-              const okCand = await upsertAreaCandidateAtIndex({
-                areaUuid: areaUuidToUse,
-                index: idx,
-                candidate: {
-                  title: currentCandidateTitleRef.current,
-                  flightAltitude_m: g.flightAltitude_m,
-                  takeoffArea: g.takeoffArea,
-                  flightArea: g.flightArea,
-                  safetyArea: g.safetyArea,
-                  audienceArea: g.audienceArea,
-                },
-                preserveTitle: true,
-              });
-              if (!okCand)
-                console.warn("[save] candidate geometry save failed");
-            }
-            // 保存後、candidateの更新をUIへ反映
-            try {
-              const { meta: refreshedMeta } = await fetchAreaInfo(
-                areaUuidToUse,
-                activeKey || ""
-              );
-              setDetailBarMeta(refreshedMeta);
-            } catch {}
-          } else {
-            console.warn(
-              "[save] candidate context missing (areaUuid/index). Skipped."
-            );
-          }
-        }
+        geomPayload = await requestGeometryPayload();
+        console.log("[SideListBar] geomPayload on save:", geomPayload);
       } catch (e) {
-        console.warn("[save] geometry save skipped:", e);
+        console.warn("[save] geometry payload fetch skipped:", e);
       }
 
-      // （7）画面に即時反映（従来どおり）
+      if (geomPayload) {
+        if (geomPayload.projectUuid && geomPayload.scheduleUuid) {
+          // （3-2）案件に紐づく geometry を保存 or 削除
+          await applyProjectGeometryFromPayload(geomPayload);
+        } else if (geomPayload.geometry || geomPayload.deleted) {
+          // （3-3）候補エリアの geometry を保存 or 削除
+          await applyCandidateGeometryFromPayload({
+            payload: geomPayload,
+            areaUuidToUse: currentAreaUuidRef.current ?? areaUuid,
+            candidateIndex: currentCandidateIndexRef.current,
+            candidateTitle: currentCandidateTitleRef.current,
+            activeAreaName: activeKey,
+          });
+        }
+      }
+
+      // （4）画面に即時反映（従来どおり）
       setDetailBarTitle(infoToSave.areaName);
       setDetailBarMeta({
         overview: infoToSave.overview?.overview ?? "",
@@ -409,7 +438,7 @@ function SideListBarBase({
         remarks: infoToSave.details?.remarks ?? "",
       });
 
-      // （8）従来メッセージを維持（UIのデグレ回避）
+      // （5）従来メッセージを維持（UIのデグレ回避）
       window.alert(okAreas ? "保存しました" : "保存に失敗しました。");
     } catch (e) {
       console.error(e);
@@ -464,44 +493,6 @@ function SideListBarBase({
       document.body.classList.remove("editing-on");
     };
   }, [isOn]);
-
-  // 基準点変更イベントを捕捉して保持
-  useEffect(() => {
-    const onRefChanged = (e: Event) => {
-      const ce = e as CustomEvent<{
-        projectUuid?: string;
-        scheduleUuid?: string;
-        referencePointIndex?: number;
-      }>;
-      const d = ce.detail || {};
-      if (
-        typeof d?.projectUuid === "string" &&
-        typeof d?.scheduleUuid === "string" &&
-        Number.isInteger(d?.referencePointIndex)
-      ) {
-        takeoffRefPointChange.current = {
-          projectUuid: d.projectUuid,
-          scheduleUuid: d.scheduleUuid,
-          referencePointIndex: d.referencePointIndex as number,
-        };
-        if (import.meta.env.DEV)
-          console.debug(
-            "[sidebar] takeoff ref changed",
-            takeoffRefPointChange.current
-          );
-      }
-    };
-
-    window.addEventListener(
-      EV_TAKEOFF_REF_CHANGED,
-      onRefChanged as EventListener
-    );
-    return () =>
-      window.removeEventListener(
-        EV_TAKEOFF_REF_CHANGED,
-        onRefChanged as EventListener
-      );
-  }, []);
 
   // 候補選択（どの candidate を保存対象にするか）
   useEffect(() => {

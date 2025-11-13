@@ -151,6 +151,7 @@ export class MapGeometry {
                     geometry: this.currentGeomRef ?? null,
                     deleted: this.deletedRef,
                 };
+                console.log("[MapGeometry] respond geometry:", detail);
                 window.dispatchEvent(
                     new CustomEvent(EV_GEOMETRY_RESPOND_DATA, { detail })
                 );

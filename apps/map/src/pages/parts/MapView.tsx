@@ -493,10 +493,6 @@ export default function MapView({ onLoaded }: Props) {
         zoomControl: true,
         zoomControlOptions: { position: gmaps.ControlPosition.RIGHT_CENTER },
       });
-      mapRef.current = map;
-      if (OPEN_INFO_ON_SELECT) {
-        infoRef.current = new gmaps.InfoWindow();
-      }
 
       // 地図クリックで座標＋都道府県を取得
       map.addListener("click", async (e: google.maps.MapMouseEvent) => {
@@ -517,13 +513,10 @@ export default function MapView({ onLoaded }: Props) {
       });
 
       // Geometry controller
-      geomRef.current = new MapGeometry(() => mapRef.current);
       mapRef.current = map;
       if (OPEN_INFO_ON_SELECT) {
         infoRef.current = new gmaps.InfoWindow();
       }
-
-      // Geometry controller
       geomRef.current = new MapGeometry(() => mapRef.current);
 
       // ズーム変更でマーカーの可視状態を更新
