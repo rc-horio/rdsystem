@@ -2,7 +2,6 @@
   {
     "uuid": "d2e60e63-9ad7-4a80-bbb5-55996c4d0f0e",
     "areaName": "松江",
-    "prefecture": "山梨県",
     "representative_coordinate": {
         "lat": 35.4664996,
         "lon": 133.04608119
@@ -12,7 +11,6 @@
   {
     "uuid": "ae8033d2-16cc-4870-97e9-1f1633c46414",
     "areaName": "長岡",
-    "prefecture": "新潟",
     "representative_coordinate": {
       "lat": 37.4428333,
       "lon": 138.8338889
@@ -22,7 +20,6 @@
   {
     "uuid": "bf2d4f72-c0ad-4f67-8eaf-8f4b1f7a6885",
     "areaName": "朝倉福富緑地多目的広場",
-    "prefecture": "栃木",
     "representative_coordinate": {
       "lat": 36.325081,
       "lon": 139.434048
@@ -32,7 +29,6 @@
   {
     "uuid": "8f544a21-f9c3-471b-bf8a-bf7e9783ac35",
     "areaName": "いすゞ自動車",
-    "prefecture": "神奈川",
     "representative_coordinate": {
       "lat": 35.39973,
       "lon": 139.450815
@@ -42,7 +38,6 @@
   {
     "uuid": "2c84bb6a-fb62-4a72-81d6-e7a5e74b9ecb",
     "areaName": "本川小学校",
-    "prefecture": "広島",
     "representative_coordinate": {
       "lat": 34.393738,
       "lon": 132.454619
@@ -52,7 +47,6 @@
   {
     "uuid": "b73efb66-dbbf-44c7-ae52-c81e557e0595",
     "areaName": "東北大学 川内キャンパス",
-    "prefecture": "宮城",
     "representative_coordinate": {
       "lat": 38.26009,
       "lon": 140.84156
@@ -62,7 +56,6 @@
   {
     "uuid": "4a56b04b-b85c-4900-b0b0-b48b264d9a2a",
     "areaName": "大阪港天保山ターミナル",
-    "prefecture": "大阪",
     "representative_coordinate": {
       "lat": 34.658,
       "lon": 135.4326
@@ -72,7 +65,6 @@
   {
     "uuid": "5b77a1b0-b7b9-44b7-926e-6c22732d3c76",
     "areaName": "柳井",
-    "prefecture": "山口",
     "representative_coordinate": {
       "lat": 34.0606,
       "lon": 132.1067
@@ -82,7 +74,6 @@
   {
     "uuid": "fcfe1f2c-df6f-4a98-987f-b5bc86f5379a",
     "areaName": "十勝大橋 河川敷",
-    "prefecture": "北海道",
     "representative_coordinate": {
       "lat": 42.9375,
       "lon": 143.20222
@@ -92,7 +83,6 @@
   {
     "uuid": "95a6d3ea-6004-4640-bb86-2f77971056c7",
     "areaName": "下関港",
-    "prefecture": "山口",
     "representative_coordinate": {
       "lat": 33.94848464,
       "lon": 130.93537663
@@ -102,7 +92,6 @@
   {
     "uuid": "8e6f9bb4-3325-4b33-9446-fab0ea4f4738",
     "areaName": "高輪ゲートウェイ駅",
-    "prefecture": "東京",
     "representative_coordinate": {
       "lat": 35.6355,
       "lon": 139.7407
@@ -112,7 +101,6 @@
   {
     "uuid": "8a3d8b64-2902-4cb2-a9b7-9e776df31244",
     "areaName": "大曲",
-    "prefecture": "秋田",
     "representative_coordinate": {
       "lat": 39.4576,
       "lon": 140.457605
@@ -122,7 +110,6 @@
   {
     "uuid": "779a5a0d-50fd-4eb0-bf7f-9d6c808fc31a",
     "areaName": "明治神宮外苑 軟式グラウンド",
-    "prefecture": "東京",
     "representative_coordinate": {
       "lat": 35.6741,
       "lon": 139.7172
@@ -132,7 +119,6 @@
   {
     "uuid": "d82a3950-9a4e-48b6-a4b4-cb1840e74d01",
     "areaName": "幕張の浜",
-    "prefecture": "千葉",
     "representative_coordinate": {
       "lat": 35.6429,
       "lon": 140.0486
@@ -142,7 +128,6 @@
   {
     "uuid": "fe01ebbb-106e-4677-b548-df6943d0cfd6",
     "areaName": "楽天モバイルパーク宮城",
-    "prefecture": "宮城",
     "representative_coordinate": {
       "lat": 38.2562056,
       "lon": 140.9025
@@ -152,7 +137,6 @@
   {
     "uuid": "51060bba-98b1-43a5-8a2f-853f317d2680",
     "areaName": "CLIFF広場（長井）",
-    "prefecture": "神奈川",
     "representative_coordinate": {
       "lat": 35.19417,
       "lon": 139.61139
@@ -162,7 +146,6 @@
   {
     "uuid": "184ec362-b62a-45a3-b3b2-b319b2b92402",
     "areaName": "宜野湾港マリーナ",
-    "prefecture": "沖縄",
     "representative_coordinate": {
       "lat": 26.2816,
       "lon": 127.7269
@@ -172,7 +155,6 @@
   {
     "uuid": "2289a951-0537-4571-82c9-255a7681b73e",
     "areaName": "DECドローンパーク",
-    "prefecture": "茨城",
     "representative_coordinate": {
       "lat": 35.8956987,
       "lon": 140.0603004
@@ -182,7 +164,6 @@
   {
     "uuid": "7c1691db-330f-43cf-86a5-7ff63717b6f4",
     "areaName": "岩淵水門",
-    "prefecture": "東京",
     "representative_coordinate": {
       "lat": 35.7728,
       "lon": 139.7336
@@ -192,7 +173,6 @@
   {
     "uuid": "e3b9f8b1-9c5d-4c5d-9f0a-6a3c0d8a6f12",
     "areaName": "増上寺",
-    "prefecture": "東京",
     "representative_coordinate": {
       "lat": 35.6574,
       "lon": 139.7482

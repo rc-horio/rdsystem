@@ -173,10 +173,12 @@ function SideListBarBase({
   // 保存
   const handleSave = async () => {
     try {
+      // 保存対象のエリアを選択しているか確認
       if (!activeKey) {
         window.alert("保存対象のエリアを選択してください。");
         return;
       }
+      // 保存対象のエリアの areaUuid を取得
       const areaName = activeKey;
       const areaUuid =
         currentAreaUuidRef.current ?? getAreaUuidByAreaName(areaName);
@@ -216,23 +218,21 @@ function SideListBarBase({
       });
 
       // （2）現状 index.json を merge 用に取得
+      // あとで「古い値＋新しい値」をマージしたオブジェクトを作るために使用
       const raw = await fetchRawAreaInfo(areaUuid);
 
-      // （3）画面入力値→ index.json 形式
+      // （3）画面入力値→ エリアのindex.json 形式
       const infoToSave = {
         ...(typeof raw === "object" && raw ? raw : {}),
-        updated_at: new Date().toISOString(),
-        updated_by: "ui",
         overview: {
           ...(raw?.overview ?? {}),
           address: data.meta.address ?? "",
-          manager: data.meta.manager ?? "",
           prefecture: data.meta.prefecture ?? "",
+          manager: data.meta.manager ?? "",
           droneRecord: data.meta.droneRecord ?? "",
           droneCountEstimate: data.meta.aircraftCount ?? "",
           heightLimitM: data.meta.altitudeLimit ?? "",
           availability: data.meta.availability ?? "",
-          overview: data.meta.overview ?? raw?.overview?.overview ?? "",
         },
         details: {
           ...(raw?.details ?? {}),
@@ -241,8 +241,10 @@ function SideListBarBase({
           restrictionsMemo: data.meta.restrictionsMemo ?? "",
           remarks: data.meta.remarks ?? "",
         },
-        flightArea: raw?.flightArea ?? undefined,
         history: Array.isArray(raw?.history) ? raw.history : [],
+        candidate: Array.isArray(raw?.candidate) ? raw.candidate : [],
+        updated_at: new Date().toISOString(),
+        updated_by: "ui",
       };
 
       // （4）areas/<areaUuid>/index.json を保存
@@ -254,14 +256,14 @@ function SideListBarBase({
         return;
       }
 
-      // （5）areas.json を upsert
+      // （5）areas.json を 更新
       const pos = points.find((p) => p.areaUuid === areaUuid);
       const okAreas = await upsertAreasListEntryFromInfo({
-        areaUuid: areaUuid,
-        areaName: infoToSave.areaName,
-        prefecture: infoToSave.overview?.prefecture,
+        uuid: areaUuid,
+        areaName: data.title,
         lat: pos?.lat,
         lon: pos?.lng,
+        projectCount: infoToSave.history.length,
       });
       if (!okAreas) {
         window.alert(
@@ -272,7 +274,7 @@ function SideListBarBase({
         window.dispatchEvent(new Event("areas:reload"));
       }
 
-      // ★（6）プロジェクト側のスケジュール geometry の基準点 index を反映
+      // （6）プロジェクト側のスケジュール geometry の基準点 index を反映
       // 直近で変更があった場合のみパッチ。存在しなければ何もしない（スキップ）。
       const refchg = pendingRefChangeRef.current;
       if (refchg) {

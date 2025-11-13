@@ -56,23 +56,22 @@ export async function saveAreasList(list: any[]): Promise<boolean> {
 
 /** index.json の内容から areas.json の該当レコードを upsert。成功なら true */
 export async function upsertAreasListEntryFromInfo(params: {
-    areaUuid: string;
+    uuid: string;
     areaName: string;
-    prefecture?: string;
     lat?: number;
-    lon?: number; // = lng
+    lon?: number;
+    projectCount?: number;
 }): Promise<boolean> {
-    const { areaUuid, areaName, prefecture, lat, lon } = params;
+    const { uuid, areaName, lat, lon } = params;
     const list = await fetchAreasList();
 
-    const idx = list.findIndex((x: any) => x?.areaUuid === areaUuid);
+    const idx = list.findIndex((x: any) => x?.uuid === uuid);
     const base = idx >= 0 ? list[idx] : {};
 
     const next = {
         ...base,
-        areaUuid,
+        uuid,
         areaName,
-        prefecture: prefecture ?? base.prefecture ?? "",
         representative_coordinate: {
             lat:
                 typeof lat === "number"
@@ -89,6 +88,7 @@ export async function upsertAreasListEntryFromInfo(params: {
             typeof base?.projectCount === "number" ? base.projectCount : 0,
     };
 
+    // 既存の場合は更新、なければ追加
     if (idx >= 0) list[idx] = next;
     else list.push(next);
 
