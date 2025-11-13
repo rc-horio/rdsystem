@@ -1,10 +1,4 @@
 {
-    "area": {
-        "id": "shimonoseki_port",
-        "name": "下関港",
-        "updated_at": "2025-10-08T06:22:13Z",
-        "updated_by": "seed-script"
-    },
     "overview": {
         "address": "山口県下関市 下関港エリア",
         "prefecture": "山口",
@@ -21,28 +15,6 @@
         "restrictionsMemo": "学校上空は終業後のみ可。",
         "remarks": "雨天時は翌日に順延。"
     },
-    "flightArea": {
-        "polygon": [
-            {
-                "lat": 33.94848464,
-                "lon": 130.93537663
-            },
-            {
-                "lat": 33.9490000,
-                "lon": 130.9360000
-            },
-            {
-                "lat": 33.9470000,
-                "lon": 130.9370000
-            },
-            {
-                "lat": 33.9460000,
-                "lon": 130.9340000
-            }
-        ],
-        "altitudeMaxM": 100,
-        "safetyBufferM": 40
-    },
     "history": [
         {
             "projectuuid": "",
@@ -53,8 +25,18 @@
             }
         }
     ],
+    "candidate": [
+        {
+            "title": "候補1",
+            "updatedAt": "2025-10-30T01:08:42.335Z",
+            "updatedBy": "ui"
+        },
+        {
+            "title": "候補2",
+            "updatedAt": "2025-10-30T01:08:42.335Z",
+            "updatedBy": "ui"
+        }
+    ],
     "updated_at": "2025-10-25T17:40:10.418Z",
-    "updated_by": "ui",
-    "areaId": "shimonoseki_port",
-    "areaName": "下関港"
+    "updated_by": "ui"
 }

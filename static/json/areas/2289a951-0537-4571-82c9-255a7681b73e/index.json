@@ -1,10 +1,4 @@
 {
-    "area": {
-        "id": "dec_toride",
-        "name": "DECドローンパーク",
-        "updated_at": "2025-10-08T06:22:13Z",
-        "updated_by": "seed-script"
-    },
     "overview": {
         "address": "茨城県取手市 DECドローンパークエリア",
         "prefecture": "茨城",
@@ -21,28 +15,6 @@
         "restrictionsMemo": "学校上空は終業後のみ可。",
         "remarks": "雨天時は翌日に順延。"
     },
-    "flightArea": {
-        "polygon": [
-            {
-                "lat": 35.8956987,
-                "lon": 140.0603004
-            },
-            {
-                "lat": 35.8960000,
-                "lon": 140.0610000
-            },
-            {
-                "lat": 35.8940000,
-                "lon": 140.0620000
-            },
-            {
-                "lat": 35.8930000,
-                "lon": 140.0590000
-            }
-        ],
-        "altitudeMaxM": 150,
-        "safetyBufferM": 50
-    },
     "history": [
         {
             "projectuuid": "",
@@ -53,8 +25,18 @@
             }
         }
     ],
+    "candidate": [
+        {
+            "title": "候補1",
+            "updatedAt": "2025-10-30T01:08:42.335Z",
+            "updatedBy": "ui"
+        },
+        {
+            "title": "候補2",
+            "updatedAt": "2025-10-30T01:08:42.335Z",
+            "updatedBy": "ui"
+        }
+    ],
     "updated_at": "2025-10-25T17:40:10.418Z",
-    "updated_by": "ui",
-    "areaId": "dec_toride",
-    "areaName": "DECドローンパーク"
+    "updated_by": "ui"
 }

@@ -1,10 +1,4 @@
 {
-    "area": {
-        "id": "makuhari_beach",
-        "name": "幕張の浜",
-        "updated_at": "2025-10-08T06:22:13Z",
-        "updated_by": "seed-script"
-    },
     "overview": {
         "address": "千葉県千葉市 幕張の浜エリア",
         "prefecture": "千葉",
@@ -21,28 +15,6 @@
         "restrictionsMemo": "学校上空は終業後のみ可。",
         "remarks": "雨天時は翌日に順延。"
     },
-    "flightArea": {
-        "polygon": [
-            {
-                "lat": 35.6429,
-                "lon": 140.0486
-            },
-            {
-                "lat": 35.6435000,
-                "lon": 140.0490000
-            },
-            {
-                "lat": 35.6415000,
-                "lon": 140.0500000
-            },
-            {
-                "lat": 35.6405000,
-                "lon": 140.0470000
-            }
-        ],
-        "altitudeMaxM": 110,
-        "safetyBufferM": 40
-    },
     "history": [
         {
             "projectuuid": "",
@@ -53,8 +25,18 @@
             }
         }
     ],
+    "candidate": [
+        {
+            "title": "候補1",
+            "updatedAt": "2025-10-30T01:08:42.335Z",
+            "updatedBy": "ui"
+        },
+        {
+            "title": "候補2",
+            "updatedAt": "2025-10-30T01:08:42.335Z",
+            "updatedBy": "ui"
+        }
+    ],
     "updated_at": "2025-10-25T17:40:10.418Z",
-    "updated_by": "ui",
-    "areaId": "makuhari_beach",
-    "areaName": "幕張の浜"
+    "updated_by": "ui"
 }

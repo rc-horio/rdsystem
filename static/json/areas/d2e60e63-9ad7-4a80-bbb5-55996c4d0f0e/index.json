@@ -1,10 +1,4 @@
 {
-    "area": {
-        "id": "matsue_chidori",
-        "name": "松江",
-        "updated_at": "2025-10-08T06:22:13Z",
-        "updated_by": "seed-script"
-    },
     "overview": {
         "address": "島根県松江市 東エリアあ",
         "prefecture": "山梨県",
@@ -20,28 +14,6 @@
         "permitMemo": "自治体の占用許可が別途必要。",
         "restrictionsMemo": "学校上空は終業後のみ可。",
         "remarks": "雨天時は翌日に順延。"
-    },
-    "flightArea": {
-        "polygon": [
-            {
-                "lat": 35.4681166,
-                "lon": 133.0440959
-            },
-            {
-                "lat": 35.4681166,
-                "lon": 133.0480665
-            },
-            {
-                "lat": 35.4648826,
-                "lon": 133.0480665
-            },
-            {
-                "lat": 35.4648826,
-                "lon": 133.0440959
-            }
-        ],
-        "altitudeMaxM": 120,
-        "safetyBufferM": 40
     },
     "history": [
         {
@@ -206,7 +178,5 @@
         }
     ],
     "updated_at": "2025-10-29T11:29:26.474Z",
-    "updated_by": "ui",
-    "areaId": "matsue_chidori",
-    "areaName": "松江"
+    "updated_by": "ui"
 }

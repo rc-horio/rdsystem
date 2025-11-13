@@ -71,7 +71,7 @@ export default function MapView({ onLoaded }: Props) {
   );
   const selectedMarkerRef = useRef<google.maps.Marker | null>(null);
   const selectByKeyRef = useRef<
-    (keys: { areaId?: string; areaName?: string }) => void
+    (keys: { areaUuid?: string; areaName?: string }) => void
   >(() => {});
 
   /** ジオメトリ描画/編集コントローラ */
@@ -80,6 +80,34 @@ export default function MapView({ onLoaded }: Props) {
   /** =========================
    *  Utils
    *  ========================= */
+
+  /** クリックした座標から都道府県名を取得（なければ null） */
+  const reverseGeocodePrefecture = async (
+    lat: number,
+    lng: number
+  ): Promise<string | null> => {
+    const gmaps = getGMaps();
+    const geocoder = new gmaps.Geocoder();
+
+    return new Promise((resolve) => {
+      geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+        if (status !== "OK" || !results || results.length === 0) {
+          console.warn("[map] geocode failed:", status);
+          resolve(null);
+          return;
+        }
+
+        const components = results[0].address_components || [];
+        const prefComp = components.find((c) =>
+          c.types.includes("administrative_area_level_1")
+        );
+
+        // "東京都", "大阪府" など
+        resolve(prefComp?.long_name ?? null);
+      });
+    });
+  };
+
   const getGMaps = () =>
     (window as any).google.maps as unknown as typeof google.maps;
 
@@ -89,7 +117,7 @@ export default function MapView({ onLoaded }: Props) {
   /** 指定の全オーバーレイ（ジオメトリ側）を削除 */
   const clearGeometryOverlays = () => {
     geomRef.current?.clearOverlays();
-    
+
     // 矢印ラベルを削除
     if (geomRef.current?.arrowLabel) {
       geomRef.current?.arrowLabel.setMap(null);
@@ -165,7 +193,7 @@ export default function MapView({ onLoaded }: Props) {
               ? a.areaName
               : NAME_UNSET;
           if (import.meta.env.DEV && areaName === NAME_UNSET) {
-            console.warn("[areas] areaName missing for areaId=", a?.areaId);
+            console.warn("[areas] areaName missing for areaUuid=", a?.areaUuid);
           }
 
           return {
@@ -173,7 +201,6 @@ export default function MapView({ onLoaded }: Props) {
             areaName,
             lat: Number(lat),
             lng: Number(lon),
-            areaId: typeof a?.areaId === "string" ? a.areaId : undefined,
             areaUuid:
               typeof a?.areaUuid === "string"
                 ? a.areaUuid
@@ -325,7 +352,7 @@ export default function MapView({ onLoaded }: Props) {
       });
       markersRef.current.push(marker);
 
-      if (p.areaId) markerByKeyRef.current.set(p.areaId, marker);
+      if (p.areaUuid) markerByKeyRef.current.set(p.areaUuid, marker);
       const areaKey = p.areaName?.trim() || AREA_NAME_NONE;
       markerByKeyRef.current.set(areaKey, marker);
       pointByMarkerRef.current.set(marker, p);
@@ -336,10 +363,10 @@ export default function MapView({ onLoaded }: Props) {
     if (!bounds.isEmpty()) map.fitBounds(bounds);
 
     // サイドバーからのフォーカス要求に対応
-    selectByKeyRef.current = ({ areaId, areaName }) => {
+    selectByKeyRef.current = ({ areaUuid, areaName }) => {
       const byKey = markerByKeyRef.current;
       let marker: google.maps.Marker | undefined =
-        (areaId && byKey.get(areaId)) || undefined;
+        (areaUuid && byKey.get(areaUuid)) || undefined;
 
       if (!marker && areaName) marker = byKey.get(areaName);
 
@@ -471,6 +498,31 @@ export default function MapView({ onLoaded }: Props) {
         infoRef.current = new gmaps.InfoWindow();
       }
 
+      // 地図クリックで座標＋都道府県を取得
+      map.addListener("click", async (e: google.maps.MapMouseEvent) => {
+        const latLng = e.latLng;
+        if (!latLng) return;
+
+        const lat = latLng.lat();
+        const lng = latLng.lng();
+
+        // 都道府県取得（取れない場合は null）
+        const prefecture = await reverseGeocodePrefecture(lat, lng);
+
+        console.log("[map] clicked point:", {
+          lat,
+          lng,
+          prefecture,
+        });
+      });
+
+      // Geometry controller
+      geomRef.current = new MapGeometry(() => mapRef.current);
+      mapRef.current = map;
+      if (OPEN_INFO_ON_SELECT) {
+        infoRef.current = new gmaps.InfoWindow();
+      }
+
       // Geometry controller
       geomRef.current = new MapGeometry(() => mapRef.current);
 
@@ -515,7 +567,7 @@ export default function MapView({ onLoaded }: Props) {
       const d =
         (
           e as CustomEvent<{
-            areaId?: string;
+            areaUuid?: string;
             areaName?: string;
           }>
         ).detail || {};

@@ -44,7 +44,6 @@ export type Point = {
     lng: number;
     areaName?: string;
     date?: string;
-    areaId?: string;
     areaUuid?: string;
 };
 

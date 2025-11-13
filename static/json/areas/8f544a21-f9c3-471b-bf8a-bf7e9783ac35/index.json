@@ -1,10 +1,4 @@
 {
-    "area": {
-        "id": "isuzu_fujisawa_e",
-        "name": "いすゞ自動車",
-        "updated_at": "2025-10-08T06:22:13Z",
-        "updated_by": "seed-script"
-    },
     "overview": {
         "address": "神奈川県藤沢市 いすゞ自動車",
         "prefecture": "神奈川",
@@ -21,28 +15,6 @@
         "restrictionsMemo": "学校上空は終業後のみ可。",
         "remarks": "雨天時は翌日に順延。"
     },
-    "flightArea": {
-        "polygon": [
-            {
-                "lat": 35.39973,
-                "lon": 139.450815
-            },
-            {
-                "lat": 35.4000000,
-                "lon": 139.4510000
-            },
-            {
-                "lat": 35.3980000,
-                "lon": 139.4520000
-            },
-            {
-                "lat": 35.3970000,
-                "lon": 139.4490000
-            }
-        ],
-        "altitudeMaxM": 150,
-        "safetyBufferM": 40
-    },
     "history": [
         {
             "projectuuid": "",
@@ -53,8 +25,18 @@
             }
         }
     ],
+    "candidate": [
+        {
+            "title": "候補1",
+            "updatedAt": "2025-10-30T01:08:42.335Z",
+            "updatedBy": "ui"
+        },
+        {
+            "title": "候補2",
+            "updatedAt": "2025-10-30T01:08:42.335Z",
+            "updatedBy": "ui"
+        }
+    ],
     "updated_at": "2025-10-25T17:40:10.418Z",
-    "updated_by": "ui",
-    "areaId": "isuzu_fujisawa_e",
-    "areaName": "いすゞ自動車"
+    "updated_by": "ui"
 }

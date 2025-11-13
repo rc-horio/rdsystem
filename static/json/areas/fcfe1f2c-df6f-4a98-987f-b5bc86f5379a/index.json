@@ -1,10 +1,4 @@
 {
-    "area": {
-        "id": "fcfe1f2c-df6f-4a98-987f-b5bc86f5379a",
-        "name": "十勝大橋 河川敷",
-        "updated_at": "2025-10-08T06:22:13Z",
-        "updated_by": "seed-script"
-    },
     "overview": {
         "address": "北海道帯広市 十勝大橋 河川敷",
         "prefecture": "北海道",
@@ -21,28 +15,6 @@
         "restrictionsMemo": "学校上空は終業後のみ可。",
         "remarks": "雨天時は翌日に順延。"
     },
-    "flightArea": {
-        "polygon": [
-            {
-                "lat": 42.9375,
-                "lon": 143.20222
-            },
-            {
-                "lat": 42.9380000,
-                "lon": 143.2030000
-            },
-            {
-                "lat": 42.9360000,
-                "lon": 143.2040000
-            },
-            {
-                "lat": 42.9350000,
-                "lon": 143.2010000
-            }
-        ],
-        "altitudeMaxM": 70,
-        "safetyBufferM": 20
-    },
     "history": [
         {
             "projectuuid": "",
@@ -53,8 +25,18 @@
             }
         }
     ],
+    "candidate": [
+        {
+            "title": "候補1",
+            "updatedAt": "2025-10-30T01:08:42.335Z",
+            "updatedBy": "ui"
+        },
+        {
+            "title": "候補2",
+            "updatedAt": "2025-10-30T01:08:42.335Z",
+            "updatedBy": "ui"
+        }
+    ],
     "updated_at": "2025-10-25T17:40:10.418Z",
-    "updated_by": "ui",
-    "areaId": "kachimai_tokachi_bridge",
-    "areaName": "十勝大橋 河川敷"
+    "updated_by": "ui"
 }

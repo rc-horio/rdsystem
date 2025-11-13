@@ -1,10 +1,4 @@
 {
-    "area": {
-        "id": "yanai_chouchin_fujimoto",
-        "name": "柳井",
-        "updated_at": "2025-10-08T06:22:13Z",
-        "updated_by": "seed-script"
-    },
     "overview": {
         "address": "山口県柳井市 柳井エリア",
         "prefecture": "山口",
@@ -21,28 +15,6 @@
         "restrictionsMemo": "学校上空は終業後のみ可。",
         "remarks": "雨天時は翌日に順延。"
     },
-    "flightArea": {
-        "polygon": [
-            {
-                "lat": 34.0606,
-                "lon": 132.1067
-            },
-            {
-                "lat": 34.0610000,
-                "lon": 132.1070000
-            },
-            {
-                "lat": 34.0590000,
-                "lon": 132.1080000
-            },
-            {
-                "lat": 34.0580000,
-                "lon": 132.1050000
-            }
-        ],
-        "altitudeMaxM": 90,
-        "safetyBufferM": 30
-    },
     "history": [
         {
             "projectuuid": "",
@@ -53,8 +25,18 @@
             }
         }
     ],
+    "candidate": [
+        {
+            "title": "候補1",
+            "updatedAt": "2025-10-30T01:08:42.335Z",
+            "updatedBy": "ui"
+        },
+        {
+            "title": "候補2",
+            "updatedAt": "2025-10-30T01:08:42.335Z",
+            "updatedBy": "ui"
+        }
+    ],
     "updated_at": "2025-10-25T17:40:10.418Z",
-    "updated_by": "ui",
-    "areaId": "yanai_chouchin_fujimoto",
-    "areaName": "柳井"
+    "updated_by": "ui"
 }

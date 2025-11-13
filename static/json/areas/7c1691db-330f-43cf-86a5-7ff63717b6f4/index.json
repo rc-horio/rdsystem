@@ -1,10 +1,4 @@
 {
-    "area": {
-        "id": "iwabuchi_sluice",
-        "name": "岩淵水門",
-        "updated_at": "2025-10-08T06:22:13Z",
-        "updated_by": "seed-script"
-    },
     "overview": {
         "address": "東京都北区 岩淵水門エリア",
         "prefecture": "東京",
@@ -21,28 +15,6 @@
         "restrictionsMemo": "学校上空は終業後のみ可。",
         "remarks": "雨天時は翌日に順延。"
     },
-    "flightArea": {
-        "polygon": [
-            {
-                "lat": 35.7728,
-                "lon": 139.7336
-            },
-            {
-                "lat": 35.7730000,
-                "lon": 139.7340000
-            },
-            {
-                "lat": 35.7710000,
-                "lon": 139.7350000
-            },
-            {
-                "lat": 35.7700000,
-                "lon": 139.7320000
-            }
-        ],
-        "altitudeMaxM": 80,
-        "safetyBufferM": 30
-    },
     "history": [
         {
             "projectuuid": "",
@@ -53,8 +25,18 @@
             }
         }
     ],
+    "candidate": [
+        {
+            "title": "候補1",
+            "updatedAt": "2025-10-30T01:08:42.335Z",
+            "updatedBy": "ui"
+        },
+        {
+            "title": "候補2",
+            "updatedAt": "2025-10-30T01:08:42.335Z",
+            "updatedBy": "ui"
+        }
+    ],
     "updated_at": "2025-10-25T17:40:10.418Z",
-    "updated_by": "ui",
-    "areaId": "iwabuchi_sluice",
-    "areaName": "岩淵水門"
+    "updated_by": "ui"
 }

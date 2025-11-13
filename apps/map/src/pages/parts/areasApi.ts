@@ -56,21 +56,21 @@ export async function saveAreasList(list: any[]): Promise<boolean> {
 
 /** index.json の内容から areas.json の該当レコードを upsert。成功なら true */
 export async function upsertAreasListEntryFromInfo(params: {
-    areaId: string;
+    areaUuid: string;
     areaName: string;
     prefecture?: string;
     lat?: number;
     lon?: number; // = lng
 }): Promise<boolean> {
-    const { areaId, areaName, prefecture, lat, lon } = params;
+    const { areaUuid, areaName, prefecture, lat, lon } = params;
     const list = await fetchAreasList();
 
-    const idx = list.findIndex((x: any) => x?.areaId === areaId);
+    const idx = list.findIndex((x: any) => x?.areaUuid === areaUuid);
     const base = idx >= 0 ? list[idx] : {};
 
     const next = {
         ...base,
-        areaId,
+        areaUuid,
         areaName,
         prefecture: prefecture ?? base.prefecture ?? "",
         representative_coordinate: {

@@ -1,10 +1,4 @@
 {
-    "area": {
-        "id": "cliff_nagai",
-        "name": "CLIFF広場（長井）",
-        "updated_at": "2025-10-08T06:22:13Z",
-        "updated_by": "seed-script"
-    },
     "overview": {
         "address": "神奈川県長井市 CLIFF広場エリア",
         "prefecture": "神奈川",
@@ -21,28 +15,6 @@
         "restrictionsMemo": "学校上空は終業後のみ可。",
         "remarks": "雨天時は翌日に順延。"
     },
-    "flightArea": {
-        "polygon": [
-            {
-                "lat": 35.19417,
-                "lon": 139.61139
-            },
-            {
-                "lat": 35.1950000,
-                "lon": 139.6120000
-            },
-            {
-                "lat": 35.1930000,
-                "lon": 139.6130000
-            },
-            {
-                "lat": 35.1920000,
-                "lon": 139.6100000
-            }
-        ],
-        "altitudeMaxM": 70,
-        "safetyBufferM": 20
-    },
     "history": [
         {
             "projectuuid": "",
@@ -53,8 +25,18 @@
             }
         }
     ],
+    "candidate": [
+        {
+            "title": "候補1",
+            "updatedAt": "2025-10-30T01:08:42.335Z",
+            "updatedBy": "ui"
+        },
+        {
+            "title": "候補2",
+            "updatedAt": "2025-10-30T01:08:42.335Z",
+            "updatedBy": "ui"
+        }
+    ],
     "updated_at": "2025-10-25T17:40:10.418Z",
-    "updated_by": "ui",
-    "areaId": "cliff_nagai",
-    "areaName": "CLIFF広場（長井）"
+    "updated_by": "ui"
 }

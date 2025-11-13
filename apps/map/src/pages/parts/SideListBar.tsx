@@ -62,10 +62,10 @@ function SideListBarBase({
   const normArea = (p?: { areaName?: string }) =>
     (p?.areaName?.trim() as string) || AREA_NAME_NONE;
 
-  // area文字列 → areaId を引くユーティリティ
-  const getAreaIdByAreaName = (area: string) => {
+  // area文字列 → areaUuid を引くユーティリティ
+  const getAreaUuidByAreaName = (area: string) => {
     const idx = points.findIndex((p) => normArea(p) === area);
-    return idx >= 0 ? points[idx].areaId : undefined;
+    return idx >= 0 ? points[idx].areaUuid : undefined;
   };
 
   // 直近の基準点変更を保持（SAVE時に反映）
@@ -157,14 +157,12 @@ function SideListBarBase({
     await loadAndShowInfoForArea(area);
     openDetailBar();
 
-    const areaId = getAreaIdByAreaName(area);
-    currentAreaUuidRef.current = points.find(
-      (p) => p.areaId === areaId
-    )?.areaUuid;
+    const areaUuid = getAreaUuidByAreaName(area);
+    currentAreaUuidRef.current = areaUuid;
 
     window.dispatchEvent(
       new CustomEvent(EV_MAP_FOCUS_ONLY, {
-        detail: { areaId, areaName: area },
+        detail: { areaUuid, areaName: area },
       })
     );
 
@@ -180,10 +178,10 @@ function SideListBarBase({
         return;
       }
       const areaName = activeKey;
-      const areaId = getAreaIdByAreaName(areaName);
-      const areaUuid = points.find((p) => p.areaId === areaId)?.areaUuid;
-      if (!areaId) {
-        window.alert("このエリアには areaId がありません。保存できません。");
+      const areaUuid =
+        currentAreaUuidRef.current ?? getAreaUuidByAreaName(areaName);
+      if (!areaUuid) {
+        window.alert("このエリアには areaUuid がありません。保存できません。");
         return;
       }
 
@@ -225,8 +223,6 @@ function SideListBarBase({
         ...(typeof raw === "object" && raw ? raw : {}),
         updated_at: new Date().toISOString(),
         updated_by: "ui",
-        areaId,
-        areaName, // タイトルを areaName に同期
         overview: {
           ...(raw?.overview ?? {}),
           address: data.meta.address ?? "",
@@ -259,9 +255,9 @@ function SideListBarBase({
       }
 
       // （5）areas.json を upsert
-      const pos = points.find((p) => p.areaId === areaId);
+      const pos = points.find((p) => p.areaUuid === areaUuid);
       const okAreas = await upsertAreasListEntryFromInfo({
-        areaId,
+        areaUuid: areaUuid,
         areaName: infoToSave.areaName,
         prefecture: infoToSave.overview?.prefecture,
         lat: pos?.lat,

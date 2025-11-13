@@ -1,10 +1,4 @@
 {
-    "area": {
-        "id": "ashikaga_asakura",
-        "name": "朝倉福富緑地多目的広場",
-        "updated_at": "2025-10-08T06:22:13Z",
-        "updated_by": "seed-script"
-    },
     "overview": {
         "address": "栃木県足利市 朝倉福富緑地",
         "prefecture": "栃木",
@@ -21,28 +15,6 @@
         "restrictionsMemo": "学校上空は終業後のみ可。",
         "remarks": "雨天時は翌日に順延。"
     },
-    "flightArea": {
-        "polygon": [
-            {
-                "lat": 36.325081,
-                "lon": 139.434048
-            },
-            {
-                "lat": 36.3270000,
-                "lon": 139.4350000
-            },
-            {
-                "lat": 36.3240000,
-                "lon": 139.4360000
-            },
-            {
-                "lat": 36.3230000,
-                "lon": 139.4330000
-            }
-        ],
-        "altitudeMaxM": 80,
-        "safetyBufferM": 30
-    },
     "history": [
         {
             "projectuuid": "",
@@ -53,8 +25,18 @@
             }
         }
     ],
+    "candidate": [
+        {
+            "title": "候補1",
+            "updatedAt": "2025-10-30T01:08:42.335Z",
+            "updatedBy": "ui"
+        },
+        {
+            "title": "候補2",
+            "updatedAt": "2025-10-30T01:08:42.335Z",
+            "updatedBy": "ui"
+        }
+    ],
     "updated_at": "2025-10-25T17:40:10.418Z",
-    "updated_by": "ui",
-    "areaId": "ashikaga_asakura",
-    "areaName": "朝倉福富緑地多目的広場"
+    "updated_by": "ui"
 }
