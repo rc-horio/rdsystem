@@ -544,7 +544,8 @@ function SideListBarBase({
         >
           <div className="toolbar-group">
             <FilterButton onClick={() => {}} height={iconH} />
-            <AddItemButton onClick={() => {}} height={iconH} />
+
+            <div className="spacer" />
             {isOn ? (
               <ONButton onClick={() => setIsOn(false)} height={iconH} />
             ) : (
@@ -552,12 +553,22 @@ function SideListBarBase({
             )}
             {isOn && <SaveButton onClick={handleSave} height={iconH} />}
           </div>
-          <div className="spacer" />
-          {isOn && <DeleteItemButton onClick={() => {}} height={iconH} />}
         </div>
 
         <div id="searchHint" aria-live="polite" />
       </div>
+
+      {isOn && (
+        <button
+          type="button"
+          className="add-area-button"
+          onClick={() => {
+            console.log("エリアを追加します");
+          }}
+        >
+          <span className="add-icon">＋ </span>エリアを追加する
+        </button>
+      )}
 
       {/* エリア名（重複集約） */}
       <ul id="locationList" className="no-caret">

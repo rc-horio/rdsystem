@@ -81,11 +81,11 @@ export default function MapView({ onLoaded }: Props) {
    *  Utils
    *  ========================= */
 
-  /** クリックした座標から都道府県名を取得（なければ null） */
+  /** クリックした座標から住所＋都道府県を取得 */
   const reverseGeocodePrefecture = async (
     lat: number,
     lng: number
-  ): Promise<string | null> => {
+  ): Promise<{ prefecture: string | null; address: string | null }> => {
     const gmaps = getGMaps();
     const geocoder = new gmaps.Geocoder();
 
@@ -93,17 +93,21 @@ export default function MapView({ onLoaded }: Props) {
       geocoder.geocode({ location: { lat, lng } }, (results, status) => {
         if (status !== "OK" || !results || results.length === 0) {
           console.warn("[map] geocode failed:", status);
-          resolve(null);
+          resolve({ prefecture: null, address: null });
           return;
         }
 
         const components = results[0].address_components || [];
+        const formatted = results[0].formatted_address ?? null;
+
         const prefComp = components.find((c) =>
           c.types.includes("administrative_area_level_1")
         );
 
-        // "東京都", "大阪府" など
-        resolve(prefComp?.long_name ?? null);
+        resolve({
+          prefecture: prefComp?.long_name ?? null,
+          address: formatted,
+        });
       });
     });
   };
@@ -502,13 +506,16 @@ export default function MapView({ onLoaded }: Props) {
         const lat = latLng.lat();
         const lng = latLng.lng();
 
-        // 都道府県取得（取れない場合は null）
-        const prefecture = await reverseGeocodePrefecture(lat, lng);
+        const { prefecture, address } = await reverseGeocodePrefecture(
+          lat,
+          lng
+        );
 
         console.log("[map] clicked point:", {
           lat,
           lng,
           prefecture,
+          address,
         });
       });
 
