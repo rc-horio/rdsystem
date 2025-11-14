@@ -15,6 +15,7 @@ import {
   setDetailBarTitle,
   setDetailBarHistory,
   setDetailBarMeta,
+  closeDetailBar,
 } from "./SideDetailBar";
 import {
   fetchAreaInfo,
@@ -563,7 +564,8 @@ function SideListBarBase({
           type="button"
           className="add-area-button"
           onClick={() => {
-            console.log("エリアを追加します");
+            closeDetailBar();
+            window.dispatchEvent(new Event("map:start-add-area"));
           }}
         >
           <span className="add-icon">＋ </span>エリアを追加する

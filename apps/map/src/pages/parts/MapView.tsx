@@ -52,6 +52,7 @@ export default function MapView({ onLoaded }: Props) {
   const markersRef = useRef<google.maps.Marker[]>([]);
   const infoRef = useRef<google.maps.InfoWindow | null>(null);
   const zoomListenerRef = useRef<google.maps.MapsEventListener | null>(null);
+  const addAreaConfirmInfoRef = useRef<google.maps.InfoWindow | null>(null);
   const [showCreateGeomCta, setShowCreateGeomCta] = useState(false);
   const [isSelected, setIsSelected] = useState(false);
   const currentAreaUuidRef = useRef<string | undefined>(undefined);
@@ -59,6 +60,8 @@ export default function MapView({ onLoaded }: Props) {
   const currentScheduleUuidRef = useRef<string | undefined>(undefined);
   const currentCandidateIndexRef = useRef<number | null>(null);
   const currentCandidateTitleRef = useRef<string | undefined>(undefined);
+  const [addingAreaMode, setAddingAreaMode] = useState(false);
+  const addingAreaModeRef = useRef(false);
 
   // Bodyクラスで編集状態を共有（editing-on で活性）
   const getEditable = () => document.body.classList.contains("editing-on");
@@ -76,6 +79,14 @@ export default function MapView({ onLoaded }: Props) {
 
   /** ジオメトリ描画/編集コントローラ */
   const geomRef = useRef<MapGeometry | null>(null);
+
+  // クリックされた座標＋住所などのドラフト情報
+  const [newAreaDraft, setNewAreaDraft] = useState<{
+    lat: number;
+    lng: number;
+    prefecture: string | null;
+    address: string | null;
+  } | null>(null);
 
   /** =========================
    *  Utils
@@ -104,12 +115,96 @@ export default function MapView({ onLoaded }: Props) {
           c.types.includes("administrative_area_level_1")
         );
 
+        let displayAddress: string | null = formatted;
+
+        if (prefComp && formatted) {
+          const prefName = prefComp.long_name; // 例: "群馬県"
+          const idx = formatted.indexOf(prefName);
+
+          if (idx >= 0) {
+            // 都道府県名が出てくる位置から後ろだけを住所として使う
+            displayAddress = formatted.slice(idx);
+          }
+        }
+
         resolve({
           prefecture: prefComp?.long_name ?? null,
-          address: formatted,
+          address: displayAddress,
         });
       });
     });
+  };
+
+  const openAddAreaConfirm = (
+    latLng: google.maps.LatLng,
+    draft: {
+      lat: number;
+      lng: number;
+      prefecture: string | null;
+      address: string | null;
+    }
+  ) => {
+    const map = mapRef.current;
+    const gmaps = getGMaps();
+    if (!map) return;
+
+    if (!addAreaConfirmInfoRef.current) {
+      addAreaConfirmInfoRef.current = new gmaps.InfoWindow();
+    }
+
+    const container = document.createElement("div");
+    container.className = "add-area-confirm";
+
+    container.innerHTML = `
+      <div class="add-area-confirm" 
+          style="
+            background: white;
+            color: #222;
+            padding: 8px 10px;
+            border-radius: 6px;
+            min-width: 180px;
+            font-size: 13px;
+          ">
+        <div style="font-weight: 600; margin-bottom: 4px;">このエリアを登録しますか？</div>
+    
+        <div style="font-family: monospace; font-size: 12px; color: #444; margin-bottom: 6px;">
+          ${draft.address}
+        </div>
+    
+        <div style="text-align: right;">
+          <button type="button" data-role="yes"
+            style="padding:2px 8px; margin-right: 4px;"
+          >はい</button>
+          <button type="button" data-role="no"
+            style="padding:2px 8px;"
+          >いいえ</button>
+        </div>
+      </div>
+    `;
+
+    const yesBtn = container.querySelector<HTMLButtonElement>(
+      'button[data-role="yes"]'
+    );
+    const noBtn = container.querySelector<HTMLButtonElement>(
+      'button[data-role="no"]'
+    );
+
+    yesBtn?.addEventListener("click", () => {
+      // 「はい」→ 本モーダルで使うドラフトをセット
+      setNewAreaDraft(draft);
+      addingAreaModeRef.current = false;
+      setAddingAreaMode(false);
+      addAreaConfirmInfoRef.current?.close();
+    });
+
+    noBtn?.addEventListener("click", () => {
+      // 「いいえ」→ 吹き出しだけ閉じて、追加モードは継続
+      addAreaConfirmInfoRef.current?.close();
+    });
+
+    addAreaConfirmInfoRef.current.setContent(container);
+    addAreaConfirmInfoRef.current.setPosition(latLng);
+    addAreaConfirmInfoRef.current.open(map);
   };
 
   const getGMaps = () =>
@@ -517,6 +612,12 @@ export default function MapView({ onLoaded }: Props) {
           prefecture,
           address,
         });
+
+        if (addingAreaModeRef.current) {
+          const draft = { lat, lng, prefecture, address };
+          openAddAreaConfirm(latLng, draft);
+          return;
+        }
       });
 
       // Geometry controller
@@ -555,7 +656,10 @@ export default function MapView({ onLoaded }: Props) {
         infoRef.current?.close();
       }
       infoRef.current = null;
-
+      if (addAreaConfirmInfoRef.current) {
+        addAreaConfirmInfoRef.current.close();
+        addAreaConfirmInfoRef.current = null;
+      }
       // ジオメトリもクリーンアップ
       clearGeometryOverlays();
     };
@@ -805,6 +909,59 @@ export default function MapView({ onLoaded }: Props) {
     }
   }, [isSelected]);
 
+  // サイドバーから「エリア追加モード開始」の通知を受け取る
+  useEffect(() => {
+    const onStartAddArea = () => {
+      console.log("[map] start add-area mode");
+      setAddingAreaMode(true);
+      addingAreaModeRef.current = true;
+
+      // 以前のドラフトや吹き出しがあればクリア
+      setNewAreaDraft(null);
+      addAreaConfirmInfoRef.current?.close();
+    };
+
+    window.addEventListener("map:start-add-area", onStartAddArea);
+    return () => {
+      window.removeEventListener("map:start-add-area", onStartAddArea);
+    };
+  }, []);
+
+  // 追加モード中はカーソルを「＋っぽい」形にする
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // 'copy' はマウスカーソルに小さな「＋」が付く感じのアイコン
+    if (addingAreaMode) {
+      map.setOptions({
+        draggableCursor: "copy", // ここを "crosshair" にすると十字カーソルにもできる
+      });
+    } else {
+      // 元に戻す（undefined でデフォルトに戻る）
+      map.setOptions({
+        draggableCursor: undefined,
+      });
+    }
+  }, [addingAreaMode]);
+
+  // Esc キーで追加モードをキャンセル
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && addingAreaModeRef.current) {
+        addingAreaModeRef.current = false;
+        setAddingAreaMode(false);
+        setNewAreaDraft(null);
+        addAreaConfirmInfoRef.current?.close();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, []);
+
   async function createDefaultGeometry() {
     const map = mapRef.current;
     const gmaps = getGMaps();
@@ -970,6 +1127,30 @@ export default function MapView({ onLoaded }: Props) {
   return (
     <div className="map-page app-fullscreen">
       <div id="map" ref={mapDivRef} />
+
+      {editable && addingAreaMode && (
+        <div className="add-area-hint-layer">
+          <div className="add-area-hint" aria-live="polite">
+            <span className="add-area-hint__text">
+              追加したいエリアを地図上でクリックして選択してください
+            </span>
+            <button
+              type="button"
+              className="add-area-hint__cancel"
+              onClick={() => {
+                // 追加モードをキャンセル
+                addingAreaModeRef.current = false;
+                setAddingAreaMode(false);
+                setNewAreaDraft(null);
+                addAreaConfirmInfoRef.current?.close();
+              }}
+            >
+              キャンセル
+            </button>
+          </div>
+        </div>
+      )}
+
       <div id="controls" className="cta-overlay">
         {editable && showCreateGeomCta && isSelected && (
           <button
@@ -999,6 +1180,57 @@ export default function MapView({ onLoaded }: Props) {
           </button>
         )}
       </div>
+
+      {editable && newAreaDraft && (
+        <div className="new-area-modal-backdrop">
+          <div className="new-area-modal">
+            <h2>新しいエリアを作成（仮）</h2>
+            <p>ここでエリア名の入力や保存処理を今後実装します。</p>
+
+            <div className="new-area-modal__row">
+              <span>座標:</span>
+              <span>
+                {newAreaDraft.lat.toFixed(6)}, {newAreaDraft.lng.toFixed(6)}
+              </span>
+            </div>
+            <div className="new-area-modal__row">
+              <span>都道府県:</span>
+              <span>{newAreaDraft.prefecture ?? "不明"}</span>
+            </div>
+            <div className="new-area-modal__row">
+              <span>住所:</span>
+              <span>{newAreaDraft.address ?? "不明"}</span>
+            </div>
+
+            {/* ④⑤で使う予定のエリア名入力欄は、いったんコメントでもOK */}
+            {/* 
+            <div className="new-area-modal__row">
+              <label>
+                エリア名:
+                <input
+                  type="text"
+                  value={areaNameInput}
+                  onChange={(e) => setAreaNameInput(e.target.value)}
+                />
+              </label>
+            </div>
+            */}
+
+            <div className="new-area-modal__actions">
+              <button
+                type="button"
+                onClick={() => {
+                  // キャンセル時はドラフトをクリアしてウィンドウを閉じる
+                  setNewAreaDraft(null);
+                }}
+              >
+                閉じる
+              </button>
+              {/* ④⑤実装時にOKボタンで保存処理へ進む */}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

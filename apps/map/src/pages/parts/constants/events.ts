@@ -1,15 +1,24 @@
 // src/pages/parts/constants/events.ts
 export const EV_MAP_FOCUS_ONLY = "map:focus-only";
+
 export const EV_SIDEBAR_OPEN = "sidebar:open";
 export const EV_SIDEBAR_SET_ACTIVE = "sidebar:set-active";
-export const EV_DETAILBAR_SELECT_HISTORY = "detailbar:select-history";
+
 export const EV_TAKEOFF_REF_CHANGED = "geometry:takeoff-ref-changed";
-export const EV_DETAILBAR_RESPOND_DATA = "detailbar:respond-data";
-// Geometryの「現在値」をMapGeometryから取得するための応答イベント
+
 export const EV_GEOMETRY_RESPOND_DATA = "geometry:respond-data";
 export const EV_GEOMETRY_REQUEST_DATA = "geometry:request-data";
+
+export const EV_DETAILBAR_RESPOND_DATA = "detailbar:respond-data";
+export const EV_DETAILBAR_SELECT_HISTORY = "detailbar:select-history";
 export const EV_DETAILBAR_SELECT_CANDIDATE = "detailbar:select-candidate";
 export const EV_DETAILBAR_SELECTED = "side-detailbar:selected";
+export const EV_DETAILBAR_SET_METRICS = "detailbar:set-metrics";
+export const EV_DETAILBAR_REQUEST_DATA = "detailbar:request-data";
+export const EV_DETAILBAR_SET_TITLE = "detailbar:set-title";
+export const EV_DETAILBAR_SET_META = "detailbar:set-meta";
+export const EV_DETAILBAR_SET_HISTORY = "detailbar:set-history";
+export const EV_DETAILBAR_APPLY_METRICS = "detailbar:apply-metrics";
 
 export const ROTATE_HANDLE_GAP_M = 5;
 export const SELECT_ZOOM_DESKTOP = 10;
@@ -19,14 +28,7 @@ export const NAME_UNSET = "（名称未設定）";
 export const AREA_NAME_NONE = "（エリア名なし）";
 export const OPEN_INFO_ON_SELECT = false;
 export const MARKERS_HIDE_ZOOM = 16;
-export const EV_DETAILBAR_SET_METRICS = "detailbar:set-metrics";
 export const CLS_DETAILBAR_OPEN = "detailbar-open";
-
-export const EV_DETAILBAR_REQUEST_DATA = "detailbar:request-data";
-export const EV_DETAILBAR_SET_TITLE = "detailbar:set-title";
-export const EV_DETAILBAR_SET_META = "detailbar:set-meta";
-export const EV_DETAILBAR_SET_HISTORY = "detailbar:set-history";
-export const EV_DETAILBAR_APPLY_METRICS = "detailbar:apply-metrics";
 
 export const S3_BASE =
     "https://rc-rdsystem-dev-catalog.s3.ap-northeast-1.amazonaws.com/catalog/v1/";
