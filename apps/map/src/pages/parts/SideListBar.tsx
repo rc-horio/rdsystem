@@ -564,6 +564,11 @@ function SideListBarBase({
           type="button"
           className="add-area-button"
           onClick={() => {
+            setActiveKey(null);
+            currentAreaUuidRef.current = undefined;
+            currentCandidateIndexRef.current = null;
+            currentCandidateTitleRef.current = undefined;
+
             closeDetailBar();
             window.dispatchEvent(new Event("map:start-add-area"));
           }}
@@ -571,7 +576,7 @@ function SideListBarBase({
           <span className="add-icon">＋ </span>エリアを追加する
         </button>
       )}
-
+      
       {/* エリア名（重複集約） */}
       <ul id="locationList" className="no-caret">
         {areaGroups.map(({ area, indices }) => {
