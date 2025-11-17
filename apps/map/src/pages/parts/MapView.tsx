@@ -1,7 +1,11 @@
 // src/pages/parts/MapView.tsx
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
-import { createMarkerIcon, BaseModal } from "@/components";
+import {
+  createMarkerIcon,
+  useDraggableMetricsPanel,
+  useEditableBodyClass,
+} from "@/components";
 import type { Props, Point, Geometry } from "@/features/types";
 import {
   appendAreaCandidate,
@@ -41,7 +45,7 @@ import {
   MARKERS_HIDE_ZOOM,
   DEFAULTS,
 } from "./constants/events";
-import { flushSync } from "react-dom";
+import { AddAreaModal } from "./AddAreaModal";
 
 /** =========================
  *  Component
@@ -54,20 +58,20 @@ export default function MapView({ onLoaded }: Props) {
   const infoRef = useRef<google.maps.InfoWindow | null>(null);
   const zoomListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const addAreaConfirmInfoRef = useRef<google.maps.InfoWindow | null>(null);
-  const [showCreateGeomCta, setShowCreateGeomCta] = useState(false);
-  const [isSelected, setIsSelected] = useState(false);
+
   const currentAreaUuidRef = useRef<string | undefined>(undefined);
   const currentProjectUuidRef = useRef<string | undefined>(undefined);
   const currentScheduleUuidRef = useRef<string | undefined>(undefined);
   const currentCandidateIndexRef = useRef<number | null>(null);
   const currentCandidateTitleRef = useRef<string | undefined>(undefined);
-  const [addingAreaMode, setAddingAreaMode] = useState(false);
   const addingAreaModeRef = useRef(false);
-  const [areaNameInput, setAreaNameInput] = useState("");
 
-  // Bodyクラスで編集状態を共有（editing-on で活性）
-  const getEditable = () => document.body.classList.contains("editing-on");
-  const [editable, setEditable] = useState<boolean>(getEditable);
+  const [showCreateGeomCta, setShowCreateGeomCta] = useState(false);
+  const [isSelected, setIsSelected] = useState(false);
+  const [addingAreaMode, setAddingAreaMode] = useState(false);
+  const [areaNameInput, setAreaNameInput] = useState("");
+  useDraggableMetricsPanel();
+  const editable = useEditableBodyClass();
 
   /** マーカー管理（キー検索/逆引き用） */
   const markerByKeyRef = useRef<Map<string, google.maps.Marker>>(new Map());
@@ -689,46 +693,6 @@ export default function MapView({ onLoaded }: Props) {
       );
   }, []);
 
-  // メトリクスパネルのドラッグ&ドロップ
-  useEffect(() => {
-    const panel = document.querySelector(
-      ".geom-metrics-panel"
-    ) as HTMLDivElement | null;
-    if (!panel) return;
-
-    let offsetX = 0,
-      offsetY = 0,
-      isDragging = false;
-
-    const onMouseDown = (e: MouseEvent) => {
-      isDragging = true;
-      offsetX = e.clientX - panel.getBoundingClientRect().left;
-      offsetY = e.clientY - panel.getBoundingClientRect().top;
-      panel.classList.add("dragging");
-    };
-
-    const onMouseMove = (e: MouseEvent) => {
-      if (!isDragging) return;
-      panel.style.left = `${e.clientX - offsetX}px`;
-      panel.style.top = `${e.clientY - offsetY}px`;
-    };
-
-    const onMouseUp = () => {
-      isDragging = false;
-      panel.classList.remove("dragging");
-    };
-
-    panel.addEventListener("mousedown", onMouseDown);
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
-
-    return () => {
-      panel.removeEventListener("mousedown", onMouseDown);
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
-    };
-  }, []);
-
   // 外部イベント：detailbar:select-history -> ジオメトリを取得/描画（統合版）
   useEffect(() => {
     const onSelect = async (e: Event) => {
@@ -874,15 +838,6 @@ export default function MapView({ onLoaded }: Props) {
         onCandidateSelect as EventListener
       );
     };
-  }, []);
-
-  // Bodyクラスで編集状態を共有（editing-on で活性）
-  useEffect(() => {
-    const update = () => setEditable(getEditable());
-    update();
-    const mo = new MutationObserver(update);
-    mo.observe(document.body, { attributes: true, attributeFilter: ["class"] });
-    return () => mo.disconnect();
   }, []);
 
   // SideDetailBar から選択状態を受け取る
@@ -1181,72 +1136,24 @@ export default function MapView({ onLoaded }: Props) {
           </button>
         )}
       </div>
+      <AddAreaModal
+        open={editable && !!newAreaDraft}
+        draft={newAreaDraft}
+        areaName={areaNameInput}
+        onChangeAreaName={setAreaNameInput}
+        onCancel={() => {
+          setNewAreaDraft(null);
+          setAreaNameInput("");
+        }}
+        onOk={() => {
+          if (!areaNameInput.trim() || !newAreaDraft) return;
 
-      {editable && newAreaDraft && (
-        <BaseModal
-          open={true}
-          onClose={() => {
-            // キャンセル/× どちらでもここに来る
-            setNewAreaDraft(null);
-            setAreaNameInput("");
-          }}
-          title="エリア名を記入してください。"
-        >
-          <div className="new-area-modal no-caret">
-            <div className="new-area-modal__row">
-              <label className="new-area-modal__label">
-                エリア名
-                <input
-                  type="text"
-                  value={areaNameInput}
-                  onChange={(e) => setAreaNameInput(e.target.value)}
-                  className="new-area-modal__input"
-                  placeholder="例）○○公園 第1グラウンド"
-                />
-              </label>
-            </div>
-
-            {/* もし座標や住所も見せたいならそのまま残してOK */}
-            <div className="new-area-modal__row">
-              <span className="new-area-modal__label">住所:</span>
-              <span>{newAreaDraft.address ?? "不明"}</span>
-            </div>
-            <div className="new-area-modal__row">
-              <span className="new-area-modal__label">座標:</span>
-              <span>
-                {newAreaDraft.lat.toFixed(6)}, {newAreaDraft.lng.toFixed(6)}
-              </span>
-            </div>
-
-            <div className="new-area-modal__actions">
-              <button
-                type="button"
-                className="new-area-modal__btn new-area-modal__btn--cancel"
-                onClick={() => {
-                  setNewAreaDraft(null);
-                  setAreaNameInput("");
-                }}
-              >
-                キャンセル
-              </button>
-              <button
-                type="button"
-                className="new-area-modal__btn new-area-modal__btn--ok"
-                disabled={!areaNameInput.trim()}
-                onClick={() => {
-                  if (!areaNameInput.trim()) return;
-
-                  // ひとまずモーダルを閉じる
-                  setNewAreaDraft(null);
-                  setAreaNameInput("");
-                }}
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </BaseModal>
-      )}
+          // TODO: ここで「エリアを S3 に保存する」処理を入れる想定
+          // いまはひとまず閉じるだけ
+          setNewAreaDraft(null);
+          setAreaNameInput("");
+        }}
+      />
     </div>
   );
 }

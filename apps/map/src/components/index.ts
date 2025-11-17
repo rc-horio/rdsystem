@@ -15,5 +15,7 @@ export * from "./inputs/Textarea";
 // hooks / utils
 export * from "./utils/blurActiveInput";
 export * from "./hook/useBreakpointMd";
+export * from "./hook/useDraggableMetricsPanel"
+export * from "./hook/useEditableBodyClass"
 // modals
-export * from  "./modals/BaseModal";
+export * from "./modals/BaseModal";
