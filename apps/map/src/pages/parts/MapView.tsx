@@ -1,7 +1,7 @@
 // src/pages/parts/MapView.tsx
 import { useEffect, useRef, useState } from "react";
 import { Loader } from "@googlemaps/js-api-loader";
-import { createMarkerIcon } from "@/components";
+import { createMarkerIcon, BaseModal } from "@/components";
 import type { Props, Point, Geometry } from "@/features/types";
 import {
   appendAreaCandidate,
@@ -41,6 +41,7 @@ import {
   MARKERS_HIDE_ZOOM,
   DEFAULTS,
 } from "./constants/events";
+import { flushSync } from "react-dom";
 
 /** =========================
  *  Component
@@ -62,6 +63,7 @@ export default function MapView({ onLoaded }: Props) {
   const currentCandidateTitleRef = useRef<string | undefined>(undefined);
   const [addingAreaMode, setAddingAreaMode] = useState(false);
   const addingAreaModeRef = useRef(false);
+  const [areaNameInput, setAreaNameInput] = useState("");
 
   // Bodyクラスで編集状態を共有（editing-on で活性）
   const getEditable = () => document.body.classList.contains("editing-on");
@@ -152,53 +154,54 @@ export default function MapView({ onLoaded }: Props) {
       addAreaConfirmInfoRef.current = new gmaps.InfoWindow();
     }
 
+    // --- コンテナを生DOMで作る ---
     const container = document.createElement("div");
-    container.className = "add-area-confirm";
+    container.style.background = "white";
+    container.style.padding = "8px 10px";
+    container.style.borderRadius = "6px";
+    container.style.fontSize = "13px";
+    container.style.minWidth = "180px";
+    container.style.color = "#222";
 
     container.innerHTML = `
-      <div class="add-area-confirm" 
-          style="
-            background: white;
-            color: #222;
-            padding: 8px 10px;
-            border-radius: 6px;
-            min-width: 180px;
-            font-size: 13px;
-          ">
-        <div style="font-weight: 600; margin-bottom: 4px;">このエリアを登録しますか？</div>
-    
-        <div style="font-family: monospace; font-size: 12px; color: #444; margin-bottom: 6px;">
-          ${draft.address}
-        </div>
-    
-        <div style="text-align: right;">
-          <button type="button" data-role="yes"
-            style="padding:2px 8px; margin-right: 4px;"
-          >はい</button>
-          <button type="button" data-role="no"
-            style="padding:2px 8px;"
-          >いいえ</button>
-        </div>
+      <div style="font-weight: 600; margin-bottom: 4px;">
+        このエリアを登録しますか？
+      </div>
+      <div style="font-family: monospace; font-size: 12px; color: #444; margin-bottom: 6px;">
+        ${draft.address}
       </div>
     `;
 
-    const yesBtn = container.querySelector<HTMLButtonElement>(
-      'button[data-role="yes"]'
-    );
-    const noBtn = container.querySelector<HTMLButtonElement>(
-      'button[data-role="no"]'
-    );
+    // --- YES ボタン ---
+    const yesBtn = document.createElement("button");
+    yesBtn.textContent = "はい";
+    yesBtn.style.padding = "2px 8px";
+    yesBtn.style.marginRight = "4px";
 
-    yesBtn?.addEventListener("click", () => {
-      // 「はい」→ 本モーダルで使うドラフトをセット
+    // --- NO ボタン ---
+    const noBtn = document.createElement("button");
+    noBtn.textContent = "いいえ";
+    noBtn.style.padding = "2px 8px";
+
+    const btnWrap = document.createElement("div");
+    btnWrap.style.textAlign = "right";
+    btnWrap.appendChild(yesBtn);
+    btnWrap.appendChild(noBtn);
+
+    container.appendChild(btnWrap);
+
+    // ---- イベントを直接紐付け（Shadow DOMの影響を受けない）----
+    // はいボタン
+    yesBtn.addEventListener("click", () => {
       setNewAreaDraft(draft);
-      addingAreaModeRef.current = false;
+      setAreaNameInput("");
       setAddingAreaMode(false);
+      addingAreaModeRef.current = false;
       addAreaConfirmInfoRef.current?.close();
     });
 
-    noBtn?.addEventListener("click", () => {
-      // 「いいえ」→ 吹き出しだけ閉じて、追加モードは継続
+    // いいえボタン
+    noBtn.addEventListener("click", () => {
       addAreaConfirmInfoRef.current?.close();
     });
 
@@ -1127,7 +1130,6 @@ export default function MapView({ onLoaded }: Props) {
   return (
     <div className="map-page app-fullscreen">
       <div id="map" ref={mapDivRef} />
-
       {editable && addingAreaMode && (
         <div className="add-area-hint-layer">
           <div className="add-area-hint" aria-live="polite">
@@ -1150,7 +1152,6 @@ export default function MapView({ onLoaded }: Props) {
           </div>
         </div>
       )}
-
       <div id="controls" className="cta-overlay">
         {editable && showCreateGeomCta && isSelected && (
           <button
@@ -1182,54 +1183,67 @@ export default function MapView({ onLoaded }: Props) {
       </div>
 
       {editable && newAreaDraft && (
-        <div className="new-area-modal-backdrop">
+        <BaseModal
+          open={true}
+          onClose={() => {
+            // キャンセル/× どちらでもここに来る
+            setNewAreaDraft(null);
+            setAreaNameInput("");
+          }}
+          title="エリア名を記入してください"
+        >
           <div className="new-area-modal">
-            <h2>新しいエリアを作成（仮）</h2>
-            <p>ここでエリア名の入力や保存処理を今後実装します。</p>
-
             <div className="new-area-modal__row">
-              <span>座標:</span>
-              <span>
-                {newAreaDraft.lat.toFixed(6)}, {newAreaDraft.lng.toFixed(6)}
-              </span>
-            </div>
-            <div className="new-area-modal__row">
-              <span>都道府県:</span>
-              <span>{newAreaDraft.prefecture ?? "不明"}</span>
-            </div>
-            <div className="new-area-modal__row">
-              <span>住所:</span>
-              <span>{newAreaDraft.address ?? "不明"}</span>
-            </div>
-
-            {/* ④⑤で使う予定のエリア名入力欄は、いったんコメントでもOK */}
-            {/* 
-            <div className="new-area-modal__row">
-              <label>
-                エリア名:
+              <label className="new-area-modal__label">
+                エリア名
                 <input
                   type="text"
                   value={areaNameInput}
                   onChange={(e) => setAreaNameInput(e.target.value)}
+                  className="new-area-modal__input"
+                  placeholder="例）○○公園 第1グラウンド"
                 />
               </label>
             </div>
-            */}
+
+            {/* もし座標や住所も見せたいならそのまま残してOK */}
+            <div className="new-area-modal__row">
+              <span className="new-area-modal__label">住所:</span>
+              <span>{newAreaDraft.address ?? "不明"}</span>
+            </div>
+            <div className="new-area-modal__row">
+              <span className="new-area-modal__label">座標:</span>
+              <span>
+                {newAreaDraft.lat.toFixed(6)}, {newAreaDraft.lng.toFixed(6)}
+              </span>
+            </div>
 
             <div className="new-area-modal__actions">
               <button
                 type="button"
                 onClick={() => {
-                  // キャンセル時はドラフトをクリアしてウィンドウを閉じる
                   setNewAreaDraft(null);
+                  setAreaNameInput("");
                 }}
               >
-                閉じる
+                キャンセル
               </button>
-              {/* ④⑤実装時にOKボタンで保存処理へ進む */}
+              <button
+                type="button"
+                disabled={!areaNameInput.trim()}
+                onClick={() => {
+                  if (!areaNameInput.trim()) return;
+
+                  // ひとまずモーダルを閉じる
+                  setNewAreaDraft(null);
+                  setAreaNameInput("");
+                }}
+              >
+                OK
+              </button>
             </div>
           </div>
-        </div>
+        </BaseModal>
       )}
     </div>
   );
