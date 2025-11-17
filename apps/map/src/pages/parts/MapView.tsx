@@ -1190,9 +1190,9 @@ export default function MapView({ onLoaded }: Props) {
             setNewAreaDraft(null);
             setAreaNameInput("");
           }}
-          title="エリア名を記入してください"
+          title="エリア名を記入してください。"
         >
-          <div className="new-area-modal">
+          <div className="new-area-modal no-caret">
             <div className="new-area-modal__row">
               <label className="new-area-modal__label">
                 エリア名
@@ -1221,6 +1221,7 @@ export default function MapView({ onLoaded }: Props) {
             <div className="new-area-modal__actions">
               <button
                 type="button"
+                className="new-area-modal__btn new-area-modal__btn--cancel"
                 onClick={() => {
                   setNewAreaDraft(null);
                   setAreaNameInput("");
@@ -1230,6 +1231,7 @@ export default function MapView({ onLoaded }: Props) {
               </button>
               <button
                 type="button"
+                className="new-area-modal__btn new-area-modal__btn--ok"
                 disabled={!areaNameInput.trim()}
                 onClick={() => {
                   if (!areaNameInput.trim()) return;

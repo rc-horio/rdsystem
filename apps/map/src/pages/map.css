@@ -1225,7 +1225,7 @@ select.rc-inp-input optgroup {
 }
 
 /* =========================================
-   12) エリア新規作成モーダル
+   12) 新規エリア追加モード時のヒント表示
    ========================================= */
 .add-area-hint-layer {
   position: absolute;
@@ -1278,6 +1278,9 @@ select.rc-inp-input optgroup {
   background: rgba(255, 255, 255, 0.3);
 }
 
+/* =========================================
+   13) エリア新規作成モーダル
+   ========================================= */
 /* モーダルの背景（黒い半透明の覆い） */
 .modal-backdrop {
   position: fixed; /* ビューポート全体を覆う */
@@ -1324,4 +1327,117 @@ select.rc-inp-input optgroup {
 /* 本文 */
 .modal-body {
   font-size: 14px;
+}
+
+/* ---- 新規エリアモーダル ---- */
+
+.new-area-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 14px;
+}
+
+/* 1行ぶん */
+.new-area-modal__row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ラベル（テキスト部分） */
+.new-area-modal__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #222;
+  cursor: default; /* ラベル上では I ビーム出さない */
+}
+
+/* 入力欄を強調 */
+.new-area-modal__input {
+  margin-top: 4px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #d0d0d0;
+  background: #fff;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #111;
+
+  /* no-caret の上書き：入力欄だけキャレットON &選択可 */
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -ms-user-select: text !important;
+  caret-color: auto !important;
+
+  cursor: text;
+}
+
+.new-area-modal__input::placeholder {
+  color: #9ca3af;
+}
+
+.new-area-modal__input:focus-visible {
+  outline: 2px solid #ed1b24;
+  outline-offset: 1px;
+  border-color: #ed1b24;
+}
+
+/* 住所/座標の行もカーソルは通常矢印に */
+.new-area-modal__row span {
+  cursor: default;
+}
+
+/* ボタン行 */
+.new-area-modal__actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* 共通ボタン */
+.new-area-modal__btn {
+  min-width: 96px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease,
+    transform 0.05s ease, box-shadow 0.15s ease;
+}
+
+/* キャンセル：グレー系 */
+.new-area-modal__btn--cancel {
+  background: #f3f4f6;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
+.new-area-modal__btn--cancel:hover {
+  background: #e5e7eb;
+}
+
+/* OK：ブランド赤で強調 */
+.new-area-modal__btn--ok {
+  background: #ed1b24;
+  color: #ffffff;
+  border-color: #ed1b24;
+}
+
+.new-area-modal__btn--ok:hover:not(:disabled) {
+  background: #f1353d;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 8px 18px rgba(0, 0, 0, 0.25);
+  transform: translateY(1px);
+}
+
+/* disabled 時（OK だけに掛かる想定） */
+.new-area-modal__btn--ok:disabled {
+  opacity: 0.5;
+  cursor: default;
+  box-shadow: none;
 }
