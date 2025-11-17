@@ -5,6 +5,7 @@ import {
   createMarkerIcon,
   useDraggableMetricsPanel,
   useEditableBodyClass,
+  useAddAreaMode,
 } from "@/components";
 import type { Props, Point, Geometry } from "@/features/types";
 import {
@@ -57,21 +58,27 @@ export default function MapView({ onLoaded }: Props) {
   const markersRef = useRef<google.maps.Marker[]>([]);
   const infoRef = useRef<google.maps.InfoWindow | null>(null);
   const zoomListenerRef = useRef<google.maps.MapsEventListener | null>(null);
-  const addAreaConfirmInfoRef = useRef<google.maps.InfoWindow | null>(null);
 
   const currentAreaUuidRef = useRef<string | undefined>(undefined);
   const currentProjectUuidRef = useRef<string | undefined>(undefined);
   const currentScheduleUuidRef = useRef<string | undefined>(undefined);
   const currentCandidateIndexRef = useRef<number | null>(null);
   const currentCandidateTitleRef = useRef<string | undefined>(undefined);
-  const addingAreaModeRef = useRef(false);
 
   const [showCreateGeomCta, setShowCreateGeomCta] = useState(false);
   const [isSelected, setIsSelected] = useState(false);
-  const [addingAreaMode, setAddingAreaMode] = useState(false);
-  const [areaNameInput, setAreaNameInput] = useState("");
+
   useDraggableMetricsPanel();
   const editable = useEditableBodyClass();
+
+  const {
+    addingAreaMode,
+    newAreaDraft,
+    areaNameInput,
+    setAreaNameInput,
+    cancelAddMode,
+    resetDraft,
+  } = useAddAreaMode(mapRef);
 
   /** マーカー管理（キー検索/逆引き用） */
   const markerByKeyRef = useRef<Map<string, google.maps.Marker>>(new Map());
@@ -86,133 +93,9 @@ export default function MapView({ onLoaded }: Props) {
   /** ジオメトリ描画/編集コントローラ */
   const geomRef = useRef<MapGeometry | null>(null);
 
-  // クリックされた座標＋住所などのドラフト情報
-  const [newAreaDraft, setNewAreaDraft] = useState<{
-    lat: number;
-    lng: number;
-    prefecture: string | null;
-    address: string | null;
-  } | null>(null);
-
   /** =========================
    *  Utils
    *  ========================= */
-
-  /** クリックした座標から住所＋都道府県を取得 */
-  const reverseGeocodePrefecture = async (
-    lat: number,
-    lng: number
-  ): Promise<{ prefecture: string | null; address: string | null }> => {
-    const gmaps = getGMaps();
-    const geocoder = new gmaps.Geocoder();
-
-    return new Promise((resolve) => {
-      geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-        if (status !== "OK" || !results || results.length === 0) {
-          console.warn("[map] geocode failed:", status);
-          resolve({ prefecture: null, address: null });
-          return;
-        }
-
-        const components = results[0].address_components || [];
-        const formatted = results[0].formatted_address ?? null;
-
-        const prefComp = components.find((c) =>
-          c.types.includes("administrative_area_level_1")
-        );
-
-        let displayAddress: string | null = formatted;
-
-        if (prefComp && formatted) {
-          const prefName = prefComp.long_name; // 例: "群馬県"
-          const idx = formatted.indexOf(prefName);
-
-          if (idx >= 0) {
-            // 都道府県名が出てくる位置から後ろだけを住所として使う
-            displayAddress = formatted.slice(idx);
-          }
-        }
-
-        resolve({
-          prefecture: prefComp?.long_name ?? null,
-          address: displayAddress,
-        });
-      });
-    });
-  };
-
-  const openAddAreaConfirm = (
-    latLng: google.maps.LatLng,
-    draft: {
-      lat: number;
-      lng: number;
-      prefecture: string | null;
-      address: string | null;
-    }
-  ) => {
-    const map = mapRef.current;
-    const gmaps = getGMaps();
-    if (!map) return;
-
-    if (!addAreaConfirmInfoRef.current) {
-      addAreaConfirmInfoRef.current = new gmaps.InfoWindow();
-    }
-
-    // --- コンテナを生DOMで作る ---
-    const container = document.createElement("div");
-    container.style.background = "white";
-    container.style.padding = "8px 10px";
-    container.style.borderRadius = "6px";
-    container.style.fontSize = "13px";
-    container.style.minWidth = "180px";
-    container.style.color = "#222";
-
-    container.innerHTML = `
-      <div style="font-weight: 600; margin-bottom: 4px;">
-        このエリアを登録しますか？
-      </div>
-      <div style="font-family: monospace; font-size: 12px; color: #444; margin-bottom: 6px;">
-        ${draft.address}
-      </div>
-    `;
-
-    // --- YES ボタン ---
-    const yesBtn = document.createElement("button");
-    yesBtn.textContent = "はい";
-    yesBtn.style.padding = "2px 8px";
-    yesBtn.style.marginRight = "4px";
-
-    // --- NO ボタン ---
-    const noBtn = document.createElement("button");
-    noBtn.textContent = "いいえ";
-    noBtn.style.padding = "2px 8px";
-
-    const btnWrap = document.createElement("div");
-    btnWrap.style.textAlign = "right";
-    btnWrap.appendChild(yesBtn);
-    btnWrap.appendChild(noBtn);
-
-    container.appendChild(btnWrap);
-
-    // ---- イベントを直接紐付け（Shadow DOMの影響を受けない）----
-    // はいボタン
-    yesBtn.addEventListener("click", () => {
-      setNewAreaDraft(draft);
-      setAreaNameInput("");
-      setAddingAreaMode(false);
-      addingAreaModeRef.current = false;
-      addAreaConfirmInfoRef.current?.close();
-    });
-
-    // いいえボタン
-    noBtn.addEventListener("click", () => {
-      addAreaConfirmInfoRef.current?.close();
-    });
-
-    addAreaConfirmInfoRef.current.setContent(container);
-    addAreaConfirmInfoRef.current.setPosition(latLng);
-    addAreaConfirmInfoRef.current.open(map);
-  };
 
   const getGMaps = () =>
     (window as any).google.maps as unknown as typeof google.maps;
@@ -244,7 +127,7 @@ export default function MapView({ onLoaded }: Props) {
     }
   };
 
-  // 追加: 候補ジオメトリの有無判定
+  // 候補ジオメトリの有無判定
   const hasCandidateGeometry = (g?: Geometry | null): boolean => {
     if (!g || typeof g !== "object") return false;
 
@@ -600,33 +483,6 @@ export default function MapView({ onLoaded }: Props) {
         zoomControlOptions: { position: gmaps.ControlPosition.RIGHT_CENTER },
       });
 
-      // 地図クリックで座標＋都道府県を取得
-      map.addListener("click", async (e: google.maps.MapMouseEvent) => {
-        const latLng = e.latLng;
-        if (!latLng) return;
-
-        const lat = latLng.lat();
-        const lng = latLng.lng();
-
-        const { prefecture, address } = await reverseGeocodePrefecture(
-          lat,
-          lng
-        );
-
-        console.log("[map] clicked point:", {
-          lat,
-          lng,
-          prefecture,
-          address,
-        });
-
-        if (addingAreaModeRef.current) {
-          const draft = { lat, lng, prefecture, address };
-          openAddAreaConfirm(latLng, draft);
-          return;
-        }
-      });
-
       // Geometry controller
       mapRef.current = map;
       if (OPEN_INFO_ON_SELECT) {
@@ -649,11 +505,9 @@ export default function MapView({ onLoaded }: Props) {
     init();
     return () => {
       cancelled = true;
-      // リスナーのクリーンアップ
       zoomListenerRef.current?.remove();
       zoomListenerRef.current = null;
 
-      // マップと付随オブジェクトをクリーンアップ
       markersRef.current.forEach((m) => m.setMap(null));
       markersRef.current = [];
       markerByKeyRef.current.clear();
@@ -663,11 +517,7 @@ export default function MapView({ onLoaded }: Props) {
         infoRef.current?.close();
       }
       infoRef.current = null;
-      if (addAreaConfirmInfoRef.current) {
-        addAreaConfirmInfoRef.current.close();
-        addAreaConfirmInfoRef.current = null;
-      }
-      // ジオメトリもクリーンアップ
+
       clearGeometryOverlays();
     };
   }, []);
@@ -867,59 +717,6 @@ export default function MapView({ onLoaded }: Props) {
     }
   }, [isSelected]);
 
-  // サイドバーから「エリア追加モード開始」の通知を受け取る
-  useEffect(() => {
-    const onStartAddArea = () => {
-      console.log("[map] start add-area mode");
-      setAddingAreaMode(true);
-      addingAreaModeRef.current = true;
-
-      // 以前のドラフトや吹き出しがあればクリア
-      setNewAreaDraft(null);
-      addAreaConfirmInfoRef.current?.close();
-    };
-
-    window.addEventListener("map:start-add-area", onStartAddArea);
-    return () => {
-      window.removeEventListener("map:start-add-area", onStartAddArea);
-    };
-  }, []);
-
-  // 追加モード中はカーソルを「＋っぽい」形にする
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    // 'copy' はマウスカーソルに小さな「＋」が付く感じのアイコン
-    if (addingAreaMode) {
-      map.setOptions({
-        draggableCursor: "copy", // ここを "crosshair" にすると十字カーソルにもできる
-      });
-    } else {
-      // 元に戻す（undefined でデフォルトに戻る）
-      map.setOptions({
-        draggableCursor: undefined,
-      });
-    }
-  }, [addingAreaMode]);
-
-  // Esc キーで追加モードをキャンセル
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && addingAreaModeRef.current) {
-        addingAreaModeRef.current = false;
-        setAddingAreaMode(false);
-        setNewAreaDraft(null);
-        addAreaConfirmInfoRef.current?.close();
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, []);
-
   async function createDefaultGeometry() {
     const map = mapRef.current;
     const gmaps = getGMaps();
@@ -1094,13 +891,7 @@ export default function MapView({ onLoaded }: Props) {
             <button
               type="button"
               className="add-area-hint__cancel"
-              onClick={() => {
-                // 追加モードをキャンセル
-                addingAreaModeRef.current = false;
-                setAddingAreaMode(false);
-                setNewAreaDraft(null);
-                addAreaConfirmInfoRef.current?.close();
-              }}
+              onClick={cancelAddMode}
             >
               キャンセル
             </button>
@@ -1142,16 +933,13 @@ export default function MapView({ onLoaded }: Props) {
         areaName={areaNameInput}
         onChangeAreaName={setAreaNameInput}
         onCancel={() => {
-          setNewAreaDraft(null);
-          setAreaNameInput("");
+          resetDraft();
         }}
         onOk={() => {
           if (!areaNameInput.trim() || !newAreaDraft) return;
-
           // TODO: ここで「エリアを S3 に保存する」処理を入れる想定
-          // いまはひとまず閉じるだけ
-          setNewAreaDraft(null);
-          setAreaNameInput("");
+          // ひとまずドラフトだけクリア
+          resetDraft();
         }}
       />
     </div>
