@@ -9,6 +9,18 @@ const JSON_HEADERS = {
     "Content-Type": "application/json" as const,
     "x-amz-acl": "public-read" as const
 };
+
+function generateUuid(): string {
+    if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+        return (crypto as any).randomUUID();
+    }
+    return (
+        "area-" +
+        Math.random().toString(36).slice(2) +
+        Date.now().toString(36)
+    );
+}
+
 const areaIndexUrl = (uuid: string) =>
     `${S3_BASE}areas/${encodeURIComponent(uuid)}/index.json`;
 const projectIndexUrl = (uuid: string) =>
@@ -65,6 +77,15 @@ export async function upsertAreasListEntryFromInfo(params: {
     const { uuid, areaName, lat, lon } = params;
     const list = await fetchAreasList();
 
+    const dup = list.some(
+        (x: any) => x?.areaName === areaName && x?.uuid !== uuid
+    );
+    if (dup) {
+        if (import.meta.env.DEV) {
+            console.warn("[upsertAreasListEntryFromInfo] duplicate areaName:", areaName);
+        }
+        return false;
+    }
     const idx = list.findIndex((x: any) => x?.uuid === uuid);
     const base = idx >= 0 ? list[idx] : {};
 
@@ -551,4 +572,94 @@ export async function clearScheduleGeometry(params: {
     const ok = await saveProjectIndex(projectUuid, next);
     if (!ok) console.error("[clearScheduleGeometry] saveProjectIndex failed");
     return ok;
+}
+
+/**
+ * 新規エリアを作成する（areaName は重複禁止）
+ * - 既に同名の areaName が存在する場合: { ok:false, reason:"duplicate" }
+ * - 保存失敗など: { ok:false, reason:"save-failed" }
+ * - 成功: { ok:true, uuid }
+ */
+export async function createNewArea(params: {
+    areaName: string;
+    lat: number;
+    lon: number;
+    prefecture?: string | null;
+    address?: string | null;
+}): Promise<{ ok: boolean; uuid?: string; reason?: "duplicate" | "save-failed" }> {
+    const trimmed = params.areaName.trim();
+    if (!trimmed) {
+        return { ok: false, reason: "save-failed" };
+    }
+
+    const dup = await isAreaNameDuplicated({ areaName: trimmed });
+    if (dup) {
+        return { ok: false, reason: "duplicate" };
+
+    }
+    // ② uuid 発行
+    const uuid = generateUuid();
+    const now = new Date().toISOString();
+
+    // ③ areas/<uuid>/index.json の初期値
+    const info = {
+        areaName: trimmed,
+        overview: {
+            address: params.address ?? "",
+            prefecture: params.prefecture ?? "",
+            manager: "",
+            droneRecord: "",
+            droneCountEstimate: "",
+            heightLimitM: "",
+            availability: "",
+        },
+        details: {
+            statusMemo: "",
+            permitMemo: "",
+            restrictionsMemo: "",
+            remarks: "",
+        },
+        history: [],
+        candidate: [],
+        updated_at: now,
+        updated_by: "ui",
+    };
+
+    const okInfo = await saveAreaInfo(uuid, info);
+    if (!okInfo) {
+        return { ok: false, reason: "save-failed" };
+    }
+
+    // ④ areas.json に 1 件追加（ここでも重複チェックが走る）
+    const okAreas = await upsertAreasListEntryFromInfo({
+        uuid,
+        areaName: trimmed,
+        lat: params.lat,
+        lon: params.lon,
+        projectCount: 0,
+    });
+
+    if (!okAreas) {
+        console.error("[createNewArea] upsertAreasListEntryFromInfo failed");
+        return { ok: false, reason: "save-failed" };
+    }
+
+    return { ok: true, uuid };
+}
+
+/**
+ * areaName の重複チェック
+ * - excludeUuid を渡すと「自分自身」は除外して検索
+ */
+export async function isAreaNameDuplicated(params: {
+    areaName: string;
+    excludeUuid?: string;
+}): Promise<boolean> {
+    const name = params.areaName.trim();
+    if (!name) return false;
+
+    const list = await fetchAreasList();
+    return list.some(
+        (a) => a?.areaName === name && a?.uuid !== params.excludeUuid
+    );
 }

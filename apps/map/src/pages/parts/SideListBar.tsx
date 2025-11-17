@@ -19,12 +19,13 @@ import {
   fetchAreaInfo,
   fetchRawAreaInfo,
   saveAreaInfo,
-  upsertAreasListEntryFromInfo,
   buildAreaHistoryFromProjects,
   clearAreaCandidateGeometryAtIndex,
   upsertAreaCandidateAtIndex,
   upsertScheduleGeometry,
   clearScheduleGeometry,
+  isAreaNameDuplicated,
+  upsertAreasListEntryFromInfo,
 } from "./areasApi";
 import type { ScheduleLite, Point, GeometryPayload } from "@/features/types";
 import {
@@ -334,6 +335,25 @@ function SideListBarBase({
           reject(new Error("detailbar からの応答がありません"));
         }, 3000);
       });
+      
+      // ★ 1. 新しいタイトルを取り出す
+      const newTitle = (data.title ?? "").trim();
+      if (!newTitle) {
+        window.alert("エリア名を入力してください。");
+        return;
+      }
+
+      // ★ 2. areaName 重複チェック（自分自身の uuid は除外）
+      const isDup = await isAreaNameDuplicated({
+        areaName: newTitle,
+        excludeUuid: areaUuid,
+      });
+      if (isDup) {
+        window.alert(
+          `エリア名「${newTitle}」は既に存在します。\n別の名称を指定してください。`
+        );
+        return;
+      }
 
       // （2-1）現状 areas/<areaUuid>/index.json を merge 用に取得
       // あとで「古い値＋新しい値」をマージしたオブジェクトを作るために使用

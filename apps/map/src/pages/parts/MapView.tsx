@@ -16,6 +16,7 @@ import {
   upsertAreaCandidateAtIndex,
   clearAreaCandidateGeometryAtIndex,
   clearScheduleGeometry,
+  createNewArea,
 } from "./areasApi";
 import {
   EV_DETAILBAR_SELECTED,
@@ -842,10 +843,7 @@ export default function MapView({ onLoaded }: Props) {
       if (prevCenter) map.setCenter(prevCenter);
       if (typeof prevZoom === "number") map.setZoom(prevZoom);
     });
-    gmaps.event.addListenerOnce(map, "idle", () => {
-      if (prevCenter) map.setCenter(prevCenter);
-      if (typeof prevZoom === "number") map.setZoom(prevZoom);
-    });
+
     // 作成後はCTAを隠し、削除ボタンを出す側へ遷移
     setShowCreateGeomCta(false);
   }
@@ -954,11 +952,40 @@ export default function MapView({ onLoaded }: Props) {
         onCancel={() => {
           resetDraft();
         }}
-        onOk={() => {
+        onOk={async () => {
           if (!areaNameInput.trim() || !newAreaDraft) return;
-          // TODO: ここで「エリアを S3 に保存する」処理を入れる想定
-          // ひとまずドラフトだけクリア
+
+          // ① エリア作成（areaName 重複チェック込み）
+          const result = await createNewArea({
+            areaName: areaNameInput.trim(),
+            lat: newAreaDraft.lat,
+            lon: newAreaDraft.lng,
+            prefecture: newAreaDraft.prefecture,
+            address: newAreaDraft.address,
+          });
+
+          if (!result.ok) {
+            if (result.reason === "duplicate") {
+              window.alert(
+                `エリア名「${areaNameInput.trim()}」は既に存在します。\n別の名称を指定してください。`
+              );
+            } else {
+              window.alert(
+                "エリア情報の保存に失敗しました。S3 の設定（CORS / 権限）をご確認ください。"
+              );
+            }
+            // モーダルは開いたまま & 入力も保持 → ユーザーが名前を修正して再トライできる
+            return;
+          }
+
+          // ② 最新の areas.json を読み込み直してマーカー再描画
+          const points = await loadAreasPoints();
+          onLoaded?.(points);
+          renderMarkers(points);
+
+          // ③ 入力状態リセット & トースト表示
           resetDraft();
+          setAreaNameInput("");
           notifyAreaCreated();
         }}
       />
