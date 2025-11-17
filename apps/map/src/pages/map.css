@@ -118,6 +118,11 @@ body,
   left: 320px !important;
 }
 
+/* Google Maps InfoWindow の × ボタンを非表示にする */
+.gm-ui-hover-effect {
+  display: none !important;
+}
+
 /* =========================================
    2) Sidebar（左側リスト・検索・ツールバー）
    ========================================= */
@@ -1445,7 +1450,6 @@ select.rc-inp-input optgroup {
 /* =========================================
    14) 新規エリア作成トースト
    ========================================= */
-
 /* ヒントと同じ位置（上部センター）に配置 */
 .area-created-toast-layer {
   position: absolute;
@@ -1470,4 +1474,31 @@ select.rc-inp-input optgroup {
   pointer-events: auto;
   text-align: center;
   user-select: none;
+}
+
+/* =========================================
+   15) マーカー
+   ========================================= */
+.marker-update-position-button {
+  margin: auto auto 3px 7px;
+  padding: 4px 8px;
+  font-size: 11px;
+
+  /* 控えめなグレー系 */
+  background: #f4f4f4;
+  border: 1px solid #ccc;
+  color: #333;
+
+  border-radius: 4px;
+  cursor: pointer;
+
+  /* 影なしで軽い印象 */
+  box-shadow: none;
+
+  display: block; /* ← 中央寄せのために追加 */
+}
+
+.marker-update-position-button:hover {
+  background: #e9e9e9;
+  border-color: #bbb;
 }

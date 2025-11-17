@@ -73,6 +73,10 @@ export default function MapView({ onLoaded }: Props) {
 
   useDraggableMetricsPanel();
   const editable = useEditableBodyClass();
+  const editableRef = useRef(editable);
+  useEffect(() => {
+    editableRef.current = editable;
+  }, [editable]);
 
   const {
     addingAreaMode,
@@ -301,15 +305,38 @@ export default function MapView({ onLoaded }: Props) {
 
       window.dispatchEvent(new Event(EV_SIDEBAR_OPEN));
 
-      if (OPEN_INFO_ON_SELECT) {
-        infoRef.current?.setContent(
-          `<div style="min-width:160px">${p.name}</div>`
-        );
-        infoRef.current?.open({ map, anchor: marker });
+      // 編集モードのときだけ吹き出し＋ボタンを表示
+      if (infoRef.current && editableRef.current) {
+        const container = document.createElement("div");
+        container.style.minWidth = "80px";
+        container.style.textAlign = "center";
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = "座標を変更";
+        btn.className = "marker-update-position-button";
+
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          console.log("[marker] 座標を変更 clicked:", {
+            areaUuid: p.areaUuid,
+            lat: p.lat,
+            lng: p.lng,
+          });
+        });
+
+        container.appendChild(btn);
+
+        infoRef.current.setContent(container);
+        infoRef.current.open({ map, anchor: marker });
+      } else {
+        // 閲覧モードのときは吹き出しを出さない
+        infoRef.current?.close();
       }
 
       marker.setAnimation(gmaps.Animation.DROP);
       setTimeout(() => marker.setAnimation(null), 700);
+
       const area = p.areaName?.trim() || AREA_NAME_NONE;
       openDetailBar();
       setDetailBarMetrics({});
@@ -501,9 +528,12 @@ export default function MapView({ onLoaded }: Props) {
 
       // Geometry controller
       mapRef.current = map;
-      if (OPEN_INFO_ON_SELECT) {
-        infoRef.current = new gmaps.InfoWindow();
-      }
+      infoRef.current = new gmaps.InfoWindow();
+
+      map.addListener("click", () => {
+        infoRef.current?.close();
+      });
+
       geomRef.current = new MapGeometry(() => mapRef.current);
 
       // ズーム変更でマーカーの可視状態を更新
