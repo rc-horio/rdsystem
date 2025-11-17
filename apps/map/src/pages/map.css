@@ -1441,3 +1441,33 @@ select.rc-inp-input optgroup {
   cursor: default;
   box-shadow: none;
 }
+
+/* =========================================
+   14) 新規エリア作成トースト
+   ========================================= */
+
+/* ヒントと同じ位置（上部センター）に配置 */
+.area-created-toast-layer {
+  position: absolute;
+  top: 70px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 1500;
+}
+
+.area-created-toast {
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: min(90vw, 520px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  pointer-events: auto;
+  text-align: center;
+  user-select: none;
+}

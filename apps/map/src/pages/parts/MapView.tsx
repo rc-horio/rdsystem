@@ -67,6 +67,8 @@ export default function MapView({ onLoaded }: Props) {
 
   const [showCreateGeomCta, setShowCreateGeomCta] = useState(false);
   const [isSelected, setIsSelected] = useState(false);
+  const [showAreaCreatedToast, setShowAreaCreatedToast] = useState(false);
+  const areaCreatedToastTimerRef = useRef<number | null>(null);
 
   useDraggableMetricsPanel();
   const editable = useEditableBodyClass();
@@ -79,6 +81,19 @@ export default function MapView({ onLoaded }: Props) {
     cancelAddMode,
     resetDraft,
   } = useAddAreaMode(mapRef);
+
+  /** 新規エリア作成完了トーストを一定時間表示 */
+  const notifyAreaCreated = () => {
+    // 既存タイマーがあればクリア
+    if (areaCreatedToastTimerRef.current != null) {
+      window.clearTimeout(areaCreatedToastTimerRef.current);
+    }
+    setShowAreaCreatedToast(true);
+    areaCreatedToastTimerRef.current = window.setTimeout(() => {
+      setShowAreaCreatedToast(false);
+      areaCreatedToastTimerRef.current = null;
+    }, 3000); // 3秒表示
+  };
 
   /** マーカー管理（キー検索/逆引き用） */
   const markerByKeyRef = useRef<Map<string, google.maps.Marker>>(new Map());
@@ -519,6 +534,10 @@ export default function MapView({ onLoaded }: Props) {
       infoRef.current = null;
 
       clearGeometryOverlays();
+      // トースト用タイマーの後始末
+      if (areaCreatedToastTimerRef.current != null) {
+        window.clearTimeout(areaCreatedToastTimerRef.current);
+      }
     };
   }, []);
 
@@ -940,8 +959,14 @@ export default function MapView({ onLoaded }: Props) {
           // TODO: ここで「エリアを S3 に保存する」処理を入れる想定
           // ひとまずドラフトだけクリア
           resetDraft();
+          notifyAreaCreated();
         }}
       />
+      {showAreaCreatedToast && (
+        <div className="area-created-toast-layer" aria-live="polite">
+          <div className="area-created-toast">新規エリアを作成しました</div>
+        </div>
+      )}{" "}
     </div>
   );
 }

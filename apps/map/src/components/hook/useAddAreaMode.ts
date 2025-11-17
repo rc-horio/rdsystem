@@ -11,9 +11,6 @@ type Draft = {
 const getGMaps = () =>
     (window as any).google.maps as typeof google.maps;
 
-const getEditable = () =>
-    document.body.classList.contains("editing-on");
-
 export function useAddAreaMode(
     mapRef: React.MutableRefObject<google.maps.Map | null>
 ) {
@@ -187,7 +184,6 @@ export function useAddAreaMode(
     useEffect(() => {
         const map = mapRef.current;
         if (!map) return;
-        const gmaps = getGMaps();
 
         const listener = map.addListener(
             "click",
