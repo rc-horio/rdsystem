@@ -101,9 +101,7 @@ export default function MapView({ onLoaded }: Props) {
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
 
-        // 座標変更モード開始
-        changingPositionRef.current = true;
-        setIsChangingPosition(true);
+        startChangePositionMode();
 
         const p = currentPointRef.current;
         if (!p) return;
@@ -153,18 +151,133 @@ export default function MapView({ onLoaded }: Props) {
   const selectedMarkerRef = useRef<google.maps.Marker | null>(null);
   const changingPositionRef = useRef(false);
   const [isChangingPosition, setIsChangingPosition] = useState(false);
+  const changePositionInfoRef = useRef<google.maps.InfoWindow | null>(null);
+  const changePositionCandidateRef = useRef<{
+    lat: number;
+    lng: number;
+  } | null>(null);
   const selectByKeyRef = useRef<
     (keys: { areaUuid?: string; areaName?: string }) => void
   >(() => {});
   const currentPointRef = useRef<Point | null>(null);
+  const startChangePositionMode = () => {
+    // 座標変更モード開始
+    changingPositionRef.current = true;
+    setIsChangingPosition(true);
+    changePositionCandidateRef.current = null;
+
+    // カーソル変更
+    const map = mapRef.current;
+    map?.setOptions({ draggableCursor: "copy" });
+
+    // いったん既存のマーカー吹き出しは閉じる
+    infoRef.current?.close();
+  };
+
   const cancelChangePosition = () => {
     // 座標変更モードを終了
     changingPositionRef.current = false;
     setIsChangingPosition(false);
 
-    // 吹き出しも閉じておく
+    // 候補クリア & 吹き出しを閉じる
+    changePositionCandidateRef.current = null;
+    changePositionInfoRef.current?.close();
     infoRef.current?.close();
+
+    // カーソルを元に戻す
+    const map = mapRef.current;
+    map?.setOptions({ draggableCursor: undefined });
   };
+
+  const openChangePositionConfirm = (
+    latLng: google.maps.LatLng,
+    lat: number,
+    lng: number
+  ) => {
+    const map = mapRef.current;
+    const gmaps = getGMaps();
+    if (!map) return;
+
+    if (!changePositionInfoRef.current) {
+      changePositionInfoRef.current = new gmaps.InfoWindow();
+    }
+
+    changePositionCandidateRef.current = { lat, lng };
+
+    const container = document.createElement("div");
+    container.style.background = "white";
+    container.style.padding = "8px 10px";
+    container.style.borderRadius = "6px";
+    container.style.fontSize = "13px";
+    container.style.minWidth = "200px";
+    container.style.color = "#222";
+
+    const title = document.createElement("div");
+    title.style.fontWeight = "600";
+    title.style.marginBottom = "4px";
+    title.textContent = "この地点にマーカーを移動しますか？";
+
+    const coord = document.createElement("div");
+    coord.style.fontFamily = "monospace";
+    coord.style.fontSize = "12px";
+    coord.style.color = "#444";
+    coord.style.marginBottom = "6px";
+    coord.textContent = `lat: ${lat.toFixed(6)}, lng: ${lng.toFixed(6)}`;
+
+    const btnWrap = document.createElement("div");
+    btnWrap.style.textAlign = "right";
+
+    const yesBtn = document.createElement("button");
+    yesBtn.textContent = "はい";
+    yesBtn.style.padding = "2px 8px";
+    yesBtn.style.marginRight = "4px";
+
+    const noBtn = document.createElement("button");
+    noBtn.textContent = "キャンセル";
+    noBtn.style.padding = "2px 8px";
+
+    btnWrap.appendChild(yesBtn);
+    btnWrap.appendChild(noBtn);
+
+    container.appendChild(title);
+    container.appendChild(coord);
+    container.appendChild(btnWrap);
+
+    yesBtn.addEventListener("click", () => {
+      const candidate = changePositionCandidateRef.current;
+      const marker = selectedMarkerRef.current;
+      const point = currentPointRef.current;
+
+      if (candidate && marker && point) {
+        const newLatLng = new gmaps.LatLng(candidate.lat, candidate.lng);
+        marker.setPosition(newLatLng);
+
+        const updatedPoint: Point = {
+          ...point,
+          lat: candidate.lat,
+          lng: candidate.lng,
+        };
+
+        currentPointRef.current = updatedPoint;
+        pointByMarkerRef.current.set(marker, updatedPoint);
+      }
+
+      // モード終了
+      cancelChangePosition();
+    });
+
+    noBtn.addEventListener("click", () => {
+      // もう一度クリックさせたいので、ヒントだけ再表示
+      setIsChangingPosition(true);
+      changePositionCandidateRef.current = null;
+      changePositionInfoRef.current?.close();
+    });
+
+    changePositionInfoRef.current.setContent(container);
+    changePositionInfoRef.current.setPosition(latLng);
+    changePositionInfoRef.current.open(map);
+  };
+
   /** ジオメトリ描画/編集コントローラ */
   const geomRef = useRef<MapGeometry | null>(null);
 
@@ -375,8 +488,8 @@ export default function MapView({ onLoaded }: Props) {
 
         btn.addEventListener("click", (e) => {
           e.stopPropagation();
-          changingPositionRef.current = true;
-          setIsChangingPosition(true);
+
+          startChangePositionMode();
 
           const p = currentPointRef.current;
           if (!p) return;
@@ -592,8 +705,23 @@ export default function MapView({ onLoaded }: Props) {
       // Geometry controller
       mapRef.current = map;
       infoRef.current = new gmaps.InfoWindow();
+      map.addListener("click", (e: google.maps.MapMouseEvent) => {
+        const latLng = e.latLng;
 
-      map.addListener("click", () => {
+        // 座標変更モード中なら、クリック地点で確認用の吹き出しを出す
+        if (changingPositionRef.current && latLng) {
+          const lat = latLng.lat();
+          const lng = latLng.lng();
+
+          // 「変更後の地点をクリックしてください」ヒントはここで役目終了
+          setIsChangingPosition(false);
+
+          // 確認用の吹き出しを表示
+          openChangePositionConfirm(latLng, lat, lng);
+          return;
+        }
+
+        // 通常時はマーカーの InfoWindow を閉じるだけ
         infoRef.current?.close();
       });
 
@@ -1045,7 +1173,7 @@ export default function MapView({ onLoaded }: Props) {
         <div className="add-area-hint-layer">
           <div className="add-area-hint" aria-live="polite">
             <span className="add-area-hint__text">
-              新しい座標を地図上でクリックしてください
+              変更後の地点を地図上でクリックしてください
             </span>
             <button
               type="button"
