@@ -74,8 +74,48 @@ export default function MapView({ onLoaded }: Props) {
   useDraggableMetricsPanel();
   const editable = useEditableBodyClass();
   const editableRef = useRef(editable);
+
   useEffect(() => {
     editableRef.current = editable;
+  }, [editable]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const marker = selectedMarkerRef.current;
+    const info = infoRef.current;
+
+    // マップ or マーカー or InfoWindow が無ければ何もしない
+    if (!map || !marker || !info) return;
+
+    if (editable) {
+      // 編集ON → 吹き出しを再表示（座標を変更ボタンだけ）
+      const container = document.createElement("div");
+      container.style.minWidth = "80px";
+      container.style.textAlign = "center";
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = "座標を変更";
+      btn.className = "marker-update-position-button";
+
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const p = currentPointRef.current;
+        if (!p) return;
+        console.log("[marker] 座標を変更 clicked:", {
+          areaUuid: p.areaUuid,
+          lat: p.lat,
+          lng: p.lng,
+        });
+      });
+
+      container.appendChild(btn);
+      info.setContent(container);
+      info.open({ map, anchor: marker });
+    } else {
+      // 編集OFF → 吹き出しを閉じる
+      info.close();
+    }
   }, [editable]);
 
   const {
@@ -109,6 +149,7 @@ export default function MapView({ onLoaded }: Props) {
   const selectByKeyRef = useRef<
     (keys: { areaUuid?: string; areaName?: string }) => void
   >(() => {});
+  const currentPointRef = useRef<Point | null>(null);
 
   /** ジオメトリ描画/編集コントローラ */
   const geomRef = useRef<MapGeometry | null>(null);
@@ -298,6 +339,8 @@ export default function MapView({ onLoaded }: Props) {
       p: Point,
       skipFetch = false
     ) => {
+      // 現在のポイントを保持
+      currentPointRef.current = p;
       // エリアUUIDを保持（候補保存時に使用）
       currentAreaUuidRef.current = p.areaUuid || undefined;
       const map = mapRef.current!;
