@@ -2,11 +2,9 @@
 import { memo, useEffect, useRef, useState, useMemo } from "react";
 import {
   FilterButton,
-  AddItemButton,
   ONButton,
   OFFButton,
   SaveButton,
-  DeleteItemButton,
   LogoButton,
   blurActiveInput,
 } from "@/components";
@@ -23,7 +21,6 @@ import {
   saveAreaInfo,
   upsertAreasListEntryFromInfo,
   buildAreaHistoryFromProjects,
-  updateScheduleTakeoffReferencePoint,
   clearAreaCandidateGeometryAtIndex,
   upsertAreaCandidateAtIndex,
   upsertScheduleGeometry,
@@ -576,7 +573,7 @@ function SideListBarBase({
           <span className="add-icon">＋ </span>エリアを追加する
         </button>
       )}
-      
+
       {/* エリア名（重複集約） */}
       <ul id="locationList" className="no-caret">
         {areaGroups.map(({ area, indices }) => {
