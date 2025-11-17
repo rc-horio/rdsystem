@@ -100,6 +100,11 @@ export default function MapView({ onLoaded }: Props) {
 
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
+
+        // 座標変更モード開始
+        changingPositionRef.current = true;
+        setIsChangingPosition(true);
+
         const p = currentPointRef.current;
         if (!p) return;
         console.log("[marker] 座標を変更 clicked:", {
@@ -146,11 +151,20 @@ export default function MapView({ onLoaded }: Props) {
     new WeakMap()
   );
   const selectedMarkerRef = useRef<google.maps.Marker | null>(null);
+  const changingPositionRef = useRef(false);
+  const [isChangingPosition, setIsChangingPosition] = useState(false);
   const selectByKeyRef = useRef<
     (keys: { areaUuid?: string; areaName?: string }) => void
   >(() => {});
   const currentPointRef = useRef<Point | null>(null);
+  const cancelChangePosition = () => {
+    // 座標変更モードを終了
+    changingPositionRef.current = false;
+    setIsChangingPosition(false);
 
+    // 吹き出しも閉じておく
+    infoRef.current?.close();
+  };
   /** ジオメトリ描画/編集コントローラ */
   const geomRef = useRef<MapGeometry | null>(null);
 
@@ -361,6 +375,12 @@ export default function MapView({ onLoaded }: Props) {
 
         btn.addEventListener("click", (e) => {
           e.stopPropagation();
+          changingPositionRef.current = true;
+          setIsChangingPosition(true);
+
+          const p = currentPointRef.current;
+          if (!p) return;
+
           console.log("[marker] 座標を変更 clicked:", {
             areaUuid: p.areaUuid,
             lat: p.lat,
@@ -614,6 +634,38 @@ export default function MapView({ onLoaded }: Props) {
       }
     };
   }, []);
+
+  // 座標変更モード中に、マップ以外がクリックされたらモード解除
+  useEffect(() => {
+    if (!editable) return;
+
+    const handleDocumentClick = (e: MouseEvent) => {
+      // モード中でなければ何もしない
+      if (!changingPositionRef.current) return;
+
+      const target = e.target as Node | null;
+      const mapEl = mapDivRef.current;
+      const hintLayer = document.querySelector(".add-area-hint-layer");
+
+      const clickedInsideMap = !!(mapEl && target && mapEl.contains(target));
+      const clickedInsideHint = !!(
+        hintLayer &&
+        target &&
+        hintLayer.contains(target)
+      );
+
+      // マップでもヒントレイヤーでもなければ、座標変更モードを終了
+      if (!clickedInsideMap && !clickedInsideHint) {
+        cancelChangePosition();
+      }
+    };
+
+    // キャプチャフェーズで拾っておく（他のハンドラより前に動く）
+    document.addEventListener("click", handleDocumentClick, true);
+    return () => {
+      document.removeEventListener("click", handleDocumentClick, true);
+    };
+  }, [editable]);
 
   // 外部イベント：map:focus-only -> 指定マーカーへフォーカス
   useEffect(() => {
@@ -982,6 +1034,23 @@ export default function MapView({ onLoaded }: Props) {
               type="button"
               className="add-area-hint__cancel"
               onClick={cancelAddMode}
+            >
+              キャンセル
+            </button>
+          </div>
+        </div>
+      )}
+      {/* 座標変更モード中のヒント */}
+      {editable && isChangingPosition && (
+        <div className="add-area-hint-layer">
+          <div className="add-area-hint" aria-live="polite">
+            <span className="add-area-hint__text">
+              新しい座標を地図上でクリックしてください
+            </span>
+            <button
+              type="button"
+              className="add-area-hint__cancel"
+              onClick={cancelChangePosition}
             >
               キャンセル
             </button>
