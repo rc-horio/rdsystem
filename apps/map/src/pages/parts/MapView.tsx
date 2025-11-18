@@ -72,6 +72,11 @@ export default function MapView({ onLoaded }: Props) {
   const [showAreaCreatedToast, setShowAreaCreatedToast] = useState(false);
   const areaCreatedToastTimerRef = useRef<number | null>(null);
 
+  // 追加：座標変更完了トースト
+  const [showPositionUpdatedToast, setShowPositionUpdatedToast] =
+    useState(false);
+  const positionUpdatedToastTimerRef = useRef<number | null>(null);
+
   useDraggableMetricsPanel();
   const editable = useEditableBodyClass();
   const editableRef = useRef(editable);
@@ -148,6 +153,18 @@ export default function MapView({ onLoaded }: Props) {
     areaCreatedToastTimerRef.current = window.setTimeout(() => {
       setShowAreaCreatedToast(false);
       areaCreatedToastTimerRef.current = null;
+    }, 3000); // 3秒表示
+  };
+
+  /** 座標変更完了トーストを一定時間表示（★追加） */
+  const notifyPositionUpdated = () => {
+    if (positionUpdatedToastTimerRef.current != null) {
+      window.clearTimeout(positionUpdatedToastTimerRef.current);
+    }
+    setShowPositionUpdatedToast(true);
+    positionUpdatedToastTimerRef.current = window.setTimeout(() => {
+      setShowPositionUpdatedToast(false);
+      positionUpdatedToastTimerRef.current = null;
     }, 3000); // 3秒表示
   };
 
@@ -275,6 +292,9 @@ export default function MapView({ onLoaded }: Props) {
 
       // モード終了
       cancelChangePosition();
+
+      // トースト表示
+      notifyPositionUpdated();
     });
 
     noBtn.addEventListener("click", () => {
@@ -783,6 +803,11 @@ export default function MapView({ onLoaded }: Props) {
       // トースト用タイマーの後始末
       if (areaCreatedToastTimerRef.current != null) {
         window.clearTimeout(areaCreatedToastTimerRef.current);
+      }
+
+      // 座標変更トーストのタイマー後始末
+      if (positionUpdatedToastTimerRef.current != null) {
+        window.clearTimeout(positionUpdatedToastTimerRef.current);
       }
     };
   }, []);
@@ -1320,11 +1345,18 @@ export default function MapView({ onLoaded }: Props) {
           notifyAreaCreated();
         }}
       />
+      {/* 新規エリア作成完了トースト */}
       {showAreaCreatedToast && (
         <div className="area-created-toast-layer" aria-live="polite">
           <div className="area-created-toast">新規エリアを作成しました</div>
         </div>
-      )}{" "}
+      )}
+      {/* 座標変更完了トースト */}
+      {showPositionUpdatedToast && (
+        <div className="area-created-toast-layer" aria-live="polite">
+          <div className="area-created-toast">座標を変更しました。</div>
+        </div>
+      )}
     </div>
   );
 }
