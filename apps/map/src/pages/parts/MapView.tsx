@@ -26,6 +26,7 @@ import {
 import "../map.css";
 import {
   openDetailBar,
+  closeDetailBar,
   setDetailBarTitle,
   setDetailBarHistory,
   setDetailBarMeta,
@@ -179,6 +180,9 @@ export default function MapView({ onLoaded }: Props) {
 
     // いったん既存のマーカー吹き出しは閉じる
     infoRef.current?.close();
+
+    // 座標変更モードに入ったら詳細バーを閉じる（リストバーの選択はそのまま）
+    closeDetailBar();
   };
 
   const cancelChangePosition = () => {
