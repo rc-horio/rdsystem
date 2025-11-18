@@ -79,48 +79,6 @@ export default function MapView({ onLoaded }: Props) {
     editableRef.current = editable;
   }, [editable]);
 
-  useEffect(() => {
-    const map = mapRef.current;
-    const marker = selectedMarkerRef.current;
-    const info = infoRef.current;
-
-    // マップ or マーカー or InfoWindow が無ければ何もしない
-    if (!map || !marker || !info) return;
-
-    if (editable) {
-      // 編集ON → 吹き出しを再表示（座標を変更ボタンだけ）
-      const container = document.createElement("div");
-      container.style.minWidth = "80px";
-      container.style.textAlign = "center";
-
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.textContent = "座標を変更";
-      btn.className = "marker-update-position-button";
-
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-
-        startChangePositionMode();
-
-        const p = currentPointRef.current;
-        if (!p) return;
-        console.log("[marker] 座標を変更 clicked:", {
-          areaUuid: p.areaUuid,
-          lat: p.lat,
-          lng: p.lng,
-        });
-      });
-
-      container.appendChild(btn);
-      info.setContent(container);
-      info.open({ map, anchor: marker });
-    } else {
-      // 編集OFF → 吹き出しを閉じる
-      info.close();
-    }
-  }, [editable]);
-
   const {
     addingAreaMode,
     newAreaDraft,
@@ -129,6 +87,55 @@ export default function MapView({ onLoaded }: Props) {
     cancelAddMode,
     resetDraft,
   } = useAddAreaMode(mapRef);
+
+  // エリア追加モードの現在値を参照するための ref
+  const addingAreaModeRef = useRef(addingAreaMode);
+  useEffect(() => {
+    addingAreaModeRef.current = addingAreaMode;
+  }, [addingAreaMode]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    const marker = selectedMarkerRef.current;
+    const info = infoRef.current;
+
+    // マップ or マーカー or InfoWindow が無ければ何もしない
+    if (!map || !marker || !info) return;
+
+    // 追加モード中 or 非編集モード のときは吹き出しを閉じる
+    if (!editable || addingAreaModeRef.current) {
+      info.close();
+      return;
+    }
+
+    // 編集ON & エリア追加モードではない → 吹き出しを再表示（座標を変更ボタンだけ）
+    const container = document.createElement("div");
+    container.style.minWidth = "80px";
+    container.style.textAlign = "center";
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = "座標を変更";
+    btn.className = "marker-update-position-button";
+
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+
+      startChangePositionMode();
+
+      const p = currentPointRef.current;
+      if (!p) return;
+      console.log("[marker] 座標を変更 clicked:", {
+        areaUuid: p.areaUuid,
+        lat: p.lat,
+        lng: p.lng,
+      });
+    });
+
+    container.appendChild(btn);
+    info.setContent(container);
+    info.open({ map, anchor: marker });
+  }, [editable, addingAreaMode]);
 
   /** 新規エリア作成完了トーストを一定時間表示 */
   const notifyAreaCreated = () => {
@@ -475,8 +482,12 @@ export default function MapView({ onLoaded }: Props) {
 
       window.dispatchEvent(new Event(EV_SIDEBAR_OPEN));
 
-      // 編集モードのときだけ吹き出し＋ボタンを表示
-      if (infoRef.current && editableRef.current) {
+      // 編集モード & 追加モードではないときだけ吹き出し＋ボタンを表示
+      if (
+        infoRef.current &&
+        editableRef.current &&
+        !addingAreaModeRef.current
+      ) {
         const container = document.createElement("div");
         container.style.minWidth = "80px";
         container.style.textAlign = "center";
@@ -506,7 +517,7 @@ export default function MapView({ onLoaded }: Props) {
         infoRef.current.setContent(container);
         infoRef.current.open({ map, anchor: marker });
       } else {
-        // 閲覧モードのときは吹き出しを出さない
+        // 閲覧モード or 追加モードのときは吹き出しを出さない
         infoRef.current?.close();
       }
 
@@ -565,7 +576,16 @@ export default function MapView({ onLoaded }: Props) {
       markerByKeyRef.current.set(areaKey, marker);
       pointByMarkerRef.current.set(marker, p);
 
-      marker.addListener("click", () => selectMarker(marker, p));
+      marker.addListener("click", () => {
+        // エリア追加モード中なら、追加モードを解除して何もしない
+        if (addingAreaModeRef.current) {
+          cancelAddMode();
+          return;
+        }
+
+        // 通常モード時のみ、マーカー選択処理を実行
+        selectMarker(marker, p);
+      });
     });
 
     if (!bounds.isEmpty()) map.fitBounds(bounds);
@@ -975,6 +995,43 @@ export default function MapView({ onLoaded }: Props) {
       window.removeEventListener(EV_DETAILBAR_SELECTED, onSelectedStateChange);
     };
   }, []);
+
+  // 新規エリア追加モード中に、マップ以外がクリックされたらモード解除
+  useEffect(() => {
+    if (!editable) return;
+
+    const handleDocumentClickForAddArea = (e: MouseEvent) => {
+      // 追加モードでなければ何もしない
+      if (!addingAreaMode) return;
+
+      const target = e.target as Node | null;
+      const mapEl = mapDivRef.current;
+      const hintLayer = document.querySelector(".add-area-hint-layer");
+
+      const clickedInsideMap = !!(mapEl && target && mapEl.contains(target));
+      const clickedInsideHint = !!(
+        hintLayer &&
+        target &&
+        hintLayer.contains(target)
+      );
+
+      // マップ上の座標（map要素）でもヒントレイヤー内でもない → 追加モードを終了
+      if (!clickedInsideMap && !clickedInsideHint) {
+        cancelAddMode();
+      }
+    };
+
+    // キャプチャフェーズで拾う（他のハンドラより前に動かしたいので true）
+    document.addEventListener("click", handleDocumentClickForAddArea, true);
+
+    return () => {
+      document.removeEventListener(
+        "click",
+        handleDocumentClickForAddArea,
+        true
+      );
+    };
+  }, [editable, addingAreaMode, cancelAddMode]);
 
   // 選択状態を表示
   useEffect(() => {
