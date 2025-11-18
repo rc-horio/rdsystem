@@ -185,6 +185,29 @@ export default function MapView({ onLoaded }: Props) {
     (keys: { areaUuid?: string; areaName?: string }) => void
   >(() => {});
   const currentPointRef = useRef<Point | null>(null);
+
+  // サイドバー等から「今の代表点座標」を問い合わせるためのイベント
+  useEffect(() => {
+    const onRequestCurrentPoint = () => {
+      window.dispatchEvent(
+        new CustomEvent("map:respond-current-point", {
+          detail: currentPointRef.current,
+        })
+      );
+    };
+
+    window.addEventListener(
+      "map:request-current-point",
+      onRequestCurrentPoint as EventListener
+    );
+    return () => {
+      window.removeEventListener(
+        "map:request-current-point",
+        onRequestCurrentPoint as EventListener
+      );
+    };
+  }, []);
+
   const startChangePositionMode = () => {
     // 座標変更モード開始
     changingPositionRef.current = true;

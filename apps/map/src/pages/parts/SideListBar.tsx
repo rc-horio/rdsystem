@@ -196,6 +196,41 @@ function SideListBarBase({
     return payload;
   };
 
+  // Map（MapView）から現在の代表座標 Point を取得
+  const requestCurrentPoint = async (): Promise<Point | null> => {
+    const point = await new Promise<Point | null>((resolve, reject) => {
+      let timer: number | null = null;
+
+      const onResp = (e: Event) => {
+        window.removeEventListener(
+          "map:respond-current-point",
+          onResp as EventListener
+        );
+        if (timer != null) window.clearTimeout(timer);
+        resolve((e as CustomEvent<Point | null>).detail ?? null);
+      };
+
+      window.addEventListener(
+        "map:respond-current-point",
+        onResp as EventListener,
+        { once: true }
+      );
+
+      // MapView に現在のポイントを問い合わせ
+      window.dispatchEvent(new Event("map:request-current-point"));
+
+      timer = window.setTimeout(() => {
+        window.removeEventListener(
+          "map:respond-current-point",
+          onResp as EventListener
+        );
+        reject(new Error("map からの currentPoint 応答がありません"));
+      }, 1500);
+    });
+
+    return point;
+  };
+
   // projects/<projectUuid>/index.json
   // 案件に紐づく geometry を保存 or 削除
   const applyProjectGeometryFromPayload = async (
@@ -335,7 +370,7 @@ function SideListBarBase({
           reject(new Error("detailbar からの応答がありません"));
         }, 3000);
       });
-      
+
       // ★ 1. 新しいタイトルを取り出す
       const newTitle = (data.title ?? "").trim();
       if (!newTitle) {
@@ -397,14 +432,31 @@ function SideListBarBase({
       }
 
       // （2-4）areas.json エリア一覧を更新
-      const pos = points.find((p) => p.areaUuid === areaUuid);
+      // まず MapView 側から「現在の代表座標」をもらう（失敗したら従来どおり points から）
+      let repPoint: Point | null = null;
+      try {
+        repPoint = await requestCurrentPoint();
+        console.debug("[save] currentPoint from map:", repPoint);
+      } catch (e) {
+        console.warn(
+          "[save] requestCurrentPoint failed, fallback to points[]",
+          e
+        );
+      }
+
+      const posFromPoints = points.find((p) => p.areaUuid === areaUuid);
+
+      const latToSave = repPoint?.lat ?? posFromPoints?.lat;
+      const lonToSave = repPoint?.lng ?? posFromPoints?.lng;
+
       const okAreas = await upsertAreasListEntryFromInfo({
         uuid: areaUuid,
         areaName: data.title,
-        lat: pos?.lat,
-        lon: pos?.lng,
+        lat: latToSave,
+        lon: lonToSave,
         projectCount: infoToSave.history.length,
       });
+
       if (!okAreas) {
         window.alert(
           "保存に失敗しました（areas.json）。S3 の CORS/権限設定をご確認ください。"
