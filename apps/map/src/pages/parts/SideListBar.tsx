@@ -131,7 +131,10 @@ function SideListBarBase({
   };
 
   // 詳細バーに反映
-  const loadAndShowInfoForArea = async (area: string) => {
+  const loadAndShowInfoForArea = async (
+    area: string,
+    opts?: { titleOverride?: string }
+  ) => {
     const idx = points.findIndex((p) => normArea(p) === area);
     const areaUuid = idx >= 0 ? points[idx].areaUuid : undefined;
 
@@ -140,12 +143,15 @@ function SideListBarBase({
       return;
     }
 
-    // タイトル／メタはエリア index から
     const { title, meta } = await fetchAreaInfo(areaUuid, area);
-    setDetailBarTitle(title);
+
+    // インライン編集で上書きされた表示名を優先
+    const displayTitle =
+      opts?.titleOverride ?? areaLabelOverrides[area] ?? title ?? area;
+
+    setDetailBarTitle(displayTitle);
     setDetailBarMeta(meta);
 
-    // 履歴は「エリアの history に載っている UUID だけ」プロジェクトへ直取り
     const fullHistory = await buildAreaHistoryFromProjects(areaUuid);
     setDetailBarHistory(fullHistory);
   };
@@ -153,7 +159,9 @@ function SideListBarBase({
   // 共通のエリアアクティベーション（クリック/Enter/Space）
   const activateArea = async (area: string) => {
     setActiveKey(area);
-    await loadAndShowInfoForArea(area);
+    await loadAndShowInfoForArea(area, {
+      titleOverride: areaLabelOverrides[area],
+    });
     openDetailBar();
 
     const areaUuid = getAreaUuidByAreaName(area);
@@ -165,7 +173,6 @@ function SideListBarBase({
       })
     );
 
-    // points を引数で渡す
     logAreaHistory(area, points);
   };
 
@@ -554,7 +561,7 @@ function SideListBarBase({
       }
 
       // （4）画面に即時反映（従来どおり）
-      setDetailBarTitle(infoToSave.areaName);
+      setDetailBarTitle(newTitle);
       setDetailBarMeta({
         overview: infoToSave.overview?.overview ?? "",
         address: infoToSave.overview?.address ?? "",
@@ -600,10 +607,13 @@ function SideListBarBase({
         );
       });
       if (idx < 0) return;
+
       const area = normArea(points[idx]);
       currentAreaUuidRef.current = points[idx].areaUuid;
       setActiveKey(area);
-      loadAndShowInfoForArea(area);
+
+      const titleOverride = areaLabelOverrides[area];
+      loadAndShowInfoForArea(area, { titleOverride });
       openDetailBar();
     };
 
@@ -616,7 +626,7 @@ function SideListBarBase({
         EV_SIDEBAR_SET_ACTIVE,
         onSetActive as EventListener
       );
-  }, [points, schedulesLite]);
+  }, [points, schedulesLite, areaLabelOverrides]);
 
   // 編集モード切替ボタンのクラスを切り替える
   useEffect(() => {
