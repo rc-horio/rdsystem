@@ -663,7 +663,6 @@ function SideListBarBase({
       <div className="mb-3">
         <LogoButton size={70} />
       </div>
-
       <div id="searchWrap" role="search" aria-label="Search markers">
         <div className="search-field">
           <label htmlFor="searchBox" className="sr-only">
@@ -703,7 +702,7 @@ function SideListBarBase({
       {isOn && (
         <button
           type="button"
-          className="add-area-button"
+          className="add-area-button add-area-button--sidebar"
           onClick={() => {
             setActiveKey(null);
             currentAreaUuidRef.current = undefined;

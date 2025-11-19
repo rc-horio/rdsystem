@@ -73,6 +73,16 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     return `${y}/${m}/${da}`;
   };
 
+  // 「案件情報を登録する」ボタン
+  const handleRegisterProjectInfo = () => {
+    // TODO: 案件情報登録用の処理をここに実装する
+  };
+
+  // 「候補地を追加する」ボタン
+  const handleAddCandidate = () => {
+    // TODO: 候補地追加用の処理をここに実装する
+  };
+
   // 履歴のサニタイズ（unknown を HistoryItem[] に落とす）
   const sanitizeHistory = (arrLike: unknown): HistoryItem[] => {
     const arr = Array.isArray(arrLike) ? (arrLike as any[]) : [];
@@ -478,6 +488,15 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
               )}
             </div>
 
+            {/* ① 案件情報を登録するボタン（履歴リストの直後に配置） */}
+            <button
+              type="button"
+              className="add-area-button detailbar-add-button"
+              onClick={handleRegisterProjectInfo}
+            >
+              <span className="add-icon">＋ </span>案件情報を登録する
+            </button>
+
             {/* 横線を追加 */}
             {meta.candidate && meta.candidate.length > 0 && (
               <div className="ds-history-separator"></div>
@@ -510,6 +529,15 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                     </div>
                   ))}
                 </div>
+
+                {/* ② 候補地を追加するボタン（候補リストの直後に配置） */}
+                <button
+                  type="button"
+                  className="add-area-button detailbar-add-button"
+                  onClick={handleAddCandidate}
+                >
+                  <span className="add-icon">＋ </span>候補地を追加する
+                </button>
               </section>
             )}
           </section>

@@ -246,16 +246,19 @@ body,
 /* 「＋エリアを追加する」ボタン */
 .add-area-button {
   width: 100%;
-  margin: 4px 0 10px;
-  margin-left: -10px;
   padding: 6px 12px;
   box-sizing: border-box;
-  font-size: 16px;
-  font-weight: 500;
   text-align: center;
   color: #ffffff;
   cursor: pointer;
   transition: background 0.15s ease, transform 0.08s ease, box-shadow 0.15s ease;
+}
+
+/* サイドバー専用：左サイドの「＋エリアを追加する」ボタン */
+.add-area-button--sidebar {
+  margin-left: -10px; /* これまでと同じ見た目を維持 */
+  font-size: 16px; /* サイドバーだけ少し大きめ */
+  font-weight: 500;
 }
 
 /* 「＋」アイコンの赤文字 */
@@ -659,6 +662,14 @@ body.detailbar-open #detailbar {
   outline: 2px solid rgba(255, 255, 255, 0.25);
   outline-offset: 2px;
   border-radius: 8px;
+}
+
+/* Detailbar 内の追加ボタン */
+.detailbar-panel .detailbar-add-button {
+  margin-left: 0; /* ネガティブマージンを消して中にそろえる */
+  margin-top: 10px; /* リストから少し間を空ける */
+  font-size: 13px; /* サイドバーより一段小さく、控えめに */
+  padding: 10px 10px; /* 少しだけコンパクトに */
 }
 
 /* =========================================
