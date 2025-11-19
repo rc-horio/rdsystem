@@ -12,6 +12,7 @@ export * from "./atoms/buttons/DetailIconButton";
 // inputs
 export * from "./inputs/InputBox";
 export * from "./inputs/Textarea";
+export * from "./inputs/SelectBox";
 // hooks / utils
 export * from "./utils/blurActiveInput";
 export * from "./hook/useBreakpointMd";

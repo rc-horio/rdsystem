@@ -47,8 +47,10 @@ import {
   EV_DETAILBAR_SELECT_CANDIDATE,
   MARKERS_HIDE_ZOOM,
   DEFAULTS,
+  EV_PROJECT_MODAL_OPEN,
 } from "./constants/events";
 import { AddAreaModal } from "./AddAreaModal";
+import { RegisterProjectModal } from "./RegisterProjectModal";
 
 /** =========================
  *  Component
@@ -76,6 +78,8 @@ export default function MapView({ onLoaded }: Props) {
   const [showPositionUpdatedToast, setShowPositionUpdatedToast] =
     useState(false);
   const positionUpdatedToastTimerRef = useRef<number | null>(null);
+
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
 
   useDraggableMetricsPanel();
   const editable = useEditableBodyClass();
@@ -204,6 +208,20 @@ export default function MapView({ onLoaded }: Props) {
       window.removeEventListener(
         "map:request-current-point",
         onRequestCurrentPoint as EventListener
+      );
+    };
+  }, []);
+
+  // 案件情報モーダルを開くイベント
+  useEffect(() => {
+    const onOpen = () => {
+      setIsProjectModalOpen(true);
+    };
+    window.addEventListener(EV_PROJECT_MODAL_OPEN, onOpen as EventListener);
+    return () => {
+      window.removeEventListener(
+        EV_PROJECT_MODAL_OPEN,
+        onOpen as EventListener
       );
     };
   }, []);
@@ -1367,6 +1385,11 @@ export default function MapView({ onLoaded }: Props) {
           setAreaNameInput("");
           notifyAreaCreated();
         }}
+      />
+
+      <RegisterProjectModal
+        open={isProjectModalOpen}
+        onClose={() => setIsProjectModalOpen(false)}
       />
       {/* 新規エリア作成完了トースト */}
       {showAreaCreatedToast && (

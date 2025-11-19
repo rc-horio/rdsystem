@@ -20,14 +20,23 @@ export const EV_DETAILBAR_SET_META = "detailbar:set-meta";
 export const EV_DETAILBAR_SET_HISTORY = "detailbar:set-history";
 export const EV_DETAILBAR_APPLY_METRICS = "detailbar:apply-metrics";
 
+export const EV_PROJECT_MODAL_OPEN = "project:open-modal";
+
 export const ROTATE_HANDLE_GAP_M = 5;
+
 export const SELECT_ZOOM_DESKTOP = 10;
 export const SELECT_ZOOM_MOBILE = 13;
+
 export const MIN_ZOOM_DELTA_TO_CHANGE = 0.75;
+
 export const NAME_UNSET = "（名称未設定）";
+
 export const AREA_NAME_NONE = "（エリア名なし）";
+
 export const OPEN_INFO_ON_SELECT = false;
+
 export const MARKERS_HIDE_ZOOM = 16;
+
 export const CLS_DETAILBAR_OPEN = "detailbar-open";
 
 export const S3_BASE =

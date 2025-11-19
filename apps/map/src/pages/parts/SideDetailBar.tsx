@@ -5,6 +5,8 @@ import {
   Textarea,
   InputBox,
   DetailIconButton,
+  SelectBox,
+  useEditableBodyClass,
 } from "@/components";
 import type {
   TabKey,
@@ -26,13 +28,14 @@ import {
   EV_DETAILBAR_SELECT_CANDIDATE,
   EV_DETAILBAR_SELECTED,
   EV_SIDEBAR_SET_ACTIVE,
+  EV_PROJECT_MODAL_OPEN,
 } from "./constants/events";
-import { SelectBox } from "@/components/inputs/SelectBox";
 
 /** =========================
  *  SideDetailBar Component
  *  ========================= */
 export default function SideDetailBar({ open }: { open?: boolean }) {
+  const editable = useEditableBodyClass();
   const [active, setActive] = useState<TabKey>("overview");
   const [title, setTitle] = useState("");
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -60,7 +63,8 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     remarks: "",
     candidate: [],
   });
-
+  const candidates = meta.candidate ?? [];
+  
   /** =========================
    *  Helpers
    *  ========================= */
@@ -76,6 +80,8 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   // 「案件情報を登録する」ボタン
   const handleRegisterProjectInfo = () => {
     // TODO: 案件情報登録用の処理をここに実装する
+    // 画面中央モーダルを開いてもらうイベントだけ飛ばす
+    window.dispatchEvent(new Event(EV_PROJECT_MODAL_OPEN));
   };
 
   // 「候補地を追加する」ボタン
@@ -450,7 +456,8 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
         )}
         {/* 飛行エリア */}
         {active === "history" && (
-          <section role="tabpanel" aria-label="飛行エリアと候補エリア">
+          <section role="tabpanel" aria-label="案件実績と候補エリア">
+            {/* 案件実績セクション */}
             <div className="ds-history-list">
               {history.length === 0 ? (
                 <div className="ds-history-empty" aria-live="polite">
@@ -488,24 +495,29 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
               )}
             </div>
 
-            {/* ① 案件情報を登録するボタン（履歴リストの直後に配置） */}
-            <button
-              type="button"
-              className="add-area-button detailbar-add-button"
-              onClick={handleRegisterProjectInfo}
-            >
-              <span className="add-icon">＋ </span>案件情報を登録する
-            </button>
-
-            {/* 横線を追加 */}
-            {meta.candidate && meta.candidate.length > 0 && (
-              <div className="ds-history-separator"></div>
+            {/* 案件実績を登録するボタン */}
+            {editable && (
+              <button
+                type="button"
+                className="add-area-button detailbar-add-button"
+                onClick={handleRegisterProjectInfo}
+              >
+                <span className="add-icon">＋ </span>案件情報を登録する
+              </button>
             )}
 
-            {meta.candidate && meta.candidate.length > 0 && (
-              <section>
-                <div className="ds-history-list">
-                  {meta.candidate.map((candidate, idx) => (
+            {/* セパレート横線 */}
+            <div className="ds-history-separator" />
+
+            {/* 候補地セクション */}
+            <section aria-label="候補エリア">
+              <div className="ds-history-list">
+                {candidates.length === 0 ? (
+                  <div className="ds-history-empty" aria-live="polite">
+                    候補地はありません
+                  </div>
+                ) : (
+                  candidates.map((candidate, idx) => (
                     <div
                       key={idx}
                       className={`ds-history-row ${
@@ -527,10 +539,12 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                         {candidate.title}
                       </span>
                     </div>
-                  ))}
-                </div>
+                  ))
+                )}
+              </div>
 
-                {/* ② 候補地を追加するボタン（候補リストの直後に配置） */}
+              {/* 候補地を追加するボタン */}
+              {editable && (
                 <button
                   type="button"
                   className="add-area-button detailbar-add-button"
@@ -538,8 +552,8 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                 >
                   <span className="add-icon">＋ </span>候補地を追加する
                 </button>
-              </section>
-            )}
+              )}
+            </section>
           </section>
         )}
       </div>
