@@ -673,13 +673,12 @@ body.detailbar-open #detailbar {
 }
 
 /* =========================================
-   8) DS History（履歴リストの見た目）
+   8) DS Records
    ========================================= */
-
 /* トークン（文字サイズ・色など） */
 :root {
   --ds-record-gap: 20px;
-  --ds-date-fz: 12px; /* 日付文字サイズ */
+  --ds-date-fz: 12px;
   --ds-date-lh: 1.2;
   --ds-date-color: rgba(255, 255, 255, 0.9);
   --ds-date-tracking: 0.3px;
@@ -687,6 +686,20 @@ body.detailbar-open #detailbar {
   --ds-name-fz: 12px; /* イベント名文字サイズ */
   --ds-name-lh: 1.2;
   --ds-name-color: rgba(255, 255, 255, 0.95);
+}
+
+/* 各セクションのコンテナ */
+.ds-record-section {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* 「案件」「候補」のタイトル */
+.ds-record-section-title {
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  padding-bottom: 10px;
 }
 
 /* リスト全体 */
@@ -735,6 +748,11 @@ body.detailbar-open #detailbar {
   margin-top: 14px;
   border-top: 1px solid white;
   padding-top: 14px;
+}
+
+.ds-record-empty {
+  font-size: var(--ds-date-fz);
+  margin-left: 10px;
 }
 
 /* 候補エリア名 */
