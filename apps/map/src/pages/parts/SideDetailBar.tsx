@@ -1,5 +1,5 @@
 // src/pages/parts/SideDetailBar.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   HiddenIconButton,
   Textarea,
@@ -47,6 +47,13 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     number | null
   >(null);
 
+  // 候補タイトルのインライン編集用 state
+  const [editingCandidateIdx, setEditingCandidateIdx] = useState<number | null>(
+    null
+  );
+  const [editingCandidateTitle, setEditingCandidateTitle] = useState("");
+  const editingCandidateInputRef = useRef<HTMLInputElement | null>(null);
+
   // index.json の内容を各フィールドに設定（初期値は空文字で統一）
   const [meta, setMeta] = useState<DetailMeta>({
     overview: "",
@@ -86,7 +93,56 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
 
   // 「候補地を追加する」ボタン
   const handleAddCandidate = () => {
-    // TODO: 候補地追加用の処理をここに実装する
+    // 追加前の長さを基準に、新しい候補の index を決める
+    const nextIdx = candidates.length;
+
+    const newCandidate: Candidate = {
+      title: "",
+      takeoffArea: undefined,
+      flightArea: undefined,
+      safetyArea: undefined,
+      audienceArea: undefined,
+    };
+
+    const nextCandidates = [...candidates, newCandidate];
+
+    setMeta((prev) => ({
+      ...prev,
+      candidate: nextCandidates,
+    }));
+
+    // 追加された候補を選択状態＆編集状態にする
+    setSelectedHistoryIdx(null);
+    setSelectedCandidateIdx(nextIdx);
+    setEditingCandidateIdx(nextIdx);
+    setEditingCandidateTitle(newCandidate.title);
+  };
+
+  // 候補地確定・キャンセル
+  const commitCandidateTitle = () => {
+    if (editingCandidateIdx == null) return;
+    const trimmed = editingCandidateTitle.trim();
+
+    setMeta((prev) => {
+      const list = [...(prev.candidate ?? [])];
+      const target = list[editingCandidateIdx];
+      if (!target) return prev;
+
+      list[editingCandidateIdx] = {
+        ...target,
+        title: trimmed || target.title || "候補地タイトル",
+      };
+
+      return { ...prev, candidate: list };
+    });
+
+    setEditingCandidateIdx(null);
+    setEditingCandidateTitle("");
+  };
+
+  const cancelCandidateEdit = () => {
+    setEditingCandidateIdx(null);
+    setEditingCandidateTitle("");
   };
 
   // 履歴のサニタイズ（unknown を HistoryItem[] に落とす）
@@ -289,6 +345,23 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       window.removeEventListener(EV_SIDEBAR_SET_ACTIVE, reset as EventListener);
   }, []);
 
+  // 追加直後に input にフォーカスG
+  useEffect(() => {
+    if (editingCandidateIdx != null && editingCandidateInputRef.current) {
+      const input = editingCandidateInputRef.current;
+      const len = input.value.length;
+      input.focus();
+      // 全選択を避けてキャレットだけ末尾に
+      window.setTimeout(() => {
+        try {
+          input.setSelectionRange(len, len);
+        } catch {
+          /* noop */
+        }
+      }, 0);
+    }
+  }, [editingCandidateIdx]);
+
   /** =========================
    *  Render
    *  ========================= */
@@ -486,9 +559,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                       <span className="ds-record-date">
                         {fmtDate(item.date)}
                       </span>
-                      <span className="ds-record-name">
-                        {item.projectName}
-                      </span>
+                      <span className="ds-record-name">{item.projectName}</span>
                     </div>
                   );
                 })
@@ -534,7 +605,32 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                     </span>
 
                     <span className="ds-candidate-title">候補</span>
-                    <span className="ds-candidate-name">{candidate.title}</span>
+                    <span className="ds-candidate-name">
+                      {editable && editingCandidateIdx === idx ? (
+                        <input
+                          ref={editingCandidateInputRef}
+                          type="text"
+                          className="candidate-title-input"
+                          value={editingCandidateTitle}
+                          placeholder="候補地タイトル"
+                          onChange={(e) =>
+                            setEditingCandidateTitle(e.target.value)
+                          }
+                          onBlur={commitCandidateTitle}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              commitCandidateTitle();
+                            } else if (e.key === "Escape") {
+                              e.preventDefault();
+                              cancelCandidateEdit();
+                            }
+                          }}
+                        />
+                      ) : (
+                        candidate.title
+                      )}
+                    </span>
                   </div>
                 ))
               )}

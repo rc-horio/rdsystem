@@ -758,6 +758,15 @@ body.detailbar-open #detailbar {
   color: var(--ds-name-color);
 }
 
+/* 候補地タイトル編集用インプット（シンプル版） */
+#detailbar .candidate-title-input {
+  font-size: var(--ds-name-fz);
+  line-height: 2.5;
+  padding: 0 6px;
+  width: 100%;
+  outline: none;
+}
+
 /* =========================================
    9) Inputs（Textarea / InputBox）
    -----------------------------------------
