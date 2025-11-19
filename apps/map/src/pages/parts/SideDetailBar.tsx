@@ -64,7 +64,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     candidate: [],
   });
   const candidates = meta.candidate ?? [];
-  
+
   /** =========================
    *  Helpers
    *  ========================= */
@@ -458,9 +458,9 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
         {active === "history" && (
           <section role="tabpanel" aria-label="案件実績と候補エリア">
             {/* 案件実績セクション */}
-            <div className="ds-history-list">
+            <div className="ds-record-list">
               {history.length === 0 ? (
-                <div className="ds-history-empty" aria-live="polite">
+                <div className="ds-record-empty" aria-live="polite">
                   履歴はありません
                 </div>
               ) : (
@@ -469,13 +469,13 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                   return (
                     <div
                       key={`${item.projectName}-${item.scheduleName}-${item.date}-${i}`}
-                      className={`ds-history-row ${
+                      className={`ds-record-row ${
                         selected ? "is-selected" : ""
                       }`}
                       role="option"
                       aria-selected={selected}
                     >
-                      <span className="ds-history-leftgap">
+                      <span className="ds-record-leftgap">
                         <DetailIconButton
                           height={23}
                           title="スケジュール詳細"
@@ -483,10 +483,10 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                         />
                       </span>
 
-                      <span className="ds-history-date">
+                      <span className="ds-record-date">
                         {fmtDate(item.date)}
                       </span>
-                      <span className="ds-history-name">
+                      <span className="ds-record-name">
                         {item.projectName}
                       </span>
                     </div>
@@ -507,53 +507,49 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
             )}
 
             {/* セパレート横線 */}
-            <div className="ds-history-separator" />
+            <div className="ds-record-separator" />
 
             {/* 候補地セクション */}
-            <section aria-label="候補エリア">
-              <div className="ds-history-list">
-                {candidates.length === 0 ? (
-                  <div className="ds-history-empty" aria-live="polite">
-                    候補地はありません
+            <div className="ds-record-list">
+              {candidates.length === 0 ? (
+                <div className="ds-record-empty" aria-live="polite">
+                  候補地はありません
+                </div>
+              ) : (
+                candidates.map((candidate, idx) => (
+                  <div
+                    key={idx}
+                    className={`ds-record-row ${
+                      selectedCandidateIdx === idx ? "is-selected" : ""
+                    }`}
+                    role="option"
+                    aria-selected={selectedCandidateIdx === idx}
+                  >
+                    <span className="ds-record-leftgap">
+                      <DetailIconButton
+                        height={23}
+                        title="候補エリア詳細"
+                        onClick={() => onSelectCandidate(candidate, idx)}
+                      />
+                    </span>
+
+                    <span className="ds-candidate-title">候補</span>
+                    <span className="ds-candidate-name">{candidate.title}</span>
                   </div>
-                ) : (
-                  candidates.map((candidate, idx) => (
-                    <div
-                      key={idx}
-                      className={`ds-history-row ${
-                        selectedCandidateIdx === idx ? "is-selected" : ""
-                      }`}
-                      role="option"
-                      aria-selected={selectedCandidateIdx === idx}
-                    >
-                      <span className="ds-history-leftgap">
-                        <DetailIconButton
-                          height={23}
-                          title="候補エリア詳細"
-                          onClick={() => onSelectCandidate(candidate, idx)}
-                        />
-                      </span>
-
-                      <span className="ds-candidate-title">候補</span>
-                      <span className="ds-candidate-name">
-                        {candidate.title}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* 候補地を追加するボタン */}
-              {editable && (
-                <button
-                  type="button"
-                  className="add-area-button detailbar-add-button"
-                  onClick={handleAddCandidate}
-                >
-                  <span className="add-icon">＋ </span>候補地を追加する
-                </button>
+                ))
               )}
-            </section>
+            </div>
+
+            {/* 候補地を追加するボタン */}
+            {editable && (
+              <button
+                type="button"
+                className="add-area-button detailbar-add-button"
+                onClick={handleAddCandidate}
+              >
+                <span className="add-icon">＋ </span>候補地を追加する
+              </button>
+            )}
           </section>
         )}
       </div>

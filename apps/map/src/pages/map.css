@@ -678,7 +678,7 @@ body.detailbar-open #detailbar {
 
 /* トークン（文字サイズ・色など） */
 :root {
-  --ds-history-gap: 20px;
+  --ds-record-gap: 20px;
   --ds-date-fz: 12px; /* 日付文字サイズ */
   --ds-date-lh: 1.2;
   --ds-date-color: rgba(255, 255, 255, 0.9);
@@ -690,27 +690,27 @@ body.detailbar-open #detailbar {
 }
 
 /* リスト全体 */
-.ds-history-list {
+.ds-record-list {
   display: grid;
   gap: 14px;
 }
 
 /* 8pxだけ左に余白 */
-.ds-history-leftgap {
+.ds-record-leftgap {
   margin-left: 10px;
   display: inline-flex; /* ボタンの高さに合わせるため */
 }
 
 /* 1行 */
-.ds-history-row {
+.ds-record-row {
   display: flex;
   align-items: center;
-  gap: var(--ds-history-gap);
+  gap: var(--ds-record-gap);
   white-space: nowrap;
 }
 
 /* 日付 */
-.ds-history-date {
+.ds-record-date {
   width: 60px; /* 桁ズレ防止 */
   font-size: var(--ds-date-fz);
   line-height: var(--ds-date-lh);
@@ -719,7 +719,7 @@ body.detailbar-open #detailbar {
 }
 
 /* イベント名（残り幅で省略） */
-.ds-history-name {
+.ds-record-name {
   flex: 1 1 auto;
   min-width: 0; /* flex 子要素の ellipsis に必須 */
   overflow: hidden;
@@ -731,7 +731,7 @@ body.detailbar-open #detailbar {
 }
 
 /* 候補エリアとの区切り線 */
-.ds-history-separator {
+.ds-record-separator {
   margin-top: 14px;
   border-top: 1px solid white;
   padding-top: 14px;
@@ -939,8 +939,8 @@ body.detailbar-open #detailbar {
 }
 
 /* === DS History: selected row === */
-.ds-history-row.is-selected,
-.ds-history-row[aria-selected="true"] {
+.ds-record-row.is-selected,
+.ds-record-row[aria-selected="true"] {
   background: rgba(255, 255, 255, 0.08); /* うっすら反転 */
   border-left: 3px solid #ed1b24; /* 既存のブランド赤 */
   border-radius: 6px;
