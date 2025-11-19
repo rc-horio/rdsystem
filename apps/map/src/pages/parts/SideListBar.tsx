@@ -50,6 +50,15 @@ function SideListBarBase({
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const iconH = 25;
+
+  // エリア名の一時上書き & 編集状態
+  const [areaLabelOverrides, setAreaLabelOverrides] = useState<
+    Record<string, string>
+  >({});
+  const [editingAreaKey, setEditingAreaKey] = useState<string | null>(null);
+  const [editingTempName, setEditingTempName] = useState("");
+  const editingInputRef = useRef<HTMLInputElement | null>(null);
+
   // 現在の保存コンテキスト（エリア／候補）
   const currentAreaUuidRef = useRef<string | undefined>(undefined);
   const currentCandidateIndexRef = useRef<number | null>(null);
@@ -230,6 +239,59 @@ function SideListBarBase({
 
     return point;
   };
+
+  // エリア名の編集開始
+  const beginEditAreaName = (area: string) => {
+    if (!isOn) return; // 編集モードOFFなら無効
+    setEditingAreaKey(area);
+    setEditingTempName(areaLabelOverrides[area] ?? area);
+  };
+
+  // 編集確定
+  const commitEditAreaName = () => {
+    if (!editingAreaKey) return;
+    const trimmed = editingTempName.trim();
+    const finalName = trimmed || editingAreaKey; // 空なら元の名前を使う
+
+    // サイドリストの表示名を更新
+    setAreaLabelOverrides((prev) => ({
+      ...prev,
+      [editingAreaKey]: finalName,
+    }));
+    setEditingAreaKey(null);
+
+    // ★ 詳細バーに反映：今アクティブなエリアならタイトルも更新
+    if (activeKey === editingAreaKey) {
+      setDetailBarTitle(finalName);
+    }
+  };
+
+  // 編集キャンセル
+  const cancelEditAreaName = () => {
+    setEditingAreaKey(null);
+    setEditingTempName("");
+  };
+
+  // 編集開始時に input にフォーカス
+  useEffect(() => {
+    if (editingAreaKey && editingInputRef.current) {
+      const input = editingInputRef.current;
+      const len = input.value.length;
+
+      // まずフォーカス
+      input.focus();
+
+      // ダブルクリックで付いた全選択を上書きして「選択なし」にする
+      // （開始=終了 なので青い選択は消える）
+      window.setTimeout(() => {
+        try {
+          input.setSelectionRange(len, len); // 末尾にキャレットのみ
+        } catch {
+          // 一部環境で setSelectionRange が投げても無視
+        }
+      }, 0);
+    }
+  }, [editingAreaKey]);
 
   // projects/<projectUuid>/index.json
   // 案件に紐づく geometry を保存 or 削除
@@ -650,22 +712,74 @@ function SideListBarBase({
       <ul id="locationList" className="no-caret">
         {areaGroups.map(({ area, indices }) => {
           const isActive = activeKey === area;
+
+          // 表示名は上書き優先
+          const displayLabel = areaLabelOverrides[area] ?? area;
+
           return (
             <li
               key={area}
               data-indices={indices.join(",")}
               data-area={area}
               className={isActive ? "active" : undefined}
-              onClick={() => activateArea(area)}
+              onClick={(e) => {
+                // すでにこの行を編集中なら何もしない
+                if (editingAreaKey === area) return;
+
+                // ダブルクリック判定（detail === 2）
+                if (isOn && e.detail === 2) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  beginEditAreaName(area);
+                  return;
+                }
+
+                // 通常クリック時はエリアをアクティブ化
+                activateArea(area);
+              }}
               onKeyDown={(e) => {
+                // 編集中はキーボード操作でアクティブ化させない
+                if (editingAreaKey === area) {
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    cancelEditAreaName();
+                  }
+                  return;
+                }
+
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   activateArea(area);
                 }
               }}
             >
-              {area}
-              {indices.length > 1 ? `（${indices.length}）` : null}
+              {editingAreaKey === area ? (
+                // 編集中は input を表示
+                <input
+                  ref={editingInputRef}
+                  type="text"
+                  value={editingTempName}
+                  onChange={(e) => setEditingTempName(e.target.value)}
+                  // input クリックが親 li の onClick に行かないようにする
+                  onClick={(e) => e.stopPropagation()}
+                  onDoubleClick={(e) => e.stopPropagation()}
+                  onBlur={commitEditAreaName}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      commitEditAreaName();
+                    } else if (e.key === "Escape") {
+                      e.preventDefault();
+                      cancelEditAreaName();
+                    }
+                  }}
+                />
+              ) : (
+                <>
+                  {displayLabel}
+                  {indices.length > 1 ? `（${indices.length}）` : null}
+                </>
+              )}
             </li>
           );
         })}
