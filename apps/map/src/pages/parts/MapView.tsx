@@ -9,13 +9,8 @@ import {
 } from "@/components";
 import type { Props, Point, Geometry } from "@/features/types";
 import {
-  appendAreaCandidate,
   fetchAreaInfo,
   fetchProjectIndex,
-  upsertScheduleGeometry,
-  upsertAreaCandidateAtIndex,
-  clearAreaCandidateGeometryAtIndex,
-  clearScheduleGeometry,
   createNewArea,
 } from "./areasApi";
 import {
@@ -685,69 +680,69 @@ export default function MapView({ onLoaded }: Props) {
     syncMarkersVisibilityForZoom();
   }
 
-  async function saveGeometryToS3(geometry: Geometry) {
-    const pj = currentProjectUuidRef.current;
-    const sch = currentScheduleUuidRef.current;
-    const areaUuid = currentAreaUuidRef.current;
+  // async function saveGeometryToS3(geometry: Geometry) {
+  //   const pj = currentProjectUuidRef.current;
+  //   const sch = currentScheduleUuidRef.current;
+  //   const areaUuid = currentAreaUuidRef.current;
 
-    // 1) 履歴（プロジェクト/スケジュール）優先
-    // if (pj && sch) {
-    //   return await upsertScheduleGeometry({
-    //     projectUuid: pj,
-    //     scheduleUuid: sch,
-    //     geometry,
-    //   });
-    // }
+  //   // 1) 履歴（プロジェクト/スケジュール）優先
+  //   // if (pj && sch) {
+  //   //   return await upsertScheduleGeometry({
+  //   //     projectUuid: pj,
+  //   //     scheduleUuid: sch,
+  //   //     geometry,
+  //   //   });
+  //   // }
 
-    // 2) 候補（エリア）
-    if (areaUuid) {
-      const idx = currentCandidateIndexRef.current;
-      if (typeof idx === "number" && idx >= 0) {
-        // ← 編集中の候補があれば上書き
-        return await upsertAreaCandidateAtIndex({
-          areaUuid,
-          index: idx,
-          candidate: {
-            title: currentCandidateTitleRef.current, // 既存タイトルを維持
-            flightAltitude_m: geometry.flightAltitude_m,
-            takeoffArea: geometry.takeoffArea,
-            flightArea: geometry.flightArea!,
-            safetyArea: geometry.safetyArea!,
-            audienceArea: geometry.audienceArea,
-          },
-          preserveTitle: true,
-        });
-      } else {
-        // 新規作成時のみ追記
-        const title =
-          currentCandidateTitleRef.current ??
-          `候補 ${new Date().toISOString().replace(/[-:T]/g, "").slice(0, 12)}`;
-        return await appendAreaCandidate({
-          areaUuid,
-          candidate: {
-            title,
-            flightAltitude_m: geometry.flightAltitude_m,
-            takeoffArea: geometry.takeoffArea,
-            flightArea: geometry.flightArea!,
-            safetyArea: geometry.safetyArea!,
-            audienceArea: geometry.audienceArea,
-          },
-        });
-      }
-    }
+  //   // 2) 候補（エリア）
+  //   if (areaUuid) {
+  //     const idx = currentCandidateIndexRef.current;
+  //     if (typeof idx === "number" && idx >= 0) {
+  //       // ← 編集中の候補があれば上書き
+  //       return await upsertAreaCandidateAtIndex({
+  //         areaUuid,
+  //         index: idx,
+  //         candidate: {
+  //           title: currentCandidateTitleRef.current, // 既存タイトルを維持
+  //           flightAltitude_m: geometry.flightAltitude_m,
+  //           takeoffArea: geometry.takeoffArea,
+  //           flightArea: geometry.flightArea!,
+  //           safetyArea: geometry.safetyArea!,
+  //           audienceArea: geometry.audienceArea,
+  //         },
+  //         preserveTitle: true,
+  //       });
+  //     } else {
+  //       // 新規作成時のみ追記
+  //       const title =
+  //         currentCandidateTitleRef.current ??
+  //         `候補 ${new Date().toISOString().replace(/[-:T]/g, "").slice(0, 12)}`;
+  //       return await appendAreaCandidate({
+  //         areaUuid,
+  //         candidate: {
+  //           title,
+  //           flightAltitude_m: geometry.flightAltitude_m,
+  //           takeoffArea: geometry.takeoffArea,
+  //           flightArea: geometry.flightArea!,
+  //           safetyArea: geometry.safetyArea!,
+  //           audienceArea: geometry.audienceArea,
+  //         },
+  //       });
+  //     }
+  //   }
 
-    // 2) 履歴（プロジェクト/スケジュール）
-    if (pj && sch) {
-      return await upsertScheduleGeometry({
-        projectUuid: pj,
-        scheduleUuid: sch,
-        geometry,
-      });
-    }
+  //   // 2) 履歴（プロジェクト/スケジュール）
+  //   if (pj && sch) {
+  //     return await upsertScheduleGeometry({
+  //       projectUuid: pj,
+  //       scheduleUuid: sch,
+  //       geometry,
+  //     });
+  //   }
 
-    console.warn("[saveGeometryToS3] no context to save.");
-    return false;
-  }
+  //   console.warn("[saveGeometryToS3] no context to save.");
+  //   return false;
+  // }
 
   /** =========================
    *  Effects
@@ -1119,17 +1114,15 @@ export default function MapView({ onLoaded }: Props) {
 
   async function createDefaultGeometry() {
     const map = mapRef.current;
-    const gmaps = getGMaps();
     if (!map || !geomRef.current) {
       console.warn("[map] cannot create geometry: map or geom is null");
       return;
     }
-    const prevZoom = map.getZoom();
-    const prevCenter = map.getCenter();
-    const c = prevCenter;
-    if (!c) return;
 
-    // === 便利関数: 向き付き矩形（中心・幅W・奥行H・回転deg）→ 4頂点座標[LNG,LAT] ===
+    const center = map.getCenter();
+    if (!center) return;
+
+    // --- ここから下は既存ロジックそのまま（中心＝今のマップ中央） ---
     const rectCornersFromParams = (
       centerLngLat: [number, number],
       w: number,
@@ -1151,8 +1144,7 @@ export default function MapView({ onLoaded }: Props) {
       return [p0, p1, p2, p3];
     };
 
-    // 中心（マップ中央）
-    const centerLngLat: [number, number] = [c.lng(), c.lat()];
+    const centerLngLat: [number, number] = [center.lng(), center.lat()];
 
     // 各エリア中心（マップ中央からのオフセット配置）
     const takeoffCenter = fromLocalXY(
@@ -1197,7 +1189,7 @@ export default function MapView({ onLoaded }: Props) {
       },
       safetyArea: {
         type: "ellipse",
-        buffer_m: DEFAULTS.flight.buffer, // 保安距離（飛行楕円に外付け）
+        buffer_m: DEFAULTS.flight.buffer,
       },
       audienceArea: {
         type: "rectangle",
@@ -1206,71 +1198,21 @@ export default function MapView({ onLoaded }: Props) {
     };
 
     // 描画（※カメラは動かさない）
-    geomRef.current.renderGeometry(geometry, { fit: false });
-
-    // 保存は共通関数に一本化
-    try {
-      const ok = await saveGeometryToS3(geometry);
-      if (!ok) console.error("[map] saveGeometryToS3 failed");
-    } catch (e) {
-      console.error("[map] save created geometry error", e);
-    }
-
-    // 作成後はCTAを隠し、削除ボタンを出す側へ遷移（既存）
-    setShowCreateGeomCta(false);
-
-    gmaps.event.addListenerOnce(map, "idle", () => {
-      if (prevCenter) map.setCenter(prevCenter);
-      if (typeof prevZoom === "number") map.setZoom(prevZoom);
-    });
+    geomRef.current.renderGeometry(geometry, { fit: true });
 
     // 作成後はCTAを隠し、削除ボタンを出す側へ遷移
     setShowCreateGeomCta(false);
   }
 
   async function deleteGeometry() {
-    const pj = currentProjectUuidRef.current;
-    const sch = currentScheduleUuidRef.current;
-    const areaUuid = currentAreaUuidRef.current;
-    const cIdx = currentCandidateIndexRef.current;
-
-    // 画面上の図形は先に消してOK（失敗してもUI破綻しない）
+    // 画面上の図形を削除し、「削除ペンディング」の状態にするだけ
     geomRef.current?.deleteCurrentGeometry();
 
-    let ok = true;
-    if (pj && sch) {
-      // 履歴（プロジェクト配下）
-      ok = await clearScheduleGeometry({
-        projectUuid: pj,
-        scheduleUuid: sch,
-      });
-      if (!ok)
-        console.error("[map] clearScheduleGeometry failed", {
-          pj,
-          sch,
-        });
-    } else if (areaUuid && typeof cIdx === "number" && cIdx >= 0) {
-      // 候補（エリア配下）
-      ok = await clearAreaCandidateGeometryAtIndex({
-        areaUuid,
-        index: cIdx,
-      });
-      if (!ok)
-        console.error("[map] clearAreaCandidateGeometryAtIndex failed", {
-          areaUuid,
-          cIdx,
-        });
-    } else {
-      console.warn(
-        "[map] delete requested but no context (project/schedule or area/candidate)."
-      );
-    }
-
-    // “未設定” 用の CTA を出す
+    // “未設定” 用の CTA を出す（「エリア情報を作成する」ボタン）
     setShowCreateGeomCta(true);
-    if (ok) {
-      console.info("[map] geometry delete persisted");
-    }
+
+    // ログだけ出しておく（S3 にはまだ反映していない）
+    console.info("[map] geometry marked as deleted (pending Save)");
   }
 
   /** =========================
