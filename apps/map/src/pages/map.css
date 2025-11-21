@@ -296,32 +296,35 @@ body,
   -webkit-overflow-scrolling: touch;
 }
 
+/* ベース行スタイル（文字色は白系に固定） */
 #locationList li {
   position: relative;
-  padding: 6px 0 6px 16px; /* 行間＆左側に点マーカーの余白 */
-  line-height: 1.5; /* 少し広め */
-  cursor: pointer; /* クリックできる見た目 */
+  padding: 6px 8px;
+  line-height: 1.5;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.12s ease;
+  color: rgba(255, 255, 255, 0.95); /* 通常文字色 */
 }
 
-/* 左の赤いドット */
-#locationList li::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #e03333;
+/* hover 時：未選択行のうっすらハイライト（ds-record-row と同じトーン） */
+#locationList li:hover {
+  background: rgba(255, 255, 255, 0.12);
 }
+
+/* 選択中：背景＋左ボーダーだけ強調、文字色は白のまま */
+#locationList li.active {
+  background: rgba(255, 255, 255, 0.08);
+  border-left: 3px solid #ed1b24;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.95); /* 赤にしないで白系を維持 */
+  font-weight: 400;
+}
+
+/* active/hover 時のドット色だけ少し明るく */
 #locationList li:hover::before,
 #locationList li.active::before {
   background: #ff5a5f;
-}
-#locationList li.active {
-  color: #ff4040;
-  font-weight: 400;
 }
 
 /* --- 2-4) Context menu（未使用の予約領域） --- */
