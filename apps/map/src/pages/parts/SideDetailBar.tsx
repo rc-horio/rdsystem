@@ -800,18 +800,32 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                                 return;
                               }
 
-                              // ここから先は後ほど実装：今は確認が取れたらログ＋完了ポップアップ
-                              console.log(
-                                "[detailbar] delete candidate confirmed",
-                                {
-                                  index: idx,
-                                  candidate,
-                                }
+                              // --- 画面上の候補配列から該当要素を削除 ---
+                              setMeta((prev) => {
+                                const list = Array.isArray(prev.candidate)
+                                  ? [...prev.candidate]
+                                  : [];
+                                if (idx < 0 || idx >= list.length) return prev;
+                                list.splice(idx, 1); // index の要素を除去
+                                return {
+                                  ...prev,
+                                  candidate: list,
+                                };
+                              });
+
+                              // 選択状態・編集状態をリセット
+                              setSelectedCandidateIdx((current) =>
+                                current === idx ? null : current
                               );
-                              // TODO: 実際の削除処理をここに実装する
+                              if (editingCandidateIdx != null) {
+                                // どの行を編集中でも、とりあえず編集モードは解除
+                                cancelCandidateEdit();
+                              }
 
                               // 削除完了メッセージ
-                              window.alert("候補を削除しました。");
+                              window.alert(
+                                "候補を削除しました。\nSAVEボタンで確定してください。"
+                              );
                             }}
                           />
                         </span>

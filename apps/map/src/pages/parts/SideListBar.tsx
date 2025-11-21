@@ -376,7 +376,7 @@ function SideListBarBase({
       });
       if (!okCand) console.warn("[save] candidate geometry save failed");
     }
-    
+
     // 保存後、candidate の更新を UI へ反映
     try {
       if (!areaUuidToUse) return;
@@ -480,10 +480,14 @@ function SideListBarBase({
           restrictionsMemo: data.meta.restrictionsMemo ?? "",
           remarks: data.meta.remarks ?? "",
         },
-        // TODO
+        // history はまだ画面から編集していないので従来どおり raw 優先
         history: Array.isArray(raw?.history) ? raw.history : [],
-        // TODO
-        candidate: Array.isArray(raw?.candidate) ? raw.candidate : [],
+        // 画面上の meta.candidate をそのまま保存
+        candidate: Array.isArray(data.meta.candidate)
+          ? data.meta.candidate
+          : Array.isArray(raw?.candidate)
+          ? raw.candidate
+          : [],
         updated_at: new Date().toISOString(),
         updated_by: "ui",
       };
