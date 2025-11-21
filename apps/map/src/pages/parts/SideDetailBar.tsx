@@ -72,6 +72,8 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     remarks: "",
     candidate: [],
   });
+  // SideDetailBar コンポーネント内
+
   const candidates = meta.candidate ?? [];
 
   /** =========================
@@ -84,6 +86,20 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     const m = `${d.getMonth() + 1}`.padStart(2, "0");
     const da = `${d.getDate()}`.padStart(2, "0");
     return `${y}/${m}/${da}`;
+  };
+
+  // タイトル重複チェック用ヘルパ（空文字は対象外）
+  const hasDuplicateCandidateTitle = (
+    title: string,
+    selfIndex: number | null
+  ) => {
+    const normalized = title.trim();
+    if (!normalized) return false;
+    return candidates.some((c, idx) => {
+      if (idx === selfIndex) return false;
+      const t = (c.title ?? "").trim();
+      return t === normalized;
+    });
   };
 
   // 「案件情報を登録する」ボタン
@@ -120,14 +136,23 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   };
 
   // 候補地確定・キャンセル
-  const commitCandidateTitle = () => {
-    if (editingCandidateIdx == null) return;
+  const commitCandidateTitle = (): boolean => {
+    if (editingCandidateIdx == null) return false;
 
     const idx = editingCandidateIdx;
     const trimmed = editingCandidateTitle.trim();
 
     // 最終的なタイトル文字列（空ならデフォルト）
     const finalTitle = trimmed || "候補地タイトル";
+
+    // ===== 重複チェック =====
+    if (hasDuplicateCandidateTitle(finalTitle, idx)) {
+      window.alert(
+        "同じタイトルの候補が既にあります。別のタイトルを入力してください。"
+      );
+      // state は触らず、そのまま編集を続行できるようにする
+      return false;
+    }
 
     // meta.candidate を更新
     setMeta((prev) => {
@@ -176,6 +201,8 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
         },
       })
     );
+
+    return true;
   };
 
   const cancelCandidateEdit = () => {
@@ -704,7 +731,17 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                           e.stopPropagation(); // 行クリックへのバブリング防止
 
                           // すでに別の候補を編集中なら一旦確定
-                          commitCandidateTitle();
+                          if (
+                            editingCandidateIdx != null &&
+                            editingCandidateIdx !== idx
+                          ) {
+                            const ok = commitCandidateTitle();
+                            if (!ok) {
+                              // 重複エラーなどで確定できなかった場合は
+                              // 新しい行の編集には切り替えない
+                              return;
+                            }
+                          }
 
                           // この行を編集対象にする
                           setEditingCandidateIdx(idx);
@@ -721,10 +758,15 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                             onChange={(e) =>
                               setEditingCandidateTitle(e.target.value)
                             }
-                            onBlur={commitCandidateTitle}
+                            onBlur={() => {
+                              // フォーカスが外れたときは確定せず編集キャンセル
+                              // → alert が blur と連鎖してループするのを防ぐ
+                              cancelCandidateEdit();
+                            }}
                             onKeyDown={(e) => {
                               if (e.key === "Enter") {
                                 e.preventDefault();
+                                // Enter のときだけ重複チェック付きで確定
                                 commitCandidateTitle();
                               } else if (e.key === "Escape") {
                                 e.preventDefault();
@@ -748,13 +790,28 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                             height={23}
                             title="この候補を削除"
                             onClick={() => {
+                              const ok = window.confirm(
+                                `候補「${
+                                  candidate.title || "（無題の候補）」"
+                                }」を削除してもよろしいですか？`
+                              );
+                              if (!ok) {
+                                // 「いいえ」のときは何もしない
+                                return;
+                              }
+
+                              // ここから先は後ほど実装：今は確認が取れたらログ＋完了ポップアップ
                               console.log(
-                                "[detailbar] delete candidate clicked",
+                                "[detailbar] delete candidate confirmed",
                                 {
                                   index: idx,
                                   candidate,
                                 }
                               );
+                              // TODO: 実際の削除処理をここに実装する
+
+                              // 削除完了メッセージ
+                              window.alert("候補を削除しました。");
                             }}
                           />
                         </span>
