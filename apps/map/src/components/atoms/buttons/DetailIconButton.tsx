@@ -17,11 +17,11 @@ export function DetailIconButton({
   onClick,
   className = "",
   title = "スケジュール詳細",
-  height = 32, // ← デフォルトの高さ（FilterButtonに合わせる）
+  height = 32,
   tabIndex,
 }: Props) {
   const h = typeof height === "number" ? `${height}px` : height;
-  
+
   const iconSrc = `${import.meta.env.BASE_URL}_0002_icon_detail.png`;
 
   return (

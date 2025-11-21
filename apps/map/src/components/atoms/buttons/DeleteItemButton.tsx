@@ -1,61 +1,54 @@
 // src/components/atoms/buttons/DeleteItemButton.tsx
 import clsx from "clsx";
-import type React from "react";
 
-type DeleteItemButtonProps = {
-  onClick?: React.MouseEventHandler<HTMLButtonElement>;
-  disabled?: boolean;
+type Props = {
+  onClick: () => void;
   className?: string;
   title?: string;
-  tabIndex?: number;
   /** ボタンの高さ（px or CSS長さ）。例: 32, "40px", "2.5rem" */
   height?: number | string;
+  tabIndex?: number;
 };
 
-export function DeleteItemButton({
+/* =========================
+   削除ボタン（ごみ箱アイコン）
+   ========================= */
+export function DeleteIconButton({
   onClick,
-  disabled = false,
   className = "",
-  title = "項目削除",
-  tabIndex,
+  title = "削除",
   height = 32,
-}: DeleteItemButtonProps) {
+  tabIndex,
+}: Props) {
   const h = typeof height === "number" ? `${height}px` : height;
 
-  const iconSrc = `${import.meta.env.BASE_URL}icon_trash.png`;
+  const iconSrc = `${import.meta.env.BASE_URL}icon_delete.png`;
 
   return (
     <button
       type="button"
       onClick={onClick}
-      disabled={disabled}
+      title={title}
+      tabIndex={tabIndex}
       className={clsx(
-        "inline-flex items-center justify-center select-none",
-        disabled ? "opacity-50 cursor-default" : "cursor-pointer",
+        "inline-flex items-center justify-center p-0 bg-transparent border-0 select-none",
         className
       )}
-      title={title}
-      aria-label={title}
-      tabIndex={tabIndex}
       style={{
-        height: h, // 高さのみ固定
-        width: "auto", // 横は自動
-        padding: 0,
-        background: "transparent",
-        border: "none",
-        lineHeight: 0,
+        height: h,
+        width: "auto",
       }}
     >
       <img
         src={iconSrc}
-        alt=""
+        alt={title}
         draggable={false}
         style={{
-          height: "100%", // ボタンの高さにフィット
-          width: "auto", // 比率維持で自動
+          height: "100%",
+          width: "auto",
           objectFit: "contain",
-          pointerEvents: "none",
           display: "block",
+          pointerEvents: "none",
         }}
       />
     </button>

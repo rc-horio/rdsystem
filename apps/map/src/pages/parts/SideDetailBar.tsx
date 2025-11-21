@@ -7,6 +7,7 @@ import {
   DetailIconButton,
   SelectBox,
   useEditableBodyClass,
+  DeleteIconButton,
 } from "@/components";
 import type {
   TabKey,
@@ -590,12 +591,15 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                         }`}
                         role="option"
                         aria-selected={selected}
+                        onClick={() => onSelectHistory(item, i)}
                       >
                         <span className="ds-record-leftgap">
                           <DetailIconButton
                             height={23}
                             title="スケジュール詳細"
-                            onClick={() => onSelectHistory(item, i)}
+                            onClick={() => {
+                              // TODO: スケジュール詳細ページへの遷移処理を後ほど実装
+                            }}
                           />
                         </span>
 
@@ -605,6 +609,25 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                         <span className="ds-record-name">
                           {item.projectName}
                         </span>
+
+                        {editable && (
+                          <span className="ds-record-delete">
+                            <DeleteIconButton
+                              height={23}
+                              title="この履歴を削除"
+                              onClick={() => {
+                                // TODO: 削除処理は次フェーズで実装
+                                console.log(
+                                  "[detailbar] delete history clicked",
+                                  {
+                                    index: i,
+                                    item,
+                                  }
+                                );
+                              }}
+                            />
+                          </span>
+                        )}
                       </div>
                     );
                   })
@@ -644,12 +667,15 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                       }`}
                       role="option"
                       aria-selected={selectedCandidateIdx === idx}
+                      onClick={() => onSelectCandidate(candidate, idx)}
                     >
                       <span className="ds-record-leftgap">
                         <DetailIconButton
                           height={23}
                           title="候補エリア詳細"
-                          onClick={() => onSelectCandidate(candidate, idx)}
+                          onClick={() => {
+                            // TODO: 候補エリア詳細ページへの遷移処理を後ほど実装
+                          }}
                         />
                       </span>
 
@@ -679,6 +705,25 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                           candidate.title
                         )}
                       </span>
+
+                      {editable && (
+                        <span className="ds-record-delete">
+                          <DeleteIconButton
+                            height={23}
+                            title="この候補を削除"
+                            onClick={() => {
+                              // TODO: 削除処理は次フェーズで実装
+                              console.log(
+                                "[detailbar] delete candidate clicked",
+                                {
+                                  index: idx,
+                                  candidate,
+                                }
+                              );
+                            }}
+                          />
+                        </span>
+                      )}
                     </div>
                   ))
                 )}

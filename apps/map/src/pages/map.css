@@ -720,6 +720,13 @@ body.detailbar-open #detailbar {
   align-items: center;
   gap: var(--ds-record-gap);
   white-space: nowrap;
+  border-radius: 6px;
+  transition: background 0.12s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  cursor: pointer;
+  caret-color: transparent;
 }
 
 /* 日付 */
@@ -775,6 +782,33 @@ body.detailbar-open #detailbar {
   line-height: var(--ds-name-lh);
   color: var(--ds-name-color);
 }
+/* 削除ボタン用コンテナ：行の右端に寄せる ＋ デフォルト非表示 */
+.ds-record-delete {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  opacity: 0; /* 最初は見せない */
+  pointer-events: none; /* 非表示中はクリック不可 */
+}
+
+/* 行にホバー or フォーカスがあるときだけ表示する */
+.ds-record-row:hover .ds-record-delete,
+.ds-record-row:focus-within .ds-record-delete {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* 非選択行をホバーしたときに、行全体をうっすらハイライト */
+/* 「案件情報を登録する」ボタンの hover と同じトーン */
+.ds-record-row:not(.is-selected):hover,
+.ds-record-row:not([aria-selected="true"]):hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* 高さだけ揃える（DetailIconButton と同じ） */
+.ds-record-delete button {
+  height: 23px;
+}
 
 /* 候補地タイトル編集用インプット（シンプル版） */
 #detailbar .candidate-title-input {
@@ -783,6 +817,11 @@ body.detailbar-open #detailbar {
   padding: 0 6px;
   width: 100%;
   outline: none;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -ms-user-select: text !important;
+  caret-color: auto !important;
+  cursor: text;
 }
 
 /* =========================================
