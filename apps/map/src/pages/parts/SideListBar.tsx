@@ -267,7 +267,7 @@ function SideListBarBase({
     }));
     setEditingAreaKey(null);
 
-    // ★ 詳細バーに反映：今アクティブなエリアならタイトルも更新
+    // 詳細バーに反映：今アクティブなエリアならタイトルも更新
     if (activeKey === editingAreaKey) {
       setDetailBarTitle(finalName);
     }
@@ -440,14 +440,14 @@ function SideListBarBase({
         }, 3000);
       });
 
-      // ★ 1. 新しいタイトルを取り出す
+      // 1. 新しいタイトルを取り出す
       const newTitle = (data.title ?? "").trim();
       if (!newTitle) {
         window.alert("エリア名を入力してください。");
         return;
       }
 
-      // ★ 2. areaName 重複チェック（自分自身の uuid は除外）
+      // 2. areaName 重複チェック（自分自身の uuid は除外）
       const isDup = await isAreaNameDuplicated({
         areaName: newTitle,
         excludeUuid: areaUuid,

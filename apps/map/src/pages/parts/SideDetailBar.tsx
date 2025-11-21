@@ -121,23 +121,60 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   // 候補地確定・キャンセル
   const commitCandidateTitle = () => {
     if (editingCandidateIdx == null) return;
+
+    const idx = editingCandidateIdx;
     const trimmed = editingCandidateTitle.trim();
 
+    // 最終的なタイトル文字列（空ならデフォルト）
+    const finalTitle = trimmed || "候補地タイトル";
+
+    // meta.candidate を更新
     setMeta((prev) => {
       const list = [...(prev.candidate ?? [])];
-      const target = list[editingCandidateIdx];
+      const target = list[idx];
       if (!target) return prev;
 
-      list[editingCandidateIdx] = {
+      list[idx] = {
         ...target,
-        title: trimmed || target.title || "候補地タイトル",
+        title: finalTitle,
       };
 
       return { ...prev, candidate: list };
     });
 
+    // 編集モード解除
     setEditingCandidateIdx(null);
     setEditingCandidateTitle("");
+
+    // 「この候補が選択中」であることを明示しておく
+    setSelectedHistoryIdx(null);
+    setSelectedCandidateIdx(idx);
+
+    // ① 何かが選択されたことを通知（MapView 側の isSelected = true）
+    window.dispatchEvent(
+      new CustomEvent(EV_DETAILBAR_SELECTED, {
+        detail: { isSelected: true },
+      })
+    );
+
+    // ② 候補選択イベントを投げて、MapView に
+    //    「index idx / title finalTitle / geometry(まだなし)」
+    //    を教える
+    window.dispatchEvent(
+      new CustomEvent(EV_DETAILBAR_SELECT_CANDIDATE, {
+        detail: {
+          geometry: {
+            // まだジオメトリは無いので全部 undefined で OK
+            takeoffArea: undefined,
+            flightArea: undefined,
+            safetyArea: undefined,
+            audienceArea: undefined,
+          },
+          index: idx,
+          title: finalTitle,
+        },
+      })
+    );
   };
 
   const cancelCandidateEdit = () => {

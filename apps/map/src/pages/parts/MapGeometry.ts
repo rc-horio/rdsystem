@@ -302,7 +302,7 @@ export class MapGeometry {
                 this.arrow2Ref = line2;
                 line2.getPath().forEach((p: google.maps.LatLng) => bounds.extend(p));
                 // 矢印2の長さを計算してラベルを更新
-                // ★ラベルバグ回避のためコメントアウト
+                // ラベルバグ回避のためコメントアウト
                 // const distance2 = gmaps.geometry.spherical.computeDistanceBetween(line2.getPath().getAt(0), line2.getPath().getAt(1));
                 // this.updateArrowLabel(this.arrow2Ref, line2.getPath().getAt(0), line2.getPath().getAt(1), distance2);
             }
@@ -310,7 +310,7 @@ export class MapGeometry {
                 this.arrow3Ref = line3;
                 line3.getPath().forEach((p: google.maps.LatLng) => bounds.extend(p));
                 // 矢印3の長さを計算してラベルを更新
-                // ★ラベルバグ回避のためコメントアウト
+                // ラベルバグ回避のためコメントアウト
                 // const distance3 = gmaps.geometry.spherical.computeDistanceBetween(line3.getPath().getAt(0), line3.getPath().getAt(1));
                 // this.updateArrowLabel(this.arrow3Ref, line3.getPath().getAt(0), line3.getPath().getAt(1), distance3);
             }
@@ -384,7 +384,7 @@ export class MapGeometry {
                 safetyArea: { type: "ellipse", ...prevSafety, buffer_m: dist_m },
             } as Geometry;
 
-            // ★ パネルへも通知（高度＋最大移動距離）
+            // パネルへも通知（高度＋最大移動距離）
             setDetailBarMetrics({ flightAltitude_m: alt, safetyDistance_m: dist_m, buffer_m: dist_m });
 
             // 図面更新（既存処理）
@@ -555,7 +555,7 @@ export class MapGeometry {
         this.arrow3Ref.setPath([pCorner, pTo]);   // ③ depthに垂直
 
         // 矢印2の長さを計算
-        // ★ラベルバグ回避のためコメントアウト
+        // ラベルバグ回避のためコメントアウト
         /*
         const gmaps = this.getGMaps();
         const distance2 = gmaps.geometry.spherical.computeDistanceBetween(pFrom, pCorner);
@@ -572,7 +572,7 @@ export class MapGeometry {
     }
 
     // 矢印のラベルを更新または作成
-    // ★ラベルバグ回避のためコメントアウト
+    // ラベルバグ回避のためコメントアウト
     /*
         private updateArrowLabel(arrow: google.maps.Polyline | null, fromLatLng: google.maps.LatLng, toLatLng: google.maps.LatLng, distance: number) {
             const gmaps = this.getGMaps();

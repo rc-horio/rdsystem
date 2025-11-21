@@ -160,7 +160,7 @@ export default function MapView({ onLoaded }: Props) {
     }, 3000); // 3秒表示
   };
 
-  /** 座標変更完了トーストを一定時間表示（★追加） */
+  /** 座標変更完了トーストを一定時間表示 */
   const notifyPositionUpdated = () => {
     if (positionUpdatedToastTimerRef.current != null) {
       window.clearTimeout(positionUpdatedToastTimerRef.current);
@@ -703,7 +703,7 @@ export default function MapView({ onLoaded }: Props) {
     if (areaUuid) {
       const idx = currentCandidateIndexRef.current;
       if (typeof idx === "number" && idx >= 0) {
-        // ← ★ 編集中の候補があれば上書き
+        // ← 編集中の候補があれば上書き
         return await upsertAreaCandidateAtIndex({
           areaUuid,
           index: idx,

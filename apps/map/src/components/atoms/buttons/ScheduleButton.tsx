@@ -16,7 +16,7 @@ export function ScheduleButton({
 }) {
   const BTN_CLASS = clsx(
     "inline-flex items-center justify-center",
-    // ★ボタンサイズ変更
+    // ボタンサイズ変更
     "h-9 w-9 md:h-8 md:w-8",
      "cursor-pointer",
     className
