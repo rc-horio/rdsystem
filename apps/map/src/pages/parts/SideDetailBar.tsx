@@ -694,7 +694,23 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                         />
                       </span>
 
-                      <span className="ds-candidate-name">
+                      {/* ダブルクリックで編集開始 */}
+                      <span
+                        className="ds-candidate-name"
+                        onDoubleClick={(
+                          e: ReactMouseEvent<HTMLSpanElement>
+                        ) => {
+                          if (!editable) return; // 編集モードでなければ何もしない
+                          e.stopPropagation(); // 行クリックへのバブリング防止
+
+                          // すでに別の候補を編集中なら一旦確定
+                          commitCandidateTitle();
+
+                          // この行を編集対象にする
+                          setEditingCandidateIdx(idx);
+                          setEditingCandidateTitle(candidate.title ?? "");
+                        }}
+                      >
                         {editable && editingCandidateIdx === idx ? (
                           <input
                             ref={editingCandidateInputRef}
