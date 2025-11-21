@@ -6,13 +6,11 @@ import {
   useDraggableMetricsPanel,
   useEditableBodyClass,
   useAddAreaMode,
+  useScheduleSection,
+  useCandidateSection,
 } from "@/components";
 import type { Props, Point, Geometry } from "@/features/types";
-import {
-  fetchAreaInfo,
-  fetchProjectIndex,
-  createNewArea,
-} from "./areasApi";
+import { fetchAreaInfo, createNewArea } from "./areasApi";
 import {
   EV_DETAILBAR_SELECTED,
   OPEN_INFO_ON_SELECT,
@@ -38,8 +36,6 @@ import {
   EV_MAP_FOCUS_ONLY,
   EV_SIDEBAR_OPEN,
   EV_SIDEBAR_SET_ACTIVE,
-  EV_DETAILBAR_SELECT_HISTORY,
-  EV_DETAILBAR_SELECT_CANDIDATE,
   MARKERS_HIDE_ZOOM,
   DEFAULTS,
   EV_PROJECT_MODAL_OPEN,
@@ -66,6 +62,11 @@ export default function MapView({ onLoaded }: Props) {
 
   const [showCreateGeomCta, setShowCreateGeomCta] = useState(false);
   const [isSelected, setIsSelected] = useState(false);
+  // 「どのセクション由来の選択か」を保持（案件 or 候補）
+  const [selectionKind, setSelectionKind] = useState<
+    "schedule" | "candidate" | null
+  >(null);
+
   const [showAreaCreatedToast, setShowAreaCreatedToast] = useState(false);
   const areaCreatedToastTimerRef = useRef<number | null>(null);
 
@@ -364,7 +365,7 @@ export default function MapView({ onLoaded }: Props) {
 
     // 矢印ラベルを削除
     if (geomRef.current?.arrowLabel) {
-      geomRef.current?.arrowLabel.setMap(null);
+      geomRef.current.arrowLabel.setMap(null);
       geomRef.current.arrowLabel = null;
     }
   };
@@ -380,36 +381,6 @@ export default function MapView({ onLoaded }: Props) {
       // マーカーを隠すときは InfoWindow も閉じる
       infoRef.current?.close();
     }
-  };
-
-  // 候補ジオメトリの有無判定
-  const hasCandidateGeometry = (g?: Geometry | null): boolean => {
-    if (!g || typeof g !== "object") return false;
-
-    const hasCoords = (coords?: any) =>
-      Array.isArray(coords) && coords.length >= 3;
-
-    const hasEllipse = (ea?: any) =>
-      ea &&
-      ea.type === "ellipse" &&
-      Array.isArray(ea.center) &&
-      ea.center.length === 2 &&
-      Number.isFinite(ea.radiusX_m) &&
-      Number.isFinite(ea.radiusY_m);
-
-    const hasRect = (ra?: any) =>
-      ra && ra.type === "rectangle" && hasCoords(ra.coordinates);
-
-    const takeoff = hasRect(g.takeoffArea);
-    const flight = hasEllipse(g.flightArea) || hasRect(g.flightArea); // 念のため rectangle も許容
-    const safety =
-      (g.safetyArea &&
-        g.safetyArea.type === "ellipse" &&
-        Number.isFinite(g.safetyArea.buffer_m)) ||
-      hasRect(g.safetyArea);
-    const audience = hasRect(g.audienceArea);
-
-    return !!(takeoff || flight || safety || audience);
   };
 
   /** =========================
@@ -680,70 +651,6 @@ export default function MapView({ onLoaded }: Props) {
     syncMarkersVisibilityForZoom();
   }
 
-  // async function saveGeometryToS3(geometry: Geometry) {
-  //   const pj = currentProjectUuidRef.current;
-  //   const sch = currentScheduleUuidRef.current;
-  //   const areaUuid = currentAreaUuidRef.current;
-
-  //   // 1) 履歴（プロジェクト/スケジュール）優先
-  //   // if (pj && sch) {
-  //   //   return await upsertScheduleGeometry({
-  //   //     projectUuid: pj,
-  //   //     scheduleUuid: sch,
-  //   //     geometry,
-  //   //   });
-  //   // }
-
-  //   // 2) 候補（エリア）
-  //   if (areaUuid) {
-  //     const idx = currentCandidateIndexRef.current;
-  //     if (typeof idx === "number" && idx >= 0) {
-  //       // ← 編集中の候補があれば上書き
-  //       return await upsertAreaCandidateAtIndex({
-  //         areaUuid,
-  //         index: idx,
-  //         candidate: {
-  //           title: currentCandidateTitleRef.current, // 既存タイトルを維持
-  //           flightAltitude_m: geometry.flightAltitude_m,
-  //           takeoffArea: geometry.takeoffArea,
-  //           flightArea: geometry.flightArea!,
-  //           safetyArea: geometry.safetyArea!,
-  //           audienceArea: geometry.audienceArea,
-  //         },
-  //         preserveTitle: true,
-  //       });
-  //     } else {
-  //       // 新規作成時のみ追記
-  //       const title =
-  //         currentCandidateTitleRef.current ??
-  //         `候補 ${new Date().toISOString().replace(/[-:T]/g, "").slice(0, 12)}`;
-  //       return await appendAreaCandidate({
-  //         areaUuid,
-  //         candidate: {
-  //           title,
-  //           flightAltitude_m: geometry.flightAltitude_m,
-  //           takeoffArea: geometry.takeoffArea,
-  //           flightArea: geometry.flightArea!,
-  //           safetyArea: geometry.safetyArea!,
-  //           audienceArea: geometry.audienceArea,
-  //         },
-  //       });
-  //     }
-  //   }
-
-  //   // 2) 履歴（プロジェクト/スケジュール）
-  //   if (pj && sch) {
-  //     return await upsertScheduleGeometry({
-  //       projectUuid: pj,
-  //       scheduleUuid: sch,
-  //       geometry,
-  //     });
-  //   }
-
-  //   console.warn("[saveGeometryToS3] no context to save.");
-  //   return false;
-  // }
-
   /** =========================
    *  Effects
    *  ========================= */
@@ -901,158 +808,43 @@ export default function MapView({ onLoaded }: Props) {
       );
   }, []);
 
-  // 外部イベント：detailbar:select-history -> ジオメトリを取得/描画（統合版）
-  useEffect(() => {
-    const onSelect = async (e: Event) => {
-      try {
-        const { projectUuid, scheduleUuid } =
-          (
-            e as CustomEvent<{
-              projectUuid?: string;
-              scheduleUuid?: string;
-            }>
-          ).detail || {};
+  // 案件情報セクション（履歴）用の処理をフックに委譲
+  useScheduleSection({
+    geomRef,
+    setShowCreateGeomCta,
+    clearGeometryOverlays,
+    setDetailBarMetrics,
+    currentProjectUuidRef,
+    currentScheduleUuidRef,
+  });
 
-        // 現在のスケジュールを覚えておく（保存先の判定に使う）
-        currentProjectUuidRef.current = projectUuid || undefined;
-        currentScheduleUuidRef.current = scheduleUuid || undefined;
-
-        // まずは非表示に（必要なケースのみ true にする）
-        setShowCreateGeomCta(false);
-
-        // 参照点変更イベント用に現在のスケジュールを共有
-        geomRef.current?.setCurrentSchedule(projectUuid, scheduleUuid);
-
-        if (!projectUuid || !scheduleUuid) {
-          if (import.meta.env.DEV)
-            console.warn("[map] missing uuids in select-history");
-          clearGeometryOverlays();
-          setDetailBarMetrics({});
-          return;
-        }
-
-        const proj = await fetchProjectIndex(projectUuid);
-        const schedules = Array.isArray(proj?.schedules) ? proj.schedules : [];
-        const sch: any = schedules.find((s: any) => s?.id === scheduleUuid);
-
-        if (!sch) {
-          if (import.meta.env.DEV)
-            console.warn("[map] schedule not found", scheduleUuid);
-          console.info(
-            `[map] geometry: UNKNOWN (schedule not found) project=${projectUuid}, schedule=${scheduleUuid}`
-          );
-          clearGeometryOverlays();
-          setDetailBarMetrics({});
-          return;
-        }
-
-        // geometry の有無判定
-        const geom = sch?.geometry;
-        const hasGeom =
-          !!geom && typeof geom === "object" && Object.keys(geom).length > 0;
-
-        const label =
-          typeof sch?.label === "string" ? sch.label : String(scheduleUuid);
-
-        if (hasGeom) {
-          const center =
-            geom?.flightArea?.type === "ellipse" &&
-            Array.isArray(geom?.flightArea?.center)
-              ? geom.flightArea.center
-              : undefined;
-
-          console.info(
-            `[map] geometry: PRESENT for "${label}" (id=${sch?.id}) on ${
-              sch?.date ?? "N/A"
-            }`,
-            {
-              geometryKeys: Object.keys(geom),
-              center, // 例: [lng, lat]
-            }
-          );
-
-          // 初回は fit あり
-          geomRef.current?.renderGeometry(geom);
-        } else {
-          // 既存スケジュールだが geometry が無い → CTA を出す
-          setShowCreateGeomCta(true);
-          console.info(
-            `[map] geometry: ABSENT for "${label}" (id=${sch?.id}) on ${
-              sch?.date ?? "N/A"
-            }`
-          );
-          clearGeometryOverlays();
-          setDetailBarMetrics({});
-        }
-      } catch (err) {
-        setShowCreateGeomCta(false);
-        console.error("[map] render geometry error", err);
-        clearGeometryOverlays();
-        setDetailBarMetrics({});
-      }
-    };
-
-    window.addEventListener(
-      EV_DETAILBAR_SELECT_HISTORY,
-      onSelect as EventListener
-    );
-    return () =>
-      window.removeEventListener(
-        EV_DETAILBAR_SELECT_HISTORY,
-        onSelect as EventListener
-      );
-  }, []);
-
-  // 外部イベント：detailbar:select-candidate -> ジオメトリを描画
-  useEffect(() => {
-    const onCandidateSelect = async (e: Event) => {
-      const { detail } = e as CustomEvent<{
-        geometry: Geometry;
-        index?: number;
-        title?: string;
-      }>;
-      if (!detail) return;
-      currentCandidateIndexRef.current =
-        typeof detail.index === "number" ? detail.index : null;
-      currentCandidateTitleRef.current =
-        typeof detail.title === "string" ? detail.title : undefined;
-
-      // 履歴（プロジェクト）文脈はここで確実に無効化
-      currentProjectUuidRef.current = undefined;
-      currentScheduleUuidRef.current = undefined;
-      // MapGeometry がスケジュール文脈を内部保持している場合に備え、明示的に解除
-      geomRef.current?.setCurrentSchedule?.(undefined as any, undefined as any);
-
-      //  ここで有無判定して CTA を制御
-      const hasGeom = hasCandidateGeometry(detail.geometry);
-      if (hasGeom) {
-        setShowCreateGeomCta(false); // 既存あり → 「削除」ボタンを見せる
-        geomRef.current?.renderGeometry(detail.geometry);
-      } else {
-        setShowCreateGeomCta(true); // 既存なし → 「作成」ボタンを見せる
-        clearGeometryOverlays(); // 何も描かない
-        setDetailBarMetrics({}); // メトリクスもリセット
-      }
-    };
-
-    window.addEventListener(
-      EV_DETAILBAR_SELECT_CANDIDATE,
-      onCandidateSelect as EventListener
-    );
-
-    return () => {
-      window.removeEventListener(
-        EV_DETAILBAR_SELECT_CANDIDATE,
-        onCandidateSelect as EventListener
-      );
-    };
-  }, []);
+  // 候補セクション用の処理をフックに委譲
+  useCandidateSection({
+    geomRef,
+    setShowCreateGeomCta,
+    clearGeometryOverlays,
+    setDetailBarMetrics,
+    currentProjectUuidRef,
+    currentScheduleUuidRef,
+    currentCandidateIndexRef,
+    currentCandidateTitleRef,
+    // 候補セクションでは CTA を使わないため、
+    // タイトル確定時などに自動でデフォルトジオメトリを生成する
+    createDefaultGeometryForCandidate: createDefaultGeometry,
+  });
 
   // SideDetailBar から選択状態を受け取る
   useEffect(() => {
     const onSelectedStateChange = (e: Event) => {
-      const { isSelected } = (e as CustomEvent).detail;
-      setIsSelected(isSelected);
+      const detail =
+        (
+          e as CustomEvent<{
+            isSelected?: boolean;
+            kind?: "schedule" | "candidate" | null;
+          }>
+        ).detail || {};
+      setIsSelected(!!detail.isSelected);
+      setSelectionKind(detail.kind ?? null);
     };
 
     window.addEventListener(EV_DETAILBAR_SELECTED, onSelectedStateChange);
@@ -1109,6 +901,7 @@ export default function MapView({ onLoaded }: Props) {
       clearGeometryOverlays(); // すべての図形を消す
       setShowCreateGeomCta(false); // CTAも隠す
       setDetailBarMetrics({}); // メトリクス（寸法表示など）リセット
+      setSelectionKind(null);
     }
   }, [isSelected]);
 
@@ -1200,7 +993,7 @@ export default function MapView({ onLoaded }: Props) {
     // 描画（※カメラは動かさない）
     geomRef.current.renderGeometry(geometry, { fit: true });
 
-    // 作成後はCTAを隠し、削除ボタンを出す側へ遷移
+    // 作成後はCTAを隠す（案件用のボタン）
     setShowCreateGeomCta(false);
   }
 
@@ -1255,33 +1048,40 @@ export default function MapView({ onLoaded }: Props) {
         </div>
       )}
       <div id="controls" className="cta-overlay">
-        {editable && showCreateGeomCta && isSelected && (
-          <button
-            id="create-geom-button"
-            type="button"
-            className="create-geom-button"
-            onClick={() => {
-              createDefaultGeometry();
-            }}
-            aria-label="エリア情報を作成する"
-          >
-            エリア情報を作成する
-          </button>
-        )}
+        {/* 案件情報セクションのときだけ CTA を表示 */}
+        {editable &&
+          selectionKind === "schedule" &&
+          showCreateGeomCta &&
+          isSelected && (
+            <button
+              id="create-geom-button"
+              type="button"
+              className="create-geom-button"
+              onClick={() => {
+                createDefaultGeometry();
+              }}
+              aria-label="エリア情報を作成する"
+            >
+              エリア情報を作成する
+            </button>
+          )}
 
-        {editable && !showCreateGeomCta && isSelected && (
-          <button
-            id="delete-geom-button"
-            type="button"
-            className="delete-geom-button"
-            onClick={() => {
-              deleteGeometry();
-            }}
-            aria-label="エリア情報を削除する"
-          >
-            エリア情報を削除する
-          </button>
-        )}
+        {editable &&
+          selectionKind === "schedule" &&
+          !showCreateGeomCta &&
+          isSelected && (
+            <button
+              id="delete-geom-button"
+              type="button"
+              className="delete-geom-button"
+              onClick={() => {
+                deleteGeometry();
+              }}
+              aria-label="エリア情報を削除する"
+            >
+              エリア情報を削除する
+            </button>
+          )}
       </div>
       <AddAreaModal
         open={editable && !!newAreaDraft}

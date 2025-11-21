@@ -86,7 +86,6 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
 
   // 「案件情報を登録する」ボタン
   const handleRegisterProjectInfo = () => {
-    // TODO: 案件情報登録用の処理をここに実装する
     // 画面中央モーダルを開いてもらうイベントだけ飛ばす
     window.dispatchEvent(new Event(EV_PROJECT_MODAL_OPEN));
   };
@@ -151,15 +150,15 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     setSelectedCandidateIdx(idx);
 
     // ① 何かが選択されたことを通知（MapView 側の isSelected = true）
+    // kind: "candidate" で候補セクション由来であることを知らせる
     window.dispatchEvent(
       new CustomEvent(EV_DETAILBAR_SELECTED, {
-        detail: { isSelected: true },
+        detail: { isSelected: true, kind: "candidate" as const },
       })
     );
 
     // ② 候補選択イベントを投げて、MapView に
-    //    「index idx / title finalTitle / geometry(まだなし)」
-    //    を教える
+    //    「index idx / title finalTitle / geometry(まだなし)」を教える
     window.dispatchEvent(
       new CustomEvent(EV_DETAILBAR_SELECT_CANDIDATE, {
         detail: {
@@ -213,13 +212,15 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     });
   };
 
-  // SideDetailBar.tsx
+  // 履歴選択
   const onSelectHistory = (item: HistoryItem, idx: number) => {
     setSelectedHistoryIdx(idx); // 履歴のインデックスを設定
     setSelectedCandidateIdx(null); // 候補の選択状態を解除
     // 履歴選択イベントを通知（UI 状態は indices で管理）
     window.dispatchEvent(
-      new CustomEvent(EV_DETAILBAR_SELECTED, { detail: { isSelected: true } })
+      new CustomEvent(EV_DETAILBAR_SELECTED, {
+        detail: { isSelected: true, kind: "schedule" as const },
+      })
     );
     const event = new CustomEvent(EV_DETAILBAR_SELECT_HISTORY, {
       detail: { ...item, index: idx },
@@ -227,13 +228,15 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     window.dispatchEvent(event);
   };
 
-  // 同様に候補エリア選択時も
+  // 候補エリア選択時
   const onSelectCandidate = (candidate: Candidate, idx: number) => {
     setSelectedCandidateIdx(idx); // 候補エリアのインデックスを設定
     setSelectedHistoryIdx(null); // 履歴の選択状態を解除
     // 候補選択イベントを通知（UI 状態は indices で管理）
     window.dispatchEvent(
-      new CustomEvent(EV_DETAILBAR_SELECTED, { detail: { isSelected: true } })
+      new CustomEvent(EV_DETAILBAR_SELECTED, {
+        detail: { isSelected: true, kind: "candidate" as const },
+      })
     );
     const selectedCandidate = meta.candidate.find(
       (c) => c.title === candidate.title
@@ -333,7 +336,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       setSelectedCandidateIdx(null);
       window.dispatchEvent(
         new CustomEvent(EV_DETAILBAR_SELECTED, {
-          detail: { isSelected: false },
+          detail: { isSelected: false, kind: null as null },
         })
       );
     };
@@ -360,7 +363,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     if (selectedHistoryIdx === null && selectedCandidateIdx === null) {
       window.dispatchEvent(
         new CustomEvent(EV_DETAILBAR_SELECTED, {
-          detail: { isSelected: false },
+          detail: { isSelected: false, kind: null as null },
         })
       );
     }
@@ -373,7 +376,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       setSelectedCandidateIdx(null);
       window.dispatchEvent(
         new CustomEvent(EV_DETAILBAR_SELECTED, {
-          detail: { isSelected: false },
+          detail: { isSelected: false, kind: null as null },
         })
       );
     };
@@ -382,7 +385,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       window.removeEventListener(EV_SIDEBAR_SET_ACTIVE, reset as EventListener);
   }, []);
 
-  // 追加直後に input にフォーカスG
+  // 追加直後に input にフォーカス
   useEffect(() => {
     if (editingCandidateIdx != null && editingCandidateInputRef.current) {
       const input = editingCandidateInputRef.current;
@@ -416,7 +419,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
             document.body.classList.remove(CLS_DETAILBAR_OPEN);
             window.dispatchEvent(
               new CustomEvent(EV_DETAILBAR_SELECTED, {
-                detail: { isSelected: false },
+                detail: { isSelected: false, kind: null as null },
               })
             );
           }}
