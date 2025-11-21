@@ -375,11 +375,8 @@ function SideListBarBase({
         preserveTitle: true,
       });
       if (!okCand) console.warn("[save] candidate geometry save failed");
-    } else {
-      if (import.meta.env.DEV)
-        console.debug("[save] candidate geometry not available — skipped");
     }
-
+    
     // 保存後、candidate の更新を UI へ反映
     try {
       if (!areaUuidToUse) return;

@@ -504,19 +504,17 @@ export async function upsertAreaCandidateAtIndex(params: {
         // ---- 既存 candidate の更新パス ----
         const prev = list[index] ?? {};
         const next: Candidate = {
-            // preserveTitle=true のときは元の title を優先しつつ、なければ candidate.title / デフォルト
             ...(preserveTitle
                 ? { title: prev.title ?? candidate.title ?? `候補${index + 1}` }
                 : {}),
-            ...prev,      // 既存値ベース
-            ...candidate, // 渡された変更を上書き
+            ...prev,      // 既存をベース
+            ...candidate, // 変更を上書き
         };
 
         nextList = list.map((c, i) => (i === index ? next : c));
     } else {
         // ---- index === list.length → 新規候補を末尾に追加 ----
         const next: Candidate = {
-            // 新規なので title は candidate.title またはデフォルト
             title: candidate.title ?? `候補${index + 1}`,
             ...candidate,
         } as Candidate;
@@ -534,7 +532,7 @@ export async function upsertAreaCandidateAtIndex(params: {
     return ok;
 }
 
-/** 候補 index の図形情報（takeoff/flight/safety/audience など）を削除して保存 */
+/** 候補 index の要素自体を candidate 配列から削除して保存します。 */
 export async function clearAreaCandidateGeometryAtIndex(params: {
     areaUuid: string;
     index: number;
@@ -546,21 +544,12 @@ export async function clearAreaCandidateGeometryAtIndex(params: {
     const list: Candidate[] = Array.isArray(info?.candidate) ? info.candidate : [];
     if (index >= list.length) return false;
 
-    const prev = list[index] ?? {};
-
-    // geometry 系キーを “未設定” にする（undefined は JSON.stringify で落ちる）
-    const next: any = {
-        ...prev,
-        flightAltitude_m: undefined,
-        takeoffArea: undefined,
-        flightArea: undefined,
-        safetyArea: undefined,
-        audienceArea: undefined,
-    };
+    // 該当 index の candidate を配列から除去
+    const nextList = list.filter((_, i) => i !== index);
 
     const nextInfo = {
         ...info,
-        candidate: list.map((c, i) => (i === index ? next : c))
+        candidate: nextList,
     };
 
     const ok = await saveAreaInfo(areaUuid, nextInfo);
