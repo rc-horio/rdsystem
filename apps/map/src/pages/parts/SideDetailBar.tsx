@@ -102,7 +102,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     });
   };
 
-  // 「案件情報を登録する」ボタン
+  // 「案件情報を紐づける」ボタン
   const handleRegisterProjectInfo = () => {
     // 画面中央モーダルを開いてもらうイベントだけ飛ばす
     window.dispatchEvent(new Event(EV_PROJECT_MODAL_OPEN));
@@ -678,7 +678,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                   className="add-area-button detailbar-add-button"
                   onClick={handleRegisterProjectInfo}
                 >
-                  <span className="add-icon">＋ </span>案件情報を登録する
+                  <span className="add-icon">＋ </span>案件情報を紐づける
                 </button>
               )}
             </div>

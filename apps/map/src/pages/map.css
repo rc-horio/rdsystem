@@ -802,7 +802,7 @@ body.detailbar-open #detailbar {
 }
 
 /* 非選択行をホバーしたときに、行全体をうっすらハイライト */
-/* 「案件情報を登録する」ボタンの hover と同じトーン */
+/* 「案件情報を紐づける」ボタンの hover と同じトーン */
 .ds-record-row:not(.is-selected):hover,
 .ds-record-row:not([aria-selected="true"]):hover {
   background: rgba(255, 255, 255, 0.12);
@@ -1372,18 +1372,25 @@ select.rc-inp-input optgroup {
    ========================================= */
 /* モーダルの背景（黒い半透明の覆い） */
 .modal-backdrop {
-  position: fixed; /* ビューポート全体を覆う */
-  inset: 0; /* top/right/bottom/left: 0 の省略形 */
-  z-index: 2000; /* Map やヒントレイヤーより前に出す */
-  background: rgba(0, 0, 0, 0.45);
-
-  display: flex; /* 中央寄せ */
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
   align-items: center;
   justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.modal-container {
+  background: #fff;
+  border-radius: 10px;
+  max-height: 80vh;
+  max-width: 90vw;
+  overflow: auto;
 }
 
 /* モーダル本体 */
-.modal-container {
+.map-page .modal-container {
   background: #ffffff;
   color: #222;
   border-radius: 10px;
@@ -1392,11 +1399,11 @@ select.rc-inp-input optgroup {
   width: min(90vw, 480px);
   max-height: 80vh;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
-  overflow: auto; /* 中身が多くなったらスクロール */
+  overflow: auto;
 }
 
-/* ヘッダー（タイトル＋×ボタン） */
-.modal-header {
+/* ヘッダー */
+.map-page .modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1405,7 +1412,7 @@ select.rc-inp-input optgroup {
 }
 
 /* ×ボタン */
-.modal-close-button {
+.map-page .modal-close-button {
   border: none;
   background: transparent;
   font-size: 18px;
@@ -1414,13 +1421,14 @@ select.rc-inp-input optgroup {
 }
 
 /* 本文 */
-.modal-body {
+.map-page .modal-body {
   font-size: 14px;
 }
 
 /* ---- 新規エリアモーダル ---- */
 
-.new-area-modal {
+.new-area-modal,
+.register-project-modal {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1428,14 +1436,16 @@ select.rc-inp-input optgroup {
 }
 
 /* 1行ぶん */
-.new-area-modal__row {
+.new-area-modal__row,
+.register-project-modal__row {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
 /* ラベル（テキスト部分） */
-.new-area-modal__label {
+.new-area-modal__label,
+.register-project-modal__label {
   font-size: 13px;
   font-weight: 600;
   color: #222;
@@ -1443,7 +1453,8 @@ select.rc-inp-input optgroup {
 }
 
 /* 入力欄を強調 */
-.new-area-modal__input {
+.new-area-modal__input,
+.register-project-modal__input {
   margin-top: 4px;
   width: 100%;
   box-sizing: border-box;
@@ -1464,23 +1475,33 @@ select.rc-inp-input optgroup {
   cursor: text;
 }
 
-.new-area-modal__input::placeholder {
+.new-area-modal__input::placeholder,
+.register-project-modal__input::placeholder {
   color: #9ca3af;
 }
 
-.new-area-modal__input:focus-visible {
+.new-area-modal__input:focus-visible,
+.register-project-modal__input:focus-visible {
   outline: 2px solid #ed1b24;
   outline-offset: 1px;
   border-color: #ed1b24;
 }
 
+/* プルダウンは指カーソルにする */
+.new-area-modal__select,
+.register-project-modal__select {
+  cursor: pointer;
+}
+
 /* 住所/座標の行もカーソルは通常矢印に */
-.new-area-modal__row span {
+.new-area-modal__row span,
+.register-project-modal__row span {
   cursor: default;
 }
 
 /* ボタン行 */
-.new-area-modal__actions {
+.new-area-modal__actions,
+.register-project-modal__actions {
   margin-top: 16px;
   display: flex;
   justify-content: flex-end;
@@ -1488,7 +1509,8 @@ select.rc-inp-input optgroup {
 }
 
 /* 共通ボタン */
-.new-area-modal__btn {
+.new-area-modal__btn,
+.register-project-modal__btn {
   min-width: 96px;
   padding: 8px 14px;
   border-radius: 999px;
@@ -1501,31 +1523,36 @@ select.rc-inp-input optgroup {
 }
 
 /* キャンセル：グレー系 */
-.new-area-modal__btn--cancel {
+.new-area-modal__btn--cancel,
+.register-project-modal__btn--cancel {
   background: #f3f4f6;
   color: #374151;
   border-color: #d1d5db;
 }
 
-.new-area-modal__btn--cancel:hover {
+.new-area-modal__btn--cancel:hover,
+.register-project-modal__btn--cancel:hover {
   background: #e5e7eb;
 }
 
 /* OK：ブランド赤で強調 */
-.new-area-modal__btn--ok {
+.new-area-modal__btn--ok,
+.register-project-modal__btn--ok {
   background: #ed1b24;
   color: #ffffff;
   border-color: #ed1b24;
 }
 
-.new-area-modal__btn--ok:hover:not(:disabled) {
+.new-area-modal__btn--ok:hover:not(:disabled),
+.register-project-modal__btn--ok:hover:not(:disabled) {
   background: #f1353d;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 8px 18px rgba(0, 0, 0, 0.25);
   transform: translateY(1px);
 }
 
 /* disabled 時（OK だけに掛かる想定） */
-.new-area-modal__btn--ok:disabled {
+.new-area-modal__btn--ok:disabled,
+.register-project-modal__btn--ok:disabled {
   opacity: 0.5;
   cursor: default;
   box-shadow: none;

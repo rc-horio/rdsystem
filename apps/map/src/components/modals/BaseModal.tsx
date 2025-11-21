@@ -1,4 +1,4 @@
-// src\components\modals\BaseModal.tsx
+// src/components/modals/BaseModal.tsx
 import { useEffect } from "react";
 
 type BaseModalProps = {
@@ -6,6 +6,9 @@ type BaseModalProps = {
   onClose: () => void;
   title?: string;
   children: React.ReactNode;
+  /** 画面ごとに足したいクラス（任意） */
+  backdropClassName?: string;
+  containerClassName?: string;
 };
 
 export const BaseModal: React.FC<BaseModalProps> = ({
@@ -13,14 +16,14 @@ export const BaseModal: React.FC<BaseModalProps> = ({
   onClose,
   title,
   children,
+  backdropClassName,
+  containerClassName,
 }) => {
   // ESCキーで閉じる
   useEffect(() => {
     if (!open) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
+      if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
@@ -28,14 +31,20 @@ export const BaseModal: React.FC<BaseModalProps> = ({
 
   if (!open) return null;
 
+  const baseBackdrop = "modal-backdrop";
+  const baseContainer = "modal-container";
+
+  const backdropCls = [baseBackdrop, backdropClassName]
+    .filter(Boolean)
+    .join(" ");
+  const containerCls = [baseContainer, containerClassName]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <div
-      className="modal-backdrop"
-      role="presentation"
-      onClick={onClose} // 背景クリックで閉じる
-    >
+    <div className={backdropCls} role="presentation" onClick={onClose}>
       <div
-        className="modal-container"
+        className={containerCls}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? "modal-title" : undefined}
@@ -54,7 +63,6 @@ export const BaseModal: React.FC<BaseModalProps> = ({
             </button>
           </header>
         )}
-
         <div className="modal-body">{children}</div>
       </div>
     </div>

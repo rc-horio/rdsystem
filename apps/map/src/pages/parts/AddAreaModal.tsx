@@ -32,6 +32,8 @@ export function AddAreaModal({
       open={open}
       onClose={onCancel}
       title="エリア名を記入してください。"
+      backdropClassName="map-modal-backdrop"
+      containerClassName="map-modal-container"
     >
       <div className="new-area-modal no-caret">
         <div className="new-area-modal__row">
