@@ -478,8 +478,10 @@ export async function upsertScheduleGeometry(params: {
 
 /**
  * エリア index.json の candidate[ index ] を上書き保存（merge）します。
- * - index が不正な場合は false を返します（追記はしない）。
- * - title は既存を優先（タイトル変更したい場合は preserveTitle=false を渡す等で調整可）。
+ * - index が既存配列の範囲内ならその要素を更新。
+ * - index === 既存配列長なら新規要素として末尾に追加（append）。
+ * - index > 既存配列長の場合は false を返します。
+ * - title は既存を優先（preserveTitle=true の場合）。
  */
 export async function upsertAreaCandidateAtIndex(params: {
     areaUuid: string;
@@ -492,18 +494,39 @@ export async function upsertAreaCandidateAtIndex(params: {
 
     const info = await fetchRawAreaInfo(areaUuid);
     const list: Candidate[] = Array.isArray(info?.candidate) ? info.candidate : [];
-    if (index >= list.length) return false;
 
-    const prev = list[index] ?? {};
-    const next: Candidate = {
-        ...(preserveTitle ? { title: prev.title ?? candidate.title ?? `候補${index + 1}` } : {}),
-        ...prev,      // 既存をベース
-        ...candidate, // 変更点を上書き
-    };
+    // 既存長さより大きい index は不正
+    if (index > list.length) return false;
+
+    let nextList: Candidate[];
+
+    if (index < list.length) {
+        // ---- 既存 candidate の更新パス ----
+        const prev = list[index] ?? {};
+        const next: Candidate = {
+            // preserveTitle=true のときは元の title を優先しつつ、なければ candidate.title / デフォルト
+            ...(preserveTitle
+                ? { title: prev.title ?? candidate.title ?? `候補${index + 1}` }
+                : {}),
+            ...prev,      // 既存値ベース
+            ...candidate, // 渡された変更を上書き
+        };
+
+        nextList = list.map((c, i) => (i === index ? next : c));
+    } else {
+        // ---- index === list.length → 新規候補を末尾に追加 ----
+        const next: Candidate = {
+            // 新規なので title は candidate.title またはデフォルト
+            title: candidate.title ?? `候補${index + 1}`,
+            ...candidate,
+        } as Candidate;
+
+        nextList = [...list, next];
+    }
 
     const nextInfo = {
         ...info,
-        candidate: list.map((c, i) => (i === index ? next : c)),
+        candidate: nextList,
     };
 
     const ok = await saveAreaInfo(areaUuid, nextInfo);
