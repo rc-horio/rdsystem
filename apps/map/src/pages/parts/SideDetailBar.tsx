@@ -1,5 +1,6 @@
 // src/pages/parts/SideDetailBar.tsx
 import { useEffect, useState, useRef } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import {
   HiddenIconButton,
   Textarea,
@@ -593,12 +594,17 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                         aria-selected={selected}
                         onClick={() => onSelectHistory(item, i)}
                       >
-                        <span className="ds-record-leftgap">
+                        <span
+                          className="ds-record-leftgap"
+                          onClick={(e: ReactMouseEvent<HTMLSpanElement>) => {
+                            e.stopPropagation(); // 行へのバブリングを止める
+                          }}
+                        >
                           <DetailIconButton
                             height={23}
                             title="スケジュール詳細"
                             onClick={() => {
-                              // TODO: スケジュール詳細ページへの遷移処理を後ほど実装
+                              // TODO: スケジュール詳細ページへの遷移処理をここに実装
                             }}
                           />
                         </span>
@@ -611,12 +617,16 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                         </span>
 
                         {editable && (
-                          <span className="ds-record-delete">
+                          <span
+                            className="ds-record-delete"
+                            onClick={(e: ReactMouseEvent<HTMLSpanElement>) => {
+                              e.stopPropagation(); // 削除ボタンでも行クリックは発火させない
+                            }}
+                          >
                             <DeleteIconButton
                               height={23}
                               title="この履歴を削除"
                               onClick={() => {
-                                // TODO: 削除処理は次フェーズで実装
                                 console.log(
                                   "[detailbar] delete history clicked",
                                   {
@@ -669,12 +679,17 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                       aria-selected={selectedCandidateIdx === idx}
                       onClick={() => onSelectCandidate(candidate, idx)}
                     >
-                      <span className="ds-record-leftgap">
+                      <span
+                        className="ds-record-leftgap"
+                        onClick={(e: ReactMouseEvent<HTMLSpanElement>) => {
+                          e.stopPropagation();
+                        }}
+                      >
                         <DetailIconButton
                           height={23}
                           title="候補エリア詳細"
                           onClick={() => {
-                            // TODO: 候補エリア詳細ページへの遷移処理を後ほど実装
+                            // TODO: 候補エリア詳細ページへの遷移処理をここに実装
                           }}
                         />
                       </span>
@@ -707,12 +722,16 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                       </span>
 
                       {editable && (
-                        <span className="ds-record-delete">
+                        <span
+                          className="ds-record-delete"
+                          onClick={(e: ReactMouseEvent<HTMLSpanElement>) => {
+                            e.stopPropagation();
+                          }}
+                        >
                           <DeleteIconButton
                             height={23}
                             title="この候補を削除"
                             onClick={() => {
-                              // TODO: 削除処理は次フェーズで実装
                               console.log(
                                 "[detailbar] delete candidate clicked",
                                 {
