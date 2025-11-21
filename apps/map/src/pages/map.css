@@ -1209,13 +1209,17 @@ select.rc-inp-input optgroup {
 #controls.cta-overlay {
   position: absolute;
   top: 18%;
-  left: 93%;
-  transform: translate(-50%, -50%);
+  right: 16px; /* 画面右から 16px に固定 */
+  left: auto; /* left は使わない */
+  transform: translateY(-50%); /* 縦方向だけ中央寄せ */
   z-index: 24; /* map(0) < sidebar(10) < detailbar(20) < panel(22) < これ(24) < toggle(30) */
   display: flex !important;
   align-items: center;
   justify-content: center;
   gap: 8px;
+
+  /* 横方向にはみ出さないように最大幅を制限 */
+  max-width: calc(100vw - 32px); /* 両端 16px ずつ余白を確保 */
 
   /* 中央の空エリアでマップ操作を邪魔しない */
   pointer-events: none;
