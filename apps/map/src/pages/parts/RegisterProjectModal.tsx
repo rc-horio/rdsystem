@@ -20,6 +20,7 @@ export function RegisterProjectModal({ open, onClose }: Props) {
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
   const [selectedProjectUuid, setSelectedProjectUuid] = useState<string>("");
+  const [selectedScheduleUuid, setSelectedScheduleUuid] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
   // 初回：案件一覧を取得
@@ -72,6 +73,15 @@ export function RegisterProjectModal({ open, onClose }: Props) {
     loadSchedules();
   }, [selectedProjectUuid]);
 
+  // OK ボタンが押されたときの処理
+  const handleOkButtonClick = () => {
+    window.alert("案件情報を紐づけました。");
+    onClose();
+  };
+
+  // OK ボタンの活性/非活性を制御
+  const isOkButtonDisabled = !selectedProjectUuid || !selectedScheduleUuid;
+
   return (
     <BaseModal
       open={open}
@@ -98,6 +108,7 @@ export function RegisterProjectModal({ open, onClose }: Props) {
             onChange={(e) => {
               setSelectedProjectUuid(e.target.value);
               setSchedules([]); // 案件変更時はいったんクリア
+              setSelectedScheduleUuid(""); // 案件変更時、スケジュールもリセット
             }}
           >
             <option value="" disabled>
@@ -105,7 +116,6 @@ export function RegisterProjectModal({ open, onClose }: Props) {
             </option>
             {projects.map((project) => (
               <option key={project.uuid} value={project.uuid}>
-                {/* 表示は好きな形にしてOK（例: [ID] 名称） */}
                 {project.projectName}
               </option>
             ))}
@@ -128,7 +138,8 @@ export function RegisterProjectModal({ open, onClose }: Props) {
             required
             className="register-project-modal__input register-project-modal__select"
             disabled={!selectedProjectUuid || loading}
-            defaultValue=""
+            value={selectedScheduleUuid}
+            onChange={(e) => setSelectedScheduleUuid(e.target.value)}
           >
             <option value="" disabled>
               {loading
@@ -175,7 +186,8 @@ export function RegisterProjectModal({ open, onClose }: Props) {
           <button
             type="button"
             className="register-project-modal__btn register-project-modal__btn--ok"
-            onClick={onClose} // TODO: 後で登録処理に差し替え
+            onClick={handleOkButtonClick}
+            disabled={isOkButtonDisabled} // 案件とスケジュール両方が選択されていないと無効
           >
             OK
           </button>
