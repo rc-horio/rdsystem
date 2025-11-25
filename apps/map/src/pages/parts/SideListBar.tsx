@@ -36,6 +36,7 @@ import {
   EV_DETAILBAR_RESPOND_DATA,
   EV_MAP_FOCUS_ONLY,
   EV_GEOMETRY_RESPOND_DATA,
+  EV_PROJECT_MODAL_SUBMIT,
 } from "./constants/events";
 
 // サイドバーの基本コンポーネント
@@ -63,6 +64,12 @@ function SideListBarBase({
   const currentAreaUuidRef = useRef<string | undefined>(undefined);
   const currentCandidateIndexRef = useRef<number | null>(null);
   const currentCandidateTitleRef = useRef<string | undefined>(undefined);
+
+  // 案件紐づけモーダルで選ばれた「案件・スケジュール」を保持
+  const pendingProjectLinkRef = useRef<{
+    projectUuid: string;
+    scheduleUuid: string;
+  } | null>(null);
 
   // エリア名を正規化
   const normArea = (p?: { areaName?: string }) =>
@@ -460,6 +467,28 @@ function SideListBarBase({
       // あとで「古い値＋新しい値」をマージしたオブジェクトを作るために使用
       const raw = await fetchRawAreaInfo(areaUuid);
 
+      // 案件紐づけモーダルで選択した案件リンクを history に反映
+      const pendingLink = pendingProjectLinkRef.current;
+      let historyToSave: any[] = Array.isArray(raw?.history)
+        ? [...raw.history]
+        : [];
+
+      if (pendingLink?.projectUuid && pendingLink?.scheduleUuid) {
+        const alreadyExists = historyToSave.some(
+          (h: any) =>
+            h?.projectuuid === pendingLink.projectUuid &&
+            h?.scheduleuuid === pendingLink.scheduleUuid
+        );
+
+        if (!alreadyExists) {
+          historyToSave.push({
+            uuid: "", // 今は空で OK（不要なら省略も可）
+            projectuuid: pendingLink.projectUuid,
+            scheduleuuid: pendingLink.scheduleUuid,
+          });
+        }
+      }
+
       // （2-2）画面入力値からareas/<areaUuid>/index.json 形式
       const infoToSave = {
         ...(typeof raw === "object" && raw ? raw : {}),
@@ -481,7 +510,7 @@ function SideListBarBase({
           remarks: data.meta.remarks ?? "",
         },
         // history はまだ画面から編集していないので従来どおり raw 優先
-        history: Array.isArray(raw?.history) ? raw.history : [],
+        history: historyToSave,
         // 画面上の meta.candidate をそのまま保存
         candidate: Array.isArray(data.meta.candidate)
           ? data.meta.candidate
@@ -578,6 +607,17 @@ function SideListBarBase({
         remarks: infoToSave.details?.remarks ?? "",
       });
 
+      // 案件履歴も再取得して詳細バーに反映
+      try {
+        const refreshedHistory = await buildAreaHistoryFromProjects(areaUuid);
+        setDetailBarHistory(refreshedHistory);
+      } catch (e) {
+        console.warn("[save] refresh history failed:", e);
+      }
+
+      // この保存で消化したので保留リンクはクリア
+      pendingProjectLinkRef.current = null;
+
       // （5）従来メッセージを維持（UIのデグレ回避）
       window.alert(okAreas ? "保存しました" : "保存に失敗しました。");
     } catch (e) {
@@ -659,6 +699,37 @@ function SideListBarBase({
       );
   }, []);
 
+  // 案件紐づけモーダルからの選択結果を受け取る
+  useEffect(() => {
+    const onProjectSubmit = (e: Event) => {
+      const d =
+        (e as CustomEvent<{ projectUuid?: string; scheduleUuid?: string }>)
+          .detail || {};
+
+      if (d.projectUuid && d.scheduleUuid) {
+        pendingProjectLinkRef.current = {
+          projectUuid: d.projectUuid,
+          scheduleUuid: d.scheduleUuid,
+        };
+        if (import.meta.env.DEV) {
+          console.debug("[sidebar] pending project link set", d);
+        }
+      } else {
+        pendingProjectLinkRef.current = null;
+      }
+    };
+
+    window.addEventListener(
+      EV_PROJECT_MODAL_SUBMIT,
+      onProjectSubmit as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        EV_PROJECT_MODAL_SUBMIT,
+        onProjectSubmit as EventListener
+      );
+  }, []);
+
   return (
     <div id="sidebar" ref={rootRef} role="complementary" aria-label="Sidebar">
       <div className="mb-3">
@@ -709,6 +780,7 @@ function SideListBarBase({
             currentAreaUuidRef.current = undefined;
             currentCandidateIndexRef.current = null;
             currentCandidateTitleRef.current = undefined;
+            pendingProjectLinkRef.current = null; // 新規エリア開始時はクリア
 
             closeDetailBar();
             window.dispatchEvent(new Event("map:start-add-area"));

@@ -21,6 +21,7 @@ export const EV_DETAILBAR_SET_HISTORY = "detailbar:set-history";
 export const EV_DETAILBAR_APPLY_METRICS = "detailbar:apply-metrics";
 
 export const EV_PROJECT_MODAL_OPEN = "project:open-modal";
+export const EV_PROJECT_MODAL_SUBMIT = "project-modal:submit";
 
 export const ROTATE_HANDLE_GAP_M = 5;
 

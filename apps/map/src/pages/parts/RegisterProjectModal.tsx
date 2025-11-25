@@ -2,6 +2,7 @@
 import { BaseModal } from "@/components";
 import { useEffect, useState } from "react";
 import { fetchProjectIndex, fetchProjectsList } from "../parts/areasApi";
+import { EV_PROJECT_MODAL_SUBMIT } from "./constants/events";
 
 type Props = {
   open: boolean;
@@ -75,7 +76,23 @@ export function RegisterProjectModal({ open, onClose }: Props) {
 
   // OK ボタンが押されたときの処理
   const handleOkButtonClick = () => {
-    window.alert("案件情報を紐づけました。");
+    // 案件・スケジュールが未選択なら保存させない
+    if (!selectedProjectUuid || !selectedScheduleUuid) {
+      window.alert("案件とスケジュールを選択してください。");
+      return;
+    }
+
+    // SideListBar 側に「この案件・スケジュールを紐づけたい」というイベントを飛ばす
+    window.dispatchEvent(
+      new CustomEvent(EV_PROJECT_MODAL_SUBMIT, {
+        detail: {
+          projectUuid: selectedProjectUuid,
+          scheduleUuid: selectedScheduleUuid,
+        },
+      })
+    );
+
+    window.alert("案件情報を紐づけました。\nSAVEボタンで確定してください。");
     onClose();
   };
 
