@@ -144,7 +144,7 @@ export function RegisterProjectModal({ open, onClose }: Props) {
         </div>
 
         {/* 候補地（任意） */}
-        <div className="register-project-modal__row">
+        {/* <div className="register-project-modal__row">
           <label
             htmlFor="candidate"
             className="register-project-modal__label-row"
@@ -158,9 +158,10 @@ export function RegisterProjectModal({ open, onClose }: Props) {
             defaultValue=""
           >
             <option value="">指定しない（未選択）</option>
-            {/* TODO: 後で候補地の選択肢を連携 */}
+            // TODO: 後で候補地の選択肢を連携 
           </select>
-        </div>
+        </div> 
+        */}
 
         {/* ボタン行 */}
         <div className="register-project-modal__actions">
