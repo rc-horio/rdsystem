@@ -1,12 +1,77 @@
 // src/pages/parts/RegisterProjectModal.tsx
 import { BaseModal } from "@/components";
+import { useEffect, useState } from "react";
+import { fetchProjectIndex, fetchProjectsList } from "../parts/areasApi";
 
 type Props = {
   open: boolean;
   onClose: () => void;
 };
 
+type ProjectItem = {
+  uuid: string;
+  projectId: string;
+  projectName: string;
+};
+
+type ScheduleItem = { id: string; label: string };
+
 export function RegisterProjectModal({ open, onClose }: Props) {
+  const [projects, setProjects] = useState<ProjectItem[]>([]);
+  const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
+  const [selectedProjectUuid, setSelectedProjectUuid] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+
+  // 初回：案件一覧を取得
+  useEffect(() => {
+    async function loadProjects() {
+      const projectsList = await fetchProjectsList();
+      // fetchProjectsList は { uuid, projectId, projectName }[] を返している
+      setProjects(projectsList);
+    }
+
+    loadProjects();
+  }, []);
+
+  // 案件選択変更時：該当 index.json を読み、スケジュール一覧をセット
+  useEffect(() => {
+    async function loadSchedules() {
+      if (!selectedProjectUuid) {
+        setSchedules([]);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        console.log(
+          "[RegisterProjectModal] fetchProjectIndex",
+          selectedProjectUuid
+        );
+        const projectData = await fetchProjectIndex(selectedProjectUuid);
+        console.log("[RegisterProjectModal] projectData", projectData);
+
+        if (projectData && Array.isArray(projectData.schedules)) {
+          const schedulesList: ScheduleItem[] = projectData.schedules.map(
+            (schedule: any) => ({
+              id: schedule.id,
+              label: schedule.label,
+            })
+          );
+          setSchedules(schedulesList);
+        } else {
+          setSchedules([]);
+        }
+      } catch (error) {
+        console.error("Error fetching project details", error);
+        setSchedules([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadSchedules();
+  }, [selectedProjectUuid]);
+
   return (
     <BaseModal
       open={open}
@@ -29,12 +94,21 @@ export function RegisterProjectModal({ open, onClose }: Props) {
             name="projectName"
             required
             className="register-project-modal__input register-project-modal__select"
-            defaultValue=""
+            value={selectedProjectUuid}
+            onChange={(e) => {
+              setSelectedProjectUuid(e.target.value);
+              setSchedules([]); // 案件変更時はいったんクリア
+            }}
           >
             <option value="" disabled>
               案件を選択してください
             </option>
-            {/* TODO: 後で案件名の選択肢を連携 */}
+            {projects.map((project) => (
+              <option key={project.uuid} value={project.uuid}>
+                {/* 表示は好きな形にしてOK（例: [ID] 名称） */}
+                {project.projectName}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -53,12 +127,19 @@ export function RegisterProjectModal({ open, onClose }: Props) {
             name="schedule"
             required
             className="register-project-modal__input register-project-modal__select"
+            disabled={!selectedProjectUuid || loading}
             defaultValue=""
           >
             <option value="" disabled>
-              スケジュールを選択してください
+              {loading
+                ? "スケジュールを読み込み中..."
+                : "スケジュールを選択してください"}
             </option>
-            {/* TODO: 後でスケジュールの選択肢を連携 */}
+            {schedules.map((schedule) => (
+              <option key={schedule.id} value={schedule.id}>
+                {schedule.label}
+              </option>
+            ))}
           </select>
         </div>
 

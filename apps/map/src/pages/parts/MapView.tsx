@@ -70,7 +70,7 @@ export default function MapView({ onLoaded }: Props) {
   const [showAreaCreatedToast, setShowAreaCreatedToast] = useState(false);
   const areaCreatedToastTimerRef = useRef<number | null>(null);
 
-  // 追加：座標変更完了トースト
+  // 座標変更完了トースト
   const [showPositionUpdatedToast, setShowPositionUpdatedToast] =
     useState(false);
   const positionUpdatedToastTimerRef = useRef<number | null>(null);
