@@ -26,8 +26,14 @@ import {
   clearScheduleGeometry,
   isAreaNameDuplicated,
   upsertAreasListEntryFromInfo,
+  fetchProjectIndex,
 } from "./areasApi";
-import type { ScheduleLite, Point, GeometryPayload } from "@/features/types";
+import type {
+  ScheduleLite,
+  Point,
+  GeometryPayload,
+  HistoryItem,
+} from "@/features/types";
 import {
   AREA_NAME_NONE,
   EV_DETAILBAR_SELECT_CANDIDATE,
@@ -37,6 +43,7 @@ import {
   EV_MAP_FOCUS_ONLY,
   EV_GEOMETRY_RESPOND_DATA,
   EV_PROJECT_MODAL_SUBMIT,
+  EV_DETAILBAR_REQUEST_DATA,
 } from "./constants/events";
 
 // サイドバーの基本コンポーネント
@@ -306,6 +313,54 @@ function SideListBarBase({
       }, 0);
     }
   }, [editingAreaKey]);
+
+  // DetailBar の現在データを取得するヘルパー
+  const requestDetailbarData = async (): Promise<{
+    title: string;
+    meta: any;
+    history: HistoryItem[];
+  }> => {
+    return await new Promise((resolve, reject) => {
+      let timer: number | null = null;
+
+      const onRespond = (e: Event) => {
+        window.removeEventListener(
+          EV_DETAILBAR_RESPOND_DATA,
+          onRespond as EventListener
+        );
+        if (timer != null) window.clearTimeout(timer);
+        const detail = (e as CustomEvent).detail as {
+          title?: string;
+          meta?: any;
+          history?: any[];
+        };
+        resolve({
+          title: detail.title ?? "",
+          meta: detail.meta ?? {},
+          history: Array.isArray(detail.history)
+            ? (detail.history as HistoryItem[])
+            : [],
+        });
+      };
+
+      window.addEventListener(
+        EV_DETAILBAR_RESPOND_DATA,
+        onRespond as EventListener,
+        { once: true }
+      );
+
+      // DetailBar に現在のデータを要求
+      window.dispatchEvent(new Event(EV_DETAILBAR_REQUEST_DATA));
+
+      timer = window.setTimeout(() => {
+        window.removeEventListener(
+          EV_DETAILBAR_RESPOND_DATA,
+          onRespond as EventListener
+        );
+        reject(new Error("detailbar からの応答がありません"));
+      }, 1500);
+    });
+  };
 
   // projects/<projectUuid>/index.json
   // 案件に紐づく geometry を保存 or 削除
@@ -707,6 +762,7 @@ function SideListBarBase({
           .detail || {};
 
       if (d.projectUuid && d.scheduleUuid) {
+        // まず SAVE 用に保持（従来どおり）
         pendingProjectLinkRef.current = {
           projectUuid: d.projectUuid,
           scheduleUuid: d.scheduleUuid,
@@ -714,6 +770,69 @@ function SideListBarBase({
         if (import.meta.env.DEV) {
           console.debug("[sidebar] pending project link set", d);
         }
+
+        // ★ ここから「④〜⑤の間に DetailBar の案件履歴に即時反映」する処理
+        const run = async () => {
+          // どのエリアに紐づけるか分からない場合はスキップ
+          if (!currentAreaUuidRef.current) return;
+
+          // プロジェクト index を取得
+          const proj = await fetchProjectIndex(d.projectUuid!);
+          if (!proj) return;
+
+          const projectName: string =
+            typeof proj?.project?.name === "string"
+              ? proj.project.name
+              : "(不明な案件)";
+
+          const sch = Array.isArray(proj?.schedules)
+            ? proj.schedules.find((s: any) => s?.id === d.scheduleUuid)
+            : null;
+          if (!sch) return;
+
+          const scheduleName: string =
+            typeof sch?.label === "string" ? sch.label : "(スケジュール)";
+          const date: string =
+            typeof sch?.date === "string" && sch.date
+              ? sch.date
+              : new Date().toISOString().slice(0, 10); // 日付がなかった場合のフォールバック
+
+          // 今の DetailBar の history を取得
+          let currentHistory: HistoryItem[] = [];
+          try {
+            const snapshot = await requestDetailbarData();
+            currentHistory = snapshot.history ?? [];
+          } catch (err) {
+            console.warn("[sidebar] requestDetailbarData failed:", err);
+          }
+
+          // すでに同じ projectUuid / scheduleUuid があれば重複追加しない
+          const exists = currentHistory.some(
+            (h) =>
+              h.projectUuid === d.projectUuid &&
+              h.scheduleUuid === d.scheduleUuid
+          );
+          if (exists) return;
+
+          const nextHistory: HistoryItem[] = [
+            ...currentHistory,
+            {
+              date,
+              projectName,
+              scheduleName,
+              projectUuid: d.projectUuid!,
+              scheduleUuid: d.scheduleUuid!,
+            },
+          ];
+
+          // DetailBar に即時反映（あくまでフロントの state だけ）
+          setDetailBarHistory(nextHistory);
+        };
+
+        // 非同期処理を起動
+        run().catch((err) =>
+          console.error("[sidebar] project link UI update failed:", err)
+        );
       } else {
         pendingProjectLinkRef.current = null;
       }
