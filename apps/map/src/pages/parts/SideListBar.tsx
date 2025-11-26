@@ -522,27 +522,23 @@ function SideListBarBase({
       // あとで「古い値＋新しい値」をマージしたオブジェクトを作るために使用
       const raw = await fetchRawAreaInfo(areaUuid);
 
-      // 案件紐づけモーダルで選択した案件リンクを history に反映
-      const pendingLink = pendingProjectLinkRef.current;
-      let historyToSave: any[] = Array.isArray(raw?.history)
-        ? [...raw.history]
+      // （2-1.5）DetailBar の history state から index.json 用 history を構築
+      const uiHistory: HistoryItem[] = Array.isArray(data.history)
+        ? (data.history as HistoryItem[])
         : [];
 
-      if (pendingLink?.projectUuid && pendingLink?.scheduleUuid) {
-        const alreadyExists = historyToSave.some(
-          (h: any) =>
-            h?.projectuuid === pendingLink.projectUuid &&
-            h?.scheduleuuid === pendingLink.scheduleUuid
-        );
-
-        if (!alreadyExists) {
-          historyToSave.push({
-            uuid: "", // 今は空で OK（不要なら省略も可）
-            projectuuid: pendingLink.projectUuid,
-            scheduleuuid: pendingLink.scheduleUuid,
-          });
-        }
-      }
+      // SideDetailBar の HistoryItem { date, projectName, scheduleName, projectUuid, scheduleUuid }
+      // → index.json の history 要素 { uuid, projectuuid, scheduleuuid } に変換
+      const historyToSave: any[] = uiHistory.flatMap((h) => {
+        if (!h.projectUuid || !h.scheduleUuid) return [];
+        return [
+          {
+            uuid: "", // いまは空のまま（必要になったら採番ロジックを追加）
+            projectuuid: h.projectUuid,
+            scheduleuuid: h.scheduleUuid,
+          },
+        ];
+      });
 
       // （2-2）画面入力値からareas/<areaUuid>/index.json 形式
       const infoToSave = {
@@ -564,9 +560,8 @@ function SideListBarBase({
           restrictionsMemo: data.meta.restrictionsMemo ?? "",
           remarks: data.meta.remarks ?? "",
         },
-        // history はまだ画面から編集していないので従来どおり raw 優先
+        // ★ ここで UI 上の history（削除済み行を含めた状態）をそのまま保存
         history: historyToSave,
-        // 画面上の meta.candidate をそのまま保存
         candidate: Array.isArray(data.meta.candidate)
           ? data.meta.candidate
           : Array.isArray(raw?.candidate)
