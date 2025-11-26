@@ -654,8 +654,23 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                               height={23}
                               title="この履歴を削除"
                               onClick={() => {
+                                // 確認ダイアログ
+                                const ok = window.confirm(
+                                  "紐づけを解除しますか？案件情報は削除されません。"
+                                );
+                                if (!ok) {
+                                  // キャンセル時は何もしない
+                                  return;
+                                }
+
+                                // ★ OK の場合に完了メッセージ
+                                window.alert(
+                                  "案件情報の紐づけを解除しました。"
+                                );
+
+                                // TODO: 紐づけ解除のバックエンド処理をここに実装
                                 console.log(
-                                  "[detailbar] delete history clicked",
+                                  "[detailbar] delete history clicked (TODO backend)",
                                   {
                                     index: i,
                                     item,
