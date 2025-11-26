@@ -628,7 +628,6 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                           }}
                         >
                           <DetailIconButton
-                            height={23}
                             title="スケジュール詳細"
                             onClick={() => {
                               // TODO: スケジュール詳細ページへの遷移処理をここに実装
@@ -651,29 +650,29 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                             }}
                           >
                             <DeleteIconButton
-                              height={23}
+                              className={
+                                !editable
+                                  ? "ds-record-delete--hidden"
+                                  : undefined
+                              }
                               title="この履歴を削除"
+                              tabIndex={editable ? 0 : -1}
                               onClick={() => {
-                                // ① ポップアップ１
+                                if (!editable) return; // 念のためガード
+
                                 const ok = window.confirm(
                                   "紐づけを解除しますか？案件情報は削除されません。"
                                 );
-                                if (!ok) {
-                                  // キャンセル時は何もしない
-                                  return;
-                                }
+                                if (!ok) return;
 
-                                // ② ポップアップ２
                                 window.alert(
                                   "案件情報の紐づけを解除しました。"
                                 );
 
-                                // ③ 詳細バーから対象案件を除外（表示だけ消す）
                                 setHistory((prev) =>
                                   prev.filter((_, idx) => idx !== i)
                                 );
 
-                                // 選択状態をリセット（削除した行を選択中だった場合）
                                 setSelectedHistoryIdx((current) =>
                                   current === i ? null : current
                                 );
@@ -686,13 +685,9 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                                   })
                                 );
 
-                                // TODO: 紐づけ解除のバックエンド処理は後で実装
                                 console.log(
                                   "[detailbar] delete history clicked (TODO backend)",
-                                  {
-                                    index: i,
-                                    item,
-                                  }
+                                  { index: i, item }
                                 );
                               }}
                             />
@@ -746,7 +741,6 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                         }}
                       >
                         <DetailIconButton
-                          height={23}
                           title="候補エリア詳細"
                           onClick={() => {
                             // TODO: 候補エリア詳細ページへの遷移処理をここに実装
@@ -820,42 +814,40 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                           }}
                         >
                           <DeleteIconButton
-                            height={23}
+                            className={
+                              !editable ? "ds-record-delete--hidden" : undefined
+                            }
                             title="この候補を削除"
+                            tabIndex={editable ? 0 : -1}
                             onClick={() => {
+                              if (!editable) return;
+
                               const ok = window.confirm(
                                 `候補「${
                                   candidate.title || "（無題の候補）」"
                                 }」を削除してもよろしいですか？`
                               );
-                              if (!ok) {
-                                // 「いいえ」のときは何もしない
-                                return;
-                              }
+                              if (!ok) return;
 
-                              // --- 画面上の候補配列から該当要素を削除 ---
                               setMeta((prev) => {
                                 const list = Array.isArray(prev.candidate)
                                   ? [...prev.candidate]
                                   : [];
                                 if (idx < 0 || idx >= list.length) return prev;
-                                list.splice(idx, 1); // index の要素を除去
+                                list.splice(idx, 1);
                                 return {
                                   ...prev,
                                   candidate: list,
                                 };
                               });
 
-                              // 選択状態・編集状態をリセット
                               setSelectedCandidateIdx((current) =>
                                 current === idx ? null : current
                               );
                               if (editingCandidateIdx != null) {
-                                // どの行を編集中でも、とりあえず編集モードは解除
                                 cancelCandidateEdit();
                               }
 
-                              // 削除完了メッセージ
                               window.alert(
                                 "候補を削除しました。\nSAVEボタンで確定してください。"
                               );

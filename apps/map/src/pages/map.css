@@ -680,7 +680,7 @@ body.detailbar-open #detailbar {
    ========================================= */
 /* トークン（文字サイズ・色など） */
 :root {
-  --ds-record-gap: 20px;
+  --ds-record-gap: 13px;
   --ds-date-fz: 12px;
   --ds-date-lh: 1.2;
   --ds-date-color: rgba(255, 255, 255, 0.9);
@@ -713,7 +713,7 @@ body.detailbar-open #detailbar {
 
 /* 8pxだけ左に余白 */
 .ds-record-leftgap {
-  margin-left: 10px;
+  margin-left: 5px;
   display: inline-flex; /* ボタンの高さに合わせるため */
 }
 
@@ -730,6 +730,14 @@ body.detailbar-open #detailbar {
   -ms-user-select: none;
   cursor: pointer;
   caret-color: transparent;
+}
+
+/* 左端 / 右端のアイコン列は「縮まない列」にする */
+.ds-record-leftgap,
+.ds-record-leftgap > button,
+.ds-record-delete,
+.ds-record-delete > button {
+  flex: 0 0 auto;
 }
 
 /* 日付 */
@@ -787,11 +795,17 @@ body.detailbar-open #detailbar {
 }
 /* 削除ボタン用コンテナ：行の右端に寄せる ＋ デフォルト非表示 */
 .ds-record-delete {
-  margin-left: auto;
   display: inline-flex;
   align-items: center;
-  opacity: 0; /* 最初は見せない */
-  pointer-events: none; /* 非表示中はクリック不可 */
+  justify-content: flex-end;
+  opacity: 0; /* hover するまでは非表示 */
+  pointer-events: none; /* 初期状態ではクリック不可 */
+}
+
+/* 編集OFF時に使う：ボタン自体は見せず、幅だけキープ */
+.ds-record-delete--hidden {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 /* 行にホバー or フォーカスがあるときだけ表示する */
@@ -806,6 +820,19 @@ body.detailbar-open #detailbar {
 .ds-record-row:not(.is-selected):hover,
 .ds-record-row:not([aria-selected="true"]):hover {
   background: rgba(255, 255, 255, 0.12);
+}
+
+/* === DS History: selected row === */
+.ds-record-row.is-selected,
+.ds-record-row[aria-selected="true"] {
+  background: rgba(255, 255, 255, 0.08); /* うっすら反転 */
+}
+
+/* 行 hover / focus 時に削除ボタンを表示（編集ON時だけ） */
+.editing-on .ds-record-row:hover .ds-record-delete,
+.editing-on .ds-record-row:focus-within .ds-record-delete {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 /* 高さだけ揃える（DetailIconButton と同じ） */
@@ -1007,13 +1034,6 @@ body.detailbar-open #detailbar {
   pointer-events: none;
 }
 
-/* === DS History: selected row === */
-.ds-record-row.is-selected,
-.ds-record-row[aria-selected="true"] {
-  background: rgba(255, 255, 255, 0.08); /* うっすら反転 */
-  border-left: 3px solid #ed1b24; /* 既存のブランド赤 */
-  border-radius: 6px;
-}
 /* ===== SelectBox (rc-inp-input on <select>) ===== */
 /* 基本トーンをダークに（UAが対応していればポップアップも暗色になる） */
 select.rc-inp-input {

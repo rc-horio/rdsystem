@@ -17,7 +17,7 @@ export function DetailIconButton({
   onClick,
   className = "",
   title = "スケジュール詳細",
-  height = 32,
+  height = 23,
   tabIndex,
 }: Props) {
   const h = typeof height === "number" ? `${height}px` : height;
