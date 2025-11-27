@@ -854,6 +854,18 @@ body.detailbar-open #detailbar {
   cursor: text;
 }
 
+/* 候補セクション左端の赤いドット（DetailIconButton と同じ高さで配置） */
+.ds-candidate-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 23px; /* DetailIconButton の height と合わせる */
+  width: 23px; /* 正方形にしてバランスを取る */
+  font-size: 32px; /* ドットを少し大きめに */
+  line-height: 1;
+  color: #ff4d4f; /* 赤 */
+}
+
 /* =========================================
    9) Inputs（Textarea / InputBox）
    -----------------------------------------

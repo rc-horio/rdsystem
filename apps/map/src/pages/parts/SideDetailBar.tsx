@@ -79,6 +79,29 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   /** =========================
    *  Helpers
    *  ========================= */
+  const buildHubUrl = (projectUuid?: string, date?: string): string | null => {
+    if (!projectUuid) return null;
+
+    const { protocol, hostname } = window.location;
+
+    // ローカル開発 or LAN アクセス（ポート違い）
+    const isLocalLike =
+      hostname === "localhost" || hostname.startsWith("192.168.");
+
+    // Hub 側のベース URL
+    const baseOrigin = isLocalLike
+      ? `${protocol}//${hostname}:5174` // 開発: :5174/hub/
+      : `${protocol}//${hostname}`; // 本番: https://d3jv4hxjgqnm4c.cloudfront.net/hub/
+
+    // スケジュール日付から year を推定（なければ現在年）
+    const yearFromDate =
+      typeof date === "string" && /^\d{4}/.test(date)
+        ? date.slice(0, 4)
+        : String(new Date().getFullYear());
+
+    return `${baseOrigin}/hub/${projectUuid}?source=s3&year=${yearFromDate}`;
+  };
+
   const fmtDate = (isoLike: string) => {
     const d = new Date(isoLike);
     if (Number.isNaN(d.getTime())) return isoLike;
@@ -630,9 +653,22 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                           <DetailIconButton
                             title="スケジュール詳細"
                             onClick={() => {
-                              // TODO: スケジュール詳細ページへの遷移処理をここに実装
+                              const url = buildHubUrl(
+                                item.projectUuid,
+                                item.date
+                              );
+                              if (!url) {
+                                console.warn(
+                                  "[detailbar] projectUuid is missing. cannot navigate to hub.",
+                                  item
+                                );
+                                return;
+                              }
+
+                              console.log("[detailbar] navigate to hub:", url);
+                              window.location.href = url;
                             }}
-                          />
+                          />{" "}
                         </span>
 
                         <span className="ds-record-date">
@@ -740,14 +776,10 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                           e.stopPropagation();
                         }}
                       >
-                        <DetailIconButton
-                          title="候補エリア詳細"
-                          onClick={() => {
-                            // TODO: 候補エリア詳細ページへの遷移処理をここに実装
-                          }}
-                        />
+                        <span className="ds-candidate-dot" aria-hidden="true">
+                          ・
+                        </span>
                       </span>
-
                       {/* ダブルクリックで編集開始 */}
                       <span
                         className="ds-candidate-name"
