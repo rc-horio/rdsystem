@@ -7,6 +7,7 @@ import {
   SaveButton,
   LogoButton,
   blurActiveInput,
+  DeleteIconButton,
 } from "@/components";
 import {
   openDetailBar,
@@ -972,8 +973,48 @@ function SideListBarBase({
                 />
               ) : (
                 <>
-                  {displayLabel}
-                  {indices.length > 1 ? `（${indices.length}）` : null}
+                  <>
+                    <span className="location-label">
+                      {displayLabel}
+                      {indices.length > 1 ? `（${indices.length}）` : null}
+                    </span>
+
+                    {isOn && (
+                      <span
+                        className="location-delete"
+                        onClick={(e) => {
+                          e.stopPropagation(); // 行クリックを発火させない
+                        }}
+                      >
+                        <DeleteIconButton
+                          title="このエリアを削除"
+                          tabIndex={0}
+                          onClick={() => {
+                            const ok = window.confirm(
+                              `エリア「${displayLabel}」を削除してもよろしいですか？`
+                            );
+                            if (!ok) return;
+
+                            const areaUuid = getAreaUuidByAreaName(area);
+
+                            // 必要に応じてここで backend 削除処理を呼ぶ
+                            // （例：deleteArea(areaUuid) など）
+
+                            // ひとまず外側へイベント通知（Map側などでハンドリング）
+                            window.dispatchEvent(
+                              new CustomEvent("sidebar:delete-area", {
+                                detail: { areaName: area, areaUuid },
+                              })
+                            );
+
+                            window.alert(
+                              "エリアを削除しました。\n最新状態を反映するには一覧の再読み込みを実装してください。"
+                            );
+                          }}
+                        />
+                      </span>
+                    )}
+                  </>{" "}
                 </>
               )}
             </li>

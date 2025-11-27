@@ -299,6 +299,9 @@ body,
 /* ベース行スタイル（文字色は白系に固定） */
 #locationList li {
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 6px 8px;
   line-height: 1.5;
   cursor: pointer;
@@ -327,8 +330,38 @@ body,
   background: #ff5a5f;
 }
 
-/* --- 2-4) Context menu（未使用の予約領域） --- */
+/* シンプルなラベル部分（テキスト省略など必要になったら拡張） */
+.location-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
+/* 削除ボタンコンテナ（右端に寄せる） */
+.location-delete {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  opacity: 0; /* 初期状態では非表示 */
+  pointer-events: none; /* hover するまではクリック不可 */
+}
+
+/* 詳細バーと同じく、編集ON＋行 hover/フォーカス時だけ表示 */
+.editing-on #locationList li:hover .location-delete,
+.editing-on #locationList li:focus-within .location-delete {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ボタン高さを detail の削除ボタンに合わせる */
+.location-delete button {
+  height: 23px;
+}
+
+/* --- 2-4) Context menu（未使用の予約領域） --- */
 #controls {
   position: absolute;
   z-index: 20;
