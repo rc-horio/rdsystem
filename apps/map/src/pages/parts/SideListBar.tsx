@@ -28,6 +28,8 @@ import {
   isAreaNameDuplicated,
   upsertAreasListEntryFromInfo,
   fetchProjectIndex,
+  fetchAreasList,
+  saveAreasList,
 } from "./areasApi";
 import type {
   ScheduleLite,
@@ -67,6 +69,11 @@ function SideListBarBase({
   const [editingAreaKey, setEditingAreaKey] = useState<string | null>(null);
   const [editingTempName, setEditingTempName] = useState("");
   const editingInputRef = useRef<HTMLInputElement | null>(null);
+
+  // 画面上のみ削除扱いとするエリア名
+  const [deletedAreas, setDeletedAreas] = useState<Set<string>>(
+    () => new Set()
+  );
 
   // 現在の保存コンテキスト（エリア／候補）
   const currentAreaUuidRef = useRef<string | undefined>(undefined);
@@ -456,12 +463,30 @@ function SideListBarBase({
   // 保存
   const handleSave = async () => {
     try {
-      // （0）保存対象のエリアを選択しているか確認
-      if (!activeKey) {
+      const hasDeletedAreas = deletedAreas.size > 0;
+
+      // --- ① 編集対象も削除対象もない場合はエラー ---
+      if (!activeKey && !hasDeletedAreas) {
         window.alert("保存対象のエリアを選択してください。");
         return;
       }
-      // 保存対象のエリアの areaUuid を取得
+
+      // --- ② 「削除だけ保存する」パス（どのエリアも選択していない）---
+      if (!activeKey && hasDeletedAreas) {
+        window.alert(
+          "削除は画面上のみ反映されています。\nS3 への削除反映は今後の対応になります。"
+        );
+        return;
+      }
+      
+      // --- ③ ここから下は「編集保存」用の既存ロジック（activeKey 必須） ---
+      // （0）保存対象のエリアを選択しているか確認
+      if (!activeKey) {
+        // ここには基本的に来ないが念のため
+        window.alert("保存対象のエリアを選択してください。");
+        return;
+      }
+
       const areaName = activeKey;
       const areaUuid =
         currentAreaUuidRef.current ?? getAreaUuidByAreaName(areaName);
@@ -907,119 +932,130 @@ function SideListBarBase({
 
       {/* エリア名（重複集約） */}
       <ul id="locationList" className="no-caret">
-        {areaGroups.map(({ area, indices }) => {
-          const isActive = activeKey === area;
+        {areaGroups
+          .filter(({ area }) => !deletedAreas.has(area))
+          .map(({ area, indices }) => {
+            const isActive = activeKey === area;
+            const displayLabel = areaLabelOverrides[area] ?? area;
 
-          // 表示名は上書き優先
-          const displayLabel = areaLabelOverrides[area] ?? area;
+            return (
+              <li
+                key={area}
+                data-indices={indices.join(",")}
+                data-area={area}
+                className={isActive ? "active" : undefined}
+                onClick={(e) => {
+                  // すでにこの行を編集中なら何もしない
+                  if (editingAreaKey === area) return;
 
-          return (
-            <li
-              key={area}
-              data-indices={indices.join(",")}
-              data-area={area}
-              className={isActive ? "active" : undefined}
-              onClick={(e) => {
-                // すでにこの行を編集中なら何もしない
-                if (editingAreaKey === area) return;
-
-                // ダブルクリック判定（detail === 2）
-                if (isOn && e.detail === 2) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  beginEditAreaName(area);
-                  return;
-                }
-
-                // 通常クリック時はエリアをアクティブ化
-                activateArea(area);
-              }}
-              onKeyDown={(e) => {
-                // 編集中はキーボード操作でアクティブ化させない
-                if (editingAreaKey === area) {
-                  if (e.key === "Escape") {
+                  // ダブルクリック判定（detail === 2）
+                  if (isOn && e.detail === 2) {
                     e.preventDefault();
-                    cancelEditAreaName();
+                    e.stopPropagation();
+                    beginEditAreaName(area);
+                    return;
                   }
-                  return;
-                }
 
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
+                  // 通常クリック時はエリアをアクティブ化
                   activateArea(area);
-                }
-              }}
-            >
-              {editingAreaKey === area ? (
-                // 編集中は input を表示
-                <input
-                  ref={editingInputRef}
-                  type="text"
-                  value={editingTempName}
-                  onChange={(e) => setEditingTempName(e.target.value)}
-                  // input クリックが親 li の onClick に行かないようにする
-                  onClick={(e) => e.stopPropagation()}
-                  onDoubleClick={(e) => e.stopPropagation()}
-                  onBlur={commitEditAreaName}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      commitEditAreaName();
-                    } else if (e.key === "Escape") {
+                }}
+                onKeyDown={(e) => {
+                  // 編集中はキーボード操作でアクティブ化させない
+                  if (editingAreaKey === area) {
+                    if (e.key === "Escape") {
                       e.preventDefault();
                       cancelEditAreaName();
                     }
-                  }}
-                />
-              ) : (
-                <>
+                    return;
+                  }
+
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    activateArea(area);
+                  }
+                }}
+              >
+                {editingAreaKey === area ? (
+                  // 編集中は input を表示
+                  <input
+                    ref={editingInputRef}
+                    type="text"
+                    value={editingTempName}
+                    onChange={(e) => setEditingTempName(e.target.value)}
+                    // input クリックが親 li の onClick に行かないようにする
+                    onClick={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => e.stopPropagation()}
+                    onBlur={commitEditAreaName}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        commitEditAreaName();
+                      } else if (e.key === "Escape") {
+                        e.preventDefault();
+                        cancelEditAreaName();
+                      }
+                    }}
+                  />
+                ) : (
                   <>
-                    <span className="location-label">
-                      {displayLabel}
-                      {indices.length > 1 ? `（${indices.length}）` : null}
-                    </span>
-
-                    {isOn && (
-                      <span
-                        className="location-delete"
-                        onClick={(e) => {
-                          e.stopPropagation(); // 行クリックを発火させない
-                        }}
-                      >
-                        <DeleteIconButton
-                          title="このエリアを削除"
-                          tabIndex={0}
-                          onClick={() => {
-                            const ok = window.confirm(
-                              `エリア「${displayLabel}」を削除してもよろしいですか？`
-                            );
-                            if (!ok) return;
-
-                            const areaUuid = getAreaUuidByAreaName(area);
-
-                            // 必要に応じてここで backend 削除処理を呼ぶ
-                            // （例：deleteArea(areaUuid) など）
-
-                            // ひとまず外側へイベント通知（Map側などでハンドリング）
-                            window.dispatchEvent(
-                              new CustomEvent("sidebar:delete-area", {
-                                detail: { areaName: area, areaUuid },
-                              })
-                            );
-
-                            window.alert(
-                              "エリアを削除しました。\n最新状態を反映するには一覧の再読み込みを実装してください。"
-                            );
-                          }}
-                        />
+                    <>
+                      <span className="location-label">
+                        {displayLabel}
+                        {indices.length > 1 ? `（${indices.length}）` : null}
                       </span>
-                    )}
-                  </>{" "}
-                </>
-              )}
-            </li>
-          );
-        })}
+
+                      {isOn && (
+                        <span
+                          className="location-delete"
+                          onClick={(e) => {
+                            e.stopPropagation(); // 行クリックを発火させない
+                          }}
+                        >
+                          <DeleteIconButton
+                            title="このエリアを削除"
+                            tabIndex={0}
+                            onClick={() => {
+                              const ok = window.confirm(
+                                `エリア「${displayLabel}」を削除してもよろしいですか？`
+                              );
+                              if (!ok) return;
+
+                              const areaUuid = getAreaUuidByAreaName(area);
+
+                              // 画面上の一覧から非表示にする（削除扱いとしてマーク）
+                              setDeletedAreas((prev) => {
+                                const next = new Set(prev);
+                                next.add(area);
+                                return next;
+                              });
+
+                              // 削除したエリアがアクティブなら選択状態もクリアしておく
+                              if (activeKey === area) {
+                                setActiveKey(null);
+                                closeDetailBar();
+                              }
+
+                              // Map 側などで使う場合に備えてイベントは残しておく
+                              window.dispatchEvent(
+                                new CustomEvent("sidebar:delete-area", {
+                                  detail: { areaName: area, areaUuid },
+                                })
+                              );
+
+                              // 削除完了の通知ポップアップ（S3 にはまだ反映されていない）
+                              window.alert(
+                                "エリアを削除しました。\nこの変更は「保存」ボタンを押すまで S3 には反映されません。"
+                              );
+                            }}
+                          />
+                        </span>
+                      )}
+                    </>{" "}
+                  </>
+                )}
+              </li>
+            );
+          })}
       </ul>
     </div>
   );
