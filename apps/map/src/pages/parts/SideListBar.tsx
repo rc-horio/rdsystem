@@ -28,8 +28,6 @@ import {
   isAreaNameDuplicated,
   upsertAreasListEntryFromInfo,
   fetchProjectIndex,
-  fetchAreasList,
-  saveAreasList,
 } from "./areasApi";
 import type {
   ScheduleLite,
@@ -478,7 +476,7 @@ function SideListBarBase({
         );
         return;
       }
-      
+
       // --- ③ ここから下は「編集保存」用の既存ロジック（activeKey 必須） ---
       // （0）保存対象のエリアを選択しているか確認
       if (!activeKey) {
