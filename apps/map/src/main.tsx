@@ -26,7 +26,11 @@ Amplify.configure({
           // 'https://' なし・末尾 '/' なし
           domain: import.meta.env.VITE_COGNITO_DOMAIN,
           scopes: ["openid", "email", "profile"],
+          // ↓★ビルド時はこちらのコードを使用
           redirectSignIn: [DEV_REDIRECT_IN, PROD_REDIRECT_IN],
+
+          // ↓★Macへインターネット共有時はこちらのコードを使用
+          // redirectSignIn: ['http://localhost:5175/map/callback'],
           redirectSignOut: [AUTH_BASE],
           responseType: "code",
         },

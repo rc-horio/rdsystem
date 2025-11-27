@@ -8,7 +8,11 @@ import { Amplify } from "aws-amplify";
 
 const ORIGIN = window.location.origin;
 const BASEPATH = import.meta.env.BASE_URL; // 例: '/auth/'
+// ↓★ビルド時はこちらのコードを使用
 const DEV_REDIRECT_SIGN_IN = `${ORIGIN}${BASEPATH}callback`;
+
+// ↓★Macへインターネット共有時はこちらのコードを使用
+// const DEV_REDIRECT_SIGN_IN = 'http://localhost:5175/map/callback';
 const DEV_REDIRECT_SIGN_OUT = `${ORIGIN}${BASEPATH}`;
 
 // 本番用（必要なら .env.production に設定）

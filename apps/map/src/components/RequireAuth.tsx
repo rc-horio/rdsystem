@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { signInWithRedirect, fetchAuthSession } from "aws-amplify/auth";
 
 export function RequireAuth({ children }: { children: React.ReactNode }) {
+  //  ↓↓★Macへインターネット共有時はこちらのコードをコメントアウト
   const [ok, setOk] = useState<boolean | null>(null);
   useEffect(() => {
     (async () => {
@@ -22,5 +23,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     })();
   }, []);
   if (ok !== true) return null;
+  //  ↑↑★Macへインターネット共有時はこちらのコードをコメントアウト
+
   return <>{children}</>;
 }
