@@ -7,6 +7,7 @@ import { RectEditor } from "./geometry/RectEditor";
 import { AudienceEditor } from "./geometry/AudienceEditor";
 import { toLocalXY, fromLocalXY } from "./geometry/math";
 
+type ArrowKind = "main" | "depth" | "perp";
 
 /** =========================
  *  Geometry Controller
@@ -15,10 +16,15 @@ export class MapGeometry {
     // 地図を取得
     private getMap: () => google.maps.Map | null;
     private deletedRef: boolean = false;
+
     private arrowRef: google.maps.Polyline | null = null;
-    public arrow2Ref: google.maps.Polyline | null = null;
-    public arrow3Ref: google.maps.Polyline | null = null;
-    public arrowLabel: google.maps.Marker | null = null;
+    private arrow2Ref: google.maps.Polyline | null = null;
+    private arrow3Ref: google.maps.Polyline | null = null;
+
+    // --- 矢印ラベル ---
+    private arrowLabel: google.maps.Marker | null = null;
+    private arrow2Label: google.maps.Marker | null = null;
+    private arrow3Label: google.maps.Marker | null = null;
 
     // オーバーレイのリスト
     private overlaysRef: Array<
@@ -217,6 +223,11 @@ export class MapGeometry {
         this.arrowRef = null;
         this.arrow2Ref = null;
         this.arrow3Ref = null;
+
+        // ラベルもクリア
+        if (this.arrowLabel) { this.arrowLabel.setMap(null); this.arrowLabel = null; }
+        if (this.arrow2Label) { this.arrow2Label.setMap(null); this.arrow2Label = null; }
+        if (this.arrow3Label) { this.arrow3Label.setMap(null); this.arrow3Label = null; }
     }
 
     /** =========================
@@ -232,11 +243,10 @@ export class MapGeometry {
             return;
         }
 
-        // 既存ラベルの削除
-        if (this.arrowLabel) {
-            this.arrowLabel.setMap(null);
-            this.arrowLabel = null;
-        }
+        // 既存ラベルの削除（全矢印）
+        if (this.arrowLabel) { this.arrowLabel.setMap(null); this.arrowLabel = null; }
+        if (this.arrow2Label) { this.arrow2Label.setMap(null); this.arrow2Label = null; }
+        if (this.arrow3Label) { this.arrow3Label.setMap(null); this.arrow3Label = null; }
 
         const geom = geomLike as Geometry;
         this.clearOverlays();
@@ -292,27 +302,20 @@ export class MapGeometry {
             this.arrowRef = line;
             line.getPath().forEach((p: google.maps.LatLng) => bounds.extend(p));
 
-            // ラベルの作成
-            const distance = gmaps.geometry.spherical.computeDistanceBetween(new gmaps.LatLng(from[1], from[0]), new gmaps.LatLng(to[1], to[0]));
-            this.updateDistanceLabel(new gmaps.LatLng(from[1], from[0]), new gmaps.LatLng(to[1], to[0]), distance);
+            const fromLL = new gmaps.LatLng(from[1], from[0]);
+            const toLL = new gmaps.LatLng(to[1], to[0]);
+            const distance = gmaps.geometry.spherical.computeDistanceBetween(fromLL, toLL);
+            this.updateDistanceLabel(fromLL, toLL, distance, "main");
 
-            // 矢印2と矢印3を新規描画
             const { line2, line3 } = this.drawRightAngleArrows(from, to);
+
             if (line2) {
                 this.arrow2Ref = line2;
                 line2.getPath().forEach((p: google.maps.LatLng) => bounds.extend(p));
-                // 矢印2の長さを計算してラベルを更新
-                // ラベルバグ回避のためコメントアウト
-                // const distance2 = gmaps.geometry.spherical.computeDistanceBetween(line2.getPath().getAt(0), line2.getPath().getAt(1));
-                // this.updateArrowLabel(this.arrow2Ref, line2.getPath().getAt(0), line2.getPath().getAt(1), distance2);
             }
             if (line3) {
                 this.arrow3Ref = line3;
                 line3.getPath().forEach((p: google.maps.LatLng) => bounds.extend(p));
-                // 矢印3の長さを計算してラベルを更新
-                // ラベルバグ回避のためコメントアウト
-                // const distance3 = gmaps.geometry.spherical.computeDistanceBetween(line3.getPath().getAt(0), line3.getPath().getAt(1));
-                // this.updateArrowLabel(this.arrow3Ref, line3.getPath().getAt(0), line3.getPath().getAt(1), distance3);
             }
         }
 
@@ -462,72 +465,81 @@ export class MapGeometry {
         const fromLatLng = this.latLng(from[1], from[0]);
         const toLatLng = this.latLng(to[1], to[0]);
 
-        // 距離計算（google.maps.geometry.spherical.computeDistanceBetweenを使用）
         const distance = gmaps.geometry.spherical.computeDistanceBetween(fromLatLng, toLatLng);
 
-        // 矢印のパス更新
-        this.arrowRef.setOptions({ icons: [] });
+        this.arrowRef.setOptions({ icons: [] }); // main はヘッド無しを維持
         this.arrowRef.setPath([fromLatLng, toLatLng]);
 
-        // ラベル更新または作成
-        this.updateDistanceLabel(fromLatLng, toLatLng, distance);
+        // ① main のラベル更新
+        this.updateDistanceLabel(fromLatLng, toLatLng, distance, "main");
     }
 
-    private updateDistanceLabel(fromLatLng: google.maps.LatLng, toLatLng: google.maps.LatLng, distance: number) {
+
+    private updateDistanceLabel(
+        fromLatLng: google.maps.LatLng,
+        toLatLng: google.maps.LatLng,
+        distance: number,
+        kind: ArrowKind = "main",
+    ) {
         const gmaps = this.getGMaps();
         const map = this.getMap();
 
-        // 矢印①の中間地点を計算
         const middleLatLng = google.maps.geometry.spherical.interpolate(fromLatLng, toLatLng, 0.5);
+        const text = `${distance.toFixed(0)}m`;
 
-        // 既存のラベルがあれば更新、なければ新しく作成
-        if (this.arrowLabel) {
-            this.arrowLabel.setPosition(middleLatLng);
-            this.arrowLabel.setLabel(`${distance.toFixed(0)}m`);
-        } else {
-            this.arrowLabel = new gmaps.Marker({
+        const ensureLabel = (
+            current: google.maps.Marker | null
+        ): google.maps.Marker => {
+            if (current) {
+                current.setPosition(middleLatLng);
+                current.setLabel(text);
+                return current;
+            }
+            return new gmaps.Marker({
                 position: middleLatLng,
                 map: map,
-                label: `${distance.toFixed(0)}m`,
+                label: text,
                 zIndex: Z.OVERLAY.ARROW,
                 clickable: false,
                 icon: {
-                    // 空のアイコンを設定して、ラベルだけを表示
                     path: google.maps.SymbolPath.CIRCLE,
                     scale: 0,
-                    strokeWeight: 0
-                }
+                    strokeWeight: 0,
+                },
             });
+        };
+
+        if (kind === "main") {
+            this.arrowLabel = ensureLabel(this.arrowLabel);
+        } else if (kind === "depth") {
+            this.arrow2Label = ensureLabel(this.arrow2Label);
+        } else { // "perp"
+            this.arrow3Label = ensureLabel(this.arrow3Label);
         }
     }
 
     /** =========================
-     *  矢印: 描画
+     *  矢印: 描画（① main）
      *  ========================= */
     private drawArrow(fromLngLat: LngLat, toLngLat: LngLat) {
-        const gmaps = this.getGMaps();
-        const map = this.getMap()!;
-        const path = [this.latLng(fromLngLat[1], fromLngLat[0]), this.latLng(toLngLat[1], toLngLat[0])];
-        const line = new gmaps.Polyline({
-            path,
-            strokeColor: "#ffffff",
-            strokeOpacity: 1,
-            strokeWeight: 2,
-            clickable: false,
-            // ← ここにあった icons: [...] を削除
-            zIndex: Z.OVERLAY.ARROW,
-            map,
-        });
-        this.overlaysRef.push(line);
-        return line;
+        const pFrom = this.latLng(fromLngLat[1], fromLngLat[0]);
+        const pTo = this.latLng(toLngLat[1], toLngLat[0]);
+        const path = [pFrom, pTo];
+        // 矢印1のみヘッドなし
+        return this.createArrowPolyline(path, { hasHead: false });
     }
+
 
     // 矢印2と3: パス更新（中心/基準点の変更時に呼ぶ）
     private updateRightAngleArrowPaths(from?: LngLat, to?: LngLat) {
+        const gmaps = this.getGMaps();
+
         if (!from || !to) {
-            // 無効化（必要なら消す）
+            // ライン・ラベルともに無効化
             if (this.arrow2Ref) { this.arrow2Ref.setMap(null); this.arrow2Ref = null; }
             if (this.arrow3Ref) { this.arrow3Ref.setMap(null); this.arrow3Ref = null; }
+            if (this.arrow2Label) { this.arrow2Label.setMap(null); this.arrow2Label = null; }
+            if (this.arrow3Label) { this.arrow3Label.setMap(null); this.arrow3Label = null; }
             return;
         }
 
@@ -535,6 +547,8 @@ export class MapGeometry {
         if (!corner) {
             if (this.arrow2Ref) { this.arrow2Ref.setMap(null); this.arrow2Ref = null; }
             if (this.arrow3Ref) { this.arrow3Ref.setMap(null); this.arrow3Ref = null; }
+            if (this.arrow2Label) { this.arrow2Label.setMap(null); this.arrow2Label = null; }
+            if (this.arrow3Label) { this.arrow3Label.setMap(null); this.arrow3Label = null; }
             return;
         }
 
@@ -543,67 +557,23 @@ export class MapGeometry {
         const pTo = this.latLng(to[1], to[0]);
 
         if (!this.arrow2Ref || !this.arrow3Ref) {
-            // 無ければ新規作成
+            // 無ければ新規作成（この中でラベル初期化も行う）
             const { line2, line3 } = this.drawRightAngleArrows(from, to);
             this.arrow2Ref = line2;
             this.arrow3Ref = line3;
             return;
         }
 
-        // あればパスだけ更新
+        // パス更新
         this.arrow2Ref.setPath([pFrom, pCorner]); // ② depth方向
         this.arrow3Ref.setPath([pCorner, pTo]);   // ③ depthに垂直
 
-        // 矢印2の長さを計算
-        // ラベルバグ回避のためコメントアウト
-        /*
-        const gmaps = this.getGMaps();
-        const distance2 = gmaps.geometry.spherical.computeDistanceBetween(pFrom, pCorner);
-
-        // 矢印3の長さを計算
-        const distance3 = gmaps.geometry.spherical.computeDistanceBetween(pCorner, pTo);
-
-        // 矢印2のラベルを更新または作成
-        this.updateArrowLabel(this.arrow2Ref, pFrom, pCorner, distance2);
-
-        // 矢印3のラベルを更新または作成
-        this.updateArrowLabel(this.arrow3Ref, pCorner, pTo, distance3);
-*/
+        // ラベル更新
+        const dist2 = gmaps.geometry.spherical.computeDistanceBetween(pFrom, pCorner);
+        const dist3 = gmaps.geometry.spherical.computeDistanceBetween(pCorner, pTo);
+        this.updateDistanceLabel(pFrom, pCorner, dist2, "depth");
+        this.updateDistanceLabel(pCorner, pTo, dist3, "perp");
     }
-
-    // 矢印のラベルを更新または作成
-    // ラベルバグ回避のためコメントアウト
-    /*
-        private updateArrowLabel(arrow: google.maps.Polyline | null, fromLatLng: google.maps.LatLng, toLatLng: google.maps.LatLng, distance: number) {
-            const gmaps = this.getGMaps();
-            const map = this.getMap();
-    
-            // 矢印の中間地点を計算
-            const middleLatLng = google.maps.geometry.spherical.interpolate(fromLatLng, toLatLng, 0.5);
-    
-            // 既存のラベルがあれば更新、なければ新しく作成
-            let label = arrow?.get("label");
-            if (label) {
-                label.setPosition(middleLatLng);
-                label.setLabel(`${distance.toFixed(0)}m`);
-            } else {
-                label = new gmaps.Marker({
-                    position: middleLatLng,
-                    map: map,
-                    label: `${distance.toFixed(0)}m`,
-                    zIndex: Z.OVERLAY.ARROW,
-                    clickable: false,
-                    icon: {
-                        // 空のアイコンを設定して、ラベルだけを表示
-                        path: google.maps.SymbolPath.CIRCLE,
-                        scale: 0,
-                        strokeWeight: 0
-                    }
-                });
-                arrow?.set("label", label); // ラベルを矢印に関連付け
-            }
-        }
-    */
 
     // ②③: 直角に折れる2本の矢印を描画
     private drawRightAngleArrows(fromLngLat: LngLat, toLngLat: LngLat) {
@@ -611,37 +581,22 @@ export class MapGeometry {
         if (!corner) return { line2: null as any, line3: null as any };
 
         const gmaps = this.getGMaps();
-        const map = this.getMap()!;
         const pFrom = this.latLng(fromLngLat[1], fromLngLat[0]);
         const pCorner = this.latLng(corner[1], corner[0]);
         const pTo = this.latLng(toLngLat[1], toLngLat[0]);
 
-        const mkLine = (path: google.maps.LatLng[]) =>
-            new gmaps.Polyline({
-                path,
-                strokeColor: "#ffffff",
-                strokeOpacity: 1,
-                strokeWeight: 2,
-                clickable: false,
-                icons: [{
-                    icon: {
-                        path: gmaps.SymbolPath.FORWARD_CLOSED_ARROW,
-                        scale: 3,
-                        strokeColor: "#ffffff",
-                        strokeOpacity: 1,
-                    },
-                    offset: "100%",
-                }],
-                zIndex: Z.OVERLAY.ARROW,
-                map,
-            });
+        // ②: from → corner（depth方向・ヘッド有り）
+        const line2 = this.createArrowPolyline([pFrom, pCorner], { hasHead: true });
 
-        // ②: from → corner（depth方向に平行）
-        const line2 = mkLine([pFrom, pCorner]);
-        // ③: corner → to（depthに垂直）
-        const line3 = mkLine([pCorner, pTo]);
+        // ③: corner → to（depthに垂直・ヘッド有り）
+        const line3 = this.createArrowPolyline([pCorner, pTo], { hasHead: true });
 
-        this.overlaysRef.push(line2, line3);
+        // ラベルもここで初期化
+        const dist2 = gmaps.geometry.spherical.computeDistanceBetween(pFrom, pCorner);
+        const dist3 = gmaps.geometry.spherical.computeDistanceBetween(pCorner, pTo);
+        this.updateDistanceLabel(pFrom, pCorner, dist2, "depth");
+        this.updateDistanceLabel(pCorner, pTo, dist3, "perp");
+
         return { line2, line3 };
     }
 
@@ -690,6 +645,40 @@ export class MapGeometry {
         // corner は depth 成分だけ進んだ点
         const corner = fromLocalXY(from, d.dx * v, d.dy * v);
         return corner;
+    }
+
+    // 矢印: パスを更新
+    private createArrowPolyline(
+        path: google.maps.LatLng[],
+        opts: { hasHead?: boolean } = {}
+    ) {
+        const gmaps = this.getGMaps();
+        const map = this.getMap()!;
+        const base: google.maps.PolylineOptions = {
+            path,
+            strokeColor: "#ffffff",
+            strokeOpacity: 1,
+            strokeWeight: 2,
+            clickable: false,
+            zIndex: Z.OVERLAY.ARROW,
+            map,
+        };
+
+        if (opts.hasHead) {
+            base.icons = [{
+                icon: {
+                    path: gmaps.SymbolPath.FORWARD_CLOSED_ARROW,
+                    scale: 3,
+                    strokeColor: "#ffffff",
+                    strokeOpacity: 1,
+                },
+                offset: "100%",
+            }];
+        }
+
+        const line = new gmaps.Polyline(base);
+        this.overlaysRef.push(line);
+        return line;
     }
 
     /** =========================
