@@ -2,6 +2,7 @@
 import { toRad, toDeg, normalizeAngleDeg, fromLocalXY, toLocalXY } from "./math";
 import type { Geometry, LngLat, RectangleGeom, OrientedRect } from "@/features/types";
 import { markerBase, ROTATE_HANDLE_GAP_M, Z } from "../constants/events";
+import { setRectBearingDeg } from "./orientationDebug";
 
 export type RectEditorOpts = {
     // Map / Google Maps accessors
@@ -636,10 +637,9 @@ export class RectEditor {
         // 5度刻みに丸め
         const bearingDeg = normalizeAngleDeg(Math.round(bearingDegRaw / 5) * 5);
 
-        console.log(
-            `💛[RectEditor] takeoff right edge bearing ≈ ${bearingDeg.toFixed(2)} deg (north=0, cw, refIdx=${idx})`
-        );
-
+        // ここで共通ログユーティリティに矩形の角度を通知
+        setRectBearingDeg(bearingDeg);
+        
         return { right_m, left_m, rightIsNext };
     }
 }

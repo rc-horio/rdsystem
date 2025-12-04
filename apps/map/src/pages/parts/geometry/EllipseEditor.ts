@@ -2,6 +2,7 @@
 import { toRad, toDeg, normalizeAngleDeg, fromLocalXY, toLocalXY } from "./math";
 import type { Geometry, EllipseGeom, LngLat } from "@/features/types";
 import { markerBase, ROTATE_HANDLE_GAP_M, Z } from "../constants/events";
+import { setEllipseBearingDeg } from "./orientationDebug";
 
 // 楕円編集用オプション
 export type EllipseEditorOpts = {
@@ -638,9 +639,8 @@ export class EllipseEditor {
         const bearingDegRaw = normalizeAngleDeg(angleDegMath);
         const bearingDeg = normalizeAngleDeg(Math.round(bearingDegRaw / 5) * 5);
 
-        console.log(
-            `💙[EllipseEditor] width diameter bearing ≈ ${bearingDeg.toFixed(2)} deg (north=0, cw, rotation_deg=${rotation_deg})`
-        );
+        // ここで共通ログユーティリティに楕円の角度を通知
+        setEllipseBearingDeg(bearingDeg);
 
         if (this.widthDiameterLine) {
             this.widthDiameterLine.setPath(path);
