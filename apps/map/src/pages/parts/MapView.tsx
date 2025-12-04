@@ -362,12 +362,6 @@ export default function MapView({ onLoaded }: Props) {
   /** 指定の全オーバーレイ（ジオメトリ側）を削除 */
   const clearGeometryOverlays = () => {
     geomRef.current?.clearOverlays();
-
-    // 矢印ラベルを削除
-    if (geomRef.current?.arrowLabel) {
-      geomRef.current.arrowLabel.setMap(null);
-      geomRef.current.arrowLabel = null;
-    }
   };
 
   /** ズームに応じてマーカーの可視状態を同期 */
