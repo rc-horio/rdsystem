@@ -606,7 +606,6 @@ export class EllipseEditor {
         const map = this.opts.getMap();
         if (!map) return;
         if (!Number.isFinite(radiusX_m) || radiusX_m <= 0) {
-            // 半径が無効なら非表示にしてもよい
             if (this.widthDiameterLine) {
                 this.widthDiameterLine.setMap(null);
                 this.widthDiameterLine = undefined;
@@ -627,21 +626,35 @@ export class EllipseEditor {
             this.opts.latLng(p2[1], p2[0]),
         ];
 
+        // --- 北=0°, 時計回りでの方位角を計算してログ出力 ---
+        // ローカルXY[m]座標系で center→p1 のベクトル（x: 東, y: 北）
+        const v = toLocalXY(center, p1);
+
+        // 数学角（東=0°, 反時計回り）
+        const angleRad = Math.atan2(v.y, v.x);
+        const angleDegMath = normalizeAngleDeg(toDeg(angleRad));
+
+        // 北=0°, 時計回りの方位角へ変換（5度刻みに丸め）
+        const bearingDegRaw = normalizeAngleDeg(angleDegMath);
+        const bearingDeg = normalizeAngleDeg(Math.round(bearingDegRaw / 5) * 5);
+
+        console.log(
+            `💙[EllipseEditor] width diameter bearing ≈ ${bearingDeg.toFixed(2)} deg (north=0, cw, rotation_deg=${rotation_deg})`
+        );
+
         if (this.widthDiameterLine) {
-            // 既存ラインの更新
             this.widthDiameterLine.setPath(path);
             this.widthDiameterLine.setMap(map);
             return;
         }
 
-        // 新規作成
         this.widthDiameterLine = new gmaps.Polyline({
             path,
-            strokeColor: "#00c853",   // 飛行楕円と合わせる
+            strokeColor: "#00c853",
             strokeOpacity: 1,
             strokeWeight: 2,
             clickable: false,
-            zIndex: Z.OVERLAY.FLIGHT + 1, // 楕円の上に乗るように
+            zIndex: Z.OVERLAY.FLIGHT + 1,
             map,
         });
         this.opts.pushOverlay(this.widthDiameterLine);

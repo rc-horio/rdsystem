@@ -527,7 +527,7 @@ export class RectEditor {
             // 参照頂点が動いたことを通知（矢印更新用）
             this.opts.onReferencePointMoved?.([lng, lat]);
         }
-        
+
         if (edit.rotateMarker) {
             const rect = this.rectParamsFromCoords(coords);
             if (rect) {
@@ -615,7 +615,7 @@ export class RectEditor {
         const c = toLocalXY(center, cur);
         const n = toLocalXY(center, next);
         const p = toLocalXY(center, prev);
-        const f = { x: -c.x, y: -c.y };       // 基準点→中心
+        const f = { x: -c.x, y: -c.y };               // 基準点→中心
         const eNext = { x: n.x - c.x, y: n.y - c.y }; // 基準点→次頂点
         const ePrev = { x: p.x - c.x, y: p.y - c.y }; // 基準点→前頂点
 
@@ -627,7 +627,19 @@ export class RectEditor {
         const right_m = rightIsNext ? len(eNext) : len(ePrev);
         const left_m = rightIsNext ? len(ePrev) : len(eNext);
 
+        // --- 基準点から右に伸びる線分の方位角をログ出力（北=0°, 時計回り） ---
+        const rightVec = rightIsNext ? eNext : ePrev; // ローカルXY[m]（x: 東, y: 北）
+        const angleRad = Math.atan2(rightVec.y, rightVec.x);
+        const angleDegMath = normalizeAngleDeg(toDeg(angleRad));          // 東=0°, 反時計回り
+        const bearingDegRaw = normalizeAngleDeg(angleDegMath - 180);          // 北=0°, 反時計回り
+
+        // 5度刻みに丸め
+        const bearingDeg = normalizeAngleDeg(Math.round(bearingDegRaw / 5) * 5);
+
+        console.log(
+            `💛[RectEditor] takeoff right edge bearing ≈ ${bearingDeg.toFixed(2)} deg (north=0, cw, refIdx=${idx})`
+        );
+
         return { right_m, left_m, rightIsNext };
     }
-
 }
