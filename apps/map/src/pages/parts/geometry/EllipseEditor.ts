@@ -34,6 +34,9 @@ export class EllipseEditor {
     private ryMarker?: google.maps.Marker | null;
     private rotateMarker?: google.maps.Marker | null;
 
+    // width 方向の直径ライン
+    private widthDiameterLine?: google.maps.Polyline;
+
     // setPaths の競合抑制
     private suppressEllipseUpdateRef = false;
 
@@ -49,6 +52,10 @@ export class EllipseEditor {
         this.rxMarker = undefined;
         this.ryMarker = undefined;
         this.rotateMarker = undefined;
+        if (this.widthDiameterLine) {
+            this.widthDiameterLine.setMap(null);
+            this.widthDiameterLine = undefined;
+        }
         this.suppressEllipseUpdateRef = false;
     }
 
@@ -153,6 +160,13 @@ export class EllipseEditor {
             safety.getPath().forEach((p) => bounds.extend(p));
         }
 
+        // width 方向の直径を描画
+        this.drawWidthDiameter(
+            [flight.center[0], flight.center[1]],
+            Number(flight.radiusX_m) || 0,
+            Number(flight.rotation_deg) || 0,
+        );
+
         // 初期メトリクスは呼び出し元へ返す（以降のインタラクションは onMetrics で都度更新）
         const metrics = {
             flightWidth_m: Math.max(0, Number(flight.radiusX_m) || 0) * 2,
@@ -224,6 +238,10 @@ export class EllipseEditor {
             flightWidth_m: Math.round(Math.max(0, radiusX_m) * 100) / 100 * 2,
             flightDepth_m: Math.round(Math.max(0, radiusY_m) * 100) / 100 * 2,
         });
+
+        // width 方向の直径も追従
+        this.drawWidthDiameter(center, radiusX_m, rotation_deg);
+
 
         // 中心変更の通知（例：矢印の追従に使用）
         this.opts.onCenterChanged?.(center);
@@ -580,5 +598,52 @@ export class EllipseEditor {
             const next = { ...(this.opts.getCurrentGeom() ?? {}), flightArea: { ...cur, center: finalCenter } } as Geometry;
             this.opts.setCurrentGeom(next);
         });
+    }
+
+    /** 楕円の width 方向（radiusX）の直径を描画 or 更新 */
+    private drawWidthDiameter(center: LngLat, radiusX_m: number, rotation_deg: number) {
+        const gmaps = this.opts.getGMaps();
+        const map = this.opts.getMap();
+        if (!map) return;
+        if (!Number.isFinite(radiusX_m) || radiusX_m <= 0) {
+            // 半径が無効なら非表示にしてもよい
+            if (this.widthDiameterLine) {
+                this.widthDiameterLine.setMap(null);
+                this.widthDiameterLine = undefined;
+            }
+            return;
+        }
+
+        const phi = toRad(rotation_deg || 0);
+        const ux = Math.cos(phi);
+        const uy = Math.sin(phi);
+
+        // center ± (ux * rX, uy * rX)
+        const p1 = fromLocalXY(center, +ux * radiusX_m, +uy * radiusX_m);
+        const p2 = fromLocalXY(center, -ux * radiusX_m, -uy * radiusX_m);
+
+        const path = [
+            this.opts.latLng(p1[1], p1[0]),
+            this.opts.latLng(p2[1], p2[0]),
+        ];
+
+        if (this.widthDiameterLine) {
+            // 既存ラインの更新
+            this.widthDiameterLine.setPath(path);
+            this.widthDiameterLine.setMap(map);
+            return;
+        }
+
+        // 新規作成
+        this.widthDiameterLine = new gmaps.Polyline({
+            path,
+            strokeColor: "#00c853",   // 飛行楕円と合わせる
+            strokeOpacity: 1,
+            strokeWeight: 2,
+            clickable: false,
+            zIndex: Z.OVERLAY.FLIGHT + 1, // 楕円の上に乗るように
+            map,
+        });
+        this.opts.pushOverlay(this.widthDiameterLine);
     }
 }
