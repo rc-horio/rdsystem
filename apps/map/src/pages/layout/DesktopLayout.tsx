@@ -24,10 +24,18 @@ export default function DesktopLayout({ sidebar, children }: Props) {
   // Keep body classes in sync with state (unchanged behavior)
   useEffect(() => {
     const { classList } = document.body;
+
+    // サイドバー開閉クラス
     classList.toggle(CLS_SIDEBAR_COLLAPSED, collapsed);
+
     if (collapsed) {
-      classList.remove(CLS_DETAILBAR_OPEN); // 閉時は詳細バーも隠す（元コード踏襲）
+      // サイドバーを閉じるときは詳細バーも隠す
+      classList.remove(CLS_DETAILBAR_OPEN);
+    } else {
+      // サイドバーを再度開いたときに詳細バーも表示する
+      classList.add(CLS_DETAILBAR_OPEN);
     }
+
     return () => {
       classList.remove(CLS_SIDEBAR_COLLAPSED);
       classList.remove(CLS_DETAILBAR_OPEN);
@@ -62,7 +70,7 @@ export default function DesktopLayout({ sidebar, children }: Props) {
         className="overflow-auto bg-[#111827cc] text-white backdrop-blur p-3"
         aria-hidden={collapsed}
       >
-        {!collapsed && sidebar}
+        {sidebar}
       </aside>
 
       <main className="relative">{children}</main>
