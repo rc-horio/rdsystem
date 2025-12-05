@@ -1690,5 +1690,8 @@ select.rc-inp-input optgroup {
 .arrow-label {
   font-size: 17px !important;
   font-weight: 400;
-  color: #000000 !important;
+  color: #000;
+  background: rgba(255, 255, 255, 0.6); /* 白背景の半透明 */
+  padding: 2px 4px;
+  border-radius: 4px;
 }
