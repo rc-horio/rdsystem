@@ -6,10 +6,18 @@ import {
   EV_DETAILBAR_SET_METRICS,
   EV_DETAILBAR_APPLY_METRICS,
 } from "./constants/events";
+import {
+  EV_GEOM_TURN_METRICS,
+  type TurnMetricsDetail,
+} from "./geometry/orientationDebug";
 
 type PanelMetrics = GeometryMetrics & {
   safetyDistance_m?: number; // 表示用（= buffer_m）
   buffer_m?: number; // 互換フィールド
+
+  // 旋回方向と角度
+  turnDirection?: "cw" | "ccw"; // cw: 時計回り, ccw: 反時計回り
+  turnAngle_deg?: number; // 回転角度（度）
 };
 
 export default function GeomMetricsPanel() {
@@ -52,6 +60,30 @@ export default function GeomMetricsPanel() {
         EV_DETAILBAR_SET_METRICS,
         onSet as EventListener
       );
+  }, []);
+
+  // orientationDebug からの旋回イベントを反映
+  useEffect(() => {
+    const onTurn = (e: Event) => {
+      const ce = e as CustomEvent<TurnMetricsDetail>;
+      const detail = ce.detail;
+      if (!detail) return;
+
+      setM((prev) => ({
+        ...prev,
+        // 方向は undefined の可能性あり
+        turnDirection: detail.turnDirection ?? prev.turnDirection,
+        // 角度も number のときだけ上書き
+        turnAngle_deg:
+          typeof detail.turnAngle_deg === "number"
+            ? detail.turnAngle_deg
+            : prev.turnAngle_deg,
+      }));
+    };
+
+    window.addEventListener(EV_GEOM_TURN_METRICS, onTurn as EventListener);
+    return () =>
+      window.removeEventListener(EV_GEOM_TURN_METRICS, onTurn as EventListener);
   }, []);
 
   // 数値を表示用に（整数）フォーマット
@@ -119,6 +151,36 @@ export default function GeomMetricsPanel() {
           </div>
         </section>
 
+        {/* 旋回 */}
+        <section className="geom-col" aria-label="旋回">
+          <div className="geom-col-title">旋回</div>
+          <div className="geom-rows">
+            {/* 上の行: 時計回り / 反時計回り */}
+            <div className="geom-row">
+              <span className="k" />
+              <span className="v geom-turn-text">
+                {m.turnDirection === "ccw"
+                  ? "反時計回りに"
+                  : m.turnDirection === "cw"
+                  ? "時計回りに"
+                  : "—"}
+              </span>
+              <span className="u" />
+            </div>
+
+            {/* 下の行: xx度回転（絶対値） */}
+            <div className="geom-row">
+              <span className="k" />
+              <span className="v geom-turn-text">
+                {typeof m.turnAngle_deg === "number"
+                  ? `${Number(m.turnAngle_deg.toFixed(1))}度回転`
+                  : "—"}
+              </span>
+              <span className="u" />
+            </div>
+          </div>
+        </section>
+        
         {/* 飛行エリア */}
         <section className="geom-col" aria-label="飛行エリア">
           <div className="geom-col-title">飛行エリア</div>

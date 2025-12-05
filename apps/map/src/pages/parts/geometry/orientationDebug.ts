@@ -3,6 +3,15 @@
 let lastEllipseBearingDeg: number | null = null;
 let lastRectBearingDeg: number | null = null;
 
+// パネル通知用イベント名と payload 型
+export const EV_GEOM_TURN_METRICS = "geom:turn-metrics";
+
+export type TurnMetricsDetail = {
+    turnDirection?: "cw" | "ccw"; // cw: 時計回り, ccw: 反時計回り
+    turnAngle_deg?: number;       // 絶対値の角度
+    rawDiff_deg?: number;         // デバッグ用に生の差分も入れておく（任意）
+};
+
 /** 楕円側から方位角（北=0°, 時計回り, 5°刻み）を更新 */
 export function setEllipseBearingDeg(bearingDeg: number) {
     lastEllipseBearingDeg = normalize0to360(bearingDeg);
@@ -54,4 +63,28 @@ function logBoth() {
             rect
         )}, diff(rect-ellipse)=${format(diff)}  (north=0°, cw, diff:-ccw,+cw)`
     );
+
+    // パネル向けにイベント発火
+    if (typeof window !== "undefined" && diff != null) {
+        const absAngle = Math.abs(diff); // 角度は絶対値
+        let turnDirection: "cw" | "ccw" | undefined;
+
+        if (diff > 0) {
+            turnDirection = "cw"; // プラス → 時計回り
+        } else if (diff < 0) {
+            turnDirection = "ccw"; // マイナス → 反時計回り
+        } else {
+            turnDirection = undefined; // 0 のときは方向なし扱い
+        }
+
+        const detail: TurnMetricsDetail = {
+            turnDirection,
+            turnAngle_deg: absAngle,
+            rawDiff_deg: diff,
+        };
+
+        window.dispatchEvent(
+            new CustomEvent<TurnMetricsDetail>(EV_GEOM_TURN_METRICS, { detail })
+        );
+    }
 }
