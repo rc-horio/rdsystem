@@ -26,6 +26,9 @@ export class MapGeometry {
     private arrow2Label: google.maps.Marker | null = null;
     private arrow3Label: google.maps.Marker | null = null;
 
+    // 矢印ラベル用：三角形の重心
+    private arrowTriangleCentroid: google.maps.LatLng | null = null;
+
     // オーバーレイのリスト
     private overlaysRef: Array<
         google.maps.Polygon | google.maps.Polyline | google.maps.Marker | google.maps.Circle
@@ -228,6 +231,9 @@ export class MapGeometry {
         if (this.arrowLabel) { this.arrowLabel.setMap(null); this.arrowLabel = null; }
         if (this.arrow2Label) { this.arrow2Label.setMap(null); this.arrow2Label = null; }
         if (this.arrow3Label) { this.arrow3Label.setMap(null); this.arrow3Label = null; }
+
+        // 重心もリセット
+        this.arrowTriangleCentroid = null;
     }
 
     /** =========================
@@ -304,6 +310,17 @@ export class MapGeometry {
 
             const fromLL = new gmaps.LatLng(from[1], from[0]);
             const toLL = new gmaps.LatLng(to[1], to[0]);
+
+            // ★ 三角形の重心を計算
+            const corner = this.computeRightAngleCorner(from, to);
+            if (corner) {
+                const centroidLat = (from[1] + corner[1] + to[1]) / 3;
+                const centroidLng = (from[0] + corner[0] + to[0]) / 3;
+                this.arrowTriangleCentroid = new gmaps.LatLng(centroidLat, centroidLng);
+            } else {
+                this.arrowTriangleCentroid = null;
+            }
+
             const distance = gmaps.geometry.spherical.computeDistanceBetween(fromLL, toLL);
             this.updateDistanceLabel(fromLL, toLL, distance, "main");
 
@@ -486,28 +503,55 @@ export class MapGeometry {
     ) {
         const gmaps = this.getGMaps();
         const map = this.getMap();
+        if (!map) return;
 
-        const middleLatLng = google.maps.geometry.spherical.interpolate(fromLatLng, toLatLng, 0.5);
+        // 各矢印の中点
+        const baseLatLng = gmaps.geometry.spherical.interpolate(fromLatLng, toLatLng, 0.5);
         const text = `${distance.toFixed(0)}m`;
+
+        // デフォルトは中点
+        let labelLatLng = baseLatLng;
+
+        // 三角形の重心がわかっていれば、「重心 → 中点」の方向に外側へ押し出す
+        if (this.arrowTriangleCentroid) {
+            // 三角形の中心から見て、ラベルを置きたい中点の方向
+            const headingFromCenter = gmaps.geometry.spherical.computeHeading(
+                this.arrowTriangleCentroid,
+                baseLatLng
+            );
+
+            // kind ごとにオフセット距離を変えてさらにばらす
+            const offset =
+                kind === "main" ? 22 :   // 一番外側
+                    kind === "depth" ? 16 :   // 中くらい
+                        14;                      // 一番外側（perp）
+
+            labelLatLng = gmaps.geometry.spherical.computeOffset(
+                baseLatLng,
+                offset,
+                headingFromCenter
+            );
+        }
+
+        const className =
+            kind === "main"
+                ? "arrow-label arrow-label--main"
+                : kind === "depth"
+                    ? "arrow-label arrow-label--depth"
+                    : "arrow-label arrow-label--perp";
 
         const ensureLabel = (
             current: google.maps.Marker | null
         ): google.maps.Marker => {
             if (current) {
-                current.setPosition(middleLatLng);
-                current.setLabel({
-                    text,
-                    className: "arrow-label",
-                });
+                current.setPosition(labelLatLng);
+                current.setLabel({ text, className });
                 return current;
             }
             return new gmaps.Marker({
-                position: middleLatLng,
-                map: map,
-                label: {
-                    text: text,
-                    className: "arrow-label",
-                },
+                position: labelLatLng,
+                map,
+                label: { text, className },
                 zIndex: Z.OVERLAY.ARROW,
                 clickable: false,
                 icon: {
@@ -522,7 +566,7 @@ export class MapGeometry {
             this.arrowLabel = ensureLabel(this.arrowLabel);
         } else if (kind === "depth") {
             this.arrow2Label = ensureLabel(this.arrow2Label);
-        } else { // "perp"
+        } else {
             this.arrow3Label = ensureLabel(this.arrow3Label);
         }
     }
@@ -549,6 +593,7 @@ export class MapGeometry {
             if (this.arrow3Ref) { this.arrow3Ref.setMap(null); this.arrow3Ref = null; }
             if (this.arrow2Label) { this.arrow2Label.setMap(null); this.arrow2Label = null; }
             if (this.arrow3Label) { this.arrow3Label.setMap(null); this.arrow3Label = null; }
+            this.arrowTriangleCentroid = null;
             return;
         }
 
@@ -558,12 +603,18 @@ export class MapGeometry {
             if (this.arrow3Ref) { this.arrow3Ref.setMap(null); this.arrow3Ref = null; }
             if (this.arrow2Label) { this.arrow2Label.setMap(null); this.arrow2Label = null; }
             if (this.arrow3Label) { this.arrow3Label.setMap(null); this.arrow3Label = null; }
+            this.arrowTriangleCentroid = null;
             return;
         }
 
         const pFrom = this.latLng(from[1], from[0]);
         const pCorner = this.latLng(corner[1], corner[0]);
         const pTo = this.latLng(to[1], to[0]);
+
+        // 三角形の重心を更新
+        const centroidLat = (from[1] + corner[1] + to[1]) / 3;
+        const centroidLng = (from[0] + corner[0] + to[0]) / 3;
+        this.arrowTriangleCentroid = new gmaps.LatLng(centroidLat, centroidLng);
 
         if (!this.arrow2Ref || !this.arrow3Ref) {
             // 無ければ新規作成（この中でラベル初期化も行う）
