@@ -1135,24 +1135,23 @@ select.rc-inp-input optgroup {
   opacity: 0.85;
 }
 
-/* Columns */
+/* Columns：左右の余白だけ調整 */
 .geom-cols {
   display: flex;
-  gap: 0;
-  flex-wrap: wrap; /* 子要素が折り返されるように設定 */
-  justify-content: space-between; /* 各カラムの間隔を広げる */
-  overflow-x: auto; /* 横スクロール防止 */
+  gap: 4px; /* ← ほんの少しだけ間隔を空ける */
+  flex-wrap: wrap; /* 縮んだときは折り返して OK */
+  justify-content: flex-start; /* ← space-between をやめて詰める */
+  overflow-x: auto;
 }
 
-/* 各カラム */
+/* 各カラム：横方向だけ圧縮（上下はそのまま） */
 .geom-col {
   position: relative;
-  flex: 1 1 0;
-  min-width: 140px; /* 最小幅を調整 */
-  padding: 6px 12px;
+  flex: 1 1 110px; /* ← 最小幅を 140px → 110px に */
+  min-width: 110px;
+  padding: 6px 6px; /* ← 上下 6px は維持しつつ左右だけ 6px に */
   box-sizing: border-box;
-  width: 100%; /* 横幅を親に合わせる */
-  max-width: 100%; /* 横幅制限 */
+  max-width: 100%;
 }
 
 /* カラム間の区切り線 */
@@ -1166,11 +1165,11 @@ select.rc-inp-input optgroup {
   background: rgba(255, 255, 255, 0.18);
 }
 
-/* Column title (pill) */
+/* Column title (pill)：タイトルの横幅も少しだけ圧縮 */
 .geom-col-title {
   display: block;
   margin-bottom: 8px;
-  padding: 6px 10px;
+  padding: 6px 8px; /* ← 上下は 6px のまま、左右だけ少し細く */
   font-size: 12px;
   line-height: 1;
   color: rgba(255, 255, 255, 0.95);
@@ -1180,10 +1179,9 @@ select.rc-inp-input optgroup {
   border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 5px;
 
-  /* 控えめな幅 */
-  width: auto; /* 自動で幅を調整 */
-  max-width: 80%; /* 最大80%に制限 */
-  min-width: 120px; /* 最小幅を120pxに設定 */
+  width: auto;
+  max-width: 100%; /* ← カラム幅いっぱいまで許容 */
+  min-width: 100px; /* ← 120px → 100px にして 5 カラムを 600px 内に収める */
 }
 
 /* Rows */
@@ -1196,32 +1194,41 @@ select.rc-inp-input optgroup {
 /* k | v | u */
 .geom-row {
   display: grid;
-  grid-template-columns: 10px 1fr 12px;
+  /* 固定幅(10px/12px)をやめて、要素サイズに合わせる */
+  grid-template-columns: auto 1fr auto;
   align-items: baseline;
-  column-gap: 6px;
+  column-gap: 4px; /* 6px → 4px にして全体を少しだけ詰める */
   font-size: 12px;
   color: rgba(255, 255, 255, 0.95);
 }
 
-.geom-row .k {
-  opacity: 0.85;
+/* 左右ラベルの横方向の余白だけ微調整 */
+.geom-row .k,
+.geom-row .u {
+  padding: 0 5px; /* 数値との間をちょうど良いくらいに */
+  text-align: center;
 }
 
 .geom-row .v {
-  font-weight: 700;
-  text-align: right;
+  text-align: center;
 }
 
-.geom-row .u {
-  opacity: 0.9;
+/* 旋回セクション内の日本語テキストを少しだけ縮小 */
+.geom-turn-text {
+  font-size: 11px;
+  white-space: nowrap; /* ← 改行禁止 */
+}
+
+/* 旋回セクションの1行目（時計回り / 反時計回り）に余白を足す */
+.geom-row-turn-direction {
+  margin-top: 1px; /* ← 下方向に余白を追加（お好みで 3〜6px） */
+  margin-bottom: 1px; /* ← 下方向に余白を追加（お好みで 3〜6px） */
 }
 
 /* 入力欄のカーソル設定 */
 .geom-input {
-  width: 50%; /* 入力ボックスの幅を調整 */
   min-width: 0;
   box-sizing: content-box;
-  text-align: center; /* 入力欄の中身も中央揃え */
   font-variant-numeric: tabular-nums; /* 桁揃え */
   margin: 0 auto; /* 自動で中央揃え */
 }
@@ -1231,19 +1238,17 @@ select.rc-inp-input optgroup {
   text-align: center;
 }
 
-/* Inputs */
+/* Inputs（幅やフォントなど、パネル内の入力専用） */
 .geom-metrics-panel .geom-input {
-  width: 7ch; /* 桁数基準で安定 */
+  width: 5ch; /* 桁数基準で安定 */
   min-width: 0;
   box-sizing: content-box;
-  text-align: right;
-  font-variant-numeric: tabular-nums; /* 桁揃え */
+  font-variant-numeric: tabular-nums;
 }
 
 /* 入力欄を .v と同じタイポに */
 .geom-metrics-panel .geom-row input.v.geom-input {
   font: inherit; /* family/size/weight/line-height を継承 */
-  text-align: center;
 }
 
 /* disabled の視認性（Safari対策含む） */

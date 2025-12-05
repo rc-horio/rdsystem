@@ -112,6 +112,36 @@ export default function GeomMetricsPanel() {
       aria-label="エリア寸法"
     >
       <div className="geom-cols" role="group" aria-label="エリア別寸法">
+        {/* 旋回 */}
+        <section className="geom-col" aria-label="旋回">
+          <div className="geom-col-title">旋回</div>
+          <div className="geom-rows">
+            {/* 上の行: 時計回り / 反時計回り */}
+            <div className="geom-row geom-row-turn-direction">
+              <span className="k" />
+              <span className="v geom-turn-text">
+                {m.turnDirection === "ccw"
+                  ? "反時計回りに"
+                  : m.turnDirection === "cw"
+                  ? "時計回りに"
+                  : "—"}
+              </span>
+              <span className="u" />
+            </div>
+
+            {/* 下の行（角度） */}
+            <div className="geom-row geom-row-turn-angle">
+              <span className="k" />
+              <span className="v geom-turn-text">
+                {typeof m.turnAngle_deg === "number"
+                  ? `${Number(m.turnAngle_deg.toFixed(1))}度回転`
+                  : "—"}
+              </span>
+              <span className="u" />
+            </div>
+          </div>
+        </section>
+
         {/* 高度と保安距離を分けた新しいセクション */}
         <section className="geom-col is-active" aria-label="高度と保安距離">
           <div className="geom-col-title">高度と保安距離</div>
@@ -151,36 +181,6 @@ export default function GeomMetricsPanel() {
           </div>
         </section>
 
-        {/* 旋回 */}
-        <section className="geom-col" aria-label="旋回">
-          <div className="geom-col-title">旋回</div>
-          <div className="geom-rows">
-            {/* 上の行: 時計回り / 反時計回り */}
-            <div className="geom-row">
-              <span className="k" />
-              <span className="v geom-turn-text">
-                {m.turnDirection === "ccw"
-                  ? "反時計回りに"
-                  : m.turnDirection === "cw"
-                  ? "時計回りに"
-                  : "—"}
-              </span>
-              <span className="u" />
-            </div>
-
-            {/* 下の行: xx度回転（絶対値） */}
-            <div className="geom-row">
-              <span className="k" />
-              <span className="v geom-turn-text">
-                {typeof m.turnAngle_deg === "number"
-                  ? `${Number(m.turnAngle_deg.toFixed(1))}度回転`
-                  : "—"}
-              </span>
-              <span className="u" />
-            </div>
-          </div>
-        </section>
-        
         {/* 飛行エリア */}
         <section className="geom-col" aria-label="飛行エリア">
           <div className="geom-col-title">飛行エリア</div>
