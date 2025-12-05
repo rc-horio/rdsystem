@@ -680,7 +680,12 @@ export default function MapView({ onLoaded }: Props) {
           position: gmaps.ControlPosition.TOP_CENTER,
         },
         zoomControl: true,
-        zoomControlOptions: { position: gmaps.ControlPosition.RIGHT_CENTER },
+        
+        // 航空写真モードを選択
+        mapTypeId: gmaps.MapTypeId.SATELLITE,
+
+        // 初期傾きを 0°（真上からの俯瞰）に固定
+        tilt: 0,
       });
 
       // Geometry controller

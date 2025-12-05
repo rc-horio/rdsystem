@@ -475,6 +475,9 @@ export class MapGeometry {
     }
 
 
+    /** =========================
+     *  矢印: ラベルを更新
+     *  ========================= */
     private updateDistanceLabel(
         fromLatLng: google.maps.LatLng,
         toLatLng: google.maps.LatLng,
@@ -492,13 +495,19 @@ export class MapGeometry {
         ): google.maps.Marker => {
             if (current) {
                 current.setPosition(middleLatLng);
-                current.setLabel(text);
+                current.setLabel({
+                    text,
+                    className: "arrow-label",
+                });
                 return current;
             }
             return new gmaps.Marker({
                 position: middleLatLng,
                 map: map,
-                label: text,
+                label: {
+                    text: text,
+                    className: "arrow-label",
+                },
                 zIndex: Z.OVERLAY.ARROW,
                 clickable: false,
                 icon: {
