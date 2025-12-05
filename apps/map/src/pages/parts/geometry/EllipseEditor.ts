@@ -149,8 +149,6 @@ export class EllipseEditor {
                 {
                     strokeColor: "#ffd54f",
                     fillColor: "#ffd54f",
-                    strokeOpacity: 0.9,
-                    fillOpacity: 0.4,
                     zIndex: Z.OVERLAY.SAFETY,
                     clickable: false,
                     draggable: false,
@@ -198,8 +196,6 @@ export class EllipseEditor {
                 {
                     strokeColor: "#ffd54f",
                     fillColor: "#ffd54f",
-                    strokeOpacity: 0.9,
-                    fillOpacity: 0.4,
                     zIndex: Z.OVERLAY.SAFETY,
                     clickable: false,
                     draggable: false,
@@ -299,7 +295,7 @@ export class EllipseEditor {
             strokeOpacity: 1,
             strokeWeight: 2,
             fillColor: "#2196f3",
-            fillOpacity: 0.4,
+            fillOpacity: 0.7,
             clickable: true,
             draggable: false,
             zIndex: Z.OVERLAY.FLIGHT,

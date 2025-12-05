@@ -201,7 +201,7 @@ export class RectEditor {
             strokeOpacity: 0.9,
             strokeWeight: 2,
             fillColor: "#ed1b24",
-            fillOpacity: 0.4,
+            fillOpacity: 0.7,
             clickable: true,
             draggable: this.opts.isEditingOn(),
             zIndex: Z.OVERLAY.TAKEOFF,

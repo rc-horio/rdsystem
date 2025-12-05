@@ -46,9 +46,9 @@ export const S3_BASE =
 /** Google Maps 図形/マーカー用の共通レイヤー定義 */
 export const Z = {
     OVERLAY: {
-        SAFETY: 10,     // 保安エリア
-        TAKEOFF: 15,    // 離発着（矩形）
+        TAKEOFF: 30,    // 離発着（矩形）
         FLIGHT: 20,     // 飛行（楕円）
+        SAFETY: 10,     // 保安エリア
         ARROW: 999,     // 参照点→中心の矢印（最前面のオーバーレイ）
     },
 
