@@ -499,12 +499,10 @@ export function useHubPageState() {
     });
     const data = await r.json().catch(() => ({} as any));
 
-    // 通信ができていれば r.ok は true/false になる。CORS で弾かれたらここに来ない（catchに落ちる）
     if (!r.ok) {
       throw new Error(data?.error || `HTTP ${r.status}`);
     }
     if (data?.ok !== true) {
-      // 部分失敗(errorsあり)やAPIロジック上のエラー
       const failed = (data?.errors || [])
         .map((e: any) => e?.key)
         .filter(Boolean);
@@ -519,7 +517,7 @@ export function useHubPageState() {
   // バケットの公開URL → S3キー に変換（自社ドメイン/CloudFrontにも対応できるように緩めに）
   const keyFromUrl = (url: string): string | null => {
     const m = url.match(/^https?:\/\/[^/]+\/(.+)$/);
-    return m ? decodeURIComponent(m[1]) : null;
+    return m ? m[1] : null;  // decodeURIComponent はしない
   };
 
   const removeAt = async (idx: number) => {
@@ -530,17 +528,15 @@ export function useHubPageState() {
     ] as any;
 
     // 物理削除はSAVE時。ここでは予約だけ入れる
-    if (typeof target?.url === "string" && !target.url.startsWith("blob:")) {
-      const key = target?.key || keyFromUrl(target.url);
-      if (key) {
-        setPendingDeletes((prev) => Array.from(new Set([...prev, key])));
-      } else {
-        console.warn("No key derivable for photo. Marking nothing.", target);
-      }
+    if (typeof target?.key === "string") {
+      setPendingDeletes(
+        (prev) => Array.from(new Set([...prev, target.key]))
+      );
     } else if (
-      typeof target?.url === "string" &&
-      target.url.startsWith("blob:")
-    ) {
+      typeof target?.url === "string" && !target.url.startsWith("blob:")) {
+      const key = keyFromUrl(target.url);
+      if (key) setPendingDeletes((prev) => Array.from(new Set([...prev, key])));
+
       // 未アップロードのblobは単に解放
       try {
         URL.revokeObjectURL(target.url);
@@ -600,6 +596,7 @@ export function useHubPageState() {
           // S3 URL と key を保存（__fileは除去）
           pDraft.url = publicUrl;
           pDraft.key = key;
+          pDraft.originalName = pOrig.__file.name;
           delete pDraft.__file;
 
           try {
