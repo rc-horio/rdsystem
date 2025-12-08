@@ -145,7 +145,7 @@ export function DroneSection({
                 <DeleteItemButton
                   onClick={() => handleRemoveDrone(index)}
                   disabled={!edit || localDrones.length === 1}
-                  className="!ml-0"
+                  className="ml-0!"
                   title="項目削除"
                 />
               </div>

@@ -80,7 +80,7 @@ export function FullscreenLayer({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-[1000] bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-1000 bg-black/70 backdrop-blur-sm"
       style={{ height: "100dvh" }}
       // 背景タップで閉じたい場合は onClick={onClose} を付ける
     >
@@ -91,7 +91,7 @@ export function FullscreenLayer({
       >
         {/* ヘッダ：縦横どちらでもセーフエリアにフィット */}
         <div
-          className="shrink-0 z-10 flex items-center justify-between gap-2 border-b border-white/10 bg-slate-900/90 backdrop-blur supports-[backdrop-filter]:bg-slate-900/60"
+          className="shrink-0 z-10 flex items-center justify-between gap-2 border-b border-white/10 bg-slate-900/90 backdrop-blur supports-backdrop-filter:bg-slate-900/60"
           style={{
             paddingTop: "max(env(safe-area-inset-top), 8px)",
             paddingBottom: "8px",

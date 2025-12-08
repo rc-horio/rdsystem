@@ -22,7 +22,7 @@ export function HamburgerToggleButton({
       aria-expanded={open}
       aria-label={open ? labelWhenOpen : labelWhenClosed}
       aria-controls="landscape-side-menu"
-      className={`touch-manipulation select-none fixed z-[9999] w-12 h-12 rounded-full
+      className={`touch-manipulation select-none fixed z-9999 w-12 h-12 rounded-full
                   bg-black/55 hover:bg-black/70 active:bg-black/75
                   flex items-center justify-center ${className}`}
       style={style}

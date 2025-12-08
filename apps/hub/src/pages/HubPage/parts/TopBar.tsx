@@ -54,7 +54,7 @@ export function TopBar({
       {/* セーフエリアの上部を TopBar と同色で塗る固定カバー */}
       <div
         aria-hidden
-        className="fixed left-0 right-0 top-0 z-[50] pointer-events-none"
+        className="fixed left-0 right-0 top-0 z-50 pointer-events-none"
         style={{
           height: "var(--safe-top)",
           background: "#000", // TopBar と同色
@@ -63,7 +63,7 @@ export function TopBar({
 
       {/* TopBar 本体（位置は safe-top の直下） */}
       <div
-        className="fixed left-0 right-0 w-full overflow-x-hidden z-[51] bg-[#300d1d] text-slate-200 px-2 md:px-6 py-1 md:py-2"
+        className="fixed left-0 right-0 w-full overflow-x-hidden z-51 bg-[#300d1d] text-slate-200 px-2 md:px-6 py-1 md:py-2"
         style={{ top: "var(--safe-top)" }}
       >
         {/* Grid: 左=auto / 中央=1fr / 右=auto */}

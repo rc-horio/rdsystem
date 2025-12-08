@@ -324,7 +324,7 @@ export function PeopleSection({
                           handleRemovePerson(groupIndex, personIndex)
                         }
                         disabled={!edit || group.people.length === 1}
-                        className="!ml-0"
+                        className="ml-0!"
                         title="項目削除"
                       />
                     </div>

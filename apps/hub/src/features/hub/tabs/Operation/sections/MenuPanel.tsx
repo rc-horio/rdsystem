@@ -81,7 +81,7 @@ export function MenuPanel({
   return (
     <div
       id="landscape-side-menu"
-      className={`fixed z-[10000] bg-black/70 backdrop-blur-md shadow-2xl
+      className={`fixed z-10000 bg-black/70 backdrop-blur-md shadow-2xl
                   top-0 right-0 bottom-0 border-l border-white/10
                   transition-transform duration-300 will-change-transform overflow-hidden`}
       style={panelStyle}

@@ -131,7 +131,7 @@ export function ModuleSection({
                 <DeleteItemButton
                   onClick={() => handleRemoveModule(index)}
                   disabled={!edit || localModules.length === 1}
-                  className="!ml-0"
+                  className="ml-0!"
                   title="項目削除"
                 />
               </div>

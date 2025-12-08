@@ -152,7 +152,7 @@ export function OthersSection({
                 <DeleteItemButton
                   onClick={() => handleRemoveItem(index)}
                   title="項目削除"
-                  className="!ml-0"
+                  className="ml-0!"
                   disabled={!edit || localItems.length === 1}
                 />
               </div>

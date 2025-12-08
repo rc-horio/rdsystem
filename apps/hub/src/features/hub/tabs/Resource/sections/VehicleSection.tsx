@@ -158,7 +158,7 @@ export function VehicleSection({
                   <DeleteItemButton
                     onClick={() => handleRemoveRow(index)}
                     disabled={!edit || localRows.length === 1}
-                    className="!ml-0"
+                    className="ml-0!"
                     title="項目削除"
                   />
                 </div>

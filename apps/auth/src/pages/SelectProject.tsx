@@ -232,7 +232,7 @@ export default function SelectProject() {
   return (
     <>
       {/* ===== SP（モバイル） ===== */}
-      <div className="md:hidden min-h-dvh bg-gradient-to-br from-slate-950 to-slate-900 pt-safe pb-safe px-safe relative">
+      <div className="md:hidden min-h-dvh bg-linear-to-br from-slate-950 to-slate-900 pt-safe pb-safe px-safe relative">
         <BrandHeader />
 
         {/* 右上にログアウト */}
@@ -302,7 +302,7 @@ export default function SelectProject() {
             </div>
 
             {/* ボタン群 */}
-            <div className="grid gap-2 [grid-template-rows:42px_auto]">
+            <div className="grid gap-2 grid-rows-[42px_auto]">
               {mode === "Hub" ? (
                 <button
                   onClick={openCreateModal}
@@ -327,7 +327,7 @@ export default function SelectProject() {
       </div>
 
       {/* ===== PC（md以上） ===== */}
-      <div className="hidden md:block min-h-screen bg-gradient-to-br from-slate-950 to-slate-900 relative">
+      <div className="hidden md:block min-h-screen bg-linear-to-br from-slate-950 to-slate-900 relative">
         <BrandHeader />
 
         {/* 右上にログアウト */}
@@ -403,7 +403,7 @@ export default function SelectProject() {
             </div>
 
             {/* ボタン群 */}
-            <div className="grid gap-2 [grid-template-rows:42px_auto]">
+            <div className="grid gap-2 grid-rows-[42px_auto]">
               {mode === "Hub" ? (
                 <button
                   type="button"
