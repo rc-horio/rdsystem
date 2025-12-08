@@ -15,8 +15,8 @@ export default function MobilePanel({ edit, area, onPatchArea, onExportPdf }: Pr
   return (
     <div className="space-y-6 overflow-x-hidden">
       <RightPanel edit={edit} area={area} onPatchArea={onPatchArea} />
-      <LandingAreaFigure edit={edit} area={area} onPatchArea={onPatchArea} />
       <MapCard />
+      <LandingAreaFigure edit={edit} area={area} onPatchArea={onPatchArea} />
       <div className="flex justify-end">
         <ButtonRed onClick={onExportPdf} className="px-3 py-1 text-xs">
           PDF出力

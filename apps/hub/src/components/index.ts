@@ -31,6 +31,7 @@ export * from "./inputs/Textarea";
 export * from "./inputs/DisplayOrInput";
 export * from "./inputs/DisplayOrTextarea";
 export * from "./inputs/MemoSection";
+export * from "./inputs/DisplayOrSelect";
 // modal
 export * from "./modal/Modal";
 export * from "./modal/FormModal";

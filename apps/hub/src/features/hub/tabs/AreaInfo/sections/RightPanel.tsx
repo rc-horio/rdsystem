@@ -1,11 +1,22 @@
 // features/hub/tabs/AreaInfo/sections/RightPanel.tsx
-import { SectionTitle, DisplayOrInput, DisplayOrTextarea } from "@/components";
+import {
+  SectionTitle,
+  DisplayOrInput,
+  DisplayOrTextarea,
+  DisplayOrSelect,
+  type SelectOption,
+} from "@/components";
 
 type Props = {
   edit: boolean;
   area: any | null;
   onPatchArea: (patch: any) => void;
 };
+
+const AREA_OPTIONS: SelectOption[] = [
+  { value: "tokyo", label: "東京" },
+  { value: "osaka", label: "大阪" },
+];
 
 export function RightPanel({ edit, area, onPatchArea }: Props) {
   const A = area ?? {};
@@ -16,7 +27,7 @@ export function RightPanel({ edit, area, onPatchArea }: Props) {
   // 行レイアウトを統一（最低/最高高度の行間に合わせる）
   const rowCls = "mt-2 pl-4 md:pl-6 flex items-center gap-2";
   // 横幅を一括管理
-  const inputW = "w-[70px]";
+  const inputW = "!w-[55px]";
   // 数値欄は中央寄せ
   const numericInputW = `${inputW} text-center`;
 
@@ -37,15 +48,33 @@ export function RightPanel({ edit, area, onPatchArea }: Props) {
     return Number.isFinite(v) ? v : null;
   };
 
+  // x / y 機体数の更新
+  const setXCount = (v: string) => {
+    const next = {
+      ...(area ?? {}),
+      drone_count: { ...(area?.drone_count ?? {}), x_count: num(v) },
+    };
+    onPatchArea(next);
+  };
+  const setYCount = (v: string) => {
+    const next = {
+      ...(area ?? {}),
+      drone_count: { ...(area?.drone_count ?? {}), y_count: num(v) },
+    };
+    onPatchArea(next);
+  };
+
   return (
     <div className="space-y-1">
       {/* 開催エリア */}
       <div className="flex items-center gap-4">
         <SectionTitle title="開催エリア" compact />
-        <DisplayOrInput
+        <DisplayOrSelect
           edit={edit}
           value={A.area_name ?? ""}
           onChange={(e) => patch(["area_name"], e.target.value)}
+          options={AREA_OPTIONS}
+          placeholder="選択してください"
           className="ml-2 w-[200px] md:w-[150px]"
         />
       </div>
@@ -53,19 +82,21 @@ export function RightPanel({ edit, area, onPatchArea }: Props) {
       {/* 機体配置 */}
       <div>
         <SectionTitle title="機体数" />
+
+        {/* 機種 & 総機体数 */}
         <div className={rowCls}>
           <div className="w-24">
             <DisplayOrInput
               edit={edit}
               value={droneCnt.model ?? ""}
               onChange={(e) => patch(["drone_count", "model"], e.target.value)}
-              placeholder="EMO"
-              className="w-full" // ← ラベル列の幅にフィット
+              placeholder="機種"
+              className="w-full text-center"
             />
           </div>
 
           {/* コロン列（全行で同じ幅） */}
-          <span className="w-4 text-2xl leading-none text-center">:</span>
+          <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
 
           {/* 値列（数値入力） */}
           <DisplayOrInput
@@ -76,7 +107,37 @@ export function RightPanel({ edit, area, onPatchArea }: Props) {
             }
             inputMode="numeric"
             type="number"
-            className={numericInputW} // 例: w-[70px] text-center
+            className={numericInputW}
+          />
+          <span className="w-6 ml-1">機</span>
+        </div>
+
+        {/* x機体数 */}
+        <div className={rowCls}>
+          <span className="w-24 text-sm">x機体数</span>
+          <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
+          <DisplayOrInput
+            edit={edit}
+            value={(area?.drone_count?.x_count ?? "").toString()}
+            onChange={(e) => setXCount(e.target.value)}
+            inputMode="numeric"
+            type="number"
+            className={numericInputW}
+          />
+          <span className="w-6 ml-1">機</span>
+        </div>
+
+        {/* y機体数 */}
+        <div className={rowCls}>
+          <span className="w-24 text-sm">y機体数</span>
+          <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
+          <DisplayOrInput
+            edit={edit}
+            value={(area?.drone_count?.y_count ?? "").toString()}
+            onChange={(e) => setYCount(e.target.value)}
+            inputMode="numeric"
+            type="number"
+            className={numericInputW}
           />
           <span className="w-6 ml-1">機</span>
         </div>
@@ -87,7 +148,7 @@ export function RightPanel({ edit, area, onPatchArea }: Props) {
         <SectionTitle title="最低・最高高度" />
         <div className={rowCls}>
           <span className="w-24 text-sm">最低高度</span>
-          <span className="w-4 text-2xl leading-none text-center">:</span>
+          <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
           <DisplayOrInput
             edit={edit}
             value={(flight.altitude_min_m ?? "").toString()}
@@ -102,7 +163,7 @@ export function RightPanel({ edit, area, onPatchArea }: Props) {
         </div>
         <div className={rowCls}>
           <span className="w-24 text-sm">最高高度</span>
-          <span className="w-4 text-2xl leading-none text-center">:</span>
+          <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
           <DisplayOrInput
             edit={edit}
             value={(flight.altitude_max_m ?? "").toString()}
@@ -117,7 +178,7 @@ export function RightPanel({ edit, area, onPatchArea }: Props) {
         </div>
         <div className={rowCls}>
           <span className="w-24 text-sm">保安エリア</span>
-          <span className="w-4 text-2xl leading-none text-center">:</span>
+          <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
           <DisplayOrInput
             edit={edit}
             value={(flight.safety_area_m ?? "").toString()}
@@ -219,7 +280,7 @@ export function RightPanel({ edit, area, onPatchArea }: Props) {
         <SectionTitle title="アニメーションエリア" />
         <div className={rowCls}>
           <span className="w-24 text-sm">横幅</span>
-          <span className="w-4 text-2xl leading-none text-center">:</span>
+          <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
           <DisplayOrInput
             edit={edit}
             value={(anim.width_m ?? "").toString()}
@@ -234,7 +295,7 @@ export function RightPanel({ edit, area, onPatchArea }: Props) {
         </div>
         <div className={rowCls}>
           <span className="w-24 text-sm">奥行</span>
-          <span className="w-4 text-2xl leading-none text-center">:</span>
+          <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
           <DisplayOrInput
             edit={edit}
             value={(anim.depth_m ?? "").toString()}

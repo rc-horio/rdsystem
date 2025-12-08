@@ -60,7 +60,7 @@ export function DisplayOrTextarea({
               // 外殻が枠を描くため、内側は枠/パディングなし
               "border-transparent !px-0 !py-0",
               // 文字サイズも従来どおり
-              "text-sm text-slate-100 placeholder:text-slate-200",
+              "!text-sm leading-none text-slate-100 placeholder:text-slate-200",
               // スクロール有無で幅がブレないように
               "[scrollbar-gutter:stable]",
               textClassName
@@ -71,7 +71,7 @@ export function DisplayOrTextarea({
           <div
             className={clsx(
               "w-full h-full overflow-y-auto whitespace-pre-wrap",
-              "text-sm !text-slate-200", // ← 修正前と同じ色を強制
+              "!text-sm leading-none !text-slate-200", // ← 修正前と同じ色を強制
               "!cursor-default select-none caret-transparent",
               "[scrollbar-gutter:stable]",
               textClassName

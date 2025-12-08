@@ -163,15 +163,15 @@ export function ContentHeader({
                 <DisplayOrInput
                   edit
                   value={cur.date ?? ""}
-                  placeholder="日付"
-                  className="w-full text-sm"
+                  placeholder="2000-01-01"
+                  className="w-full"
                   onChange={(e) => updateCurrent({ date: e.target.value })}
                 />
                 <DisplayOrInput
                   edit
                   value={cur.label ?? ""}
                   placeholder="タイトル"
-                  className="w-full text-sm"
+                  className="w-full"
                   onChange={(e) => updateCurrent({ label: e.target.value })}
                 />
               </div>

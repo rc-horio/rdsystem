@@ -70,7 +70,7 @@ export function ModuleSection({
             edit={edit}
             value={input}
             onChange={(v) => onInputChange(v)} // 入力中は一切変換しない
-            placeholder="空白区切りで番号を入力（複数行OK）"
+            placeholder="空白区切りで番号を入力"
             size="md"
             className="w-full"
             textClassName="font-mono"

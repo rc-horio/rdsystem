@@ -44,10 +44,10 @@ export function ScheduleList({
                   onUpdateSchedules(newSchedules);
                 }}
                 className={clsx(
-                  "w-22 text-xs text-center",
+                  "flex-2 text-xs text-center",
                   !edit && "cursor-default caret-transparent"
                 )}
-                placeholder="日付"
+                placeholder="2000-01-01"
               />
               {/* タイトルフィールド */}
               <DisplayOrInput
@@ -60,7 +60,7 @@ export function ScheduleList({
                   onUpdateSchedules(newSchedules);
                 }}
                 className={clsx(
-                  "flex-1 w-1 text-xs text-center",
+                  "flex-3 w-1 text-xs text-center",
                   !edit && "cursor-default caret-transparent"
                 )}
                 placeholder="タイトル"
