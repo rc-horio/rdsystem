@@ -16,6 +16,10 @@ const PRESIGN_API =
 const DELETE_API =
   "https://wxhn4vu2b7nz2gvdkix7xj7k4u0bsydf.lambda-url.ap-northeast-1.on.aws/";
 
+// 
+const AREAS_BASE_URL =
+  "https://rc-rdsystem-dev-catalog.s3.ap-northeast-1.amazonaws.com/catalog/v1/areas";
+
 const deepClone = <T>(v: T): T => JSON.parse(JSON.stringify(v));
 
 export function useDataSource(id?: string) {
@@ -96,6 +100,7 @@ export function useHubPageState() {
         people: { groups: [], memo: "" },
       },
       area: {
+        area_uuid: "",
         area_name: "",
         takeoff_land: { coordinate: { lat: null, lon: null } },
         drone_count: { model: "", count: 0, x_count: null, y_count: null },
@@ -120,6 +125,118 @@ export function useHubPageState() {
       },
       photos: [],
     };
+  };
+
+  // 既存の「JSON保存用 Lambda」を使って任意のJSONを書き込むヘルパー
+  const putJsonViaLambda = async (params: { key: string; body: any }) => {
+    const res = await fetch(
+      "https://u64h3yye227qjsnem7yyydakpu0vpkxn.lambda-url.ap-northeast-1.on.aws",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key: params.key,
+          body: params.body,
+          contentType: "application/json; charset=utf-8",
+        }),
+      }
+    );
+    const raw = await res.text();
+    const data = raw ? JSON.parse(raw) : null;
+    if (!res.ok || data?.error) throw new Error(data?.error ?? raw);
+  };
+
+  type AreaIndexJson = {
+    overview?: any;
+    details?: any;
+    history?: { uuid: string; projectuuid: string; scheduleuuid: string }[];
+    candidate?: any[];
+    updated_at?: string;
+    updated_by?: string;
+  };
+
+  // 1つの areaUuid / scheduleId について history を追記
+  const appendAreaHistory = async (params: {
+    areaUuid: string;
+    projectUuid: string;
+    scheduleUuid: string;
+  }) => {
+    const { areaUuid, projectUuid, scheduleUuid } = params;
+
+    const url = `${AREAS_BASE_URL}/${areaUuid}/index.json`;
+    const res = await fetch(url, { cache: "no-cache" });
+    if (!res.ok) {
+      console.error("area index.json fetch failed", areaUuid, res.status);
+      return; // 取れない場合はスキップ（必要なら throw にしても良い）
+    }
+
+    const json = (await res.json()) as AreaIndexJson;
+    const history = json.history ?? [];
+
+    // 同じ (projectuuid, scheduleuuid) が既に入っていたら二重登録しない
+    const exists = history.some(
+      (h) => h.projectuuid === projectUuid && h.scheduleuuid === scheduleUuid
+    );
+    if (!exists) {
+      history.push({
+        uuid: "", // 仕様に合わせて空文字。必要ならここで uuid() でもOK
+        projectuuid: projectUuid,
+        scheduleuuid: scheduleUuid,
+      });
+    }
+
+    json.history = history;
+    json.updated_at = new Date().toISOString();
+    json.updated_by = "ui"; // 既存の形式に合わせる
+
+    await putJsonViaLambda({
+      key: `catalog/v1/areas/${areaUuid}/index.json`,
+      body: json,
+    });
+  };
+
+  // schedules 全体から area_uuid を拾ってまとめて更新
+  const syncAllAreaHistories = async (params: {
+    projectUuid: string;
+    schedules: ScheduleDetail[];
+  }) => {
+    const { projectUuid, schedules } = params;
+
+    // area_uuid が入っているスケジュールだけ対象
+    const targets = schedules
+      .filter(
+        (s) =>
+          s.area &&
+          typeof (s.area as any).area_uuid === "string" &&
+          (s.area as any).area_uuid.trim() !== ""
+      )
+      .map((s) => ({
+        areaUuid: (s.area as any).area_uuid as string,
+        scheduleUuid: s.id,
+      }));
+
+    if (!targets.length) return;
+
+    // 同じ areaUuid + scheduleUuid をまとめて処理（重複除去）
+    const uniq = Array.from(
+      new Map(
+        targets.map((t) => [
+          `${t.areaUuid}:${t.scheduleUuid}`,
+          t,
+        ])
+      ).values()
+    );
+
+    // 並列で叩いても良いし、直列でやっても良い。ここでは Promise.all にします。
+    await Promise.all(
+      uniq.map((t) =>
+        appendAreaHistory({
+          areaUuid: t.areaUuid,
+          projectUuid,
+          scheduleUuid: t.scheduleUuid,
+        })
+      )
+    );
   };
 
   useEffect(() => {
@@ -415,6 +532,19 @@ export function useHubPageState() {
         }
       } catch (err) {
         console.error("projects.json 同期エラー", err);
+      }
+
+      try {
+        await syncAllAreaHistories({
+          projectUuid: currentUuid,
+          schedules: schedulesAfterUpload,
+        });
+      } catch (err) {
+        console.error("area history 同期エラー", err);
+        // ここで throw すると全体SAVEエラー扱いになるので、
+        // 「プロジェクト保存は成功・エリア履歴だけ失敗」という扱いにしたいなら握りつぶす。
+        // 必要なら alert だけ出すなど。
+        // alert("エリア履歴への反映に失敗しました。時間をおいて再実行してください。");
       }
 
       // ④ 画面 state を S3 URL 版に更新

@@ -161,7 +161,7 @@ export function BatterySection({
                 <DeleteItemButton
                   onClick={() => handleRemoveRow(index)}
                   disabled={!edit || localBatteries.length === 1}
-                  className="!ml-0"
+                  className="ml-0!"
                   title="項目削除"
                 />
               </div>

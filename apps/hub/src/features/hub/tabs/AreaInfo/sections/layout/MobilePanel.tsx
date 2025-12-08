@@ -11,11 +11,16 @@ type Props = {
   onExportPdf: () => void; // 追加
 };
 
-export default function MobilePanel({ edit, area, onPatchArea, onExportPdf }: Props) {
+export default function MobilePanel({
+  edit,
+  area,
+  onPatchArea,
+  onExportPdf,
+}: Props) {
   return (
     <div className="space-y-6 overflow-x-hidden">
       <RightPanel edit={edit} area={area} onPatchArea={onPatchArea} />
-      <MapCard />
+      <MapCard areaName={area?.area_name ?? null} />{" "}
       <LandingAreaFigure edit={edit} area={area} onPatchArea={onPatchArea} />
       <div className="flex justify-end">
         <ButtonRed onClick={onExportPdf} className="px-3 py-1 text-xs">

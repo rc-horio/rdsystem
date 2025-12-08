@@ -15,6 +15,8 @@ type Props = {
   edit: boolean;
   area: any | null;
   onPatchArea: (patch: any) => void;
+  // エリア名変更時のコールバック
+  onChangeAreaName?: (name: string) => void;
 };
 
 // RDMap 側のエリア JSON 形式
@@ -36,9 +38,16 @@ const AREAS_JSON_URL =
     (process as any).env?.NEXT_PUBLIC_AREAS_JSON_URL) ||
   S3_BASE + "areas.json";
 
-export function RightPanel({ edit, area, onPatchArea }: Props) {
+export function RightPanel({
+  edit,
+  area,
+  onPatchArea,
+  onChangeAreaName,
+}: Props) {
   // --- 開催エリアプルダウン用の状態 ---
   const [areaOptions, setAreaOptions] = useState<SelectOption[]>([]);
+  const [rdMapAreas, setRdMapAreas] = useState<RDMapArea[]>([]);
+
   const [isLoadingAreas, setIsLoadingAreas] = useState(false);
   const [areasError, setAreasError] = useState<string | null>(null);
 
@@ -64,6 +73,27 @@ export function RightPanel({ edit, area, onPatchArea }: Props) {
     }
     cur[path[path.length - 1]] = value;
     onPatchArea(next);
+  };
+
+  // uuid を受け取って、area_uuid / area_name 両方更新
+  const handleAreaUuidChange = (uuid: string) => {
+    const found = rdMapAreas.find((a) => a.uuid === uuid);
+    const areaName = found?.areaName ?? "";
+
+    const next = {
+      ...(A ?? {}),
+      area_uuid: uuid,
+      area_name: areaName,
+    };
+    onPatchArea(next);
+
+    onChangeAreaName?.(areaName);
+  };
+
+  const handleAreaNameChange = (value: string) => {
+    patch(["area_name"], value);
+    // 親側にも通知
+    onChangeAreaName?.(value);
   };
 
   const num = (s: string) => {
@@ -103,6 +133,7 @@ export function RightPanel({ edit, area, onPatchArea }: Props) {
         const data = (await res.json()) as RDMapArea[];
 
         if (cancelled) return;
+        setRdMapAreas(data);
 
         // areaName 昇順に並べる（任意）
         const sorted = [...data].sort((a, b) =>
@@ -112,7 +143,7 @@ export function RightPanel({ edit, area, onPatchArea }: Props) {
         // 今は value=areaName で RDHub 側の area_name と紐づけ
         // 将来的に uuid を保存したくなったらここを value: area.uuid に変更
         const options: SelectOption[] = sorted.map((area) => ({
-          value: area.areaName,
+          value: area.uuid,
           label: area.areaName,
         }));
 
@@ -143,8 +174,8 @@ export function RightPanel({ edit, area, onPatchArea }: Props) {
         <SectionTitle title="開催エリア" compact />
         <DisplayOrSelect
           edit={edit}
-          value={A.area_name ?? ""}
-          onChange={(e) => patch(["area_name"], e.target.value)}
+          value={A.area_uuid ?? ""}
+          onChange={(e) => handleAreaUuidChange(e.target.value)}
           options={areaOptions}
           placeholder={
             areasError
