@@ -63,7 +63,7 @@ export default function DesktopLayout(props: any) {
         />
       </aside>
 
-      <main className="flex-1 p-0 overflow-x-hidden md:ml-[22rem]">
+      <main className="flex-1 p-0 overflow-x-hidden md:ml-88">
         {" "}
         <div className="p-6">
           <section hidden={activeTab !== "リソース管理"}>

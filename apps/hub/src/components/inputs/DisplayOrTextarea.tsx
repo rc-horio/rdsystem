@@ -44,7 +44,7 @@ export function DisplayOrTextarea({
         className={clsx(
           "rounded border-[0.5px] border-[#707070] px-3 py-1",
           // 編集ONのときだけ、元のTextareaと同じ背景色を付与
-          edit && "!bg-[#211C1C]",
+          edit && "bg-[#211C1C]!",
           heightClass ?? HEIGHT_BY_SIZE[size]
         )}
       >
@@ -58,9 +58,9 @@ export function DisplayOrTextarea({
             className={clsx(
               "w-full h-full min-h-0 resize-none bg-transparent outline-none",
               // 外殻が枠を描くため、内側は枠/パディングなし
-              "border-transparent !px-0 !py-0",
+              "border-transparent px-0! py-0!",
               // 文字サイズも従来どおり
-              "!text-sm leading-none text-slate-100 placeholder:text-slate-200",
+              "text-sm! leading-none text-slate-100 placeholder:text-slate-200",
               // スクロール有無で幅がブレないように
               "[scrollbar-gutter:stable]",
               textClassName
@@ -71,8 +71,8 @@ export function DisplayOrTextarea({
           <div
             className={clsx(
               "w-full h-full overflow-y-auto whitespace-pre-wrap",
-              "!text-sm leading-none !text-slate-200", // ← 修正前と同じ色を強制
-              "!cursor-default select-none caret-transparent",
+              "text-sm! leading-none text-slate-200!", // ← 修正前と同じ色を強制
+              "cursor-default! select-none caret-transparent",
               "[scrollbar-gutter:stable]",
               textClassName
             )}

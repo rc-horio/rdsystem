@@ -36,7 +36,7 @@ export const DisplayOrSelect: React.FC<Props> = ({
           "text-sm leading-none",
           displayText ? "text-slate-200" : "text-slate-500",
           className,
-          "!cursor-default select-none caret-transparent focus:outline-none focus:ring-0"
+          "cursor-default! select-none caret-transparent focus:outline-none focus:ring-0"
         )}
         tabIndex={-1}
         aria-readonly="true"

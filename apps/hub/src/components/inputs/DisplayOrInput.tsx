@@ -46,9 +46,9 @@ export function DisplayOrInput({
     <div
       className={clsx(
         "flex items-center justify-center h-9 rounded border-[0.5px] border-[#707070] px-3",
-        "!text-sm text-slate-200 leading-none",
+        "text-sm! text-slate-200 leading-none",
         className,
-        "!cursor-default select-none caret-transparent focus:outline-none focus:ring-0"
+        "cursor-default! select-none caret-transparent focus:outline-none focus:ring-0"
       )}
       tabIndex={-1}
       aria-readonly="true"

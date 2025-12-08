@@ -19,7 +19,7 @@ export default function DesktopPanel({
 }: Props) {
   return (
     // 左(=Map+Figure) と 右(=RightPanel) の2カラム
-    <div className="grid gap-y-6 gap-x-1 lg:[grid-template-columns:4fr_1fr] w-full">
+    <div className="grid gap-y-6 gap-x-1 lg:grid-cols-[4fr_1fr] w-full">
       
       {/* 左: MapCard + LandingAreaFigure を1セクションとして縦並び */}
       <div className="relative pr-6 lg:pr-4">
