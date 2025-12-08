@@ -288,7 +288,13 @@ export function useHubPageState() {
 
     const currentUuid = id || projectData?.project?.uuid || "";
     const currentProjectId = projectData?.project?.id || "";
-    const body = buildIndexJsonFromState(projectData, normalizedSchedules, currentProjectId); if (source === "local") {
+    const body = buildIndexJsonFromState(
+      projectData,
+      normalizedSchedules,
+      currentProjectId
+    );
+
+    if (source === "local") {
       try {
         let handle = localFileHandle;
         if (!handle) {
@@ -320,9 +326,14 @@ export function useHubPageState() {
             id: body.project.id,
           },
         }));
+
+        // ✅ ローカル保存成功時のポップアップ
+        alert("保存しました。");
+
         return;
       } catch (e) {
         console.error("local save error", e);
+        alert("保存に失敗しました。時間をおいて再実行してください。");
         return;
       }
     }
@@ -430,6 +441,9 @@ export function useHubPageState() {
           // 予約は残す（次回SAVEで再トライ）
         }
       }
+
+      // ✅ S3 保存フローが最後まで成功した場合のポップアップ
+      alert("保存しました。");
     } catch (e) {
       console.error(e);
       alert("保存に失敗しました。時間をおいて再実行してください。");
