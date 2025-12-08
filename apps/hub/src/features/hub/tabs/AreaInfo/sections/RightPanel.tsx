@@ -6,6 +6,10 @@ import {
   DisplayOrSelect,
   type SelectOption,
 } from "@/components";
+import { useEffect, useState } from "react";
+
+const S3_BASE =
+  "https://rc-rdsystem-dev-catalog.s3.ap-northeast-1.amazonaws.com/catalog/v1/";
 
 type Props = {
   edit: boolean;
@@ -13,12 +17,31 @@ type Props = {
   onPatchArea: (patch: any) => void;
 };
 
-const AREA_OPTIONS: SelectOption[] = [
-  { value: "tokyo", label: "東京" },
-  { value: "osaka", label: "大阪" },
-];
+// RDMap 側のエリア JSON 形式
+type RDMapArea = {
+  uuid: string;
+  areaName: string;
+  representative_coordinate: {
+    lat: number;
+    lon: number;
+  };
+  projectCount: number;
+};
+
+// S3 上の JSON への URL
+// ・本番では環境変数の値を推奨
+// ・一旦は S3 の公開 URL をデフォルトにしておく
+const AREAS_JSON_URL =
+  (typeof process !== "undefined" &&
+    (process as any).env?.NEXT_PUBLIC_AREAS_JSON_URL) ||
+  S3_BASE + "areas.json";
 
 export function RightPanel({ edit, area, onPatchArea }: Props) {
+  // --- 開催エリアプルダウン用の状態 ---
+  const [areaOptions, setAreaOptions] = useState<SelectOption[]>([]);
+  const [isLoadingAreas, setIsLoadingAreas] = useState(false);
+  const [areasError, setAreasError] = useState<string | null>(null);
+
   const A = area ?? {};
   const flight = A.flight_area ?? {};
   const droneCnt = A.drone_count ?? {};
@@ -64,6 +87,55 @@ export function RightPanel({ edit, area, onPatchArea }: Props) {
     onPatchArea(next);
   };
 
+  //
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchAreas = async () => {
+      setIsLoadingAreas(true);
+      setAreasError(null);
+      try {
+        const res = await fetch(AREAS_JSON_URL);
+        if (!res.ok) {
+          throw new Error(`Failed to fetch areas: ${res.status}`);
+        }
+
+        const data = (await res.json()) as RDMapArea[];
+
+        if (cancelled) return;
+
+        // areaName 昇順に並べる（任意）
+        const sorted = [...data].sort((a, b) =>
+          a.areaName.localeCompare(b.areaName, "ja")
+        );
+
+        // 今は value=areaName で RDHub 側の area_name と紐づけ
+        // 将来的に uuid を保存したくなったらここを value: area.uuid に変更
+        const options: SelectOption[] = sorted.map((area) => ({
+          value: area.areaName,
+          label: area.areaName,
+        }));
+
+        setAreaOptions(options);
+      } catch (e) {
+        console.error(e);
+        if (!cancelled) {
+          setAreasError("開催エリア一覧の取得に失敗しました");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingAreas(false);
+        }
+      }
+    };
+
+    fetchAreas();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="space-y-1">
       {/* 開催エリア */}
@@ -73,8 +145,14 @@ export function RightPanel({ edit, area, onPatchArea }: Props) {
           edit={edit}
           value={A.area_name ?? ""}
           onChange={(e) => patch(["area_name"], e.target.value)}
-          options={AREA_OPTIONS}
-          placeholder="選択してください"
+          options={areaOptions}
+          placeholder={
+            areasError
+              ? "エリア取得エラー"
+              : isLoadingAreas
+              ? "読込中..."
+              : "選択してください"
+          }
           className="ml-2 w-[200px] md:w-[150px]"
         />
       </div>

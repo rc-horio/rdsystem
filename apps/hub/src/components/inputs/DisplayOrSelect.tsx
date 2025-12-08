@@ -53,7 +53,7 @@ export const DisplayOrSelect: React.FC<Props> = ({
       onChange={onChange}
       className={clsx(
         "h-9 w-full rounded border-[0.5px] border-[#707070] px-3",
-        "bg-slate-900 text-sm text-slate-200 leading-none",
+        "bg-slate-900 text-sm! text-slate-200 leading-none",
         "focus:outline-none focus:ring-0",
         className
       )}
