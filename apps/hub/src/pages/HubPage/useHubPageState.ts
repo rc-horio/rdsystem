@@ -195,45 +195,131 @@ export function useHubPageState() {
     });
   };
 
-  // schedules 全体から area_uuid を拾ってまとめて更新
+  // 1つのエリアについて、「このプロジェクトの history を現在の状態に合わせて差し替える」
+  const syncAreaHistoryForArea = async (params: {
+    areaUuid: string;
+    projectUuid: string;
+    scheduleUuids: string[];
+  }) => {
+    const { areaUuid, projectUuid, scheduleUuids } = params;
+
+    const url = `${AREAS_BASE_URL}/${areaUuid}/index.json`;
+    const res = await fetch(url, { cache: "no-cache" });
+    if (!res.ok) {
+      console.error("area index.json fetch failed", areaUuid, res.status);
+      return;
+    }
+
+    const json = (await res.json()) as AreaIndexJson;
+    const history = json.history ?? [];
+
+    const uniqScheduleUuids = Array.from(
+      new Set(scheduleUuids.filter((s) => !!s))
+    );
+
+    // 1) このプロジェクトの「今は紐づいていないスケジュール」を削除
+    let nextHistory = history.filter((h) => {
+      if (h.projectuuid !== projectUuid) return true;
+      return uniqScheduleUuids.includes(h.scheduleuuid);
+    });
+
+    // 2) 「今は紐づいているのに、まだ history に無いスケジュール」を追加
+    for (const schedUuid of uniqScheduleUuids) {
+      const exists = nextHistory.some(
+        (h) => h.projectuuid === projectUuid && h.scheduleuuid === schedUuid
+      );
+      if (!exists) {
+        nextHistory.push({
+          uuid: "",
+          projectuuid: projectUuid,
+          scheduleuuid: schedUuid,
+        });
+      }
+    }
+
+    json.history = nextHistory;
+    json.updated_at = new Date().toISOString();
+    json.updated_by = "ui";
+
+    await putJsonViaLambda({
+      key: `catalog/v1/areas/${areaUuid}/index.json`,
+      body: json,
+    });
+  };
+
+
+  // schedules 全体から area_uuid ごとにまとめて、各エリアの history を同期
+  // schedules 全体から area_uuid ごとにまとめて、各エリアの history を同期
   const syncAllAreaHistories = async (params: {
     projectUuid: string;
     schedules: ScheduleDetail[];
   }) => {
     const { projectUuid, schedules } = params;
 
-    // area_uuid が入っているスケジュールだけ対象
-    const targets = schedules
-      .filter(
-        (s) =>
-          s.area &&
+    // ① 現在の状態: areaUuid ごとに「今」紐づいている schedule id を集計
+    const currentAreaMap = new Map<string, string[]>();
+
+    for (const s of schedules) {
+      const areaUuid =
+        s.area &&
           typeof (s.area as any).area_uuid === "string" &&
           (s.area as any).area_uuid.trim() !== ""
-      )
-      .map((s) => ({
-        areaUuid: (s.area as any).area_uuid as string,
-        scheduleUuid: s.id,
-      }));
+          ? ((s.area as any).area_uuid as string)
+          : "";
 
-    if (!targets.length) return;
+      if (!areaUuid) continue;
+      if (!s.id) continue;
 
-    // 同じ areaUuid + scheduleUuid をまとめて処理（重複除去）
-    const uniq = Array.from(
-      new Map(
-        targets.map((t) => [
-          `${t.areaUuid}:${t.scheduleUuid}`,
-          t,
-        ])
-      ).values()
-    );
+      const list = currentAreaMap.get(areaUuid) ?? [];
+      list.push(s.id);
+      currentAreaMap.set(areaUuid, list);
+    }
 
-    // 並列で叩いても良いし、直列でやっても良い。ここでは Promise.all にします。
+    // ② 前回保存済みの状態（projectData）から、過去に紐づいていたエリアも拾う
+    const previousAreaMap = new Map<string, string[]>();
+    try {
+      if (projectData) {
+        const prev = buildSchedulesFromProjectData(projectData);
+
+        for (const s of prev as ScheduleDetail[]) {
+          const areaUuid =
+            s.area &&
+              typeof (s.area as any).area_uuid === "string" &&
+              (s.area as any).area_uuid.trim() !== ""
+              ? ((s.area as any).area_uuid as string)
+              : "";
+
+          if (!areaUuid) continue;
+          if (!s.id) continue;
+
+          const list = previousAreaMap.get(areaUuid) ?? [];
+          list.push(s.id);
+          previousAreaMap.set(areaUuid, list);
+        }
+      }
+    } catch (e) {
+      console.error(
+        "failed to build previous schedules for area history",
+        e
+      );
+    }
+
+    // ③ 「以前紐づいていた or 今紐づいている」すべてのエリアを対象にする
+    const targetAreaUuids = new Set<string>();
+    for (const k of currentAreaMap.keys()) targetAreaUuids.add(k);
+    for (const k of previousAreaMap.keys()) targetAreaUuids.add(k);
+
+    if (!targetAreaUuids.size) return;
+
+    // ④ 各エリアについて、「今の scheduleUuids」を正とした history に差し替える
     await Promise.all(
-      uniq.map((t) =>
-        appendAreaHistory({
-          areaUuid: t.areaUuid,
+      Array.from(targetAreaUuids).map((areaUuid) =>
+        syncAreaHistoryForArea({
+          areaUuid,
           projectUuid,
-          scheduleUuid: t.scheduleUuid,
+          // 今の状態でそのエリアに紐づいている schedule 一覧
+          // 何もなければ [] が渡る → そのエリアからはこのプロジェクトの履歴が全削除される
+          scheduleUuids: currentAreaMap.get(areaUuid) ?? [],
         })
       )
     );

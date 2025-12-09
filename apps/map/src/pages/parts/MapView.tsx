@@ -623,7 +623,6 @@ export default function MapView({ onLoaded }: Props) {
         (areaUuid && byKey.get(areaUuid)) || undefined;
 
       if (!marker && areaName) {
-        const has = byKey.has(areaName);
         marker = byKey.get(areaName);
       }
 
