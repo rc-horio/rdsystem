@@ -4,14 +4,42 @@ import {
   Drone2Icon,
   DisplayOrInput,
 } from "@/components";
+import { useMemo } from "react";
+
+// MapCard と同じ normalize を共通化するか、ここにコピペでもOK
+const normalizeMapUrl = (base?: string) => {
+  const raw = (base || "").trim();
+  if (!raw) return "";
+  try {
+    const u = new URL(raw, window.location.origin);
+    if (!/\/map\/?$/.test(u.pathname)) {
+      u.pathname = (u.pathname.replace(/\/+$/, "") || "") + "/map/";
+    } else {
+      u.pathname = "/map/";
+    }
+    return u.toString();
+  } catch {
+    return raw.endsWith("/") ? `${raw}map/` : `${raw}/map/`;
+  }
+};
 
 type Props = {
   edit: boolean;
   area: any | null;
   onPatchArea: (patch: any) => void;
+  projectUuid?: string | null;
+  scheduleUuid?: string | null;
+  areaName?: string | null;
 };
 
-export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
+export function LandingAreaFigure({
+  edit,
+  area,
+  onPatchArea,
+  projectUuid,
+  scheduleUuid,
+  areaName,
+}: Props) {
   const horizontal = area?.spacing_between_drones_m?.horizontal ?? "";
   const vertical = area?.spacing_between_drones_m?.vertical ?? "";
 
@@ -21,10 +49,46 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
       ? (area.drone_orientation_deg as number)
       : 0;
 
-  const num = (s: string) => {
-    const v = Number(s);
-    return Number.isFinite(v) ? v : null;
-  };
+  // 離発着エリア専用 iframe 用の URL を組み立てる
+  const fromEnv = import.meta.env.VITE_MAP_BASE_URL as string | undefined;
+
+  const base = useMemo(() => {
+    let src = normalizeMapUrl(fromEnv);
+    if (!src) {
+      if (import.meta.env.DEV) {
+        src = normalizeMapUrl(
+          `${window.location.origin.replace(":5174", ":5175")}/map/`
+        );
+      } else {
+        src = normalizeMapUrl("https://d3jv4hxjgqnm4c.cloudfront.net/map/");
+      }
+    }
+    return src;
+  }, [fromEnv]);
+
+  const takeoffFigureSrc = useMemo(() => {
+    try {
+      const u = new URL(base);
+      // 埋め込みモード
+      u.searchParams.set("mode", "embed");
+      // 「離発着エリアだけ」モードを表すフラグ
+      u.searchParams.set("view", "takeoff-only");
+
+      if (areaName) {
+        u.searchParams.set("areaName", areaName);
+      }
+      if (projectUuid) {
+        u.searchParams.set("projectUuid", projectUuid);
+      }
+      if (scheduleUuid) {
+        u.searchParams.set("scheduleUuid", scheduleUuid);
+      }
+
+      return u.toString();
+    } catch {
+      return base;
+    }
+  }, [base, areaName, projectUuid, scheduleUuid]);
 
   const setHorizontal = (v: string) => {
     const next = {
@@ -84,8 +148,17 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
       <div className="my-4 flex flex-col lg:flex-row gap-4">
         {/* 左: 離発着エリア図 */}
         <div className="flex-1 lg:basis-12/12">
-          <div className="h-120 w-full border border-slate-600 grid place-content-center text-slate-400 text-sm">
-            離発着エリア図 (SVG / 画像)
+          <div className="h-120 w-full border border-slate-600 overflow-hidden">
+            <iframe
+              key={takeoffFigureSrc}
+              src={takeoffFigureSrc}
+              width="100%"
+              height="100%"
+              className="w-full h-full"
+              style={{ border: "none" }}
+              title="離発着エリア図（離発着エリアのみフォーカス）"
+              loading="lazy"
+            />
           </div>
         </div>
 
