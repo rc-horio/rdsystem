@@ -22,12 +22,13 @@ const normalizeMapUrl = (base?: string) => {
   }
 };
 
-// props に areaName を追加
 type MapCardProps = {
   areaName?: string | null;
+  projectUuid?: string | null;
+  scheduleUuid?: string | null; 
 };
 
-export function MapCard({ areaName }: MapCardProps) {
+export function MapCard({ areaName, projectUuid, scheduleUuid }: MapCardProps) {
   const fromEnv = import.meta.env.VITE_MAP_BASE_URL as string | undefined;
 
   const base = useMemo(() => {
@@ -45,27 +46,29 @@ export function MapCard({ areaName }: MapCardProps) {
   }, [fromEnv]);
 
   const src = useMemo(() => {
-    if (!areaName) {
-      // エリア未選択時も「埋め込みモード」で開きたい場合はここにも付ける
-      try {
-        const u = new URL(base);
-        u.searchParams.set("mode", "embed");
-        return u.toString();
-      } catch {
-        return base;
-      }
-    }
-
     try {
       const u = new URL(base);
-      u.searchParams.set("areaName", areaName);
-      u.searchParams.set("mode", "embed"); // 埋め込みモード指定
-      const finalUrl = u.toString();
-      return finalUrl;
+
+      // 埋め込みモードは常に指定
+      u.searchParams.set("mode", "embed");
+
+      if (areaName) {
+        u.searchParams.set("areaName", areaName);
+      }
+
+      // ★ 案件・スケジュールもクエリに載せる
+      if (projectUuid) {
+        u.searchParams.set("projectUuid", projectUuid);
+      }
+      if (scheduleUuid) {
+        u.searchParams.set("scheduleUuid", scheduleUuid);
+      }
+
+      return u.toString();
     } catch {
       return base;
     }
-  }, [base, areaName]);
+  }, [base, areaName, projectUuid, scheduleUuid]);
 
   return (
     <div className="p-0">

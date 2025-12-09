@@ -10,6 +10,8 @@ type Props = {
   onPatchArea: (patch: Partial<AreaInfo>) => void;
   onExportPdf: () => void;
   areaName: string | null;
+  projectUuid?: string | null;
+  scheduleUuid?: string | null;
 };
 
 export default function DesktopPanel({
@@ -18,6 +20,8 @@ export default function DesktopPanel({
   onPatchArea,
   onExportPdf,
   areaName,
+  projectUuid,
+  scheduleUuid,
 }: Props) {
   return (
     // 左(=Map+Figure) と 右(=RightPanel) の2カラム
@@ -34,7 +38,11 @@ export default function DesktopPanel({
 
         {/* 縦並びに */}
         <div className="space-y-6">
-          <MapCard areaName={areaName} />
+          <MapCard
+            areaName={areaName}
+            projectUuid={projectUuid ?? undefined}
+            scheduleUuid={scheduleUuid ?? undefined}
+          />
           <LandingAreaFigure
             edit={edit}
             area={area}

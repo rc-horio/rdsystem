@@ -12,6 +12,8 @@ type Props = {
   onPatchArea: (patch: Partial<AreaInfo>) => void;
   projectName?: string; // 案件名（任意）
   scheduleLabel?: string; // スケジュール名（任意）
+  projectUuid?: string | null;
+  scheduleUuid?: string | null;
 };
 
 export default function AreaInfoTab({
@@ -21,6 +23,8 @@ export default function AreaInfoTab({
   onPatchArea,
   projectName = "案件名",
   scheduleLabel = "",
+  projectUuid,
+  scheduleUuid,
 }: Props) {
   const onExportPdf = () =>
     exportDanceSpecPdfFromHtml({
@@ -44,6 +48,8 @@ export default function AreaInfoTab({
           onPatchArea={onPatchArea}
           onExportPdf={onExportPdf}
           areaName={areaName}
+          projectUuid={projectUuid}
+          scheduleUuid={scheduleUuid}
         />
       </div>
       {/* PC */}
@@ -55,6 +61,8 @@ export default function AreaInfoTab({
           onPatchArea={onPatchArea}
           onExportPdf={onExportPdf}
           areaName={areaName}
+          projectUuid={projectUuid}
+          scheduleUuid={scheduleUuid}
         />
       </div>
     </div>

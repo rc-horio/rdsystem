@@ -10,6 +10,8 @@ type Props = {
   onPatchArea: (patch: Partial<AreaInfo>) => void;
   onExportPdf: () => void;
   areaName: string | null;
+  projectUuid?: string | null;
+  scheduleUuid?: string | null;
 };
 
 export default function MobilePanel({
@@ -18,11 +20,17 @@ export default function MobilePanel({
   onPatchArea,
   onExportPdf,
   areaName,
+  projectUuid,
+  scheduleUuid,
 }: Props) {
   return (
     <div className="space-y-6 overflow-x-hidden">
       <RightPanel edit={edit} area={area} onPatchArea={onPatchArea} />
-      <MapCard areaName={areaName} />
+      <MapCard
+        areaName={areaName}
+        projectUuid={projectUuid ?? undefined}
+        scheduleUuid={scheduleUuid ?? undefined}
+      />
       <LandingAreaFigure edit={edit} area={area} onPatchArea={onPatchArea} />
       <div className="flex justify-end">
         <ButtonRed onClick={onExportPdf} className="px-3 py-1 text-xs">

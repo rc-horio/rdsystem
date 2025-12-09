@@ -108,6 +108,8 @@ export default function DesktopLayout(props: any) {
                       : projectData?.event?.name) ?? ""
               }
               scheduleLabel={currentSchedule?.label ?? ""}
+              projectUuid={id ?? null}
+              scheduleUuid={currentSchedule?.id ?? null}
             />
           </section>
 
