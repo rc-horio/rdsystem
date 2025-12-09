@@ -70,7 +70,7 @@ export function MapCard({ areaName }: MapCardProps) {
   return (
     <div className="p-0">
       <SectionTitle title="離発着エリア（マップ）" />
-      <div className="mt-4 h-[420px] w-full overflow-hidden">
+      <div className="mt-4 h-[520px] w-full overflow-hidden">
         <iframe
           key={src}
           src={src}

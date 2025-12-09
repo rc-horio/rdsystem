@@ -10,6 +10,7 @@ import {
   EV_GEOM_TURN_METRICS,
   type TurnMetricsDetail,
 } from "./geometry/orientationDebug";
+import { detectEmbedMode } from "@/components";
 
 type PanelMetrics = GeometryMetrics & {
   safetyDistance_m?: number; // 表示用（= buffer_m）
@@ -21,6 +22,9 @@ type PanelMetrics = GeometryMetrics & {
 };
 
 export default function GeomMetricsPanel() {
+  if (typeof window !== "undefined" && detectEmbedMode()) {
+    return null;
+  }
   const [m, setM] = useState<PanelMetrics>({});
 
   // 追加: 編集ONかどうか
