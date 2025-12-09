@@ -295,7 +295,7 @@ export class EllipseEditor {
             strokeOpacity: 1,
             strokeWeight: 2,
             fillColor: "#2196f3",
-            fillOpacity: 0.7,
+            fillOpacity: 0.4,
             clickable: true,
             draggable: false,
             zIndex: Z.OVERLAY.FLIGHT,
