@@ -618,30 +618,36 @@ export default function MapView({ onLoaded }: Props) {
     // サイドバーからのフォーカス要求に対応
     selectByKeyRef.current = ({ areaUuid, areaName }) => {
       const byKey = markerByKeyRef.current;
+
       let marker: google.maps.Marker | undefined =
         (areaUuid && byKey.get(areaUuid)) || undefined;
 
-      if (!marker && areaName) marker = byKey.get(areaName);
+      if (!marker && areaName) {
+        const has = byKey.has(areaName);
+        marker = byKey.get(areaName);
+      }
 
-      if (marker) {
-        const p = pointByMarkerRef.current.get(marker);
-        if (p) {
-          if (
-            selectedMarkerRef.current &&
-            selectedMarkerRef.current !== marker
-          ) {
-            applySelection(selectedMarkerRef.current, false);
-          }
-          applySelection(marker, true);
-          selectedMarkerRef.current = marker;
+      if (!marker) {
+        console.warn("[map] marker NOT found for", { areaUuid, areaName });
+        return;
+      }
 
-          focusMapOnMarker(marker, { onlyPanIfClose: true });
+      const p = pointByMarkerRef.current.get(marker);
 
-          // UI更新のみ（fetch 済）
-          openMarker(marker, p, true);
+      if (p) {
+        if (selectedMarkerRef.current && selectedMarkerRef.current !== marker) {
+          applySelection(selectedMarkerRef.current, false);
         }
+        applySelection(marker, true);
+        selectedMarkerRef.current = marker;
+
+        focusMapOnMarker(marker, { onlyPanIfClose: true });
+
+        // UI更新のみ（fetch 済）
+        openMarker(marker, p, true);
       }
     };
+
     syncMarkersVisibilityForZoom();
   }
 
@@ -680,7 +686,7 @@ export default function MapView({ onLoaded }: Props) {
           position: gmaps.ControlPosition.TOP_CENTER,
         },
         zoomControl: true,
-        
+
         // 航空写真モードを選択
         mapTypeId: gmaps.MapTypeId.SATELLITE,
 

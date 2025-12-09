@@ -4,10 +4,11 @@ import MobileLayout from "./layout/MobileLayout";
 import SideListBar from "./parts/SideListBar";
 import MapView from "./parts/MapView";
 import { useBreakpointMd } from "@/components";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import SideDetailBar from "./parts/SideDetailBar";
 import GeomMetricsPanel from "./parts/GeomMetricsPanel";
 import type { Point } from "@/features/types";
+import { EV_MAP_FOCUS_ONLY } from "./parts/constants/events";
 
 const AREA_NAME_NONE = "（エリア名なし）";
 
@@ -37,6 +38,25 @@ export default function MapPage() {
       schedulesLite.length
     );
   }
+
+  // points がロードされたあとにクエリを解釈してフォーカス
+  useEffect(() => {
+    if (!points.length) return; // まだ 0 件なら何もしない
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const areaName = params.get("areaName");
+      if (!areaName) return;
+
+      window.dispatchEvent(
+        new CustomEvent(EV_MAP_FOCUS_ONLY, {
+          detail: { areaName },
+        })
+      );
+    } catch (e) {
+      console.warn("[page] failed to apply areaName from query:", e);
+    }
+  }, [points]); // ← points ロード後に一度だけ動く
 
   return isMobile ? (
     <MobileLayout>

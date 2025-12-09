@@ -30,7 +30,6 @@ type MapCardProps = {
 export function MapCard({ areaName }: MapCardProps) {
   const fromEnv = import.meta.env.VITE_MAP_BASE_URL as string | undefined;
 
-  // base の計算部分はそのまま
   const base = useMemo(() => {
     let src = normalizeMapUrl(fromEnv);
     if (!src) {
@@ -45,14 +44,15 @@ export function MapCard({ areaName }: MapCardProps) {
     return src;
   }, [fromEnv]);
 
-  // areaName をクエリに付与した URL を作る
   const src = useMemo(() => {
-    if (!areaName) return base;
-
+    if (!areaName) {
+      return base;
+    }
     try {
       const u = new URL(base);
       u.searchParams.set("areaName", areaName);
-      return u.toString();
+      const finalUrl = u.toString();
+      return finalUrl;
     } catch {
       return base;
     }
@@ -63,7 +63,6 @@ export function MapCard({ areaName }: MapCardProps) {
       <SectionTitle title="離発着エリア（マップ）" />
       <div className="mt-4 h-[420px] w-full overflow-hidden">
         <iframe
-          // エリアが変わるたびに iframe をリロードさせたいなら key を付ける
           key={src}
           src={src}
           width="100%"

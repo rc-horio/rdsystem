@@ -8,7 +8,8 @@ type Props = {
   setEdit: (v: boolean) => void;
   area: AreaInfo | null;
   onPatchArea: (patch: Partial<AreaInfo>) => void;
-  onExportPdf: () => void; // 追加
+  onExportPdf: () => void;
+  areaName: string | null;
 };
 
 export default function MobilePanel({
@@ -16,11 +17,12 @@ export default function MobilePanel({
   area,
   onPatchArea,
   onExportPdf,
+  areaName,
 }: Props) {
   return (
     <div className="space-y-6 overflow-x-hidden">
       <RightPanel edit={edit} area={area} onPatchArea={onPatchArea} />
-      <MapCard areaName={area?.area_name ?? null} />{" "}
+      <MapCard areaName={areaName} />
       <LandingAreaFigure edit={edit} area={area} onPatchArea={onPatchArea} />
       <div className="flex justify-end">
         <ButtonRed onClick={onExportPdf} className="px-3 py-1 text-xs">

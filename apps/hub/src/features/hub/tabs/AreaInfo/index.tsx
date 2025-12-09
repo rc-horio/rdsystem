@@ -22,7 +22,6 @@ export default function AreaInfoTab({
   projectName = "案件名",
   scheduleLabel = "",
 }: Props) {
-  // PDF 出力ボタン用のコールバックをここに集約
   const onExportPdf = () =>
     exportDanceSpecPdfFromHtml({
       projectName,
@@ -30,6 +29,9 @@ export default function AreaInfoTab({
       gradPx: 3,
       area,
     });
+
+  // いったん state で selectedAreaName は持たず、area だけを見る
+  const areaName = area?.area_name ?? null;
 
   return (
     <div className="space-y-8 pb-24 relative">
@@ -41,6 +43,7 @@ export default function AreaInfoTab({
           area={area}
           onPatchArea={onPatchArea}
           onExportPdf={onExportPdf}
+          areaName={areaName}
         />
       </div>
       {/* PC */}
@@ -51,6 +54,7 @@ export default function AreaInfoTab({
           area={area}
           onPatchArea={onPatchArea}
           onExportPdf={onExportPdf}
+          areaName={areaName}
         />
       </div>
     </div>
