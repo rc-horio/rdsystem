@@ -13,8 +13,10 @@ export * from "./atoms/buttons/DetailIconButton";
 export * from "./inputs/InputBox";
 export * from "./inputs/Textarea";
 export * from "./inputs/SelectBox";
-// hooks / utils
+// utils
 export * from "./utils/blurActiveInput";
+export * from "./utils/detectEmbedMode"
+// hooks 
 export * from "./hook/useBreakpointMd";
 export * from "./hook/useDraggableMetricsPanel"
 export * from "./hook/useEditableBodyClass"

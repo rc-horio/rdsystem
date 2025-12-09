@@ -9,6 +9,7 @@ import {
   SelectBox,
   useEditableBodyClass,
   DeleteIconButton,
+  detectEmbedMode,
 } from "@/components";
 import type {
   TabKey,
@@ -37,6 +38,10 @@ import {
  *  SideDetailBar Component
  *  ========================= */
 export default function SideDetailBar({ open }: { open?: boolean }) {
+  const isEmbed = detectEmbedMode();
+  if (isEmbed) {
+    return null; // 埋め込み時は詳細バーを描画しない
+  }
   const editable = useEditableBodyClass();
   const [active, setActive] = useState<TabKey>("overview");
   const [title, setTitle] = useState("");
@@ -914,9 +919,11 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
  *  External bridge APIs
  *  ========================= */
 export function openDetailBar() {
+  if (detectEmbedMode()) return;
   document.body.classList.add(CLS_DETAILBAR_OPEN);
 }
 export function closeDetailBar() {
+  if (detectEmbedMode()) return;
   document.body.classList.remove(CLS_DETAILBAR_OPEN);
 }
 

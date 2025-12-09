@@ -6,7 +6,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { blurActiveInput } from "@/components/utils/blurActiveInput";
+import { blurActiveInput, detectEmbedMode } from "@/components";
 
 type Props = { sidebar: ReactNode } & PropsWithChildren;
 
@@ -19,7 +19,11 @@ const EV_CLOSE = "sidebar:close";
 const EV_TOGGLE = "sidebar:toggle";
 
 export default function DesktopLayout({ sidebar, children }: Props) {
-  const [collapsed, setCollapsed] = useState(false);
+  // 一度だけ判定して固定
+  const [isEmbed] = useState<boolean>(() => detectEmbedMode());
+
+  // 埋め込みモードなら true（閉じた状態）で開始
+  const [collapsed, setCollapsed] = useState<boolean>(() => detectEmbedMode());
 
   // Keep body classes in sync with state (unchanged behavior)
   useEffect(() => {
@@ -33,17 +37,20 @@ export default function DesktopLayout({ sidebar, children }: Props) {
       classList.remove(CLS_DETAILBAR_OPEN);
     } else {
       // サイドバーを再度開いたときに詳細バーも表示する
-      classList.add(CLS_DETAILBAR_OPEN);
+      if (!isEmbed) {
+        classList.add(CLS_DETAILBAR_OPEN);
+      }
     }
 
     return () => {
       classList.remove(CLS_SIDEBAR_COLLAPSED);
       classList.remove(CLS_DETAILBAR_OPEN);
     };
-  }, [collapsed]);
+  }, [collapsed, isEmbed]);
 
   // Global events to control sidebar open/close (unchanged behavior)
   useEffect(() => {
+    if (isEmbed) return;
     const open = () => setCollapsed(false);
     const close = () => setCollapsed(true);
     const toggle = () => setCollapsed((v) => !v);
@@ -57,7 +64,7 @@ export default function DesktopLayout({ sidebar, children }: Props) {
       window.removeEventListener(EV_CLOSE, close);
       window.removeEventListener(EV_TOGGLE, toggle);
     };
-  }, []);
+  }, [isEmbed]);
 
   const gridCols = useMemo(
     () => (collapsed ? "grid-cols-[0px_1fr]" : "grid-cols-[320px_1fr]"),

@@ -46,11 +46,20 @@ export function MapCard({ areaName }: MapCardProps) {
 
   const src = useMemo(() => {
     if (!areaName) {
-      return base;
+      // エリア未選択時も「埋め込みモード」で開きたい場合はここにも付ける
+      try {
+        const u = new URL(base);
+        u.searchParams.set("mode", "embed");
+        return u.toString();
+      } catch {
+        return base;
+      }
     }
+
     try {
       const u = new URL(base);
       u.searchParams.set("areaName", areaName);
+      u.searchParams.set("mode", "embed"); // 埋め込みモード指定
       const finalUrl = u.toString();
       return finalUrl;
     } catch {
