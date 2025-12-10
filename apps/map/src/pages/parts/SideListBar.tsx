@@ -8,7 +8,6 @@ import {
   LogoButton,
   blurActiveInput,
   DeleteIconButton,
-  detectEmbedMode,
 } from "@/components";
 import {
   openDetailBar,
@@ -60,9 +59,6 @@ function SideListBarBase({
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const iconH = 25;
-
-  // これで解決
-  const [isEmbed] = useState<boolean>(() => detectEmbedMode());
 
   // エリア名の一時上書き & 編集状態
   const [areaLabelOverrides, setAreaLabelOverrides] = useState<
@@ -735,9 +731,7 @@ function SideListBarBase({
       loadAndShowInfoForArea(area, { titleOverride });
 
       // 埋め込みモードでは自動で詳細バーを開かない
-      if (!isEmbed) {
-        openDetailBar();
-      }
+      openDetailBar();
     };
 
     window.addEventListener(
@@ -750,7 +744,7 @@ function SideListBarBase({
         onSetActive as EventListener
       );
     // isEmbed を依存配列に追加
-  }, [points, schedulesLite, areaLabelOverrides, isEmbed]);
+  }, [points, schedulesLite, areaLabelOverrides]);
 
   // 編集モード切替ボタンのクラスを切り替える
   useEffect(() => {

@@ -31,7 +31,13 @@ export default function MobilePanel({
         projectUuid={projectUuid ?? undefined}
         scheduleUuid={scheduleUuid ?? undefined}
       />
-      <LandingAreaFigure edit={edit} area={area} onPatchArea={onPatchArea} />
+      <LandingAreaFigure
+        edit={edit}
+        area={area}
+        onPatchArea={onPatchArea}
+        projectUuid={projectUuid ?? undefined}
+        scheduleUuid={scheduleUuid ?? undefined}
+      />
       <div className="flex justify-end">
         <ButtonRed onClick={onExportPdf} className="px-3 py-1 text-xs">
           PDF出力

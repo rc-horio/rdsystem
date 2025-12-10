@@ -730,6 +730,11 @@ export default function MapView({ onLoaded }: Props) {
         focusTakeoffOnly,
       });
 
+      // ズーム変更でマーカーの可視状態を更新
+      zoomListenerRef.current = map.addListener("zoom_changed", () => {
+        syncMarkersVisibilityForZoom();
+      });
+
       const projectUuid = params.get("projectUuid") || undefined;
       const scheduleUuid = params.get("scheduleUuid") || undefined;
 

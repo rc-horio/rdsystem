@@ -22,11 +22,13 @@ export default function DesktopLayout({ sidebar, children }: Props) {
   // 一度だけ判定して固定
   const [isEmbed] = useState<boolean>(() => detectEmbedMode());
 
-  // 埋め込みモードなら true（閉じた状態）で開始
-  const [collapsed, setCollapsed] = useState<boolean>(() => detectEmbedMode());
+  // 通常モード用のサイドバー開閉状態（embed のときは実質使われない）
+  const [collapsed, setCollapsed] = useState<boolean>(() => false);
 
-  // Keep body classes in sync with state (unchanged behavior)
+  // サイドバー開閉に応じた body クラス付け替え
   useEffect(() => {
+    if (isEmbed) return; // embed では body クラスをいじらない
+
     const { classList } = document.body;
 
     // サイドバー開閉クラス
@@ -35,22 +37,17 @@ export default function DesktopLayout({ sidebar, children }: Props) {
     if (collapsed) {
       // サイドバーを閉じるときは詳細バーも隠す
       classList.remove(CLS_DETAILBAR_OPEN);
-    } else {
-      // サイドバーを再度開いたときに詳細バーも表示する
-      if (!isEmbed) {
-        classList.add(CLS_DETAILBAR_OPEN);
-      }
     }
-
     return () => {
       classList.remove(CLS_SIDEBAR_COLLAPSED);
       classList.remove(CLS_DETAILBAR_OPEN);
     };
   }, [collapsed, isEmbed]);
 
-  // Global events to control sidebar open/close (unchanged behavior)
+  // Global events to control sidebar open/close
   useEffect(() => {
-    if (isEmbed) return;
+    if (isEmbed) return; // embed ではグローバルイベントも無効
+
     const open = () => setCollapsed(false);
     const close = () => setCollapsed(true);
     const toggle = () => setCollapsed((v) => !v);
@@ -71,6 +68,12 @@ export default function DesktopLayout({ sidebar, children }: Props) {
     [collapsed]
   );
 
+  // embed モードはマップ単体表示（サイドバー・トグルとも非表示）
+  if (isEmbed) {
+    return <main className="relative h-dvh">{children}</main>;
+  }
+
+  // 通常モードのレイアウト
   return (
     <div className={`relative grid ${gridCols} h-dvh`}>
       <aside
