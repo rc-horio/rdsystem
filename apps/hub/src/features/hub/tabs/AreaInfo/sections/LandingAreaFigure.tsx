@@ -21,11 +21,6 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
       ? (area.drone_orientation_deg as number)
       : 0;
 
-  const num = (s: string) => {
-    const v = Number(s);
-    return Number.isFinite(v) ? v : null;
-  };
-
   const setHorizontal = (v: string) => {
     const next = {
       ...(area ?? {}),
@@ -78,14 +73,43 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
 
   return (
     <div className="p-0">
-      <SectionTitle title="離発着エリア 図" />
+      <SectionTitle title="離発着エリア" />
 
       {/* 左右並び：左=離発着エリア図、右=アイコン1&2セット */}
       <div className="my-4 flex flex-col lg:flex-row gap-4">
         {/* 左: 離発着エリア図 */}
         <div className="flex-1 lg:basis-12/12">
-          <div className="h-120 w-full border border-slate-600 grid place-content-center text-slate-400 text-sm">
-            離発着エリア図 (SVG / 画像)
+          <div className="h-120 w-full border border-slate-600">
+            <svg
+              viewBox="0 0 400 200"
+              className="w-full h-full"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              {/* 横長矩形（離発着エリア） */}
+              <rect
+                x={40}
+                y={70}
+                width={320}
+                height={60}
+                stroke="#ed1b24"
+                strokeWidth={2}
+                strokeOpacity={0.9}
+                fill="#ed1b24"
+                fillOpacity={0.4}
+              />
+
+              {/* ラベル */}
+              <text
+                x="50%"
+                y="50%"
+                dominantBaseline="middle"
+                textAnchor="middle"
+                fontSize="14"
+                fill="#ffffff"
+              >
+                離発着エリア(開発中)
+              </text>
+            </svg>
           </div>
         </div>
 
@@ -134,7 +158,6 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
                   className="absolute"
                   style={{
                     transform: `translate(${x}px, ${y}px)`,
-                    transformOrigin: "center",
                     transition: "transform 0.2s ease-out",
                   }}
                 >
@@ -146,7 +169,6 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
                   className="absolute"
                   style={{
                     transform: `translate(${batteryX}px, ${batteryY}px)`,
-                    transformOrigin: "center",
                     transition: "transform 0.2s ease-out",
                   }}
                 >

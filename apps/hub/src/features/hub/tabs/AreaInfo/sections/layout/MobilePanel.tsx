@@ -34,7 +34,7 @@ export default function MobilePanel({
       <LandingAreaFigure edit={edit} area={area} onPatchArea={onPatchArea} />
       <div className="flex justify-end">
         <ButtonRed onClick={onExportPdf} className="px-3 py-1 text-xs">
-          PDF出力
+          PDF出力(開発中)
         </ButtonRed>
       </div>
     </div>

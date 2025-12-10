@@ -72,7 +72,7 @@ export function MapCard({ areaName, projectUuid, scheduleUuid }: MapCardProps) {
 
   return (
     <div className="p-0">
-      <SectionTitle title="離発着エリア（マップ）" />
+      <SectionTitle title="飛行エリア" />
       <div className="mt-4 h-[520px] w-full overflow-hidden">
         <iframe
           key={src}

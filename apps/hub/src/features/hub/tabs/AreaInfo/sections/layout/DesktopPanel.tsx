@@ -32,7 +32,7 @@ export default function DesktopPanel({
 
         <div className="mb-4">
           <ButtonRed onClick={onExportPdf} className="px-3 py-1 text-xs">
-            PDF出力
+            PDF出力(開発中)
           </ButtonRed>
         </div>
 
