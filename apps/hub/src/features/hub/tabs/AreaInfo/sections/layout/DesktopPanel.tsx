@@ -47,8 +47,6 @@ export default function DesktopPanel({
             edit={edit}
             area={area}
             onPatchArea={onPatchArea}
-            projectUuid={projectUuid ?? undefined}
-            scheduleUuid={scheduleUuid ?? undefined}
           />
         </div>
       </div>

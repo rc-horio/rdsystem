@@ -8,9 +8,6 @@ import { AudienceEditor } from "./geometry/AudienceEditor";
 import { toLocalXY, fromLocalXY } from "./geometry/math";
 
 type ArrowKind = "main" | "depth" | "perp";
-type MapGeometryOpts = {
-    focusTakeoffOnly?: boolean;
-};
 
 /** =========================
  *  Geometry Controller
@@ -19,7 +16,6 @@ export class MapGeometry {
     // 地図を取得
     private getMap: () => google.maps.Map | null;
     private deletedRef: boolean = false;
-    private focusTakeoffOnly: boolean;
 
     private arrowRef: google.maps.Polyline | null = null;
     private arrow2Ref: google.maps.Polyline | null = null;
@@ -78,9 +74,8 @@ export class MapGeometry {
     /** =========================
      *  コンストラクタ
      *  ========================= */
-    constructor(getMap: () => google.maps.Map | null, opts?: MapGeometryOpts) {
+    constructor(getMap: () => google.maps.Map | null) {
         this.getMap = getMap;
-        this.focusTakeoffOnly = !!opts?.focusTakeoffOnly;
 
         // EllipseEditor
         this.ellipseEditor = new EllipseEditor({
@@ -273,73 +268,71 @@ export class MapGeometry {
             metrics.rectDepth_m = rectMetrics.rectDepth_m;
         }
 
-        if (!this.focusTakeoffOnly) {
-            // --- 楕円（飛行）＋ 保安 ---
-            const { hasFlight, metrics: flightMetrics } = this.ellipseEditor.render(geom, bounds);
-            if (hasFlight && flightMetrics) {
-                metrics.flightWidth_m = flightMetrics.flightWidth_m;
-                metrics.flightDepth_m = flightMetrics.flightDepth_m;
+        // --- 楕円（飛行）＋ 保安 ---
+        const { hasFlight, metrics: flightMetrics } = this.ellipseEditor.render(geom, bounds);
+        if (hasFlight && flightMetrics) {
+            metrics.flightWidth_m = flightMetrics.flightWidth_m;
+            metrics.flightDepth_m = flightMetrics.flightDepth_m;
+        }
+
+        // --- 観客エリア（矩形） ---
+        const { hasAudience, metrics: audM } = this.audienceEditor.render(geom, bounds);
+        if (hasAudience && audM) {
+            metrics.spectatorWidth_m = audM.spectatorWidth_m;
+            metrics.spectatorDepth_m = audM.spectatorDepth_m;
+        }
+
+        // 飛行高度
+        const altRaw = (geom as any)?.flightAltitude_m;
+        const altNum = Number(altRaw);
+        if (Number.isFinite(altNum)) {
+            metrics.flightAltitude_m = altNum;
+        }
+
+        // 最大移動距離（= buffer_m）
+        const buf = Number((geom as any)?.safetyArea?.buffer_m);
+        if (Number.isFinite(buf)) {
+            (metrics as any).safetyDistance_m = buf;
+            (metrics as any).buffer_m = buf; // 互換用
+        }
+
+        // --- Arrow（from: takeoff基準点 → to: flight.center） ---
+        const flight =
+            geom.flightArea?.type === "ellipse" && Array.isArray(geom.flightArea.center)
+                ? geom.flightArea
+                : undefined;
+        const from = this.pickReferenceCorner(geom.takeoffArea);
+        const to = flight?.center as LngLat | undefined;
+        if (from && to) {
+            const line = this.drawArrow(from, to); // ①
+            this.arrowRef = line;
+            line.getPath().forEach((p: google.maps.LatLng) => bounds.extend(p));
+
+            const fromLL = new gmaps.LatLng(from[1], from[0]);
+            const toLL = new gmaps.LatLng(to[1], to[0]);
+
+            // ★ 三角形の重心を計算
+            const corner = this.computeRightAngleCorner(from, to);
+            if (corner) {
+                const centroidLat = (from[1] + corner[1] + to[1]) / 3;
+                const centroidLng = (from[0] + corner[0] + to[0]) / 3;
+                this.arrowTriangleCentroid = new gmaps.LatLng(centroidLat, centroidLng);
+            } else {
+                this.arrowTriangleCentroid = null;
             }
 
-            // --- 観客エリア（矩形） ---
-            const { hasAudience, metrics: audM } = this.audienceEditor.render(geom, bounds);
-            if (hasAudience && audM) {
-                metrics.spectatorWidth_m = audM.spectatorWidth_m;
-                metrics.spectatorDepth_m = audM.spectatorDepth_m;
+            const distance = gmaps.geometry.spherical.computeDistanceBetween(fromLL, toLL);
+            this.updateDistanceLabel(fromLL, toLL, distance, "main");
+
+            const { line2, line3 } = this.drawRightAngleArrows(from, to);
+
+            if (line2) {
+                this.arrow2Ref = line2;
+                line2.getPath().forEach((p: google.maps.LatLng) => bounds.extend(p));
             }
-
-            // 飛行高度
-            const altRaw = (geom as any)?.flightAltitude_m;
-            const altNum = Number(altRaw);
-            if (Number.isFinite(altNum)) {
-                metrics.flightAltitude_m = altNum;
-            }
-
-            // 最大移動距離（= buffer_m）
-            const buf = Number((geom as any)?.safetyArea?.buffer_m);
-            if (Number.isFinite(buf)) {
-                (metrics as any).safetyDistance_m = buf;
-                (metrics as any).buffer_m = buf; // 互換用
-            }
-
-            // --- Arrow（from: takeoff基準点 → to: flight.center） ---
-            const flight =
-                geom.flightArea?.type === "ellipse" && Array.isArray(geom.flightArea.center)
-                    ? geom.flightArea
-                    : undefined;
-            const from = this.pickReferenceCorner(geom.takeoffArea);
-            const to = flight?.center as LngLat | undefined;
-            if (from && to) {
-                const line = this.drawArrow(from, to); // ①
-                this.arrowRef = line;
-                line.getPath().forEach((p: google.maps.LatLng) => bounds.extend(p));
-
-                const fromLL = new gmaps.LatLng(from[1], from[0]);
-                const toLL = new gmaps.LatLng(to[1], to[0]);
-
-                // ★ 三角形の重心を計算
-                const corner = this.computeRightAngleCorner(from, to);
-                if (corner) {
-                    const centroidLat = (from[1] + corner[1] + to[1]) / 3;
-                    const centroidLng = (from[0] + corner[0] + to[0]) / 3;
-                    this.arrowTriangleCentroid = new gmaps.LatLng(centroidLat, centroidLng);
-                } else {
-                    this.arrowTriangleCentroid = null;
-                }
-
-                const distance = gmaps.geometry.spherical.computeDistanceBetween(fromLL, toLL);
-                this.updateDistanceLabel(fromLL, toLL, distance, "main");
-
-                const { line2, line3 } = this.drawRightAngleArrows(from, to);
-
-                if (line2) {
-                    this.arrow2Ref = line2;
-                    line2.getPath().forEach((p: google.maps.LatLng) => bounds.extend(p));
-                }
-                if (line3) {
-                    this.arrow3Ref = line3;
-                    line3.getPath().forEach((p: google.maps.LatLng) => bounds.extend(p));
-                }
+            if (line3) {
+                this.arrow3Ref = line3;
+                line3.getPath().forEach((p: google.maps.LatLng) => bounds.extend(p));
             }
         }
 

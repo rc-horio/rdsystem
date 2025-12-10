@@ -10,11 +10,7 @@ import {
   useCandidateSection,
 } from "@/components";
 import type { Props, Point, Geometry } from "@/features/types";
-import {
-  fetchAreaInfo,
-  createNewArea,
-  fetchScheduleGeometry,
-} from "./areasApi";
+import { fetchAreaInfo, createNewArea } from "./areasApi";
 import {
   EV_DETAILBAR_SELECTED,
   OPEN_INFO_ON_SELECT,
@@ -665,11 +661,6 @@ export default function MapView({ onLoaded }: Props) {
     async function init() {
       if (!mapDivRef.current) return;
 
-      // URL パラメータから view を読む
-      const params = new URLSearchParams(window.location.search);
-      const view = params.get("view");
-      const focusTakeoffOnly = view === "takeoff-only";
-
       const apiKey = import.meta.env.VITE_GMAPS_API_KEY;
       if (!apiKey) {
         console.error("VITE_GMAPS_API_KEY が .env にありません");
@@ -725,37 +716,14 @@ export default function MapView({ onLoaded }: Props) {
         infoRef.current?.close();
       });
 
-      // MapGeometry にモードを渡す
-      geomRef.current = new MapGeometry(() => mapRef.current, {
-        focusTakeoffOnly,
-      });
+      geomRef.current = new MapGeometry(() => mapRef.current);
 
       // ズーム変更でマーカーの可視状態を更新
       zoomListenerRef.current = map.addListener("zoom_changed", () => {
         syncMarkersVisibilityForZoom();
       });
 
-      const projectUuid = params.get("projectUuid") || undefined;
-      const scheduleUuid = params.get("scheduleUuid") || undefined;
-
-      if (focusTakeoffOnly && projectUuid && scheduleUuid && geomRef.current) {
-        try {
-          // 本体画面で使っている geometry 取得ロジックを流用する（関数名は例）
-          const geometry = await fetchScheduleGeometry({
-            projectUuid,
-            scheduleUuid,
-          });
-          // どのスケジュールの図かを MapGeometry に教える
-          geomRef.current.setCurrentSchedule(projectUuid, scheduleUuid);
-          // 離発着矩形などを描画
-          geomRef.current.renderGeometry(geometry, { fit: true });
-        } catch (e) {
-          console.error("Failed to load geometry for takeoff-only view", e);
-        }
-      }
-
-      // 既存の markers 処理（takeoff-only のときは points = []）
-      const points = focusTakeoffOnly ? [] : await loadAreasPoints();
+      const points = await loadAreasPoints();
       if (cancelled) return;
 
       onLoaded?.(points);

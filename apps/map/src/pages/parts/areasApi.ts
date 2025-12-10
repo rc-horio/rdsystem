@@ -1,20 +1,6 @@
 // src/pages/parts/areasApi.ts
-import type { HistoryLite, DetailMeta, Candidate, Geometry } from "@/features/types";
+import type { HistoryLite, DetailMeta, Candidate } from "@/features/types";
 import { S3_BASE } from "./constants/events";
-
-export async function fetchScheduleGeometry(params: {
-    projectUuid: string;
-    scheduleUuid: string;
-}): Promise<Geometry | null> {
-    const { projectUuid, scheduleUuid } = params;
-    const index = await fetchProjectIndex(projectUuid);
-    if (!index) return null;
-
-    const sch = (index.schedules ?? []).find(
-        (s: any) => s?.id === scheduleUuid
-    );
-    return (sch?.geometry ?? null) as Geometry | null;
-}
 
 // ========= Internals =========
 const GET_INIT: RequestInit = { mode: "cors", cache: "no-store" };
