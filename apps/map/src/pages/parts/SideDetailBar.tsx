@@ -656,7 +656,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                           }}
                         >
                           <DetailIconButton
-                            title="スケジュール詳細"
+                            title="RD Hubへ"
                             onClick={() => {
                               const url = buildHubUrl(
                                 item.projectUuid,
@@ -671,7 +671,8 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                               }
 
                               console.log("[detailbar] navigate to hub:", url);
-                              window.location.href = url;
+                              // RD Hubを新規タブで開く
+                              window.open(url, "_blank", "noopener,noreferrer");
                             }}
                           />{" "}
                         </span>
