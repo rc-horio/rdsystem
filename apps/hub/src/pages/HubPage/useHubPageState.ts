@@ -102,13 +102,12 @@ export function useHubPageState() {
       area: {
         area_uuid: "",
         area_name: "",
-        takeoff_land: { coordinate: { lat: null, lon: null } },
         drone_count: { model: "", count: 0, x_count: null, y_count: null },
-        flight_area: {
-          altitude_min_m: null,
-          altitude_max_m: null,
-          safety_area_m: null,
-        },
+        // flight_area: {
+        //   altitude_min_m: null,
+        //   altitude_max_m: null,
+        //   safety_area_m: null,
+        // },
         actions: { liftoff: "", turn: "" },
         obstacle_note: "",
         lights: { takeoff: "", landing: "" },

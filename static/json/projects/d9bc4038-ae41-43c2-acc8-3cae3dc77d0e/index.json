@@ -1,0 +1,223 @@
+{
+    "project": {
+        "id": "d9bc4038-ae41-43c2-acc8-3cae3dc77d0e",
+        "name": "屋久島大会",
+        "updated_at": "2025-12-11T06:16:21.596Z",
+        "updated_by": ""
+    },
+    "schedules": [
+        {
+            "id": "ffb70017-a73f-4766-a311-3888f4c8ef0f",
+            "label": "本番",
+            "date": "2026-01-01",
+            "location": "",
+            "photosMemo": "53",
+            "resources": {
+                "drones": [
+                    {
+                        "model": "16",
+                        "color": "17",
+                        "count": 18
+                    }
+                ],
+                "batteries": [
+                    {
+                        "model": "20",
+                        "count": 21
+                    }
+                ],
+                "modules": [
+                    {
+                        "type": "22",
+                        "count": 23
+                    }
+                ],
+                "vehicles": {
+                    "rows": [
+                        {
+                            "type": "12",
+                            "driver": "13"
+                        }
+                    ],
+                    "memo": "14"
+                },
+                "equipment": [
+                    {
+                        "name": "24",
+                        "qty": 25
+                    }
+                ],
+                "hotels": [
+                    {
+                        "name": "15",
+                        "memo": ""
+                    }
+                ],
+                "members": {
+                    "producer": [
+                        {
+                            "name": "1",
+                            "role": "2",
+                            "memo": ""
+                        }
+                    ],
+                    "director": [
+                        {
+                            "name": "3",
+                            "role": "4",
+                            "memo": ""
+                        }
+                    ],
+                    "operator": [
+                        {
+                            "name": "5",
+                            "role": "6",
+                            "memo": ""
+                        }
+                    ],
+                    "veteran_part_time": {
+                        "members": [
+                            {
+                                "name": "7",
+                                "role": "8",
+                                "memo": ""
+                            }
+                        ]
+                    },
+                    "local_staff": {
+                        "members": [
+                            {
+                                "source": "9",
+                                "count": 10,
+                                "memo": ""
+                            }
+                        ]
+                    },
+                    "memo": "11"
+                }
+            },
+            "operation": {
+                "placement": {
+                    "x": 37,
+                    "y": 38,
+                    "spacing_m": 51.5
+                },
+                "modules": [
+                    {
+                        "name": "30",
+                        "ids": [
+                            31
+                        ]
+                    },
+                    {
+                        "name": "32",
+                        "ids": [
+                            33
+                        ]
+                    }
+                ],
+                "measurement": {
+                    "target_id": null,
+                    "result": null
+                },
+                "memo": "34"
+            },
+            "area": {
+                "area_uuid": "9217915c-a929-4ffb-b1e3-be52584e3adc",
+                "area_name": "屋久島",
+                "drone_count": {
+                    "model": "35",
+                    "count": 36,
+                    "x_count": 37,
+                    "y_count": 38
+                },
+                "flight_area": {
+                    "altitude_min_m": 39,
+                    "altitude_max_m": 40,
+                    "safety_area_m": 41
+                },
+                "actions": {
+                    "liftoff": "42",
+                    "turn": "43"
+                },
+                "obstacle_note": "44",
+                "lights": {
+                    "takeoff": "45",
+                    "landing": "46"
+                },
+                "return_note": "47",
+                "animation_area": {
+                    "width_m": 48,
+                    "depth_m": 49
+                },
+                "distance_from_viewers_m": 50,
+                "spacing_between_drones_m": {
+                    "horizontal": "51",
+                    "vertical": "52"
+                },
+                "drone_orientation_deg": 90
+            },
+            "photos": [],
+            "geometry": {
+                "flightAltitude_m": 120,
+                "takeoffArea": {
+                    "type": "rectangle",
+                    "coordinates": [
+                        [
+                            130.5317088588158,
+                            30.341185842897072
+                        ],
+                        [
+                            130.53083711626314,
+                            30.34069499767049
+                        ],
+                        [
+                            130.53095086482497,
+                            30.340544528719025
+                        ],
+                        [
+                            130.53182260737762,
+                            30.34103537394561
+                        ]
+                    ],
+                    "referencePointIndex": 0
+                },
+                "flightArea": {
+                    "type": "ellipse",
+                    "center": [
+                        130.5299082910425,
+                        30.34179695042322
+                    ],
+                    "radiusX_m": 150,
+                    "radiusY_m": 22.694722342187248,
+                    "rotation_deg": 0
+                },
+                "safetyArea": {
+                    "type": "ellipse",
+                    "buffer_m": 50
+                },
+                "audienceArea": {
+                    "type": "rectangle",
+                    "coordinates": [
+                        [
+                            130.5293878395493,
+                            30.343503741655702
+                        ],
+                        [
+                            130.5304287425357,
+                            30.343503741655702
+                        ],
+                        [
+                            130.5304287425357,
+                            30.3436834038907
+                        ],
+                        [
+                            130.5293878395493,
+                            30.3436834038907
+                        ]
+                    ]
+                }
+            }
+        }
+    ]
+}

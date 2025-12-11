@@ -23,10 +23,6 @@ type Props = {
 type RDMapArea = {
   uuid: string;
   areaName: string;
-  representative_coordinate: {
-    lat: number;
-    lon: number;
-  };
   projectCount: number;
 };
 
@@ -52,7 +48,7 @@ export function RightPanel({
   const [areasError, setAreasError] = useState<string | null>(null);
 
   const A = area ?? {};
-  const flight = A.flight_area ?? {};
+  // const flight = A.flight_area ?? {};
   const droneCnt = A.drone_count ?? {};
   const anim = A.animation_area ?? {};
   const actions = A.actions ?? {};

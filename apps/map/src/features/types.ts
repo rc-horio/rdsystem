@@ -22,10 +22,15 @@ export type OrientedRect = {
     rotation_deg: number; // 0=東, 90=北
 };
 
-export type SafetyGeom = { type: "ellipse"; buffer_m: number };
+export type SafetyGeom = {
+    type: "ellipse";
+    buffer_m: number;
+};
 
+// エリア側ではなくプロジェクト側のindex.jsonに保存する
 export type Geometry = {
-    flightAltitude_m?: number;
+    flightAltitude_min_m?: number;
+    flightAltitude_Max_m?: number;
     takeoffArea?: RectangleGeom;
     flightArea?: EllipseGeom;
     safetyArea?: SafetyGeom;

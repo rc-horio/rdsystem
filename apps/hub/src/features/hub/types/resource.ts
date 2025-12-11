@@ -59,21 +59,15 @@ export type Resource = {
 
 export type Area = {
   area_name: string;
-  takeoff_land: {
-    coordinate: {
-      lat: number | null;
-      lon: number | null;
-    };
-  };
   drone_count: {
     model: string;
     count: number;
   };
-  flight_area: {
-    altitude_min_m: number | null;
-    altitude_max_m: number | null;
-    safety_area_m: number | null;
-  };
+  // flight_area: {
+  //   altitude_min_m: number | null;
+  //   altitude_max_m: number | null;
+  //   safety_area_m: number | null;
+  // };
   actions: {
     liftoff: string;
     turn: string;

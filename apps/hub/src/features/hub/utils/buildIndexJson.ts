@@ -50,13 +50,12 @@ export function buildIndexJsonFromState(
 
   const ensureArea = (a: any = {}) => ({
     area_name: a.area_name ?? "",
-    takeoff_land: a.takeoff_land ?? { coordinate: { lat: null, lon: null } },
     drone_count: a.drone_count ?? { model: "", count: 0 },
-    flight_area: a.flight_area ?? {
-      altitude_min_m: null,
-      altitude_max_m: null,
-      safety_area_m: null,
-    },
+    // flight_area: a.flight_area ?? {
+    //   altitude_min_m: null,
+    //   altitude_max_m: null,
+    //   safety_area_m: null,
+    // },
     actions: a.actions ?? { liftoff: "", turn: "" },
     obstacle_note: a.obstacle_note ?? "",
     lights: a.lights ?? { takeoff: "", landing: "" },

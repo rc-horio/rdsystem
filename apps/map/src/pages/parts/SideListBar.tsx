@@ -564,6 +564,36 @@ function SideListBarBase({
         ];
       });
 
+      /** 紐づけ解除された (projectUuid, scheduleUuid) を検出 */
+      const beforePairs: Array<{ projectUuid: string; scheduleUuid: string }> =
+        Array.isArray(raw?.history)
+          ? raw.history.flatMap((h: any) => {
+              const projectUuid =
+                typeof h?.projectuuid === "string" ? h.projectuuid : null;
+              const scheduleUuid =
+                typeof h?.scheduleuuid === "string" ? h.scheduleuuid : null;
+              return projectUuid && scheduleUuid
+                ? [{ projectUuid, scheduleUuid }]
+                : [];
+            })
+          : [];
+
+      const afterPairs: Array<{ projectUuid: string; scheduleUuid: string }> =
+        historyToSave.map((h) => ({
+          projectUuid: h.projectuuid,
+          scheduleUuid: h.scheduleuuid,
+        }));
+
+      // 後ろ（保存後）に残っているペアをキー集合に
+      const afterKeySet = new Set(
+        afterPairs.map((p) => `${p.projectUuid}::${p.scheduleUuid}`)
+      );
+
+      // 保存前にはあったが、保存後には無くなっているペア = 紐づけ解除された案件
+      const removedPairs = beforePairs.filter(
+        (p) => !afterKeySet.has(`${p.projectUuid}::${p.scheduleUuid}`)
+      );
+
       // （2-2）画面入力値からareas/<areaUuid>/index.json 形式
       const infoToSave = {
         ...(typeof raw === "object" && raw ? raw : {}),
@@ -584,7 +614,7 @@ function SideListBarBase({
           restrictionsMemo: data.meta.restrictionsMemo ?? "",
           remarks: data.meta.remarks ?? "",
         },
-        // ★ ここで UI 上の history（削除済み行を含めた状態）をそのまま保存
+        // ここで UI 上の history（削除済み行を含めた状態）をそのまま保存
         history: historyToSave,
         candidate: Array.isArray(data.meta.candidate)
           ? data.meta.candidate
@@ -602,6 +632,25 @@ function SideListBarBase({
           "保存に失敗しました（index.json）。S3 の CORS/権限設定をご確認ください。"
         );
         return;
+      }
+
+      /** 紐づけ解除されたスケジュールの geometry を削除 */
+      for (const { projectUuid, scheduleUuid } of removedPairs) {
+        try {
+          const ok = await clearScheduleGeometry({ projectUuid, scheduleUuid });
+          if (!ok) {
+            console.warn(
+              "[save] clearScheduleGeometry failed for removed link",
+              projectUuid,
+              scheduleUuid
+            );
+          }
+        } catch (e) {
+          console.error(
+            "[save] clearScheduleGeometry threw error for removed link",
+            { projectUuid, scheduleUuid, e }
+          );
+        }
       }
 
       // （2-4）areas.json エリア一覧を更新
