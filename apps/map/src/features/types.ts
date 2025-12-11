@@ -69,7 +69,8 @@ export type GeometryMetrics = {
     spectatorDepth_m?: number; // 観客：奥行
     flightAltitude_min_m?: number; // 飛行高度
     flightAltitude_Max_m?: number; // 飛行高度
-    safetyDistance_m?: number;  // 最大移動距離
+    safetyDistanceNew_m?: number;
+    safetyDistanceOld_m?: number;
     buffer_m?: number;          // 保安エリアの距離
 };
 

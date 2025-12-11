@@ -59,16 +59,81 @@ export class MapGeometry {
     /** =========================
      *  保証表（10m刻み）: 高度 h[m] → 最大移動距離 d[m]
      *  ========================= */
-    private static readonly DIST_TABLE: ReadonlyArray<{ h: number; d: number }> = [
-        { h: 10, d: 8.5 }, { h: 20, d: 11.1 }, { h: 30, d: 13.1 }, { h: 40, d: 15.0 },
-        { h: 50, d: 16.7 }, { h: 60, d: 18.4 }, { h: 70, d: 20.0 }, { h: 80, d: 21.5 },
-        { h: 90, d: 23.1 }, { h: 100, d: 24.6 }, { h: 110, d: 26.1 }, { h: 120, d: 27.5 },
-        { h: 130, d: 29.0 }, { h: 140, d: 30.5 }, { h: 150, d: 31.9 }, { h: 160, d: 33.3 },
-        { h: 170, d: 34.8 }, { h: 180, d: 36.2 }, { h: 190, d: 37.7 }, { h: 200, d: 39.1 },
-        { h: 210, d: 40.5 }, { h: 220, d: 41.9 }, { h: 230, d: 43.4 }, { h: 240, d: 44.8 },
-        { h: 250, d: 46.3 }, { h: 260, d: 47.7 }, { h: 270, d: 49.1 }, { h: 280, d: 50.5 },
-        { h: 290, d: 52.0 }, { h: 300, d: 53.4 }, { h: 310, d: 54.8 }, { h: 320, d: 56.3 },
-        { h: 330, d: 57.7 }, { h: 340, d: 59.1 }, { h: 350, d: 60.5 }, { h: 360, d: 62.0 },
+    private static readonly DIST_TABLE_NEW: ReadonlyArray<{ h: number; d: number }> = [
+        { h: 10, d: 8.5 },
+        { h: 20, d: 11.1 },
+        { h: 30, d: 13.1 },
+        { h: 40, d: 15.0 },
+        { h: 50, d: 16.7 },
+        { h: 60, d: 18.4 },
+        { h: 70, d: 20.0 },
+        { h: 80, d: 21.5 },
+        { h: 90, d: 23.1 },
+        { h: 100, d: 24.6 },
+        { h: 110, d: 26.1 },
+        { h: 120, d: 27.5 },
+        { h: 130, d: 29.0 },
+        { h: 140, d: 30.5 },
+        { h: 150, d: 31.9 },
+        { h: 160, d: 33.3 },
+        { h: 170, d: 34.8 },
+        { h: 180, d: 36.2 },
+        { h: 190, d: 37.7 },
+        { h: 200, d: 39.1 },
+        { h: 210, d: 40.5 },
+        { h: 220, d: 41.9 },
+        { h: 230, d: 43.4 },
+        { h: 240, d: 44.8 },
+        { h: 250, d: 46.3 },
+        { h: 260, d: 47.7 },
+        { h: 270, d: 49.1 },
+        { h: 280, d: 50.5 },
+        { h: 290, d: 52.0 },
+        { h: 300, d: 53.4 },
+        { h: 310, d: 54.8 },
+        { h: 320, d: 56.3 },
+        { h: 330, d: 57.7 },
+        { h: 340, d: 59.1 },
+        { h: 350, d: 60.5 },
+        { h: 360, d: 62.0 },
+    ];
+
+    private static readonly DIST_TABLE_OLD: ReadonlyArray<{ h: number; d: number }> = [
+        { h: 30, d: 24 },
+        { h: 40, d: 27 },
+        { h: 50, d: 29 },
+        { h: 60, d: 31 },
+        { h: 70, d: 33 },
+        { h: 80, d: 35 },
+        { h: 90, d: 37 },
+        { h: 100, d: 39 },
+        { h: 110, d: 41 },
+        { h: 120, d: 42 },
+        { h: 130, d: 44 },
+        { h: 140, d: 46 },
+        { h: 150, d: 48 },
+        { h: 160, d: 50 },
+        { h: 170, d: 51 },
+        { h: 180, d: 53 },
+        { h: 190, d: 55 },
+        { h: 200, d: 57 },
+        { h: 210, d: 59 },
+        { h: 220, d: 60 },
+        { h: 230, d: 62 },
+        { h: 240, d: 64 },
+        { h: 250, d: 66 },
+        { h: 260, d: 68 },
+        { h: 270, d: 69 },
+        { h: 280, d: 71 },
+        { h: 290, d: 73 },
+        { h: 300, d: 75 },
+        { h: 310, d: 76 },
+        { h: 320, d: 78 },
+        { h: 330, d: 80 },
+        { h: 340, d: 82 },
+        { h: 350, d: 84 },
+        { h: 360, d: 85 },
+
     ];
 
     /** =========================
@@ -289,20 +354,36 @@ export class MapGeometry {
         const altMinNum = Number(altMinRaw);
         const altMaxNum = Number(altMaxRaw);
 
+        let altForSafety: number | undefined;
+
         if (Number.isFinite(altMinNum)) {
             (metrics as any).flightAltitude_min_m = altMinNum;
+            altForSafety = altMinNum;
         }
 
         if (Number.isFinite(altMaxNum)) {
             (metrics as any).flightAltitude_Max_m = altMaxNum;
+            // 保安距離計算は Max 優先
+            altForSafety = altMaxNum;
         }
 
+        // safetyMode: geometry に保存されていればそれを優先、なければ "new"
+        const safetyMode: "new" | "old" =
+            (geom as any).safetyMode === "old" ? "old" : "new";
+        (metrics as any).safetyMode = safetyMode;
 
-        // 最大移動距離（= buffer_m）
-        const buf = Number((geom as any)?.safetyArea?.buffer_m);
-        if (Number.isFinite(buf)) {
-            (metrics as any).safetyDistance_m = buf;
-            (metrics as any).buffer_m = buf; // 互換用
+        // 最高高度が取れる場合は、新旧の保安距離も計算してパネルに渡す
+        if (altForSafety != null) {
+            const { dist_m: distNew } = this.safetyDistanceByTableNew(altForSafety);
+            const { dist_m: distOld } = this.safetyDistanceByTableOld(altForSafety);
+
+            (metrics as any).safetyDistanceNew_m = distNew;
+            (metrics as any).safetyDistanceOld_m = distOld;
+
+            // 選択モードに応じて「表示用」の距離も埋める
+            const selected = safetyMode === "old" ? distOld : distNew;
+            (metrics as any).safetyDistance_m = selected;
+            (metrics as any).buffer_m = selected;
         }
 
         // --- Arrow（from: takeoff基準点 → to: flight.center） ---
@@ -368,6 +449,7 @@ export class MapGeometry {
                 spectatorDepth_m: number;
                 flightAltitude_min_m: number;
                 flightAltitude_Max_m: number;
+                safetyMode: "new" | "old";
             }>
         >).detail || {};
 
@@ -397,50 +479,91 @@ export class MapGeometry {
         // ---- 観客エリア（矩形）: w/d
         this.audienceEditor.applyPanelAudienceMetrics(d.spectatorWidth_m, d.spectatorDepth_m);
 
-        // ---- 高度（m）：Geometry へ保存 + 保安距離更新 ----
+        // ---- 高度（m）＋ 保安距離モード：Geometry へ保存 + 保安距離更新 ----
         {
             const maxSrc = d.flightAltitude_Max_m;
             const minSrc = d.flightAltitude_min_m;
 
-            const prevMin = (this.currentGeomRef as any)?.flightAltitude_min_m;
-            const prevMax = (this.currentGeomRef as any)?.flightAltitude_Max_m;
+            const prev = this.currentGeomRef ?? {};
+            const prevMin = (prev as any).flightAltitude_min_m;
+            const prevMax = (prev as any).flightAltitude_Max_m;
+            const prevMode: "new" | "old" = (prev as any).safetyMode === "old" ? "old" : "new";
 
-            // 既存値を保持しつつ、今回入力されたものだけ更新する
             const altMin =
                 typeof minSrc === "number" ? Math.max(0, Math.round(minSrc)) : prevMin;
 
             const altMax =
                 typeof maxSrc === "number" ? Math.max(0, Math.round(maxSrc)) : prevMax;
 
-            // どちらも未定義なら何もしない
-            if (altMin == null && altMax == null) {
+            // ★ ここを修正：delta に safetyMode があればそれを優先してそのまま使う
+            const nextMode: "new" | "old" =
+                typeof (d as any).safetyMode === "string"
+                    ? ((d as any).safetyMode === "old" ? "old" : "new")
+                    : prevMode;
+
+            const hasAlt = altMin != null || altMax != null;
+
+            // 「高度も変わらない」かつ「モードも変わらない」なら何もしない
+            if (!hasAlt && nextMode === prevMode) {
                 return;
             }
 
-            // 保安距離はより高い方で計算
-            const altForSafety = altMax ?? altMin;
-            const { dist_m } = this.safetyDistanceByTable(altForSafety);
+            let distNew: number | undefined;
+            let distOld: number | undefined;
+            let buffer: number | undefined;
 
-            // Geometry を更新（既存値を保持しつつ）
-            const prev = this.currentGeomRef ?? {};
-            this.currentGeomRef = {
+            if (hasAlt) {
+                const altForSafety = altMax ?? altMin!;
+                const newRes = this.safetyDistanceByTableNew(altForSafety);
+                const oldRes = this.safetyDistanceByTableOld(altForSafety);
+
+                distNew = newRes.dist_m;
+                distOld = oldRes.dist_m;
+                buffer = nextMode === "old" ? distOld : distNew;
+            }
+
+            const nextGeom: any = {
                 ...prev,
                 flightAltitude_min_m: altMin,
                 flightAltitude_Max_m: altMax,
-                safetyArea: {
-                    ...(prev as any).safetyArea,
-                    type: "ellipse",
-                    buffer_m: dist_m
-                }
+                safetyMode: nextMode,
             };
 
-            // パネル側に「両方の値を必ず返す」
-            setDetailBarMetrics({
+            if (hasAlt) {
+                nextGeom.safetyArea = {
+                    ...(prev as any).safetyArea,
+                    type: "ellipse",
+                    buffer_m: buffer,
+                };
+            }
+
+            this.currentGeomRef = nextGeom as Geometry;
+
+            // 楕円の保安距離を描き直し
+            const fa = this.currentGeomRef?.flightArea;
+            if (fa?.type === "ellipse" && Array.isArray(fa.center)) {
+                this.ellipseEditor.updateOverlays(
+                    fa.center as LngLat,
+                    fa.radiusX_m,
+                    fa.radiusY_m,
+                    fa.rotation_deg || 0
+                );
+            }
+
+            const metrics: any = {
                 flightAltitude_min_m: altMin,
                 flightAltitude_Max_m: altMax,
-                safetyDistance_m: dist_m,
-                buffer_m: dist_m
-            });
+                safetyMode: nextMode,
+            };
+
+            if (hasAlt) {
+                metrics.safetyDistanceNew_m = distNew;
+                metrics.safetyDistanceOld_m = distOld;
+                metrics.buffer_m = buffer;
+                metrics.safetyDistance_m = buffer;
+            }
+
+            setDetailBarMetrics(metrics);
         }
     };
 
@@ -777,15 +900,28 @@ export class MapGeometry {
         return Math.ceil(h / 10) * 10;
     }
 
-    // 表で保安距離を取得（切り上げ・クランプ済みの行を使用）
-    private safetyDistanceByTable(alt_m: number): { usedAlt: number; dist_m: number } {
+    // 任意のテーブルを使って保安距離を取得
+    private safetyDistanceByTableUsing(
+        alt_m: number,
+        table: ReadonlyArray<{ h: number; d: number }>
+    ): { usedAlt: number; dist_m: number } {
         const clamped = this.clampAltRange(alt_m);
         const usedAlt = this.ceil10(clamped);
         const row =
-            MapGeometry.DIST_TABLE.find((r) => r.h === usedAlt) ??
-            MapGeometry.DIST_TABLE[MapGeometry.DIST_TABLE.length - 1];
+            table.find((r) => r.h === usedAlt) ?? table[table.length - 1];
         return { usedAlt, dist_m: row.d };
     }
+
+    // 新式テーブル
+    private safetyDistanceByTableNew(alt_m: number): { usedAlt: number; dist_m: number } {
+        return this.safetyDistanceByTableUsing(alt_m, MapGeometry.DIST_TABLE_NEW);
+    }
+
+    // 旧式テーブル
+    private safetyDistanceByTableOld(alt_m: number): { usedAlt: number; dist_m: number } {
+        return this.safetyDistanceByTableUsing(alt_m, MapGeometry.DIST_TABLE_OLD);
+    }
+
     // ジオメトリを削除
     deleteCurrentGeometry() {
         // 表示物を全削除
@@ -798,12 +934,4 @@ export class MapGeometry {
         // ちょっとログ
         console.info("[geometry] current geometry marked as DELETED (pending save)");
     }
-
-    // ログ出力
-    private logSafetyDistance(alt_m: number) {
-        const { usedAlt, dist_m } = this.safetyDistanceByTable(alt_m);
-        const note = alt_m !== usedAlt ? `（表は ${usedAlt}m 列を採用）` : "";
-        console.log(`[safety] 入力高度 ${alt_m} m → 最大移動距離(保安距離) ≈ ${dist_m} m ${note}`);
-    }
-
 }

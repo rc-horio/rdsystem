@@ -1226,9 +1226,14 @@ select.rc-inp-input optgroup {
 }
 
 /* 保安距離セクションのラジオボタン */
-.radio-position input{
-	position:relative;
-	top:2px;
+.radio-position input {
+  position: relative;
+  top: 2px;
+}
+
+.radio-readonly {
+  pointer-events: none; /* クリック不可 */
+  opacity: 0.85; /* 軽く無効っぽい表現（任意） */
 }
 
 /* 入力欄のカーソル設定 */

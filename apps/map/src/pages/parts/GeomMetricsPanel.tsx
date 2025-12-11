@@ -175,14 +175,20 @@ export default function GeomMetricsPanel() {
             {/* 新式 */}
             <div className="geom-row">
               <span className="k radio-position">
-                <label className="inline-flex items-center gap-1">
+                <label
+                  className={`inline-flex items-center gap-1 ${
+                    !editable ? "radio-readonly" : ""
+                  }`}
+                >
                   <input
                     type="radio"
                     name="safetyMode"
                     value="new"
                     checked={(m.safetyMode ?? "new") === "new"}
                     onChange={() => {
+                      if (!editable) return;
                       setM((p) => ({ ...p, safetyMode: "new" }));
+                      send({ safetyMode: "new" } as any);
                     }}
                   />
                   <span className="leading-none"> 新</span>
@@ -203,14 +209,20 @@ export default function GeomMetricsPanel() {
             {/* 旧式 */}
             <div className="geom-row">
               <span className="k radio-position">
-                <label className="inline-flex items-center gap-1">
+                <label
+                  className={`inline-flex items-center gap-1 ${
+                    !editable ? "radio-readonly" : ""
+                  }`}
+                >
                   <input
                     type="radio"
                     name="safetyMode"
                     value="old"
                     checked={m.safetyMode === "old"}
                     onChange={() => {
+                      if (!editable) return;
                       setM((p) => ({ ...p, safetyMode: "old" }));
+                      send({ safetyMode: "old" } as any);
                     }}
                   />
                   <span className="leading-none"> 旧</span>
