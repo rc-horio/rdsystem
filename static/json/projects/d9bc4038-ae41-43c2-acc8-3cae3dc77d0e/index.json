@@ -131,11 +131,6 @@
                     "x_count": 37,
                     "y_count": 38
                 },
-                "flight_area": {
-                    "altitude_min_m": 39,
-                    "altitude_max_m": 40,
-                    "safety_area_m": 41
-                },
                 "actions": {
                     "liftoff": "42",
                     "turn": "43"
@@ -159,7 +154,8 @@
             },
             "photos": [],
             "geometry": {
-                "flightAltitude_m": 120,
+                "flightAltitude_min_m": 10,
+                "flightAltitude_Max_m": 150,
                 "takeoffArea": {
                     "type": "rectangle",
                     "coordinates": [

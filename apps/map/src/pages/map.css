@@ -1108,7 +1108,7 @@ select.rc-inp-input optgroup {
   top: 12px;
   right: 12px;
   z-index: 22; /* map(0) < sidebar(10) < detailbar(20) < this(22) */
-  width: min(600px, 60vw); /* 60%のビューポート幅に基づく最大幅 */
+  width: min(715px, 60vw); /* 60%のビューポート幅に基づく最大幅 */
   max-width: 90vw; /* ビューポートの90%以内 */
   padding: 10px;
   color: #fff;
@@ -1159,7 +1159,7 @@ select.rc-inp-input optgroup {
   content: "";
   position: absolute;
   top: 6px;
-  right: 0;
+  right: -2px;
   bottom: 6px;
   width: 1px;
   background: rgba(255, 255, 255, 0.18);
@@ -1223,6 +1223,12 @@ select.rc-inp-input optgroup {
 .geom-row-turn-direction {
   margin-top: 1px; /* ← 下方向に余白を追加（お好みで 3〜6px） */
   margin-bottom: 1px; /* ← 下方向に余白を追加（お好みで 3〜6px） */
+}
+
+/* 保安距離セクションのラジオボタン */
+.radio-position input{
+	position:relative;
+	top:2px;
 }
 
 /* 入力欄のカーソル設定 */

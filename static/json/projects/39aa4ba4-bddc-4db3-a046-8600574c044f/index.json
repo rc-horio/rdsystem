@@ -1,0 +1,175 @@
+{
+    "project": {
+        "id": "39aa4ba4-bddc-4db3-a046-8600574c044f",
+        "name": "テスト3",
+        "updated_at": "2025-12-03T04:15:08.627Z",
+        "updated_by": ""
+    },
+    "schedules": [
+        {
+            "id": "dae3d461-8792-4a06-8c23-c24a5c3ed2e6",
+            "label": "神戸",
+            "date": "20251203",
+            "location": "",
+            "photosMemo": "",
+            "resources": {
+                "drones": [
+                    {
+                        "model": "",
+                        "color": "",
+                        "count": 0
+                    }
+                ],
+                "batteries": [
+                    {
+                        "model": "",
+                        "count": 0
+                    }
+                ],
+                "modules": [
+                    {
+                        "type": "",
+                        "count": 0
+                    }
+                ],
+                "vehicles": {
+                    "rows": [
+                        {
+                            "type": "",
+                            "driver": ""
+                        }
+                    ],
+                    "memo": ""
+                },
+                "equipment": [],
+                "hotels": [],
+                "members": {
+                    "producer": [],
+                    "director": [],
+                    "operator": [],
+                    "veteran_part_time": {
+                        "members": []
+                    },
+                    "local_staff": {
+                        "members": []
+                    },
+                    "memo": ""
+                }
+            },
+            "operation": {
+                "placement": {
+                    "x": null,
+                    "y": null,
+                    "spacing_m": null
+                },
+                "modules": [],
+                "measurement": {
+                    "target_id": null,
+                    "result": null
+                },
+                "memo": ""
+            },
+            "area": {
+                "area_name": "",
+                "takeoff_land": {
+                    "coordinate": {
+                        "lat": null,
+                        "lon": null
+                    }
+                },
+                "drone_count": {
+                    "model": "",
+                    "count": 0,
+                    "x_count": null,
+                    "y_count": null
+                },
+                "flight_area": {
+                    "altitude_min_m": null,
+                    "altitude_max_m": null,
+                    "safety_area_m": null
+                },
+                "actions": {
+                    "liftoff": "",
+                    "turn": ""
+                },
+                "obstacle_note": "",
+                "lights": {
+                    "takeoff": "",
+                    "landing": ""
+                },
+                "return_note": "",
+                "animation_area": {
+                    "width_m": null,
+                    "depth_m": null
+                },
+                "distance_from_viewers_m": null,
+                "spacing_between_drones_m": {
+                    "horizontal": "",
+                    "vertical": ""
+                }
+            },
+            "photos": [],
+            "geometry": {
+                "flightAltitude_Max_m": 200,
+                "flightAltitude_min_m": 10,
+                "takeoffArea": {
+                    "type": "rectangle",
+                    "coordinates": [
+                        [
+                            135.1938567226136,
+                            34.67819973359483
+                        ],
+                        [
+                            135.19352901628514,
+                            34.67819973359483
+                        ],
+                        [
+                            135.19352901628514,
+                            34.67784040912483
+                        ],
+                        [
+                            135.1938567226136,
+                            34.67784040912483
+                        ]
+                    ],
+                    "referencePointIndex": 0
+                },
+                "flightArea": {
+                    "type": "ellipse",
+                    "center": [
+                        135.19575280597283,
+                        34.67950468908766
+                    ],
+                    "radiusX_m": 100,
+                    "radiusY_m": 50,
+                    "rotation_deg": 0
+                },
+                "safetyArea": {
+                    "type": "ellipse",
+                    "buffer_m": 24.6
+                },
+                "audienceArea": {
+                    "type": "rectangle",
+                    "coordinates": [
+                        [
+                            135.19341976958464,
+                            34.681164160472306
+                        ],
+                        [
+                            135.1939659693141,
+                            34.681164160472306
+                        ],
+                        [
+                            135.1939659693141,
+                            34.6817031471773
+                        ],
+                        [
+                            135.19341976958464,
+                            34.6817031471773
+                        ]
+                    ]
+                }
+            }
+        }
+    ]
+}

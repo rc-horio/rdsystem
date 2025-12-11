@@ -58,11 +58,11 @@ function logBoth() {
         diff = diffRectMinusEllipse(rect, ellipse);
     }
 
-    console.log(
-        `[bearing] ellipse=${format(ellipse)}, rect=${format(
-            rect
-        )}, diff(rect-ellipse)=${format(diff)}  (north=0°, cw, diff:-ccw,+cw)`
-    );
+    // console.log(
+    //     `[bearing] ellipse=${format(ellipse)}, rect=${format(
+    //         rect
+    //     )}, diff(rect-ellipse)=${format(diff)}  (north=0°, cw, diff:-ccw,+cw)`
+    // );
 
     // パネル向けにイベント発火
     if (typeof window !== "undefined" && diff != null) {

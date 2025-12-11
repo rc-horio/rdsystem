@@ -282,12 +282,21 @@ export class MapGeometry {
             metrics.spectatorDepth_m = audM.spectatorDepth_m;
         }
 
-        // 飛行高度
-        const altRaw = (geom as any)?.flightAltitude_m;
-        const altNum = Number(altRaw);
-        if (Number.isFinite(altNum)) {
-            metrics.flightAltitude_m = altNum;
+        // 飛行高度（min / max）
+        const altMinRaw = (geom as any)?.flightAltitude_min_m;
+        const altMaxRaw = (geom as any)?.flightAltitude_Max_m;
+
+        const altMinNum = Number(altMinRaw);
+        const altMaxNum = Number(altMaxRaw);
+
+        if (Number.isFinite(altMinNum)) {
+            (metrics as any).flightAltitude_min_m = altMinNum;
         }
+
+        if (Number.isFinite(altMaxNum)) {
+            (metrics as any).flightAltitude_Max_m = altMaxNum;
+        }
+
 
         // 最大移動距離（= buffer_m）
         const buf = Number((geom as any)?.safetyArea?.buffer_m);
@@ -357,7 +366,8 @@ export class MapGeometry {
                 rectDepth_m: number;
                 spectatorWidth_m: number;
                 spectatorDepth_m: number;
-                flightAltitude_m: number;
+                flightAltitude_min_m: number;
+                flightAltitude_Max_m: number;
             }>
         >).detail || {};
 
@@ -387,38 +397,50 @@ export class MapGeometry {
         // ---- 観客エリア（矩形）: w/d
         this.audienceEditor.applyPanelAudienceMetrics(d.spectatorWidth_m, d.spectatorDepth_m);
 
-        // ---- 高度（m）：Geometryへ保存 + 保安距離 → buffer_m へ反映 & 図面更新
-        // ---- 高度（m）：Geometryへ保存 + 保安距離 → buffer_m へ反映 & 図面更新
-        if (typeof d.flightAltitude_m === "number" && Number.isFinite(d.flightAltitude_m)) {
-            const alt = Math.max(0, Math.round(d.flightAltitude_m));
+        // ---- 高度（m）：Geometry へ保存 + 保安距離更新 ----
+        {
+            const maxSrc = d.flightAltitude_Max_m;
+            const minSrc = d.flightAltitude_min_m;
 
-            // 保証表から距離
-            const { dist_m } = this.safetyDistanceByTable(alt);
+            const prevMin = (this.currentGeomRef as any)?.flightAltitude_min_m;
+            const prevMax = (this.currentGeomRef as any)?.flightAltitude_Max_m;
 
-            // Geometry 更新
-            const prev = this.currentGeomRef ?? {};
-            const prevSafety = (prev as any).safetyArea ?? {};
-            this.currentGeomRef = {
-                ...prev,
-                flightAltitude_m: alt,
-                safetyArea: { type: "ellipse", ...prevSafety, buffer_m: dist_m },
-            } as Geometry;
+            // 既存値を保持しつつ、今回入力されたものだけ更新する
+            const altMin =
+                typeof minSrc === "number" ? Math.max(0, Math.round(minSrc)) : prevMin;
 
-            // パネルへも通知（高度＋最大移動距離）
-            setDetailBarMetrics({ flightAltitude_m: alt, safetyDistance_m: dist_m, buffer_m: dist_m });
+            const altMax =
+                typeof maxSrc === "number" ? Math.max(0, Math.round(maxSrc)) : prevMax;
 
-            // 図面更新（既存処理）
-            const fl = this.currentGeomRef?.flightArea;
-            if (fl?.type === "ellipse" && Array.isArray(fl.center)) {
-                this.ellipseEditor.updateOverlays(
-                    fl.center as LngLat,
-                    Number(fl.radiusX_m) || 0,
-                    Number(fl.radiusY_m) || 0,
-                    Number(fl.rotation_deg) || 0
-                );
+            // どちらも未定義なら何もしない
+            if (altMin == null && altMax == null) {
+                return;
             }
 
-            this.logSafetyDistance(alt);
+            // 保安距離はより高い方で計算
+            const altForSafety = altMax ?? altMin;
+            const { dist_m } = this.safetyDistanceByTable(altForSafety);
+
+            // Geometry を更新（既存値を保持しつつ）
+            const prev = this.currentGeomRef ?? {};
+            this.currentGeomRef = {
+                ...prev,
+                flightAltitude_min_m: altMin,
+                flightAltitude_Max_m: altMax,
+                safetyArea: {
+                    ...(prev as any).safetyArea,
+                    type: "ellipse",
+                    buffer_m: dist_m
+                }
+            };
+
+            // パネル側に「両方の値を必ず返す」
+            setDetailBarMetrics({
+                flightAltitude_min_m: altMin,
+                flightAltitude_Max_m: altMax,
+                safetyDistance_m: dist_m,
+                buffer_m: dist_m
+            });
         }
     };
 

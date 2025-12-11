@@ -19,15 +19,27 @@ type PanelMetrics = GeometryMetrics & {
   // 旋回方向と角度
   turnDirection?: "cw" | "ccw"; // cw: 時計回り, ccw: 反時計回り
   turnAngle_deg?: number; // 回転角度（度）
+
+  // 高度（Max / Min を UI 用に保持）
+  flightAltitude_Max_m?: number;
+  flightAltitude_min_m?: number;
+
+  // 保安距離の計算方式（ラジオボタン）
+  safetyMode?: "new" | "old"; // "new": 新式, "old": 旧式
+
+  // 新式 / 旧式それぞれの保安距離（表示用）
+  safetyDistanceNew_m?: number;
+  safetyDistanceOld_m?: number;
 };
 
 export default function GeomMetricsPanel() {
   if (typeof window !== "undefined" && detectEmbedMode()) {
     return null;
   }
+
   const [m, setM] = useState<PanelMetrics>({});
 
-  // 追加: 編集ONかどうか
+  // 編集ONかどうか
   const getEditing = () =>
     typeof document !== "undefined" &&
     document.body.classList.contains("editing-on");
@@ -46,7 +58,7 @@ export default function GeomMetricsPanel() {
     return () => mo.disconnect();
   }, []);
 
-  // 外部イベント：detailbar:set-metrics -> ジオメトリを取得/描画
+  // 外部イベント：detailbar:set-metrics -> パネル state 更新
   useEffect(() => {
     const onSet = (e: Event) => {
       const ce = e as CustomEvent<{ metrics?: Partial<GeometryMetrics> }>;
@@ -75,9 +87,7 @@ export default function GeomMetricsPanel() {
 
       setM((prev) => ({
         ...prev,
-        // 方向は undefined の可能性あり
         turnDirection: detail.turnDirection ?? prev.turnDirection,
-        // 角度も number のときだけ上書き
         turnAngle_deg:
           typeof detail.turnAngle_deg === "number"
             ? detail.turnAngle_deg
@@ -96,10 +106,8 @@ export default function GeomMetricsPanel() {
 
   // 入力を整数[m]として取得（空は undefined）
   const parseIntMeters = (ev: ChangeEvent<HTMLInputElement>) => {
-    const v = ev.target.value.trim();
-    if (v === "") return undefined;
-    const n = Math.round(Number(v));
-    return Number.isFinite(n) ? Math.max(0, n) : undefined;
+    const n = Number(ev.target.value);
+    return Number.isFinite(n) ? Math.max(0, Math.round(n)) : undefined;
   };
 
   // 数値を外部イベントに送信
@@ -116,69 +124,106 @@ export default function GeomMetricsPanel() {
       aria-label="エリア寸法"
     >
       <div className="geom-cols" role="group" aria-label="エリア別寸法">
-        {/* 旋回 */}
-        <section className="geom-col" aria-label="旋回">
-          <div className="geom-col-title">旋回</div>
+        {/* 高度 */}
+        <section className="geom-col is-active" aria-label="高度">
+          <div className="geom-col-title">高度</div>
           <div className="geom-rows">
-            {/* 上の行: 時計回り / 反時計回り */}
-            <div className="geom-row geom-row-turn-direction">
-              <span className="k" />
-              <span className="v geom-turn-text">
-                {m.turnDirection === "ccw"
-                  ? "反時計回りに"
-                  : m.turnDirection === "cw"
-                  ? "時計回りに"
-                  : "—"}
-              </span>
-              <span className="u" />
-            </div>
-
-            {/* 下の行（角度） */}
-            <div className="geom-row geom-row-turn-angle">
-              <span className="k" />
-              <span className="v geom-turn-text">
-                {typeof m.turnAngle_deg === "number"
-                  ? `${Number(m.turnAngle_deg.toFixed(1))}度回転`
-                  : "—"}
-              </span>
-              <span className="u" />
-            </div>
-          </div>
-        </section>
-
-        {/* 高度と保安距離を分けた新しいセクション */}
-        <section className="geom-col is-active" aria-label="高度と保安距離">
-          <div className="geom-col-title">高度と保安距離</div>
-          <div className="geom-rows">
-            {/* 高度表示 */}
+            {/* Max */}
             <div className="geom-row">
-              <span className="k">h</span>
+              <span className="k">Max</span>
               <input
                 className="v geom-input"
                 type="number"
                 placeholder="-"
-                value={toInput(m.flightAltitude_m)}
+                value={toInput(m.flightAltitude_Max_m)}
                 onChange={(e) => {
                   const n = parseIntMeters(e);
-                  setM((p) => ({ ...p, flightAltitude_m: n }));
-                  if (n !== undefined) send({ flightAltitude_m: n });
+                  setM((p) => ({ ...p, flightAltitude_Max_m: n }));
+                  send({ flightAltitude_Max_m: n });
                 }}
-                aria-label="飛行高度(m)"
+                disabled={!editable}
+                aria-label="最高高度(m)"
               />
               <span className="u">m</span>
             </div>
 
-            {/* 保安距離 */}
+            {/* min */}
             <div className="geom-row">
-              <span className="k">s</span>
+              <span className="k">min</span>
+              <input
+                className="v geom-input"
+                type="number"
+                placeholder="-"
+                value={toInput(m.flightAltitude_min_m)}
+                onChange={(e) => {
+                  const n = parseIntMeters(e);
+                  setM((p) => ({ ...p, flightAltitude_min_m: n }));
+                  send({ flightAltitude_min_m: n });
+                }}
+                disabled={!editable}
+                aria-label="最低高度(m)"
+              />
+              <span className="u">m</span>
+            </div>
+          </div>
+        </section>
+
+        {/* 保安距離 */}
+        <section className="geom-col" aria-label="保安距離">
+          <div className="geom-col-title">保安距離</div>
+          <div className="geom-rows">
+            {/* 新式 */}
+            <div className="geom-row">
+              <span className="k radio-position">
+                <label className="inline-flex items-center gap-1">
+                  <input
+                    type="radio"
+                    name="safetyMode"
+                    value="new"
+                    checked={(m.safetyMode ?? "new") === "new"}
+                    onChange={() => {
+                      setM((p) => ({ ...p, safetyMode: "new" }));
+                    }}
+                  />
+                  <span className="leading-none"> 新</span>
+                </label>
+              </span>
               <input
                 className="v geom-input"
                 type="text"
                 placeholder="-"
-                value={toInput(m.safetyDistance_m ?? m.buffer_m)}
+                value={toInput(m.safetyDistanceNew_m)}
                 readOnly
                 disabled
-                aria-label="保安距離(m)"
+                aria-label="保安距離(新式)"
+              />
+              <span className="u">m</span>
+            </div>
+
+            {/* 旧式 */}
+            <div className="geom-row">
+              <span className="k radio-position">
+                <label className="inline-flex items-center gap-1">
+                  <input
+                    type="radio"
+                    name="safetyMode"
+                    value="old"
+                    checked={m.safetyMode === "old"}
+                    onChange={() => {
+                      setM((p) => ({ ...p, safetyMode: "old" }));
+                    }}
+                  />
+                  <span className="leading-none"> 旧</span>
+                </label>
+              </span>
+              <input
+                className="v geom-input"
+                type="text"
+                placeholder="-"
+                value={toInput(m.safetyDistanceOld_m)}
+                readOnly
+                disabled
+                aria-label="保安距離(旧式)"
               />
               <span className="u">m</span>
             </div>
@@ -322,6 +367,36 @@ export default function GeomMetricsPanel() {
                 aria-label="観客エリア 奥行(m)"
               />
               <span className="u">m</span>
+            </div>
+          </div>
+        </section>
+
+        {/* 旋回 */}
+        <section className="geom-col" aria-label="旋回">
+          <div className="geom-col-title">旋回</div>
+          <div className="geom-rows">
+            {/* 上の行: 時計回り / 反時計回り */}
+            <div className="geom-row geom-row-turn-direction">
+              <span className="k" />
+              <span className="v geom-turn-text">
+                {m.turnDirection === "ccw"
+                  ? "反時計回りに"
+                  : m.turnDirection === "cw"
+                  ? "時計回りに"
+                  : "—"}
+              </span>
+              <span className="u" />
+            </div>
+
+            {/* 下の行（角度） */}
+            <div className="geom-row geom-row-turn-angle">
+              <span className="k" />
+              <span className="v geom-turn-text">
+                {typeof m.turnAngle_deg === "number"
+                  ? `${Number(m.turnAngle_deg.toFixed(1))}度回転`
+                  : "—"}
+              </span>
+              <span className="u" />
             </div>
           </div>
         </section>
