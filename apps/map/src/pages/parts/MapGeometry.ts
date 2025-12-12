@@ -314,11 +314,6 @@ export class MapGeometry {
             return;
         }
 
-        // 既存ラベルの削除（全矢印）
-        if (this.arrowLabel) { this.arrowLabel.setMap(null); this.arrowLabel = null; }
-        if (this.arrow2Label) { this.arrow2Label.setMap(null); this.arrow2Label = null; }
-        if (this.arrow3Label) { this.arrow3Label.setMap(null); this.arrow3Label = null; }
-
         const geom = geomLike as Geometry;
         this.clearOverlays();
         this.currentGeomRef = geom;
@@ -737,39 +732,31 @@ export class MapGeometry {
         return this.createArrowPolyline(path, { hasHead: false });
     }
 
+    private clearRightAngleArrows() {
+        if (this.arrow2Ref) { this.arrow2Ref.setMap(null); this.arrow2Ref = null; }
+        if (this.arrow3Ref) { this.arrow3Ref.setMap(null); this.arrow3Ref = null; }
+        if (this.arrow2Label) { this.arrow2Label.setMap(null); this.arrow2Label = null; }
+        if (this.arrow3Label) { this.arrow3Label.setMap(null); this.arrow3Label = null; }
+        this.arrowTriangleCentroid = null;
+    }
 
     // 矢印2と3: パス更新（中心/基準点の変更時に呼ぶ）
     private updateRightAngleArrowPaths(from?: LngLat, to?: LngLat) {
-        const gmaps = this.getGMaps();
-
-        if (!from || !to) {
-            // ライン・ラベルともに無効化
-            if (this.arrow2Ref) { this.arrow2Ref.setMap(null); this.arrow2Ref = null; }
-            if (this.arrow3Ref) { this.arrow3Ref.setMap(null); this.arrow3Ref = null; }
-            if (this.arrow2Label) { this.arrow2Label.setMap(null); this.arrow2Label = null; }
-            if (this.arrow3Label) { this.arrow3Label.setMap(null); this.arrow3Label = null; }
-            this.arrowTriangleCentroid = null;
-            return;
-        }
+        if (!from || !to) { this.clearRightAngleArrows(); return; }
 
         const corner = this.computeRightAngleCorner(from, to);
-        if (!corner) {
-            if (this.arrow2Ref) { this.arrow2Ref.setMap(null); this.arrow2Ref = null; }
-            if (this.arrow3Ref) { this.arrow3Ref.setMap(null); this.arrow3Ref = null; }
-            if (this.arrow2Label) { this.arrow2Label.setMap(null); this.arrow2Label = null; }
-            if (this.arrow3Label) { this.arrow3Label.setMap(null); this.arrow3Label = null; }
-            this.arrowTriangleCentroid = null;
-            return;
-        }
+        if (!corner) { this.clearRightAngleArrows(); return; }
+
+        const gmaps = this.getGMaps();
 
         const pFrom = this.latLng(from[1], from[0]);
         const pCorner = this.latLng(corner[1], corner[0]);
         const pTo = this.latLng(to[1], to[0]);
 
-        // 三角形の重心を更新
-        const centroidLat = (from[1] + corner[1] + to[1]) / 3;
-        const centroidLng = (from[0] + corner[0] + to[0]) / 3;
-        this.arrowTriangleCentroid = new gmaps.LatLng(centroidLat, centroidLng);
+        this.arrowTriangleCentroid = new gmaps.LatLng(
+            (from[1] + corner[1] + to[1]) / 3,
+            (from[0] + corner[0] + to[0]) / 3
+        );
 
         if (!this.arrow2Ref || !this.arrow3Ref) {
             // 無ければ新規作成（この中でラベル初期化も行う）
@@ -779,9 +766,8 @@ export class MapGeometry {
             return;
         }
 
-        // パス更新
-        this.arrow2Ref.setPath([pFrom, pCorner]); // ② depth方向
-        this.arrow3Ref.setPath([pCorner, pTo]);   // ③ depthに垂直
+        this.arrow2Ref.setPath([pFrom, pCorner]);
+        this.arrow3Ref.setPath([pCorner, pTo]);
 
         // ラベル更新
         const dist2 = gmaps.geometry.spherical.computeDistanceBetween(pFrom, pCorner);
