@@ -369,7 +369,8 @@ export class MapGeometry {
 
         // safetyMode: geometry に保存されていればそれを優先、なければ "new"
         const safetyMode: "new" | "old" =
-            (geom as any).safetyMode === "old" ? "old" : "new";
+            (geom as any)?.safetyArea?.mode === "old" ? "old" : "new";
+
         (metrics as any).safetyMode = safetyMode;
 
         // 最高高度が取れる場合は、新旧の保安距離も計算してパネルに渡す
@@ -401,7 +402,7 @@ export class MapGeometry {
             const fromLL = new gmaps.LatLng(from[1], from[0]);
             const toLL = new gmaps.LatLng(to[1], to[0]);
 
-            // ★ 三角形の重心を計算
+            //  三角形の重心を計算
             const corner = this.computeRightAngleCorner(from, to);
             if (corner) {
                 const centroidLat = (from[1] + corner[1] + to[1]) / 3;
@@ -487,7 +488,10 @@ export class MapGeometry {
             const prev = this.currentGeomRef ?? {};
             const prevMin = (prev as any).flightAltitude_min_m;
             const prevMax = (prev as any).flightAltitude_Max_m;
-            const prevMode: "new" | "old" = (prev as any).safetyMode === "old" ? "old" : "new";
+
+            //  mode の取得先は safetyArea.mode に統一
+            const prevMode: "new" | "old" =
+                (prev as any)?.safetyArea?.mode === "old" ? "old" : "new";
 
             const altMin =
                 typeof minSrc === "number" ? Math.max(0, Math.round(minSrc)) : prevMin;
@@ -495,28 +499,36 @@ export class MapGeometry {
             const altMax =
                 typeof maxSrc === "number" ? Math.max(0, Math.round(maxSrc)) : prevMax;
 
-            // ★ ここを修正：delta に safetyMode があればそれを優先してそのまま使う
+            // UI から safetyMode が来たらそれを優先
             const nextMode: "new" | "old" =
                 typeof (d as any).safetyMode === "string"
                     ? ((d as any).safetyMode === "old" ? "old" : "new")
                     : prevMode;
 
+            // altMin/altMax は prev からも引き継ぐので、これで「高度が既にある」ケースも true になる
             const hasAlt = altMin != null || altMax != null;
 
-            // 「高度も変わらない」かつ「モードも変わらない」なら何もしない
+            // 「高度もモードも変わらない」なら何もしない
             if (!hasAlt && nextMode === prevMode) {
+                // ※高度無しで mode も同じなら no-op
                 return;
             }
 
+            //  safetyArea を必ず数値で保持（高度が無い場合は既存 buffer を温存）
+            const prevSafetyArea = (prev as any).safetyArea ?? {
+                type: "ellipse",
+                buffer_m: 0,
+                mode: prevMode,
+            };
+
             let distNew: number | undefined;
             let distOld: number | undefined;
-            let buffer: number | undefined;
+            let buffer: number = Number(prevSafetyArea.buffer_m) || 0;
 
             if (hasAlt) {
                 const altForSafety = altMax ?? altMin!;
                 const newRes = this.safetyDistanceByTableNew(altForSafety);
                 const oldRes = this.safetyDistanceByTableOld(altForSafety);
-
                 distNew = newRes.dist_m;
                 distOld = oldRes.dist_m;
                 buffer = nextMode === "old" ? distOld : distNew;
@@ -526,20 +538,17 @@ export class MapGeometry {
                 ...prev,
                 flightAltitude_min_m: altMin,
                 flightAltitude_Max_m: altMax,
-                safetyMode: nextMode,
-            };
-
-            if (hasAlt) {
-                nextGeom.safetyArea = {
-                    ...(prev as any).safetyArea,
+                safetyArea: {
+                    ...prevSafetyArea,
                     type: "ellipse",
-                    buffer_m: buffer,
-                };
-            }
+                    mode: nextMode,     // 保存先はここ
+                    buffer_m: buffer,   // 必ず number
+                },
+            };
 
             this.currentGeomRef = nextGeom as Geometry;
 
-            // 楕円の保安距離を描き直し
+            // 楕円の保安距離を描き直し（buffer が変わる/ mode だけでも safetyArea は更新される）
             const fa = this.currentGeomRef?.flightArea;
             if (fa?.type === "ellipse" && Array.isArray(fa.center)) {
                 this.ellipseEditor.updateOverlays(
@@ -550,17 +559,18 @@ export class MapGeometry {
                 );
             }
 
+            // メトリクス反映
             const metrics: any = {
                 flightAltitude_min_m: altMin,
                 flightAltitude_Max_m: altMax,
-                safetyMode: nextMode,
+                safetyMode: nextMode,     // UI 表示用途なら残してOK（保存は safetyArea.mode）
+                buffer_m: buffer,
+                safetyDistance_m: buffer,
             };
 
             if (hasAlt) {
                 metrics.safetyDistanceNew_m = distNew;
                 metrics.safetyDistanceOld_m = distOld;
-                metrics.buffer_m = buffer;
-                metrics.safetyDistance_m = buffer;
             }
 
             setDetailBarMetrics(metrics);

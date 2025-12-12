@@ -25,6 +25,7 @@ export type OrientedRect = {
 export type SafetyGeom = {
     type: "ellipse";
     buffer_m: number;
+    mode?: "new" | "old";
 };
 
 // エリア側ではなくプロジェクト側のindex.jsonに保存する
@@ -69,9 +70,9 @@ export type GeometryMetrics = {
     spectatorDepth_m?: number; // 観客：奥行
     flightAltitude_min_m?: number; // 飛行高度
     flightAltitude_Max_m?: number; // 飛行高度
-    safetyDistanceNew_m?: number;
-    safetyDistanceOld_m?: number;
-    buffer_m?: number;          // 保安エリアの距離
+    safetyDistanceNew_m?: number; // 保安エリアの距離(新式)
+    safetyDistanceOld_m?: number; // 保安エリアの距離(旧式)
+    buffer_m?: number;          // 保安エリアの距離(保存用)
 };
 
 // スケジュール情報

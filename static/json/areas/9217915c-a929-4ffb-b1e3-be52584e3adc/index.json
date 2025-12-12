@@ -1,33 +1,97 @@
 {
     "areaName": "屋久島",
     "overview": {
-      "address": "鹿児島県屋久島町",
-      "prefecture": "鹿児島県",
-      "manager": "",
-      "droneRecord": "",
-      "droneCountEstimate": "",
-      "heightLimitM": "",
-      "availability": ""
+        "address": "鹿児島県屋久島町",
+        "prefecture": "鹿児島県",
+        "manager": "",
+        "droneRecord": "",
+        "droneCountEstimate": "",
+        "heightLimitM": "",
+        "availability": ""
     },
     "details": {
-      "statusMemo": "",
-      "permitMemo": "",
-      "restrictionsMemo": "",
-      "remarks": ""
+        "statusMemo": "",
+        "permitMemo": "",
+        "restrictionsMemo": "",
+        "remarks": ""
     },
     "history": [
-      {
-        "uuid": "",
-        "projectuuid": "39aa4ba4-bddc-4db3-a046-8600574c044f",
-        "scheduleuuid": "dae3d461-8792-4a06-8c23-c24a5c3ed2e6"
-      },
-      {
-        "uuid": "",
-        "projectuuid": "d9bc4038-ae41-43c2-acc8-3cae3dc77d0e",
-        "scheduleuuid": "ffb70017-a73f-4766-a311-3888f4c8ef0f"
-      }
+        {
+            "uuid": "",
+            "projectuuid": "39aa4ba4-bddc-4db3-a046-8600574c044f",
+            "scheduleuuid": "dae3d461-8792-4a06-8c23-c24a5c3ed2e6"
+        },
+        {
+            "uuid": "",
+            "projectuuid": "d9bc4038-ae41-43c2-acc8-3cae3dc77d0e",
+            "scheduleuuid": "ffb70017-a73f-4766-a311-3888f4c8ef0f"
+        }
     ],
-    "candidate": [],
-    "updated_at": "2025-12-11T14:33:47.956Z",
+    "candidate": [
+        {
+            "title": "屋久島候補テスト",
+            "flightAltitude_min_m": 1,
+            "flightAltitude_Max_m": 99,
+            "takeoffArea": {
+                "type": "rectangle",
+                "coordinates": [
+                    [
+                        130.5304287243862,
+                        30.340269821425736
+                    ],
+                    [
+                        130.52938785769877,
+                        30.340269821425736
+                    ],
+                    [
+                        130.52938785769877,
+                        30.340090159190737
+                    ],
+                    [
+                        130.5304287243862,
+                        30.340090159190737
+                    ]
+                ],
+                "referencePointIndex": 0
+            },
+            "flightArea": {
+                "type": "ellipse",
+                "center": [
+                    130.53034817332093,
+                    30.34183398752866
+                ],
+                "radiusX_m": 150,
+                "radiusY_m": 100,
+                "rotation_deg": 0
+            },
+            "safetyArea": {
+                "type": "ellipse",
+                "mode": "new",
+                "buffer_m": 39
+            },
+            "audienceArea": {
+                "type": "rectangle",
+                "coordinates": [
+                    [
+                        130.5293878395493,
+                        30.343503741655702
+                    ],
+                    [
+                        130.5304287425357,
+                        30.343503741655702
+                    ],
+                    [
+                        130.5304287425357,
+                        30.3436834038907
+                    ],
+                    [
+                        130.5293878395493,
+                        30.3436834038907
+                    ]
+                ]
+            }
+        }
+    ],
+    "updated_at": "2025-12-12T04:17:22.122Z",
     "updated_by": "ui"
-  }
+}

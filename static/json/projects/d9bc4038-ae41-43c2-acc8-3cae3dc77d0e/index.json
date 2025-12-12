@@ -190,6 +190,7 @@
                 },
                 "safetyArea": {
                     "type": "ellipse",
+                    "mode": "new",
                     "buffer_m": 50
                 },
                 "audienceArea": {
