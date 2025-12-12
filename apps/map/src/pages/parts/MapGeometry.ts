@@ -331,8 +331,16 @@ export class MapGeometry {
         // --- 楕円（飛行）＋ 保安 ---
         const { hasFlight, metrics: flightMetrics } = this.ellipseEditor.render(geom, bounds);
         if (hasFlight && flightMetrics) {
-            metrics.flightWidth_m = flightMetrics.flightWidth_m;
-            metrics.flightDepth_m = flightMetrics.flightDepth_m;
+            // ここで整数化（四捨五入）
+            metrics.flightWidth_m =
+                typeof flightMetrics.flightWidth_m === "number" && Number.isFinite(flightMetrics.flightWidth_m)
+                    ? Math.round(flightMetrics.flightWidth_m)
+                    : undefined;
+
+            metrics.flightDepth_m =
+                typeof flightMetrics.flightDepth_m === "number" && Number.isFinite(flightMetrics.flightDepth_m)
+                    ? Math.round(flightMetrics.flightDepth_m)
+                    : undefined;
         }
 
         // --- 観客エリア（矩形） ---

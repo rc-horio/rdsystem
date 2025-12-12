@@ -48,6 +48,9 @@ export function RightPanel({
   const [areasError, setAreasError] = useState<string | null>(null);
 
   const A = area ?? {};
+  const geo = A.geometry ?? {};
+  const flightArea = geo.flightArea ?? {};
+  const safetyArea = geo.safetyArea ?? {};
   // const flight = A.flight_area ?? {};
   const droneCnt = A.drone_count ?? {};
   const anim = A.animation_area ?? {};
@@ -256,9 +259,9 @@ export function RightPanel({
           <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
           <DisplayOrInput
             edit={edit}
-            value={(flight.altitude_min_m ?? "").toString()}
+            value={(geo.flightAltitude_min_m ?? "").toString()}
             onChange={(e) =>
-              patch(["flight_area", "altitude_min_m"], num(e.target.value))
+              patch(["geometry", "flightAltitude_min_m"], num(e.target.value))
             }
             inputMode="numeric"
             type="number"
@@ -271,9 +274,9 @@ export function RightPanel({
           <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
           <DisplayOrInput
             edit={edit}
-            value={(flight.altitude_max_m ?? "").toString()}
+            value={(geo.flightAltitude_Max_m ?? "").toString()}
             onChange={(e) =>
-              patch(["flight_area", "altitude_max_m"], num(e.target.value))
+              patch(["geometry", "flightAltitude_Max_m"], num(e.target.value))
             }
             inputMode="numeric"
             type="number"
@@ -286,9 +289,9 @@ export function RightPanel({
           <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
           <DisplayOrInput
             edit={edit}
-            value={(flight.safety_area_m ?? "").toString()}
+            value={(safetyArea.buffer_m ?? "").toString()}
             onChange={(e) =>
-              patch(["flight_area", "safety_area_m"], num(e.target.value))
+              patch(["geometry", "safetyArea", "buffer_m"], num(e.target.value))
             }
             inputMode="numeric"
             type="number"
@@ -388,24 +391,39 @@ export function RightPanel({
           <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
           <DisplayOrInput
             edit={edit}
-            value={(anim.width_m ?? "").toString()}
+            value={
+              flightArea.radiusX_m != null
+                ? String(flightArea.radiusX_m * 2) // ← 表示は×2
+                : ""
+            }
             onChange={(e) =>
-              patch(["animation_area", "width_m"], num(e.target.value))
+              patch(
+                ["geometry", "flightArea", "radiusX_m"],
+                num(e.target.value)
+              )
             }
             inputMode="numeric"
             type="number"
             className={numericInputW}
-          />{" "}
+          />
           <span className="w-6 ml-1">m</span>
         </div>
+
         <div className={rowCls}>
           <span className="w-24 text-sm">奥行</span>
           <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
           <DisplayOrInput
             edit={edit}
-            value={(anim.depth_m ?? "").toString()}
+            value={
+              flightArea.radiusY_m != null
+                ? String(flightArea.radiusY_m * 2) // ← 表示は×2
+                : ""
+            }
             onChange={(e) =>
-              patch(["animation_area", "depth_m"], num(e.target.value))
+              patch(
+                ["geometry", "flightArea", "radiusY_m"],
+                num(e.target.value)
+              )
             }
             inputMode="numeric"
             type="number"

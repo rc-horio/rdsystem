@@ -26,10 +26,10 @@ export function buildSchedulesFromProjectData(pd: any): ScheduleDetail[] {
       const arr = Array.isArray(src)
         ? src
         : Array.isArray(src?.members)
-        ? src.members
-        : src && (src.source || src.role || src.count || src.memo)
-        ? [src]
-        : [];
+          ? src.members
+          : src && (src.source || src.role || src.count || src.memo)
+            ? [src]
+            : [];
       const mapped = arr.map(toLocalStaffRow);
       return mapped.length ? mapped : [{ role: "", count: 0, memo: "" }];
     };
@@ -37,8 +37,8 @@ export function buildSchedulesFromProjectData(pd: any): ScheduleDetail[] {
       const arr = Array.isArray(src)
         ? src
         : Array.isArray(src?.members)
-        ? src.members
-        : [];
+          ? src.members
+          : [];
       return arr.map((v: any) =>
         typeof v === "string"
           ? { name: v, role: "", memo: "" }
@@ -55,40 +55,40 @@ export function buildSchedulesFromProjectData(pd: any): ScheduleDetail[] {
         drones:
           Array.isArray(res?.drones) && res.drones.length > 0
             ? res.drones.map((d: any) => ({
-                model: d.model ?? "",
-                color: d.color ?? "",
-                count: d.count ?? 0,
-              }))
+              model: d.model ?? "",
+              color: d.color ?? "",
+              count: d.count ?? 0,
+            }))
             : [{ model: "", color: "", count: 0 }],
         batteries:
           Array.isArray(res?.batteries) && res.batteries.length > 0
             ? res.batteries.map((b: any) => ({
-                model: b.model ?? "",
-                count: b.count ?? 0,
-              }))
+              model: b.model ?? "",
+              count: b.count ?? 0,
+            }))
             : [{ model: "", count: 0 }],
         modules:
           Array.isArray(res?.modules) && res.modules.length > 0
             ? res.modules.map((m: any) => ({
-                type: m.type ?? "",
-                count: m.count ?? 0,
-              }))
+              type: m.type ?? "",
+              count: m.count ?? 0,
+            }))
             : [{ type: "", count: 0 }],
         vehicles: {
           rows: Array.isArray(res?.vehicles?.rows)
             ? res.vehicles.rows.map((t: any) => ({
-                type: t?.type ?? "",
-                driver: t?.driver ?? "",
-              }))
+              type: t?.type ?? "",
+              driver: t?.driver ?? "",
+            }))
             : [{ type: "", driver: "" }],
           memo: res?.vehicles?.memo ?? "",
         },
         items: res?.equipment ?? [],
         hotels: Array.isArray(res?.hotels)
           ? res.hotels.map((h: any) => ({
-              name: h?.name ?? "",
-              memo: h?.memo ?? "",
-            }))
+            name: h?.name ?? "",
+            memo: h?.memo ?? "",
+          }))
           : [{ name: res?.hotel ?? "", memo: "" }],
         people: {
           groups: [
@@ -112,29 +112,30 @@ export function buildSchedulesFromProjectData(pd: any): ScheduleDetail[] {
       area:
         sch?.area
           ? {
-              ...sch.area,
-              drone_count: {
-                ...(sch.area?.drone_count ?? {}),
-                x_count:
-                  sch.area?.drone_count?.x_count ??
-                  null,
-                y_count:
-                  sch.area?.drone_count?.y_count ??
-                  null,
-              },
-            }
+            ...sch.area,
+            geometry: sch?.geometry ?? undefined,
+            drone_count: {
+              ...(sch.area?.drone_count ?? {}),
+              x_count:
+                sch.area?.drone_count?.x_count ??
+                null,
+              y_count:
+                sch.area?.drone_count?.y_count ??
+                null,
+            },
+          }
           : undefined,
       operation: sch?.operation ?? sch?.operations ?? undefined,
       photos: Array.isArray(sch?.photos)
         ? sch.photos
-            .map(
-              (p: any): PhotoItem => ({
-                url: String(p?.url ?? ""),
-                caption: p?.caption ?? "",
-                ...(p?.key ? { key: String(p.key) } : {}), // ← 追加
-              })
-            )
-            .filter((p: PhotoItem) => p.url.length > 0)
+          .map(
+            (p: any): PhotoItem => ({
+              url: String(p?.url ?? ""),
+              caption: p?.caption ?? "",
+              ...(p?.key ? { key: String(p.key) } : {}), // ← 追加
+            })
+          )
+          .filter((p: PhotoItem) => p.url.length > 0)
         : [],
       photosMemo: photosMemo ?? "",
     };
@@ -230,23 +231,24 @@ export function buildIndexJsonFromState(
       operation: s.operation ?? prevSch?.operation ?? undefined,
       area: s.area
         ? {
-            ...s.area,
-            drone_count: {
-              ...(s as any)?.area?.drone_count,
-              x_count: (s as any)?.area?.drone_count?.x_count ?? null,
-              y_count: (s as any)?.area?.drone_count?.y_count ?? null,
-            },
-          }
+          ...s.area,
+          drone_count: {
+            ...(s as any)?.area?.drone_count,
+            x_count: (s as any)?.area?.drone_count?.x_count ?? null,
+            y_count: (s as any)?.area?.drone_count?.y_count ?? null,
+          },
+        }
         : prevSch?.area ?? undefined,
       photos: Array.isArray(s.photos)
         ? s.photos
-            .map((p: any) => ({
-              url: String(p?.url ?? ""),
-              caption: p?.caption ?? "",
-              ...(p?.key ? { key: String(p.key) } : {}),
-            }))
-            .filter((p: any) => p.url.length > 0)
+          .map((p: any) => ({
+            url: String(p?.url ?? ""),
+            caption: p?.caption ?? "",
+            ...(p?.key ? { key: String(p.key) } : {}),
+          }))
+          .filter((p: any) => p.url.length > 0)
         : [],
+      geometry: (s as any).geometry ?? prevSch?.geometry ?? undefined,
     };
   });
 
