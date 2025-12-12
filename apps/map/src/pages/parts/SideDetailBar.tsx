@@ -143,6 +143,8 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
 
     const newCandidate: Candidate = {
       title: "",
+      flightAltitude_min_m: undefined,
+      flightAltitude_Max_m: undefined,
       takeoffArea: undefined,
       flightArea: undefined,
       safetyArea: undefined,
@@ -219,6 +221,8 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
         detail: {
           geometry: {
             // まだジオメトリは無いので全部 undefined で OK
+            flightAltitude_min_m: undefined,
+            flightAltitude_Max_m: undefined,
             takeoffArea: undefined,
             flightArea: undefined,
             safetyArea: undefined,
@@ -300,6 +304,8 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     );
     if (selectedCandidate) {
       const geometry = {
+        flightAltitude_min_m: selectedCandidate.flightAltitude_min_m,
+        flightAltitude_Max_m: selectedCandidate.flightAltitude_Max_m,
         takeoffArea: selectedCandidate.takeoffArea,
         flightArea: selectedCandidate.flightArea,
         safetyArea: selectedCandidate.safetyArea,

@@ -83,7 +83,7 @@ export const PREFECTURES: string[] = ["未選択", "北海道", "青森県", "�
 
 // ===== デフォルト一式（適度な大きさ・配置） =====
 export const DEFAULTS = {
-    flight: { rx: 150, ry: 100, rot: 0, altitude: 120, buffer: 50 },
+    flight: { rx: 150, ry: 100, rot: 0, altitudeMax: 149, altitudeMin: 0, buffer: 50 },
     takeoff: { w: 100, h: 20, rot: 180, offsetX: 0, offsetY: -180 },
     audience: { w: 100, h: 20, rot: 0, offsetX: 0, offsetY: 200 },
 } as const;

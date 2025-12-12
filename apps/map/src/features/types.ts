@@ -95,7 +95,8 @@ export interface DetailMeta {
 
 export interface Candidate {
     title: string;
-    flightAltitude_m?: number;
+    flightAltitude_min_m?: number;
+    flightAltitude_Max_m?: number;
     takeoffArea?: RectangleGeom;
     flightArea?: EllipseGeom;
     safetyArea?: SafetyGeom;

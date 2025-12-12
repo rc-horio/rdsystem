@@ -16,31 +16,32 @@
     },
     "history": [
         {
-            "uuid":"",
+            "uuid": "",
             "projectuuid": "181b78b2-39d8-4c95-9fbd-9a8e827b321f",
             "scheduleuuid": "2c911348-c518-43d6-b3d0-c85597505641"
         },
         {
-            "uuid":"",
+            "uuid": "",
             "projectuuid": "181b78b2-39d8-4c95-9fbd-9a8e827b321f",
             "scheduleuuid": "2c911348-c518-43d6-b3d0-c85597501234"
         },
         {
-            "uuid":"",
+            "uuid": "",
             "projectuuid": "9d40fbd3-128e-4789-b2b9-8938733ed0cc",
             "scheduleuuid": "2c911348-c518-43d6-b3d0-c85597505641"
         },
         {
-            "uuid":"",
+            "uuid": "",
             "projectuuid": "9d40fbd3-128e-4789-b2b9-8938733ed0cc",
             "scheduleuuid": "2c911348-c518-43d6-b3d0-c85597501234"
         }
     ],
     "candidate": [
         {
-            "uuid":"",
+            "uuid": "",
             "title": "候補1",
-            "flightAltitude_m": 120,
+            "flightAltitude_min_m": 10,
+            "flightAltitude_Max_m": 150,
             "takeoffArea": {
                 "type": "rectangle",
                 "coordinates": [
@@ -100,7 +101,7 @@
             }
         },
         {
-            "uuid":"",
+            "uuid": "",
             "title": "候補2",
             "flightAltitude_m": 120,
             "takeoffArea": {

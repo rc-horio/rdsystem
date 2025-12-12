@@ -434,7 +434,8 @@ function SideListBarBase({
         index: idx,
         candidate: {
           title: candidateTitle,
-          flightAltitude_m: g.flightAltitude_m,
+          flightAltitude_min_m: g.flightAltitude_min_m,
+          flightAltitude_Max_m: g.flightAltitude_Max_m,
           takeoffArea: g.takeoffArea,
           flightArea: g.flightArea,
           safetyArea: g.safetyArea,

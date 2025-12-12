@@ -971,7 +971,8 @@ export default function MapView({ onLoaded }: Props) {
 
     // === Geometry 一式（飛行＋保安／離発着／観客） ===
     const geometry: Geometry = {
-      flightAltitude_m: DEFAULTS.flight.altitude,
+      flightAltitude_min_m: DEFAULTS.flight.altitudeMin,
+      flightAltitude_Max_m: DEFAULTS.flight.altitudeMax,
       takeoffArea: {
         type: "rectangle",
         coordinates: takeoffCoords,
