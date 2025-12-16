@@ -276,9 +276,6 @@ export default function SelectProject() {
                 <p className="w-full text-center text-red-400">{error}</p>
               ) : mode === "Hub" ? (
                 <div className="w-full">
-                  <p className="text-center text-sm text-slate-300">
-                    select a project to continue
-                  </p>
                   <div className="w-10/12 max-w-80 mx-auto mt-2">
                     <label className="block space-y-1">
                       <Select
@@ -320,6 +317,10 @@ export default function SelectProject() {
                           singleValue: (base) => ({
                             ...base,
                             color: "#e5e7eb",
+                          }),
+                          placeholder: (base) => ({
+                            ...base,
+                            color: "#64748b",
                           }),
                           input: (base) => ({
                             ...base,
@@ -411,9 +412,6 @@ export default function SelectProject() {
                 <p className="w-full text-center text-red-400">{error}</p>
               ) : mode === "Hub" ? (
                 <div className="w-full">
-                  <p className="text-center text-sm text-slate-300">
-                    select a project to continue
-                  </p>
                   <label className="block space-y-1 mt-2">
                     <Select
                       options={projectOptions}
@@ -452,6 +450,10 @@ export default function SelectProject() {
                         singleValue: (base) => ({
                           ...base,
                           color: "#e5e7eb",
+                        }),
+                        placeholder: (base) => ({
+                          ...base,
+                          color: "#64748b",
                         }),
                         input: (base) => ({
                           ...base,
@@ -569,7 +571,7 @@ export default function SelectProject() {
                 <input
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="w-full rounded-lg border border-slate-600 bg-slate-900/60 px-3 py-2 text-slate-100 focus:border-red-500 focus:ring-2 focus:ring-red-500 outline-none transition"
+                  className="w-full rounded-lg border border-slate-600 bg-slate-900/60 placeholder:text-slate-500 px-3 py-2 text-slate-100 focus:border-red-500 focus:ring-2 focus:ring-red-500 outline-none transition"
                   placeholder="案件名を入力"
                 />
               </label>
@@ -584,7 +586,7 @@ export default function SelectProject() {
                     setNewId(val);
                     setIdError(val ? validateProjectId(val) : "");
                   }}
-                  className={`w-full rounded-lg border px-3 py-2 text-slate-100 bg-slate-900/60 outline-none transition ${
+                  className={`w-full rounded-lg border px-3 py-2 text-slate-100 bg-slate-900/60 placeholder:text-slate-500 outline-none transition ${
                     idError
                       ? "border-red-500 focus:ring-2 focus:ring-red-500"
                       : "border-slate-600 focus:border-red-500 focus:ring-2 focus:ring-red-500"
