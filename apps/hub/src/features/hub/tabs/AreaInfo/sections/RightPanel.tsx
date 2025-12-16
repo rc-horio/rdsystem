@@ -169,22 +169,27 @@ export function RightPanel({
   return (
     <div className="space-y-1">
       {/* 開催エリア */}
-      <div className="flex items-center gap-4">
+      <div>
         <SectionTitle title="開催エリア" compact />
-        <DisplayOrSelect
-          edit={edit}
-          value={A.area_uuid ?? ""}
-          onChange={(e) => handleAreaUuidChange(e.target.value)}
-          options={areaOptions}
-          placeholder={
-            areasError
-              ? "エリア取得エラー"
-              : isLoadingAreas
-              ? "読込中..."
-              : "選択してください"
-          }
-          className="ml-2 w-[200px] md:w-[150px]"
-        />
+
+        <div className="pl-4 md:pl-6">
+          <DisplayOrSelect
+            edit={edit}
+            value={A.area_uuid ?? ""}
+            onChange={(e) => handleAreaUuidChange(e.target.value)}
+            options={areaOptions}
+            placeholder={
+              areasError
+                ? "エリア取得エラー"
+                : isLoadingAreas
+                ? "読込中..."
+                : "未設定"
+            }
+            className="max-w-[260px]"
+            isLoading={isLoadingAreas}
+            isDisabled={!!areasError}
+          />
+        </div>
       </div>
 
       {/* 機体配置 */}

@@ -170,6 +170,9 @@ importers:
       react-router-dom:
         specifier: ^7.9.4
         version: 7.9.4(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      react-select:
+        specifier: ^5.10.2
+        version: 5.10.2(@types/react@18.2.64)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       tailwind-scrollbar:
         specifier: ^4.0.2
         version: 4.0.2(react@18.2.0)(tailwindcss@4.1.15)
