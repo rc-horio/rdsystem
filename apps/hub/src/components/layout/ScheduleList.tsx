@@ -66,7 +66,13 @@ export function ScheduleList({
                 placeholder="タイトル"
               />
             </div>
-            <DetailIconButton onClick={() => onSelect(sch.id)} />
+            {/* 詳細ボタンのハイライト */}
+            <DetailIconButton
+              onClick={() => onSelect(sch.id)}
+              className={clsx(
+                active ? "bg-slate-700" : "hover:bg-slate-700"
+              )}
+            />
           </div>
         );
       })}

@@ -64,38 +64,18 @@ export function Sidebar({
   // バリデーション用state
   const [idError, setIdError] = useState("");
 
+  // 共通のクラス名を作成して整理
+  const inputClassNames = clsx(
+    "w-full text-base text-center py-2",
+    !edit && "cursor-default caret-transparent select-none"
+  );
+  const idInputClassNames = clsx(
+    inputClassNames,
+    idError && "border border-red-500 rounded-md"
+  );
+
   return (
-    <div className="hidden md:block h-screen w-full shrink-0 bg-black overflow-y-auto [scrollbar-gutter:stable]">
-      {/* ヘッダー */}
-      <div className="flex items-center justify-between px-5 py-4">
-        <div className="text-lg md:text-xl font-semibold tracking-wide text-slate-200 cursor-default select-none">
-          RD HUB
-        </div>
-      </div>
-
-      {/* タブ */}
-      <nav className="px-4 pt-10 pb-3 space-y-1.5">
-        {tabs.map((t) => {
-          const active = activeTab === t;
-          return (
-            <button
-              key={t}
-              onClick={() => setActiveTab(t)}
-              aria-current={active ? "page" : undefined}
-              className={clsx(
-                "w-full text-left rounded-xl px-5 py-3.5 text-[15px] transition cursor-pointer",
-                active
-                  ? "bg-slate-800/60 text-white shadow-inner"
-                  : "text-slate-400 hover:text-white hover:bg-slate-800/40"
-              )}
-            >
-              <span className="cursor-default select-none">{t}</span>
-            </button>
-          );
-        })}
-      </nav>
-      <DividerRed />
-
+    <div className="hidden md:block h-screen w-full shrink-0 bg-black overflow-y-auto [scrollbar-gutter:stable] pt-20">
       {/* 案件名・ID入力 */}
       <div className="px-5 py-5 space-y-4">
         {/* 案件名 */}
@@ -110,10 +90,7 @@ export function Sidebar({
                 project: { ...(prev?.project ?? {}), name: e.target.value },
               }))
             }
-            className={clsx(
-              "w-full text-base text-center py-2",
-              !edit && "cursor-default caret-transparent select-none"
-            )}
+            className={inputClassNames}
             placeholder="案件名を入力"
           />
         </div>
@@ -132,11 +109,7 @@ export function Sidebar({
                 project: { ...(prev?.project ?? {}), id: val },
               }));
             }}
-            className={clsx(
-              "w-full text-base text-center py-2",
-              idError && "border border-red-500 rounded-md",
-              !edit && "cursor-default caret-transparent select-none"
-            )}
+            className={idInputClassNames}
             placeholder="案件IDを入力"
           />
           {idError && (
@@ -175,6 +148,30 @@ export function Sidebar({
           edit={edit}
         />
       </div>
+
+      <DividerRed />
+
+      {/* タブ */}
+      <nav className="px-4 pb-3 space-y-1.5">
+        {tabs.map((t) => {
+          const active = activeTab === t;
+          return (
+            <button
+              key={t}
+              onClick={() => setActiveTab(t)}
+              aria-current={active ? "page" : undefined}
+              className={clsx(
+                "w-full text-left rounded-xl px-5 py-3.5 text-[15px] transition cursor-pointer",
+                active
+                  ? "bg-slate-800/60 text-white shadow-inner"
+                  : "text-slate-400 hover:text-white hover:bg-slate-800/40"
+              )}
+            >
+              <span className="cursor-default select-none">{t}</span>
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }

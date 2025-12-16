@@ -442,6 +442,7 @@ export function RightPanel({
       <div>
         <SectionTitle title="観客からの距離" />
         <div className={rowCls}>
+          <span className="w-4">約</span>
           <DisplayOrInput
             edit={edit}
             value={(A.distance_from_viewers_m ?? "").toString()}

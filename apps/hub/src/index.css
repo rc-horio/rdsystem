@@ -129,9 +129,9 @@ html {
 /* =========================
    UI tokens
    ========================= */
-   /* 入力系の共通スタイル定義 */
+/* 入力系の共通スタイル定義 */
 :root {
-  --ui-input-bg: #211c1c; 
+  --ui-input-bg: #211c1c;
   --ui-border: #707070;
   --ui-text: #e5e7eb; /* slate-200 相当（react-selectで使用） */
   --ui-placeholder: #94a3b8; /* slate-400 相当 */
