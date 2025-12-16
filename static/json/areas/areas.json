@@ -3,8 +3,8 @@
     "uuid": "d2e60e63-9ad7-4a80-bbb5-55996c4d0f0e",
     "areaName": "松江",
     "representative_coordinate": {
-        "lat": 35.4664996,
-        "lon": 133.04608119
+      "lat": 35.4664996,
+      "lon": 133.04608119
     },
     "projectCount": 2
   },
@@ -75,8 +75,8 @@
     "uuid": "fcfe1f2c-df6f-4a98-987f-b5bc86f5379a",
     "areaName": "十勝大橋 河川敷",
     "representative_coordinate": {
-      "lat": 42.9375,
-      "lon": 143.20222
+      "lat": 42.93046192017164,
+      "lon": 143.1949888345256
     },
     "projectCount": 1
   },
@@ -176,6 +176,42 @@
     "representative_coordinate": {
       "lat": 35.6574,
       "lon": 139.7482
+    },
+    "projectCount": 0
+  },
+  {
+    "uuid": "233e24f6-1f3e-404d-ab3a-b12823b7f518",
+    "areaName": "新港第一突堤緑地",
+    "representative_coordinate": {
+      "lat": 34.67963703147482,
+      "lon": 135.19369286944936
+    },
+    "projectCount": 0
+  },
+  {
+    "uuid": "d6983b58-fb15-4b63-a32b-76530f67cf84",
+    "areaName": "万博記念公園",
+    "representative_coordinate": {
+      "lat": 34.81207387965906,
+      "lon": 135.53215907342067
+    },
+    "projectCount": 0
+  },
+  {
+    "uuid": "9217915c-a929-4ffb-b1e3-be52584e3adc",
+    "areaName": "屋久島",
+    "representative_coordinate": {
+      "lat": 30.34179695042322,
+      "lon": 130.5299082910425
+    },
+    "projectCount": 0
+  },
+  {
+    "uuid": "ae320d43-3459-4e74-a95e-b33640f75e7d",
+    "areaName": "ハーモニーランド",
+    "representative_coordinate": {
+      "lat": 33.40116725537772,
+      "lon": 131.54621189948494
     },
     "projectCount": 0
   }

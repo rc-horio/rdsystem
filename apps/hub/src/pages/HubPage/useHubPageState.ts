@@ -40,6 +40,7 @@ export function useHubPageState() {
   const source = useDataSource(id);
   const { search } = useLocation();
   const q = new URLSearchParams(search);
+  const initProjectId = q.get("projectId") || "";
   const isInit = q.get("init") === "1";
   const duplicateFrom = q.get("duplicateFrom") || "";
   const initName = q.get("name") || "";
@@ -353,8 +354,8 @@ export function useHubPageState() {
                 ...copied,
                 project: {
                   ...(copied.project ?? {}),
-                  id: id ?? "",
-                  // モーダルに案件名があればそれを優先。無ければ元名＋（複製）
+                  uuid: id ?? "",
+                  id: initProjectId || "",
                   name:
                     initName ||
                     (copied.project?.name || copied.event?.name || "") +
@@ -393,7 +394,8 @@ export function useHubPageState() {
           // 複製元なし or 取得失敗 → 空で開始
           const empty = {
             project: {
-              id: id ?? "",
+              uuid: id ?? "",
+              id: initProjectId || "",
               name: initName || "",
               updated_at: null,
               updated_by: "",
@@ -429,7 +431,8 @@ export function useHubPageState() {
           // S3 になくても“空の新規案件”として起動
           const empty = {
             project: {
-              id: id ?? "",
+              uuid: id ?? "",
+              id: "",
               name: initName || "",
               updated_at: null,
               updated_by: "",
@@ -446,8 +449,13 @@ export function useHubPageState() {
         if (!res.ok) throw new Error(String(res.status));
         const data = await res.json();
         // 既存データに id が無ければ補完（後方互換）
-        if (id && (!data?.project || !data.project.id)) {
-          data.project = { ...(data.project ?? {}), id };
+        if (id) {
+          // uuid が無ければ補完（これはOK）
+          if (!data?.project) data.project = {};
+          if (!data.project.uuid) data.project.uuid = id;
+
+          // 命名IDは「無いなら空」のまま（uuidで埋めない）
+          if (!data.project.id) data.project.id = "";
         }
         setProjectData(data);
         const built = buildSchedulesFromProjectData(data);

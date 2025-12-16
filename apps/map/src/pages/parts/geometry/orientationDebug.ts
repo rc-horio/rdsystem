@@ -44,10 +44,6 @@ function diffRectMinusEllipse(
     return x;
 }
 
-function format(v: number | null): string {
-    return v == null || Number.isNaN(v) ? "-" : `${v.toFixed(2)}°`;
-}
-
 /** 現在の楕円／矩形の角度と差分を1行で出力 */
 function logBoth() {
     const ellipse = lastEllipseBearingDeg;

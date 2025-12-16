@@ -170,6 +170,7 @@ export default function SelectProject() {
     qp.set("uuid", newUuid);
 
     if (newName.trim()) qp.set("name", newName.trim());
+    qp.set("projectId", newId);
 
     const yyFromId = (() => {
       const m = newId.match(/^(\d{2})/);
