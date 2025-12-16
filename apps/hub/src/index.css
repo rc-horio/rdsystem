@@ -1,23 +1,35 @@
 @import "tailwindcss";
 
-/* number入力のスピンボタン非表示 */
+/* =========================
+   number入力のスピンボタン非表示
+   ========================= */
+
+/* Chrome / Edge / Safari（WebKit系）でスピンを非表示 */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-input[type="number"] {
-  -moz-appearance: textfield;
-  appearance: textfield;
+  -webkit-appearance: none; /* ブラウザ標準の見た目を無効化 */
+  margin: 0; /* 余白によるレイアウト崩れ防止（保険） */
 }
 
-/* ===== Safe Area (PWA/ノッチ) 追加ここから ===== */
+/* Firefox で number input を textfield 扱いにしてスピンを非表示 */
+input[type="number"] {
+  -moz-appearance: textfield; /* Firefox向け */
+  appearance: textfield; /* 標準プロパティ（将来/他ブラウザ向け保険） */
+}
+
+/* =========================
+   Safe Area（PWA / ノッチ）対応
+   ========================= */
+
+/* iPhone 等のノッチ領域を CSS 変数として定義 */
 :root {
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
 }
+
+/* iOS Safari / PWA の Safe Area（ノッチ等）を考慮した余白クラス */
 .pt-safe {
   padding-top: var(--safe-top);
 }
@@ -28,19 +40,21 @@ input[type="number"] {
   padding-left: var(--safe-left);
   padding-right: var(--safe-right);
 }
-/* ===== Safe Area 追加ここまで ===== */
 
-/* 全体を Noto Sans に統一 */
+/* =========================
+   全体（ベース）スタイル
+   ========================= */
 @layer base {
+  /* アプリの土台：高さを100%にして全画面レイアウトしやすくする */
   html,
   body,
   #root {
     height: 100%;
-    background-color: #000a1b; /* ← ここで全体の地色を固定 */
-    color: #fff; /* 必要なら文字色も */
+    background-color: #000a1b; /* 全体の背景色（アプリの地色） */
+    color: #fff; /* 全体の文字色（デフォルト） */
   }
 
-  /* 引っ張り更新の抑止 */
+  /* iOS等の“引っ張り更新/バウンス”による挙動を抑える */
   html,
   body {
     overscroll-behavior-y: none;
@@ -48,23 +62,33 @@ input[type="number"] {
   }
 }
 
-/* スマホでの入力フォーカス時ズーム対策 */
+/* =========================
+   iOS 入力フォーカス時ズーム対策
+   ========================= */
+
+/* iOS Safari は input 等の font-size が小さいとフォーカス時にズームすることがあるため、
+   16px に固定してズームを抑止する目的 */
 input,
 select,
 textarea {
   font-size: 16px;
 }
 
-/* テキスト自動拡大の予期せぬ挙動を抑える（iOS） */
+/* iOS のテキスト自動拡大（勝手に文字が大きくなる）を抑える */
 html {
   -webkit-text-size-adjust: 100%;
 }
 
-/* 画面を占有するレイアウト領域がある場合 */
+/* =========================
+   レイアウト補助
+   ========================= */
+
+/* 画面全体を占有するレイアウト用（100vh より安定する 100dvh を使う） */
 .app-fullscreen {
-  min-height: 100dvh; /* 旧来の 100vh より安定 */
+  min-height: 100dvh;
 }
 
+/* Safe Area を考慮しつつ、最低限の余白も確保するための補助クラス */
 .safe-paddings {
   padding-left: max(env(safe-area-inset-left), 1rem);
   padding-right: max(env(safe-area-inset-right), 1rem);
@@ -73,23 +97,30 @@ html {
 }
 
 /* =========================
-   ユーティリティ
+   Tailwind Utilities 追加
    ========================= */
 @layer utilities {
+  /* キャレット非表示用途と合わせて「編集不可っぽい」挙動にするユーティリティ */
   .no-caret {
     @apply cursor-default select-none;
   }
 }
 
-/* 編集OFFのときはキャレットを全域で透明化 */
+/* =========================
+   caret（入力カーソル）制御：編集モード切替
+   ========================= */
+
+/* 編集OFF: 全要素でキャレットを透明化（読み取り専用の見た目に寄せる） */
 [data-edit="false"] * {
   caret-color: transparent !important;
 }
 
-/* 編集ONのときもデフォは透明、入力要素だけ戻す（保険） */
+/* 編集ON: 基本は透明（保険）にしつつ… */
 [data-edit="true"] * {
   caret-color: transparent;
 }
+
+/* 編集ON: 入力要素だけキャレットを戻す（実際に入力できるようにする） */
 [data-edit="true"] input,
 [data-edit="true"] textarea {
   caret-color: auto !important;
