@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { BrandHeader, validateProjectId } from "@/components";
 import { signOut } from "aws-amplify/auth";
 import { v4 as uuidv4 } from "uuid";
+import Select from "react-select";
 
 // 環境変数からHubとMapのベースURLを取得
 const HUB_BASE = String(import.meta.env.VITE_HUB_BASE_URL || "");
@@ -99,6 +100,11 @@ export default function SelectProject() {
     setModeIndex((i) => (i - 1 + modes.length) % modes.length);
 
   const navigate = useNavigate();
+
+  const projectOptions = projects.map((p) => ({
+    value: p.projectId,
+    label: `${p.projectId.slice(0, 6)}-${p.projectName}`,
+  }));
 
   useEffect(() => {
     (async () => {
@@ -275,21 +281,52 @@ export default function SelectProject() {
                   </p>
                   <div className="w-10/12 max-w-80 mx-auto mt-2">
                     <label className="block space-y-1">
-                      <span className="text-sm font-medium text-slate-200">
-                        Project
-                      </span>
-                      <select
-                        value={selectedProject}
-                        onChange={(e) => setSelectedProject(e.target.value)}
-                        className="w-full rounded-lg border border-slate-600 bg-slate-900/60 px-3 py-2 text-slate-100 focus:border-red-500 focus:ring-2 focus:ring-red-500 outline-none transition"
-                      >
-                        <option value="">-- Select a project --</option>
-                        {projects.map((p) => (
-                          <option key={p.projectId} value={p.projectId}>
-                            {`${p.projectId.slice(0, 6)}-${p.projectName}`}
-                          </option>
-                        ))}
-                      </select>
+                      <Select
+                        options={projectOptions}
+                        value={
+                          projectOptions.find(
+                            (o) => o.value === selectedProject
+                          ) ?? null
+                        }
+                        onChange={(opt) => setSelectedProject(opt?.value ?? "")}
+                        placeholder="-- Select a project --"
+                        isClearable
+                        isSearchable
+                        styles={{
+                          control: (base, state) => ({
+                            ...base,
+                            backgroundColor: "rgba(15,23,42,0.6)",
+                            borderColor: state.isFocused
+                              ? "#dc2626"
+                              : "#475569",
+                            boxShadow: state.isFocused
+                              ? "0 0 0 1px #dc2626"
+                              : "none",
+                            "&:hover": {
+                              borderColor: "#dc2626",
+                            },
+                          }),
+                          menu: (base) => ({
+                            ...base,
+                            backgroundColor: "#020617",
+                          }),
+                          option: (base, state) => ({
+                            ...base,
+                            backgroundColor: state.isFocused
+                              ? "#1e293b"
+                              : "transparent",
+                            color: "#e5e7eb",
+                          }),
+                          singleValue: (base) => ({
+                            ...base,
+                            color: "#e5e7eb",
+                          }),
+                          input: (base) => ({
+                            ...base,
+                            color: "#e5e7eb",
+                          }),
+                        }}
+                      />
                     </label>
                   </div>
                 </div>
@@ -309,7 +346,8 @@ export default function SelectProject() {
                   onClick={openCreateModal}
                   className="w-full py-2 font-semibold text-white hover:underline active:scale-95 transition"
                 >
-                  create / duplicate project
+                  {/* create / duplicate project */}
+                  create project
                 </button>
               ) : (
                 <div className="invisible h-[42px]" aria-hidden />
@@ -377,21 +415,50 @@ export default function SelectProject() {
                     select a project to continue
                   </p>
                   <label className="block space-y-1 mt-2">
-                    <span className="text-sm font-medium text-slate-200">
-                      Project
-                    </span>
-                    <select
-                      value={selectedProject}
-                      onChange={(e) => setSelectedProject(e.target.value)}
-                      className="w-full rounded-lg border border-slate-600 bg-slate-900/60 px-3 py-2 text-slate-100 focus:border-red-500 focus:ring-2 focus:ring-red-500 outline-none transition"
-                    >
-                      <option value="">-- Select a project --</option>
-                      {projects.map((p) => (
-                        <option key={p.projectId} value={p.projectId}>
-                          {`${p.projectId.slice(0, 6)}-${p.projectName}`}
-                        </option>
-                      ))}
-                    </select>
+                    <Select
+                      options={projectOptions}
+                      value={
+                        projectOptions.find(
+                          (o) => o.value === selectedProject
+                        ) ?? null
+                      }
+                      onChange={(opt) => setSelectedProject(opt?.value ?? "")}
+                      placeholder="-- Select a project --"
+                      isClearable
+                      isSearchable
+                      styles={{
+                        control: (base, state) => ({
+                          ...base,
+                          backgroundColor: "rgba(15,23,42,0.6)",
+                          borderColor: state.isFocused ? "#dc2626" : "#475569",
+                          boxShadow: state.isFocused
+                            ? "0 0 0 1px #dc2626"
+                            : "none",
+                          "&:hover": {
+                            borderColor: "#dc2626",
+                          },
+                        }),
+                        menu: (base) => ({
+                          ...base,
+                          backgroundColor: "#020617",
+                        }),
+                        option: (base, state) => ({
+                          ...base,
+                          backgroundColor: state.isFocused
+                            ? "#1e293b"
+                            : "transparent",
+                          color: "#e5e7eb",
+                        }),
+                        singleValue: (base) => ({
+                          ...base,
+                          color: "#e5e7eb",
+                        }),
+                        input: (base) => ({
+                          ...base,
+                          color: "#e5e7eb",
+                        }),
+                      }}
+                    />
                   </label>
                 </div>
               ) : (
@@ -411,7 +478,8 @@ export default function SelectProject() {
                   onClick={openCreateModal}
                   className="w-full py-2 font-semibold text-white hover:underline active:scale-95 transition"
                 >
-                  create / duplicate project
+                  {/* create / duplicate project */}
+                  create project
                 </button>
               ) : (
                 <div className="invisible h-[42px]" aria-hidden />
@@ -472,6 +540,7 @@ export default function SelectProject() {
                   <span className="text-sm text-slate-300">
                     複製元プロジェクト
                   </span>
+
                   <select
                     value={dupSourceId}
                     onChange={(e) => {
@@ -490,7 +559,7 @@ export default function SelectProject() {
                         {`${p.projectId.slice(0, 6)}-${p.projectName}`}
                       </option>
                     ))}
-                  </select>{" "}
+                  </select>
                 </label>
               )}
 
