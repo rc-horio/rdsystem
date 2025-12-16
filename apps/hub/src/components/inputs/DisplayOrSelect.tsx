@@ -37,7 +37,7 @@ export const DisplayOrSelect: React.FC<Props> = ({
     return (
       <div
         className={clsx(
-          "ui-readonly-box",
+          "ui-readonly-box justify-center text-center",
           displayText ? "text-slate-200" : "text-slate-500",
           className
         )}

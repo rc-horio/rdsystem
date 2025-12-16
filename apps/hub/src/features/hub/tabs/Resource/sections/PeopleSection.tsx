@@ -13,8 +13,10 @@ import {
   Textarea,
   SwipeableRow,
   MemoSection,
+  DisplayOrSelect,
 } from "@/components";
 import clsx from "clsx";
+import { NAME_OPTIONS, getRoleOptions } from "../peopleOptions";
 
 /** ── 横幅比率（氏名:役割） ── */
 const NAME_FLEX = 3;
@@ -161,6 +163,7 @@ export function PeopleSection({
     setLocalGroups(next);
     emit(next, peopleMemo);
   };
+
   const handleAddPerson = (groupIndex: number) => {
     const next = localGroups.map((g, gi) =>
       gi !== groupIndex
@@ -230,7 +233,7 @@ export function PeopleSection({
                 e.target.value
               )
             }
-            className={`${FLEX_CLASS[STAFF_ROLE_FLEX]} min-w-0 px-2 py-1 text-sm text-center`}
+            className={`${FLEX_CLASS[STAFF_ROLE_FLEX]} min-w-0`}
             placeholder="役割"
           />
           <DisplayOrInput
@@ -246,12 +249,13 @@ export function PeopleSection({
             }
             inputMode="numeric"
             type="number"
-            className={`${FLEX_CLASS[STAFF_COUNT_FLEX]} min-w-16 text-center px-2 py-1 text-sm`}
+            className={`${FLEX_CLASS[STAFF_COUNT_FLEX]} min-w-16 text-center`}
             placeholder="人数"
           />
         </>
-      ) : (
+      ) : g.group === "ベテランバイト" ? (
         <>
+          {/* ベテランバイト：氏名・役割ともに入力 */}
           <DisplayOrInput
             edit={edit}
             value={p.name ?? ""}
@@ -263,7 +267,7 @@ export function PeopleSection({
                 e.target.value
               )
             }
-            className={`${FLEX_CLASS[NAME_FLEX]} min-w-0 px-2 py-1 text-sm text-center`}
+            className={`${FLEX_CLASS[NAME_FLEX]} min-w-0`}
             placeholder="氏名"
           />
           <DisplayOrInput
@@ -277,7 +281,42 @@ export function PeopleSection({
                 e.target.value
               )
             }
-            className={`${FLEX_CLASS[ROLE_FLEX]} min-w-0 px-2 py-1 text-sm text-center`}
+            className={`${FLEX_CLASS[ROLE_FLEX]} min-w-0`}
+            placeholder="役割"
+          />
+        </>
+      ) : (
+        <>
+          {/* その他：氏名は共通、役割はグループ別 */}
+          <DisplayOrSelect
+            edit={edit}
+            value={p.name ?? ""}
+            onChange={(e) =>
+              handlePersonFieldChange(
+                groupIndex,
+                personIndex,
+                "name",
+                e.target.value
+              )
+            }
+            options={NAME_OPTIONS}
+            className={`${FLEX_CLASS[NAME_FLEX]} min-w-0`}
+            placeholder="氏名"
+          />
+
+          <DisplayOrSelect
+            edit={edit}
+            value={p.role ?? ""}
+            onChange={(e) =>
+              handlePersonFieldChange(
+                groupIndex,
+                personIndex,
+                "role",
+                e.target.value
+              )
+            }
+            options={getRoleOptions(g.group)}
+            className={`${FLEX_CLASS[ROLE_FLEX]} min-w-0`}
             placeholder="役割"
           />
         </>
@@ -295,7 +334,6 @@ export function PeopleSection({
       <BlackCard>
         {localGroups.map((group, groupIndex) => (
           <div key={group.id} className="mb-4">
-            {/* タイトル行の右端に「追加」ボタンを配置 */}
             <div className="flex items-center justify-between gap-3 mb-2">
               <SectionTitle title={group.group} />
               {edit && (
@@ -303,14 +341,14 @@ export function PeopleSection({
                   onClick={() => handleAddPerson(groupIndex)}
                   className="shrink-0"
                 />
-              )}{" "}
+              )}
             </div>
 
             {/* スマホ版：スワイプ削除 */}
             <div className="space-y-1 md:hidden">
               {group.people.map((p: any, personIndex: number) => (
                 <SwipeableRow
-                revealWidth={56}
+                  revealWidth={56}
                   key={(p as PersonRow).id}
                   rightActionLabel="削除"
                   rightAction={
@@ -341,7 +379,6 @@ export function PeopleSection({
               {group.people.map((p: any, personIndex: number) => (
                 <div key={(p as PersonRow).id} className="w-full">
                   <div className="flex items-center gap-2 w-full">
-                    {/* 常に描画して幅を固定。edit=false でも invisible で占有 */}
                     <div className="ml-auto w-8 shrink-0 flex items-center justify-center">
                       <DeleteItemButton
                         onClick={() =>
@@ -350,11 +387,11 @@ export function PeopleSection({
                         disabled={group.people.length === 1}
                         className={clsx(
                           "flex items-center justify-center",
-                          !edit && "invisible" // 枠は残すが中身は見せない
+                          !edit && "invisible"
                         )}
                         title="項目削除"
                       />
-                    </div>{" "}
+                    </div>
                     {RowFields(group, p, groupIndex, personIndex)}
                   </div>
                 </div>
@@ -363,7 +400,6 @@ export function PeopleSection({
           </div>
         ))}
 
-        {/* 人員全体メモ */}
         <MemoSection
           edit={edit}
           value={peopleMemo}
@@ -411,7 +447,7 @@ export function PeopleSection({
                 readOnly={!edit}
                 className="text-sm"
               />
-            </Textarea>{" "}
+            </Textarea>
           </FormModal>
         )}
     </>
