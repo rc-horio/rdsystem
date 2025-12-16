@@ -125,3 +125,69 @@ html {
 [data-edit="true"] textarea {
   caret-color: auto !important;
 }
+
+/* =========================
+   UI tokens
+   ========================= */
+   /* 入力系の共通スタイル定義 */
+:root {
+  --ui-input-bg: #211c1c; 
+  --ui-border: #707070;
+  --ui-text: #e5e7eb; /* slate-200 相当（react-selectで使用） */
+  --ui-placeholder: #94a3b8; /* slate-400 相当 */
+}
+
+/* =========================
+   共通フォーム部品（現行デザイン固定）
+   ========================= */
+@layer components {
+  /* InputBox と同等 */
+  .ui-input {
+    @apply h-9 w-full rounded px-3 py-1 text-slate-100 placeholder:text-slate-200 placeholder:font-light focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition;
+    border-width: 0.5px;
+    border-style: solid;
+    border-color: var(--ui-border);
+    background-color: var(--ui-input-bg);
+    font-size: 14px !important; /* text-sm! と同等 */
+    line-height: 1 !important; /* leading-none と同等 */
+  }
+
+  /* DisplayOrTextarea の外殻（枠＋余白） */
+  .ui-field-shell {
+    @apply rounded px-3 py-1;
+    border-width: 0.5px;
+    border-style: solid;
+    border-color: var(--ui-border);
+    background-color: transparent;
+  }
+  .ui-field-shell--edit {
+    background-color: var(--ui-input-bg) !important; /* bg[#211C1C]! と同等 */
+  }
+
+  /* Textarea 内側（編集ON） */
+  .ui-textarea {
+    @apply w-full h-full min-h-0 resize-none bg-transparent outline-none;
+    @apply border-transparent px-0 py-0;
+    @apply text-slate-100 placeholder:text-slate-200;
+    font-size: 14px !important;
+    line-height: 1 !important;
+  }
+
+  /* Textarea 表示（編集OFF） */
+  .ui-textarea-readonly {
+    @apply w-full h-full overflow-y-auto whitespace-pre-wrap cursor-default select-none caret-transparent;
+    color: rgb(226 232 240) !important; /* text-slate-200! と同等 */
+    font-size: 14px !important;
+    line-height: 1 !important;
+  }
+
+  /* DisplayOrSelect 編集OFFの外枠（見た目固定） */
+  .ui-readonly-box {
+    @apply flex items-center h-9 rounded px-3 cursor-default select-none caret-transparent focus:outline-none focus:ring-0;
+    border-width: 0.5px;
+    border-style: solid;
+    border-color: var(--ui-border);
+    font-size: 14px !important;
+    line-height: 1 !important;
+  }
+}

@@ -37,11 +37,9 @@ export const DisplayOrSelect: React.FC<Props> = ({
     return (
       <div
         className={clsx(
-          "flex items-center h-9 rounded border-[0.5px] border-[#707070] px-3",
-          "text-sm leading-none",
+          "ui-readonly-box",
           displayText ? "text-slate-200" : "text-slate-500",
-          className,
-          "cursor-default select-none caret-transparent focus:outline-none focus:ring-0"
+          className
         )}
         tabIndex={-1}
         aria-readonly="true"
@@ -53,7 +51,10 @@ export const DisplayOrSelect: React.FC<Props> = ({
 
   // react-select 用 option
   const rsOptions = useMemo(
-    () => options.map((o) => ({ value: o.value, label: o.label })),
+    () => [
+      { value: "", label: "未設定" },
+      ...options.map((o) => ({ value: o.value, label: o.label })),
+    ],
     [options]
   );
 
@@ -77,7 +78,7 @@ export const DisplayOrSelect: React.FC<Props> = ({
         value={rsValue}
         onChange={(opt) => emitChange(opt?.value ?? "")}
         placeholder={placeholder}
-        isClearable
+        isClearable={false}
         isSearchable
         isLoading={isLoading}
         isDisabled={isDisabled}
@@ -85,36 +86,53 @@ export const DisplayOrSelect: React.FC<Props> = ({
         styles={{
           control: (base, state) => ({
             ...base,
-            minHeight: 36, // h-9 相当
+            minHeight: 36,
             height: 36,
-            backgroundColor: "rgba(15,23,42,0.6)",
+            backgroundColor: "#211C1C", // InputBox と同じ
             borderColor: state.isFocused ? "#dc2626" : "#707070",
             boxShadow: state.isFocused ? "0 0 0 1px #dc2626" : "none",
             "&:hover": { borderColor: "#dc2626" },
+            fontSize: "14px",
+            lineHeight: 1,
           }),
           valueContainer: (base) => ({
             ...base,
             height: 36,
             padding: "0 12px",
           }),
-          input: (base) => ({ ...base, margin: 0, color: "#e5e7eb" }),
-          singleValue: (base) => ({ ...base, color: "#e5e7eb" }),
+          input: (base) => ({
+            ...base,
+            margin: 0,
+            color: "#e5e7eb",
+            fontSize: "14px",
+            lineHeight: 1,
+          }),
+          singleValue: (base) => ({
+            ...base,
+            color: "#e5e7eb",
+            fontSize: "14px",
+            lineHeight: 1,
+          }),
           placeholder: (base) => ({
             ...base,
-            color: "#94a3b8", // slate-400 相当（「選択済み」に見えないように）
+            color: "#94a3b8",
+            fontSize: "14px",
+            lineHeight: 1,
           }),
-          menu: (base) => ({ ...base, backgroundColor: "#020617", zIndex: 50 }),
+          menu: (base) => ({
+            ...base,
+            backgroundColor: "#211C1C",
+            zIndex: 50,
+            fontSize: "14px",
+            lineHeight: 1,
+          }),
           option: (base, state) => ({
             ...base,
-            backgroundColor: state.isFocused ? "#1e293b" : "transparent",
+            backgroundColor: state.isFocused ? "#2a2424" : "transparent",
             color: "#e5e7eb",
+            fontSize: "14px",
+            lineHeight: 1,
           }),
-          indicatorSeparator: (base) => ({
-            ...base,
-            backgroundColor: "#334155",
-          }),
-          dropdownIndicator: (base) => ({ ...base, color: "#94a3b8" }),
-          clearIndicator: (base) => ({ ...base, color: "#94a3b8" }),
         }}
       />
     </div>
