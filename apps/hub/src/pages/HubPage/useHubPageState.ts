@@ -155,46 +155,6 @@ export function useHubPageState() {
     updated_by?: string;
   };
 
-  // 1つの areaUuid / scheduleId について history を追記
-  const appendAreaHistory = async (params: {
-    areaUuid: string;
-    projectUuid: string;
-    scheduleUuid: string;
-  }) => {
-    const { areaUuid, projectUuid, scheduleUuid } = params;
-
-    const url = `${AREAS_BASE_URL}/${areaUuid}/index.json`;
-    const res = await fetch(url, { cache: "no-cache" });
-    if (!res.ok) {
-      console.error("area index.json fetch failed", areaUuid, res.status);
-      return; // 取れない場合はスキップ（必要なら throw にしても良い）
-    }
-
-    const json = (await res.json()) as AreaIndexJson;
-    const history = json.history ?? [];
-
-    // 同じ (projectuuid, scheduleuuid) が既に入っていたら二重登録しない
-    const exists = history.some(
-      (h) => h.projectuuid === projectUuid && h.scheduleuuid === scheduleUuid
-    );
-    if (!exists) {
-      history.push({
-        uuid: "", // 仕様に合わせて空文字。必要ならここで uuid() でもOK
-        projectuuid: projectUuid,
-        scheduleuuid: scheduleUuid,
-      });
-    }
-
-    json.history = history;
-    json.updated_at = new Date().toISOString();
-    json.updated_by = "ui"; // 既存の形式に合わせる
-
-    await putJsonViaLambda({
-      key: `catalog/v1/areas/${areaUuid}/index.json`,
-      body: json,
-    });
-  };
-
   // 1つのエリアについて、「このプロジェクトの history を現在の状態に合わせて差し替える」
   const syncAreaHistoryForArea = async (params: {
     areaUuid: string;
@@ -247,8 +207,6 @@ export function useHubPageState() {
     });
   };
 
-
-  // schedules 全体から area_uuid ごとにまとめて、各エリアの history を同期
   // schedules 全体から area_uuid ごとにまとめて、各エリアの history を同期
   const syncAllAreaHistories = async (params: {
     projectUuid: string;
@@ -534,7 +492,10 @@ export function useHubPageState() {
             ...(p?.project ?? {}),
             updated_at: body.project.updated_at,
             id: body.project.id,
+            name: body.project.name ?? p?.project?.name ?? p?.event?.name ?? "",
+            updated_by: body.project.updated_by ?? p?.project?.updated_by ?? "",
           },
+          schedules: body.schedules,
         }));
 
         // ✅ ローカル保存成功時のポップアップ
@@ -642,13 +603,19 @@ export function useHubPageState() {
 
       // ④ 画面 state を S3 URL 版に更新
       setSchedules(schedulesAfterUpload);
+
+      // projectData.schedules を更新して「前回保存状態」を正しく保持する
       setProjectData((p: any) => ({
         ...(p ?? {}),
         project: {
           ...(p?.project ?? {}),
           updated_at: body.project.updated_at,
           id: body.project.id,
+          name: body.project.name ?? p?.project?.name ?? p?.event?.name ?? "",
+          updated_by: body.project.updated_by ?? p?.project?.updated_by ?? "",
         },
+        // buildIndexJsonFromState の返り値（保存したJSON）をそのまま保持する
+        schedules: body.schedules,
       }));
 
       // ⑤ 予約削除をここで実行（index.json 保存が成功したので参照は消えている）
