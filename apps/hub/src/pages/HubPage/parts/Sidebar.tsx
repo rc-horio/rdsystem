@@ -23,7 +23,7 @@ export function Sidebar({
   onDeleteCurrent,
   openAddScheduleModal,
 }: {
-  activeTab: "リソース管理" | "オペレーション" | "エリア情報" | "現場写真";
+  activeTab: "リソース管理" | "エリア情報" | "オペレーション" | "現場写真";
   setActiveTab: (t: any) => void;
   edit: boolean;
   setEdit: (v: boolean) => void;
@@ -42,8 +42,8 @@ export function Sidebar({
 }) {
   const tabs = [
     "リソース管理",
-    "オペレーション",
     "エリア情報",
+    "オペレーション",
     "現場写真",
   ] as const;
 

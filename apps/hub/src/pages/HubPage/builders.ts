@@ -113,7 +113,6 @@ export function buildSchedulesFromProjectData(pd: any): ScheduleDetail[] {
         sch?.area
           ? {
             ...sch.area,
-            geometry: sch?.geometry ?? undefined,
             drone_count: {
               ...(sch.area?.drone_count ?? {}),
               x_count:
@@ -248,7 +247,6 @@ export function buildIndexJsonFromState(
           }))
           .filter((p: any) => p.url.length > 0)
         : [],
-      geometry: (s as any).geometry ?? prevSch?.geometry ?? undefined,
     };
   });
 

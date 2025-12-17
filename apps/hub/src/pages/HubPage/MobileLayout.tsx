@@ -93,8 +93,8 @@ export default function MobileLayout(props: any) {
             {(
               [
                 "リソース管理",
-                "オペレーション",
                 "エリア情報",
+                "オペレーション",
                 "現場写真",
               ] as const
             ).map((t) => {
@@ -146,16 +146,6 @@ export default function MobileLayout(props: any) {
           )}
         </section>
 
-        <section hidden={activeTab !== "オペレーション"}>
-          <OperationTab
-            edit={edit}
-            setEdit={setEdit}
-            area={currentSchedule?.area ?? null}
-            operation={currentSchedule?.operation ?? null}
-            onPatchOperation={patchOperation}
-          />
-        </section>
-
         <section hidden={activeTab !== "エリア情報"}>
           <AreaInfoTab
             edit={edit}
@@ -172,6 +162,16 @@ export default function MobileLayout(props: any) {
             scheduleLabel={currentSchedule?.label ?? ""}
             projectUuid={id ?? null}
             scheduleUuid={currentSchedule?.id ?? null}
+          />
+        </section>
+
+        <section hidden={activeTab !== "オペレーション"}>
+          <OperationTab
+            edit={edit}
+            setEdit={setEdit}
+            area={currentSchedule?.area ?? null}
+            operation={currentSchedule?.operation ?? null}
+            onPatchOperation={patchOperation}
           />
         </section>
 

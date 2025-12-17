@@ -169,9 +169,8 @@ export function RightPanel({
   return (
     <div className="space-y-1">
       {/* 開催エリア */}
-      <div>
+      <div className="mt-5">
         <SectionTitle title="開催エリア" compact />
-
         <div className="pl-4 md:pl-6">
           <DisplayOrSelect
             edit={edit}
@@ -193,7 +192,7 @@ export function RightPanel({
       </div>
 
       {/* 機体配置 */}
-      <div>
+      <div className="mt-5">
         <SectionTitle title="機体数" />
 
         {/* 機種 & 総機体数 */}
@@ -256,58 +255,8 @@ export function RightPanel({
         </div>
       </div>
 
-      {/* 最低・最高高度・保安エリア */}
-      <div>
-        <SectionTitle title="最低・最高高度" />
-        <div className={rowCls}>
-          <span className="w-24 text-sm">最低高度</span>
-          <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
-          <DisplayOrInput
-            edit={edit}
-            value={(geo.flightAltitude_min_m ?? "").toString()}
-            onChange={(e) =>
-              patch(["geometry", "flightAltitude_min_m"], num(e.target.value))
-            }
-            inputMode="numeric"
-            type="number"
-            className={numericInputW}
-          />
-          <span className="w-6 ml-1">m</span>
-        </div>
-        <div className={rowCls}>
-          <span className="w-24 text-sm">最高高度</span>
-          <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
-          <DisplayOrInput
-            edit={edit}
-            value={(geo.flightAltitude_Max_m ?? "").toString()}
-            onChange={(e) =>
-              patch(["geometry", "flightAltitude_Max_m"], num(e.target.value))
-            }
-            inputMode="numeric"
-            type="number"
-            className={numericInputW}
-          />
-          <span className="w-6 ml-1">m</span>
-        </div>
-        <div className={rowCls}>
-          <span className="w-24 text-sm">保安エリア</span>
-          <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
-          <DisplayOrInput
-            edit={edit}
-            value={(safetyArea.buffer_m ?? "").toString()}
-            onChange={(e) =>
-              patch(["geometry", "safetyArea", "buffer_m"], num(e.target.value))
-            }
-            inputMode="numeric"
-            type="number"
-            className={numericInputW}
-          />{" "}
-          <span className="w-6 ml-1">m</span>
-        </div>
-      </div>
-
       {/* 離陸アクション移動 */}
-      <div>
+      <div className="mt-5">
         <SectionTitle title="離陸アクション移動" />
         <div className="pl-4 md:pl-6">
           <DisplayOrTextarea
@@ -322,7 +271,7 @@ export function RightPanel({
       </div>
 
       {/* 旋回 */}
-      <div>
+      <div className="mt-5">
         <SectionTitle title="旋回" />
         <div className="pl-4 md:pl-6">
           <DisplayOrTextarea
@@ -337,7 +286,7 @@ export function RightPanel({
       </div>
 
       {/* 障害物 */}
-      <div>
+      <div className="mt-5">
         <SectionTitle title="障害物" />
         <div className="pl-4 md:pl-6">
           <DisplayOrTextarea
@@ -352,7 +301,7 @@ export function RightPanel({
       </div>
 
       {/* 離発着演出 */}
-      <div>
+      <div className="mt-5">
         <SectionTitle title="離発着演出" />
         <div className={rowCls}>
           <span className="w-7 text-sm shrink-0">離陸</span>
@@ -388,58 +337,8 @@ export function RightPanel({
         </div>{" "}
       </div>
 
-      {/* アニメーションエリア */}
-      <div>
-        <SectionTitle title="アニメーションエリア" />
-        <div className={rowCls}>
-          <span className="w-24 text-sm">横幅</span>
-          <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
-          <DisplayOrInput
-            edit={edit}
-            value={
-              flightArea.radiusX_m != null
-                ? String(flightArea.radiusX_m * 2) // ← 表示は×2
-                : ""
-            }
-            onChange={(e) =>
-              patch(
-                ["geometry", "flightArea", "radiusX_m"],
-                num(e.target.value)
-              )
-            }
-            inputMode="numeric"
-            type="number"
-            className={numericInputW}
-          />
-          <span className="w-6 ml-1">m</span>
-        </div>
-
-        <div className={rowCls}>
-          <span className="w-24 text-sm">奥行</span>
-          <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
-          <DisplayOrInput
-            edit={edit}
-            value={
-              flightArea.radiusY_m != null
-                ? String(flightArea.radiusY_m * 2) // ← 表示は×2
-                : ""
-            }
-            onChange={(e) =>
-              patch(
-                ["geometry", "flightArea", "radiusY_m"],
-                num(e.target.value)
-              )
-            }
-            inputMode="numeric"
-            type="number"
-            className={numericInputW}
-          />
-          <span className="w-6 ml-1">m</span>
-        </div>
-      </div>
-
       {/* 観客からの距離 */}
-      <div>
+      <div className="mt-5">
         <SectionTitle title="観客からの距離" />
         <div className={rowCls}>
           <span className="w-4">約</span>
@@ -454,6 +353,106 @@ export function RightPanel({
             className={numericInputW}
           />{" "}
           <span className="w-6">m</span>
+        </div>
+      </div>
+
+      {/* 最低・最高高度・保安エリア */}
+      <div className="mt-5">
+        <SectionTitle title="最低・最高高度" />
+        <div className={rowCls}>
+          <span className="w-24 text-sm">最低高度</span>
+          <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
+          <DisplayOrInput
+            edit={false}
+            value={(geo.flightAltitude_min_m ?? "").toString()}
+            // onChange={(e) =>
+            //   patch(["geometry", "flightAltitude_min_m"], num(e.target.value))
+            // }
+            inputMode="numeric"
+            type="number"
+            className={numericInputW}
+          />
+          <span className="w-6 ml-1">m</span>
+        </div>
+        <div className={rowCls}>
+          <span className="w-24 text-sm">最高高度</span>
+          <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
+          <DisplayOrInput
+            edit={false}
+            value={(geo.flightAltitude_Max_m ?? "").toString()}
+            // onChange={(e) =>
+            //   patch(["geometry", "flightAltitude_Max_m"], num(e.target.value))
+            // }
+            inputMode="numeric"
+            type="number"
+            className={numericInputW}
+          />
+          <span className="w-6 ml-1">m</span>
+        </div>
+        <div className={rowCls}>
+          <span className="w-24 text-sm">保安エリア</span>
+          <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
+          <DisplayOrInput
+            edit={false}
+            value={(safetyArea.buffer_m ?? "").toString()}
+            // onChange={(e) =>
+            //   patch(["geometry", "safetyArea", "buffer_m"], num(e.target.value))
+            // }
+            inputMode="numeric"
+            type="number"
+            className={numericInputW}
+          />{" "}
+          <span className="w-6 ml-1">m</span>
+        </div>
+      </div>
+
+      {/* アニメーションエリア */}
+      <div className="mt-5">
+        <SectionTitle title="アニメーションエリア" />
+        <div className={rowCls}>
+          <span className="w-24 text-sm">横幅</span>
+          <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
+          <DisplayOrInput
+            edit={false}
+            value={
+              flightArea.radiusX_m != null
+                ? String(flightArea.radiusX_m * 2) // ← 表示は×2
+                : ""
+            }
+            // onChange={(e) =>
+            //   patch(
+            //     ["geometry", "flightArea", "radiusX_m"],
+            //     num(e.target.value)
+            //   )
+            // }
+            inputMode="numeric"
+            type="number"
+            className={numericInputW}
+          />
+          <span className="w-6 ml-1">m</span>
+        </div>
+
+        <div className={rowCls}>
+          <span className="w-24 text-sm">奥行</span>
+          <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
+          <DisplayOrInput
+            edit={false}
+            value={
+              flightArea.radiusY_m != null
+                ? String(flightArea.radiusY_m * 2) // ← 表示は×2
+                : ""
+            }
+            // onChange={(e) =>
+            //   patch(
+            //     ["geometry", "flightArea", "radiusY_m"],
+            //     num(e.target.value)
+            //   )
+            // }
+            inputMode="numeric"
+            type="number"
+            className={numericInputW}
+          />
+          <span className="w-6 ml-1">m</span>
         </div>
       </div>
     </div>

@@ -48,7 +48,7 @@ export function useHubPageState() {
   const initLabel = q.get("label") || "";
 
   const [activeTab, setActiveTab] = useState<
-    "リソース管理" | "オペレーション" | "エリア情報" | "現場写真"
+    "リソース管理" | "エリア情報" | "オペレーション" | "現場写真"
   >("リソース管理");
   const [edit, setEdit] = useState(false);
   const [projectData, setProjectData] = useState<any>(null);
