@@ -1,8 +1,8 @@
 {
     "project": {
-        "id": "d9bc4038-ae41-43c2-acc8-3cae3dc77d0e",
+        "id": "250322yakushima",
         "name": "屋久島大会",
-        "updated_at": "2025-12-11T06:16:21.596Z",
+        "updated_at": "2025-12-17T11:09:41.548Z",
         "updated_by": ""
     },
     "schedules": [
@@ -150,71 +150,71 @@
                     "horizontal": "51",
                     "vertical": "52"
                 },
-                "drone_orientation_deg": 90
-            },
-            "photos": [],
-            "geometry": {
-                "flightAltitude_min_m": 10,
-                "flightAltitude_Max_m": 150,
-                "takeoffArea": {
-                    "type": "rectangle",
-                    "coordinates": [
-                        [
-                            130.5317088588158,
-                            30.341185842897072
+                "drone_orientation_deg": 90,
+                "geometry": {
+                    "flightAltitude_min_m": 7,
+                    "flightAltitude_Max_m": 55,
+                    "takeoffArea": {
+                        "type": "rectangle",
+                        "coordinates": [
+                            [
+                                130.531960986463,
+                                30.3416626975349
+                            ],
+                            [
+                                130.531089243911,
+                                30.3411718546995
+                            ],
+                            [
+                                130.531202992472,
+                                30.341021386481
+                            ],
+                            [
+                                130.532074735025,
+                                30.3415122293165
+                            ]
                         ],
-                        [
-                            130.53083711626314,
-                            30.34069499767049
+                        "referencePointIndex": 2
+                    },
+                    "flightArea": {
+                        "type": "ellipse",
+                        "center": [
+                            130.529908291043,
+                            30.3417969504232
                         ],
-                        [
-                            130.53095086482497,
-                            30.340544528719025
-                        ],
-                        [
-                            130.53182260737762,
-                            30.34103537394561
+                        "radiusX_m": 75,
+                        "radiusY_m": 25,
+                        "rotation_deg": 330.419595418752
+                    },
+                    "safetyArea": {
+                        "type": "ellipse",
+                        "mode": "new",
+                        "buffer_m": 18.4
+                    },
+                    "audienceArea": {
+                        "type": "rectangle",
+                        "coordinates": [
+                            [
+                                130.529387839549,
+                                30.3435037416557
+                            ],
+                            [
+                                130.530428742536,
+                                30.3435037416557
+                            ],
+                            [
+                                130.530428742536,
+                                30.3436834038907
+                            ],
+                            [
+                                130.529387839549,
+                                30.3436834038907
+                            ]
                         ]
-                    ],
-                    "referencePointIndex": 0
-                },
-                "flightArea": {
-                    "type": "ellipse",
-                    "center": [
-                        130.5299082910425,
-                        30.34179695042322
-                    ],
-                    "radiusX_m": 150,
-                    "radiusY_m": 22.694722342187248,
-                    "rotation_deg": 0
-                },
-                "safetyArea": {
-                    "type": "ellipse",
-                    "mode": "new",
-                    "buffer_m": 50
-                },
-                "audienceArea": {
-                    "type": "rectangle",
-                    "coordinates": [
-                        [
-                            130.5293878395493,
-                            30.343503741655702
-                        ],
-                        [
-                            130.5304287425357,
-                            30.343503741655702
-                        ],
-                        [
-                            130.5304287425357,
-                            30.3436834038907
-                        ],
-                        [
-                            130.5293878395493,
-                            30.3436834038907
-                        ]
-                    ]
+                    }
                 }
-            }
+            },
+            "photos": []
         }
     ]
 }

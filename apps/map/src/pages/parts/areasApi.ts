@@ -407,7 +407,7 @@ export async function updateScheduleTakeoffReferencePoint(params: {
     const sch = proj.schedules[idx];
 
     // 既存 geometry/takeoffArea が rectangle である場合のみ上書き（無いなら何もしない）
-    const takeoff = sch?.geometry?.takeoffArea;
+    const takeoff = sch?.area?.geometry?.takeoffArea;
     if (!takeoff || takeoff?.type !== "rectangle" || !Array.isArray(takeoff?.coordinates)) {
         if (import.meta.env.DEV) console.warn("[updateRef] takeoff rectangle not found");
         return false;
@@ -420,18 +420,18 @@ export async function updateScheduleTakeoffReferencePoint(params: {
             i === idx
                 ? {
                     ...s,
-                    geometry: {
-                        ...(s?.geometry ?? {}),
-                        takeoffArea: {
-                            ...s?.geometry?.takeoffArea,
-
-                            // 離発着エリアの基準点を更新する
-                            referencePointIndex,
-                        }
-                    }
+                    area: {
+                        ...(s?.area ?? {}),
+                        geometry: {
+                            ...(s?.area?.geometry ?? {}),
+                            takeoffArea: {
+                                ...s?.area?.geometry?.takeoffArea,
+                                referencePointIndex,
+                            },
+                        },
+                    },
                 }
-                : s
-        ),
+                : s),
     };
 
     const ok = await saveProjectIndex(projectUuid, next);
@@ -459,16 +459,19 @@ export async function upsertScheduleGeometry(params: {
 
     const next = {
         ...proj,
-        schedules: proj.schedules.map((s: any, i: number) =>
-            i === idx
-                ? {
-                    ...s,
-                    geometry: {
-                        ...geometry
-                    },
-                }
-                : s
-        ),
+        schedules: proj.schedules.map((s: any, i: number) => {
+            if (i !== idx) return s;
+
+            const prevArea = (typeof s?.area === "object" && s.area) ? s.area : {};
+
+            return {
+                ...s,
+                area: {
+                    ...prevArea,
+                    geometry: { ...geometry },
+                },
+            };
+        }),
     };
 
     const ok = await saveProjectIndex(projectUuid, next);
@@ -571,15 +574,22 @@ export async function clearScheduleGeometry(params: {
     const idx = proj.schedules.findIndex((s: any) => s?.id === scheduleUuid);
     if (idx < 0) return false;
 
-    // geometry キーを除去したスケジュールを構築
-    const nextSchedules = proj.schedules.map((s: any, i: number) => {
-        if (i !== idx) return s;
-        const { geometry, ...rest } = s ?? {};
-        // 保存時に undefined は JSON から落ちるので OK
-        return { ...rest };
-    });
+    const next = {
+        ...proj,
+        schedules: proj.schedules.map((s: any, i: number) => {
+            if (i !== idx) return s;
 
-    const next = { ...proj, schedules: nextSchedules };
+            const prevArea = (typeof s?.area === "object" && s.area) ? s.area : {};
+            const { geometry, ...restArea } = prevArea;
+
+            return {
+                ...s,
+                area: {
+                    ...restArea, // geometry だけ落とす（他の area_* は維持）
+                },
+            };
+        }),
+    };
 
     const ok = await saveProjectIndex(projectUuid, next);
     if (!ok) console.error("[clearScheduleGeometry] saveProjectIndex failed");

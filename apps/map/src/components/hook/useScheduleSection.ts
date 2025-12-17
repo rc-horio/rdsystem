@@ -90,10 +90,10 @@ export function useScheduleSection({
                 }
 
                 // geometry の有無判定
-                const geom = sch?.geometry as Geometry | undefined;
+                const geom = sch?.area?.geometry as Geometry | undefined;
                 const hasGeom =
                     !!geom && typeof geom === "object" && Object.keys(geom).length > 0;
-
+                    
                 const label =
                     typeof sch?.label === "string" ? sch.label : String(scheduleUuid);
 

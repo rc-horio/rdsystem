@@ -637,25 +637,6 @@ function SideListBarBase({
         return;
       }
 
-      /** 紐づけ解除されたスケジュールの geometry を削除 */
-      for (const { projectUuid, scheduleUuid } of removedPairs) {
-        try {
-          const ok = await clearScheduleGeometry({ projectUuid, scheduleUuid });
-          if (!ok) {
-            console.warn(
-              "[save] clearScheduleGeometry failed for removed link",
-              projectUuid,
-              scheduleUuid
-            );
-          }
-        } catch (e) {
-          console.error(
-            "[save] clearScheduleGeometry threw error for removed link",
-            { projectUuid, scheduleUuid, e }
-          );
-        }
-      }
-
       /** 紐づけ解除されたスケジュールの geometry を削除 + area参照も解除 */
       for (const { projectUuid, scheduleUuid } of removedPairs) {
         try {
