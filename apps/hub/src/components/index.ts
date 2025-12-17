@@ -46,3 +46,4 @@ export * from "./utils/editable";
 export * from "./hooks/useLandscapeFullscreen";
 // utils
 export * from "./utils/validation";
+export * from "./utils/dateInput";

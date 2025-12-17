@@ -443,6 +443,84 @@ export function useHubPageState() {
 
 
   const handleSave = async () => {
+
+    // 日付・スケジュール名が入力されていなければ無効
+    const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+    type Err = { id: string; idx: number; reason: "required" | "date" };
+    const errors: Err[] = [];
+
+    schedules.forEach((s, idx) => {
+      const label = String(s.label ?? "").trim();
+      const date = String(s.date ?? "").trim();
+
+      // 必須（どちらか欠けてたらNG）
+      if (!label || !date) {
+        errors.push({ id: s.id, idx, reason: "required" });
+        return;
+      }
+
+      // 形式＋実在日（YYYY-MM-DD かつ実在日）
+      if (!DATE_RE.test(date)) {
+        errors.push({ id: s.id, idx, reason: "date" });
+        return;
+      }
+      const t = new Date(date + "T00:00:00Z");
+      if (Number.isNaN(t.getTime()) || t.toISOString().slice(0, 10) !== date) {
+        errors.push({ id: s.id, idx, reason: "date" });
+        return;
+      }
+    });
+
+    if (errors.length > 0) {
+      const first = errors[0];
+      if (first?.id) setSelectedId(first.id);
+
+      const lines = errors
+        .slice(0, 5)
+        .map(({ idx, reason }) => {
+          const msg =
+            reason === "required"
+              ? "日付/スケジュール名は必須です"
+              : "日付は YYYY-MM-DDで、実在日である必要があります";
+          return `${msg}`;
+        })
+        .join("\n");
+
+      alert(
+        `保存できません。\n` +
+        lines +
+        (errors.length > 5 ? `\n...他 ${errors.length - 5}件` : "")
+      );
+      return;
+    }
+
+    // --- 重複チェック（同一 date + label を禁止）---
+    const keyToIndexes = new Map<string, number[]>();
+
+    schedules.forEach((s, idx) => {
+      const label = String(s.label ?? "").trim();
+      const date = String(s.date ?? "").trim();
+      if (!label || !date) return; // 必須NGは前段で検出済み
+
+      // 大文字小文字/全角半角の揺れを吸収したいならここで normalize してください
+      const key = `${date}::${label}`;
+      const list = keyToIndexes.get(key) ?? [];
+      list.push(idx);
+      keyToIndexes.set(key, list);
+    });
+
+    const duplicates = Array.from(keyToIndexes.entries()).filter(
+      ([, idxs]) => idxs.length >= 2
+    );
+
+    if (duplicates.length > 0) {
+      alert(
+        `保存できません。\nスケジュールの日付と名称の組み合わせが重複しています。`
+      );
+      return;
+    }
+
     if (!schedules.length) return;
 
     // 🟢 新しいスケジュール（idが未設定 or 空）のUUID自動生成

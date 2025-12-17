@@ -5,6 +5,7 @@ import {
   AddItemButton,
   DeleteItemButton,
   validateProjectId,
+  formatAsYmdInput,
 } from "@/components";
 import type { ScheduleDetail } from "@/features/hub/types/resource";
 
@@ -165,7 +166,9 @@ export function ContentHeader({
                   value={cur.date ?? ""}
                   placeholder="2000-01-01"
                   className="w-full"
-                  onChange={(e) => updateCurrent({ date: e.target.value })}
+                  onChange={(e) =>
+                    updateCurrent({ date: formatAsYmdInput(e.target.value) })
+                  }
                 />
                 <DisplayOrInput
                   edit

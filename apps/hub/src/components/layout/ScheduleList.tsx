@@ -1,7 +1,11 @@
 // src/components/layout/ScheduleList.tsx
 import clsx from "clsx";
 import type { ScheduleDetail } from "@/features/hub/types/resource";
-import { DisplayOrInput, DetailIconButton } from "@/components";
+import {
+  DisplayOrInput,
+  DetailIconButton,
+  formatAsYmdInput,
+} from "@/components";
 
 type Props = {
   schedules: ScheduleDetail[];
@@ -38,8 +42,9 @@ export function ScheduleList({
                 edit={edit}
                 value={sch.date ?? ""}
                 onChange={(e) => {
+                  const nextDate = formatAsYmdInput(e.target.value);
                   const newSchedules = schedules.map((s) =>
-                    s.id === sch.id ? { ...s, date: e.target.value } : s
+                    s.id === sch.id ? { ...s, date: nextDate } : s
                   );
                   onUpdateSchedules(newSchedules);
                 }}
@@ -69,9 +74,7 @@ export function ScheduleList({
             {/* 詳細ボタンのハイライト */}
             <DetailIconButton
               onClick={() => onSelect(sch.id)}
-              className={clsx(
-                active ? "bg-slate-700" : "hover:bg-slate-700"
-              )}
+              className={clsx(active ? "bg-slate-700" : "hover:bg-slate-700")}
             />
           </div>
         );
