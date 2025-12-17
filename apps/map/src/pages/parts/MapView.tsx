@@ -76,6 +76,8 @@ export default function MapView({ onLoaded }: Props) {
   const positionUpdatedToastTimerRef = useRef<number | null>(null);
 
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  // ジオメトリ未作成メッセージ（マップ上に表示）
+  const [showNoGeometryHint, setShowNoGeometryHint] = useState(false);
 
   useDraggableMetricsPanel();
   const editable = useEditableBodyClass();
@@ -221,6 +223,64 @@ export default function MapView({ onLoaded }: Props) {
       );
     };
   }, []);
+
+  useEffect(() => {
+    const onSelectCandidate = (e: Event) => {
+      const d =
+        (
+          e as CustomEvent<{
+            geometry?: Partial<Geometry>;
+            index?: number;
+            title?: string;
+          }>
+        ).detail || {};
+
+      const g = d.geometry;
+
+      const missing =
+        !g ||
+        (!g.takeoffArea &&
+          !g.flightArea &&
+          !g.safetyArea &&
+          !g.audienceArea &&
+          g.flightAltitude_min_m == null &&
+          g.flightAltitude_Max_m == null);
+
+      // 候補選択中で未作成なら表示、作成済みなら非表示
+      // ※表示/非表示の最終決定は後段（selectionKind も加味）でやるが、
+      // ここでは候補側の未作成フラグとして保持する
+      candidateGeomMissingRef.current = missing;
+      updateNoGeomHint();
+    };
+
+    window.addEventListener(
+      "detailbar:select-candidate", // ← EV_DETAILBAR_SELECT_CANDIDATE の実値に合わせてください
+      onSelectCandidate as EventListener
+    );
+    return () => {
+      window.removeEventListener(
+        "detailbar:select-candidate",
+        onSelectCandidate as EventListener
+      );
+    };
+  }, []);
+
+  const candidateGeomMissingRef = useRef(false);
+
+  const updateNoGeomHint = () => {
+    // 選択されていない or 案件以外なら出さない
+    if (!isSelected || selectionKind !== "schedule") {
+      setShowNoGeometryHint(false);
+      return;
+    }
+
+    // 案件：未作成なら showCreateGeomCta が true になる前提
+    setShowNoGeometryHint(!!showCreateGeomCta);
+  };
+
+  useEffect(() => {
+    updateNoGeomHint();
+  }, [isSelected, selectionKind, showCreateGeomCta]);
 
   const startChangePositionMode = () => {
     // 座標変更モード開始
@@ -1049,6 +1109,17 @@ export default function MapView({ onLoaded }: Props) {
             >
               キャンセル
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ジオメトリ未作成ヒント（マップ上に表示） */}
+      {showNoGeometryHint && !addingAreaMode && !isChangingPosition && (
+        <div className="add-area-hint-layer">
+          <div className="add-area-hint" aria-live="polite">
+            <span className="add-area-hint__text">
+              飛行エリアが作成されていません。
+            </span>
           </div>
         </div>
       )}
