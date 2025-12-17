@@ -675,3 +675,81 @@ export async function isAreaNameDuplicated(params: {
         (a) => a?.areaName === name && a?.uuid !== params.excludeUuid
     );
 }
+
+// projects/<projectUuid>/index.json の schedules[].area に area_uuid / area_name を保存する
+export async function upsertScheduleAreaRef(params: {
+    projectUuid: string;
+    scheduleUuid: string;
+    areaUuid: string;
+    areaName: string;
+}): Promise<boolean> {
+    const { projectUuid, scheduleUuid, areaUuid, areaName } = params;
+    if (!projectUuid || !scheduleUuid || !areaUuid) return false;
+
+    const proj = await fetchProjectIndex(projectUuid);
+    if (!proj || !Array.isArray(proj?.schedules)) return false;
+
+    const idx = proj.schedules.findIndex((s: any) => s?.id === scheduleUuid);
+    if (idx < 0) return false;
+
+    const next = {
+        ...proj,
+        schedules: proj.schedules.map((s: any, i: number) => {
+            if (i !== idx) return s;
+
+            // 既存 area を壊さずに merge する
+            const prevArea = (typeof s?.area === "object" && s.area) ? s.area : {};
+
+            return {
+                ...s,
+                area: {
+                    ...prevArea,
+                    area_uuid: areaUuid,
+                    area_name: areaName,
+                },
+            };
+        }),
+    };
+
+    const ok = await saveProjectIndex(projectUuid, next);
+    if (!ok) console.error("[upsertScheduleAreaRef] saveProjectIndex failed");
+    return ok;
+}
+
+// projects/<projectUuid>/index.json の schedules[].area から area_uuid / area_name を解除する
+export async function clearScheduleAreaRef(params: {
+    projectUuid: string;
+    scheduleUuid: string;
+}): Promise<boolean> {
+    const { projectUuid, scheduleUuid } = params;
+    if (!projectUuid || !scheduleUuid) return false;
+
+    const proj = await fetchProjectIndex(projectUuid);
+    if (!proj || !Array.isArray(proj?.schedules)) return false;
+
+    const idx = proj.schedules.findIndex((s: any) => s?.id === scheduleUuid);
+    if (idx < 0) return false;
+
+    const next = {
+        ...proj,
+        schedules: proj.schedules.map((s: any, i: number) => {
+            if (i !== idx) return s;
+
+            const prevArea = (typeof s?.area === "object" && s.area) ? s.area : {};
+            // area_uuid / area_name だけ除去（他は維持）
+            // JSON.stringify で undefined は落ちる
+            const { area_uuid, area_name, ...restArea } = prevArea;
+
+            return {
+                ...s,
+                area: {
+                    ...restArea,
+                },
+            };
+        }),
+    };
+
+    const ok = await saveProjectIndex(projectUuid, next);
+    if (!ok) console.error("[clearScheduleAreaRef] saveProjectIndex failed");
+    return ok;
+}

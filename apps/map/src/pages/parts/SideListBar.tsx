@@ -28,6 +28,8 @@ import {
   isAreaNameDuplicated,
   upsertAreasListEntryFromInfo,
   fetchProjectIndex,
+  upsertScheduleAreaRef,
+  clearScheduleAreaRef,
 } from "./areasApi";
 import type {
   ScheduleLite,
@@ -652,6 +654,74 @@ function SideListBarBase({
             { projectUuid, scheduleUuid, e }
           );
         }
+      }
+
+      /** 紐づけ解除されたスケジュールの geometry を削除 + area参照も解除 */
+      for (const { projectUuid, scheduleUuid } of removedPairs) {
+        try {
+          const okGeom = await clearScheduleGeometry({
+            projectUuid,
+            scheduleUuid,
+          });
+          if (!okGeom) {
+            console.warn(
+              "[save] clearScheduleGeometry failed for removed link",
+              projectUuid,
+              scheduleUuid
+            );
+          }
+
+          const okArea = await clearScheduleAreaRef({
+            projectUuid,
+            scheduleUuid,
+          });
+          if (!okArea) {
+            console.warn(
+              "[save] clearScheduleAreaRef failed for removed link",
+              projectUuid,
+              scheduleUuid
+            );
+          }
+        } catch (e) {
+          console.error(
+            "[save] clear schedule artifacts threw error for removed link",
+            {
+              projectUuid,
+              scheduleUuid,
+              e,
+            }
+          );
+        }
+      }
+
+      // （2-3.5）projects/<projectUuid>/index.json に area_uuid / area_name を反映
+      // UI 上の紐づけ履歴（historyToSave）を正として、各 schedule の area を更新する
+      try {
+        const areaNameToWrite = newTitle; // 保存後のエリア名で統一
+
+        // historyToSave は { projectuuid, scheduleuuid } 形式なのでそれを使う
+        const targets = historyToSave.flatMap((h: any) => {
+          const projectUuid =
+            typeof h?.projectuuid === "string" ? h.projectuuid : null;
+          const scheduleUuid =
+            typeof h?.scheduleuuid === "string" ? h.scheduleuuid : null;
+          return projectUuid && scheduleUuid
+            ? [{ projectUuid, scheduleUuid }]
+            : [];
+        });
+
+        await Promise.all(
+          targets.map(({ projectUuid, scheduleUuid }) =>
+            upsertScheduleAreaRef({
+              projectUuid,
+              scheduleUuid,
+              areaUuid,
+              areaName: areaNameToWrite,
+            })
+          )
+        );
+      } catch (e) {
+        console.warn("[save] project schedule area ref update failed:", e);
       }
 
       // （2-4）areas.json エリア一覧を更新
