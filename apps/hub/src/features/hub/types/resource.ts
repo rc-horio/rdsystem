@@ -78,10 +78,6 @@ export type Area = {
     landing: string;
   };
   return_note: string;
-  animation_area: {
-    width_m: number | null;
-    depth_m: number | null;
-  };
   distance_from_viewers_m: number | null;
   spacing_between_drones_m: {
     horizontal: string; // "0.6 1.2" のようにスペース区切り

@@ -53,7 +53,6 @@ export function RightPanel({
   const safetyArea = geo.safetyArea ?? {};
   // const flight = A.flight_area ?? {};
   const droneCnt = A.drone_count ?? {};
-  const anim = A.animation_area ?? {};
   const actions = A.actions ?? {};
   // 行レイアウトを統一（最低/最高高度の行間に合わせる）
   const rowCls = "mt-2 pl-4 md:pl-6 flex items-center gap-2";
