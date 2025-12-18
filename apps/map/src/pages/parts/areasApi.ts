@@ -1,6 +1,7 @@
 // src/pages/parts/areasApi.ts
 import type { HistoryLite, DetailMeta, Candidate } from "@/features/types";
 import { S3_BASE } from "./constants/events";
+import { getCurrentTurnMetrics } from "./geometry/orientationDebug";
 
 // ========= Internals =========
 const GET_INIT: RequestInit = { mode: "cors", cache: "no-store" };
@@ -456,19 +457,25 @@ export async function upsertScheduleGeometry(params: {
 
     const idx = proj.schedules.findIndex((s: any) => s?.id === scheduleUuid);
     if (idx < 0) return false;
+    const turn = getCurrentTurnMetrics();
 
+    const geometryWithTurn = {
+        ...geometry,
+        ...(turn ? { turn } : {}),
+    };
     const next = {
         ...proj,
         schedules: proj.schedules.map((s: any, i: number) => {
             if (i !== idx) return s;
 
-            const prevArea = (typeof s?.area === "object" && s.area) ? s.area : {};
+            const prevArea =
+                (typeof s?.area === "object" && s.area) ? s.area : {};
 
             return {
                 ...s,
                 area: {
                     ...prevArea,
-                    geometry: { ...geometry },
+                    geometry: geometryWithTurn,
                 },
             };
         }),

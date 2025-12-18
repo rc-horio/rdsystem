@@ -28,6 +28,11 @@ export type SafetyGeom = {
     mode?: "new" | "old";
 };
 
+export type TurnGeom = {
+    direction: "cw" | "ccw";
+    angle_deg: number; // 0〜180
+};
+
 // エリア側ではなくプロジェクト側のindex.jsonに保存する
 export type Geometry = {
     flightAltitude_min_m?: number;
@@ -36,6 +41,7 @@ export type Geometry = {
     flightArea?: EllipseGeom;
     safetyArea?: SafetyGeom;
     audienceArea?: RectangleGeom;
+    turn?: TurnGeom;
 };
 
 export type Props = {

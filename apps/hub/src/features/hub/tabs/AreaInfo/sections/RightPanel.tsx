@@ -60,7 +60,7 @@ export function RightPanel({
   const inputW = "!w-[55px]";
   // 数値欄は中央寄せ
   const numericInputW = `${inputW} text-center`;
-
+  const turn = geo.turn;
   const patch = (path: string[], value: any) => {
     const next = { ...(A ?? {}) };
     let cur: any = next;
@@ -275,7 +275,13 @@ export function RightPanel({
         <div className="pl-4 md:pl-6">
           <DisplayOrTextarea
             edit={edit}
-            value={actions.turn ?? ""}
+            value={
+              turn
+                ? turn.direction === "ccw"
+                  ? `反時計回りに${turn.angle_deg}度回転`
+                  : `時計回りに${turn.angle_deg}度回転`
+                : "—"
+            }
             onChange={(v) => patch(["actions", "turn"], v)}
             heightClass="h-15"
             size="sm"

@@ -6,6 +6,11 @@ let lastRectBearingDeg: number | null = null;
 // パネル通知用イベント名と payload 型
 export const EV_GEOM_TURN_METRICS = "geom:turn-metrics";
 
+// 最後に確定した turn を保持
+let lastTurnMetrics:
+    | { direction: "cw" | "ccw"; angle_deg: number }
+    | null = null;
+
 export type TurnMetricsDetail = {
     turnDirection?: "cw" | "ccw"; // cw: 時計回り, ccw: 反時計回り
     turnAngle_deg?: number;       // 絶対値の角度
@@ -54,27 +59,21 @@ function logBoth() {
         diff = diffRectMinusEllipse(rect, ellipse);
     }
 
-    // console.log(
-    //     `[bearing] ellipse=${format(ellipse)}, rect=${format(
-    //         rect
-    //     )}, diff(rect-ellipse)=${format(diff)}  (north=0°, cw, diff:-ccw,+cw)`
-    // );
-
-    // パネル向けにイベント発火
+    // logBoth() 内で確定値を保存
     if (typeof window !== "undefined" && diff != null) {
-        const absAngle = Math.abs(diff); // 角度は絶対値
-        let turnDirection: "cw" | "ccw" | undefined;
+        const absAngle = Math.abs(diff);
 
-        if (diff > 0) {
-            turnDirection = "cw"; // プラス → 時計回り
-        } else if (diff < 0) {
-            turnDirection = "ccw"; // マイナス → 反時計回り
-        } else {
-            turnDirection = undefined; // 0 のときは方向なし扱い
-        }
+        // 方向：0度は cw として扱う
+        const turnDirection: "cw" | "ccw" = diff < 0 ? "ccw" : "cw";
+
+        // 0度なら「旋回なし」として確定値をクリア
+        lastTurnMetrics = {
+            direction: turnDirection,
+            angle_deg: absAngle,
+        };
 
         const detail: TurnMetricsDetail = {
-            turnDirection,
+            turnDirection: absAngle === 0 ? undefined : diff > 0 ? "cw" : "ccw",
             turnAngle_deg: absAngle,
             rawDiff_deg: diff,
         };
@@ -83,4 +82,11 @@ function logBoth() {
             new CustomEvent<TurnMetricsDetail>(EV_GEOM_TURN_METRICS, { detail })
         );
     }
+}
+
+// 既存関数を「保存用の確定値返却」に変更
+export function getCurrentTurnMetrics():
+    | { direction: "cw" | "ccw"; angle_deg: number }
+    | null {
+    return lastTurnMetrics;
 }
