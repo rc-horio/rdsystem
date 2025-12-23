@@ -188,6 +188,32 @@ export default function MapView({ onLoaded }: Props) {
   >(() => {});
   const currentPointRef = useRef<Point | null>(null);
 
+  // 初期コンテキスト（URLパラメータ）からの自動選択
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+
+    const areaUuidFromUrl = params.get("areaUuid") || undefined;
+    const projectUuidFromUrl = params.get("projectUuid") || undefined;
+    const scheduleUuidFromUrl = params.get("scheduleUuid") || undefined;
+
+    // refs に保持（schedule 選択で利用する想定）
+    currentProjectUuidRef.current = projectUuidFromUrl;
+    currentScheduleUuidRef.current = scheduleUuidFromUrl;
+
+    if (!areaUuidFromUrl) return;
+
+    const timer = setTimeout(() => {
+      selectByKeyRef.current?.({ areaUuid: areaUuidFromUrl });
+      console.log("[MapView] auto-selected from URL:", {
+        areaUuidFromUrl,
+        projectUuidFromUrl,
+        scheduleUuidFromUrl,
+      });
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   // サイドバー等から「今の代表点座標」を問い合わせるためのイベント
   useEffect(() => {
     const onRequestCurrentPoint = () => {

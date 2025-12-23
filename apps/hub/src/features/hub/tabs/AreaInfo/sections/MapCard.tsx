@@ -1,6 +1,8 @@
 // features/hub/tabs/AreaInfo/sections/MapCard.tsx
 import { SectionTitle } from "@/components";
-import { useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { ButtonRed } from "@/components/atoms/buttons/RedButton";
+import clsx from "clsx";
 
 // マップURLを正規化
 const normalizeMapUrl = (base?: string) => {
@@ -22,14 +24,16 @@ const normalizeMapUrl = (base?: string) => {
   }
 };
 
-type MapCardProps = {
+type Props = {
   areaName?: string | null;
   projectUuid?: string | null;
-  scheduleUuid?: string | null; 
+  scheduleUuid?: string | null;
 };
 
-export function MapCard({ areaName, projectUuid, scheduleUuid }: MapCardProps) {
+export function MapCard({ areaName, projectUuid, scheduleUuid }: Props) {
   const fromEnv = import.meta.env.VITE_MAP_BASE_URL as string | undefined;
+  const [areaUuid, setAreaUuid] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const base = useMemo(() => {
     let src = normalizeMapUrl(fromEnv);
@@ -70,9 +74,64 @@ export function MapCard({ areaName, projectUuid, scheduleUuid }: MapCardProps) {
     }
   }, [base, areaName, projectUuid, scheduleUuid]);
 
+  // areas.json から area_uuid を取得
+  useEffect(() => {
+    if (!areaName) {
+      setAreaUuid(null);
+      return;
+    }
+
+    const fetchAreaUuid = async () => {
+      setLoading(true);
+      try {
+        const S3_BASE =
+          "https://rc-rdsystem-dev-catalog.s3.ap-northeast-1.amazonaws.com/catalog/v1/";
+        const res = await fetch(S3_BASE + "areas.json");
+        if (!res.ok) throw new Error("areas.json fetch failed");
+
+        const areas = await res.json();
+        const found = areas.find((a: any) => a.areaName === areaName);
+        setAreaUuid(found?.uuid || null);
+      } catch (e) {
+        console.error("Failed to fetch areaUuid:", e);
+        setAreaUuid(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAreaUuid();
+  }, [areaName]);
+
+  const handleOpenMap = () => {
+    const { protocol, hostname } = window.location;
+    const isLocalLike =
+      hostname === "localhost" || hostname.startsWith("192.168.");
+
+    const baseUrl = isLocalLike
+      ? `${protocol}//${hostname}:5175`
+      : `${protocol}//${hostname}/map`;
+
+    const params = new URLSearchParams();
+
+    if (areaUuid) params.set("areaUuid", areaUuid);
+    if (projectUuid) params.set("projectUuid", projectUuid);
+    if (scheduleUuid) params.set("scheduleUuid", scheduleUuid);
+
+    const url = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   return (
     <div className="p-0">
-      <SectionTitle title="飛行エリア" />
+      {/* タイトル行（左：飛行エリア / 右：RD Mapで確認） */}
+      <div className="flex items-center justify-between">
+        <SectionTitle title="飛行エリア" />
+
+        <ButtonRed type="button" onClick={handleOpenMap} disabled={loading}>
+          {loading ? "読込中..." : "RD Mapで確認"}
+        </ButtonRed>
+      </div>
       <div className="mt-4 h-[520px] w-full overflow-hidden">
         <iframe
           key={src}

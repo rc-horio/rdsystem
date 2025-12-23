@@ -77,9 +77,23 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     remarks: "",
     candidate: [],
   });
-  // SideDetailBar コンポーネント内
 
   const candidates = meta.candidate ?? [];
+
+  // URL 由来の初期選択（案件スケジュール）
+  const initialScheduleRef = useRef<{
+    projectUuid?: string;
+    scheduleUuid?: string;
+  }>(
+    (() => {
+      const params = new URLSearchParams(window.location.search);
+      const projectUuid = params.get("projectUuid") || undefined;
+      const scheduleUuid = params.get("scheduleUuid") || undefined;
+      return { projectUuid, scheduleUuid };
+    })()
+  );
+
+  const didAutoSelectRef = useRef(false);
 
   /** =========================
    *  Helpers
@@ -262,10 +276,26 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
           ? x.label
           : null;
 
+      // camel/snake/lower を全部拾う
       const projectUuid =
-        typeof x?.projectUuid === "string" ? x.projectUuid : undefined;
+        typeof x?.projectUuid === "string"
+          ? x.projectUuid
+          : typeof x?.projectuuid === "string"
+          ? x.projectuuid
+          : typeof x?.project_uuid === "string"
+          ? x.project_uuid
+          : undefined;
+
       const scheduleUuid =
-        typeof x?.scheduleUuid === "string" ? x.scheduleUuid : undefined;
+        typeof x?.scheduleUuid === "string"
+          ? x.scheduleUuid
+          : typeof x?.scheduleuuid === "string"
+          ? x.scheduleuuid
+          : typeof x?.schedule_uuid === "string"
+          ? x.schedule_uuid
+          : typeof x?.id === "string" // schedules 側の id を混ぜている場合の保険
+          ? x.id
+          : undefined;
 
       return date && projectName && scheduleName
         ? [{ date, projectName, scheduleName, projectUuid, scheduleUuid }]
@@ -464,6 +494,27 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       }, 0);
     }
   }, [editingCandidateIdx]);
+
+  // URL 由来の初期選択（案件スケジュール）の自動選択
+  useEffect(() => {
+    if (didAutoSelectRef.current) return;
+
+    const { projectUuid, scheduleUuid } = initialScheduleRef.current;
+    if (!projectUuid || !scheduleUuid) return;
+    if (!history || history.length === 0) return;
+
+    const idx = history.findIndex(
+      (h) => h.projectUuid === projectUuid && h.scheduleUuid === scheduleUuid
+    );
+    if (idx < 0) return;
+
+    // タブも飛行エリアに合わせる（任意だがUX的に良い）
+    setActive("history");
+
+    // 実際の選択処理（イベント dispatch → MapView 側がジオメトリ描画）
+    didAutoSelectRef.current = true;
+    onSelectHistory(history[idx], idx);
+  }, [history]);
 
   /** =========================
    *  Render
