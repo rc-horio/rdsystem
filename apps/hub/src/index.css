@@ -54,7 +54,7 @@ input[type="number"] {
     color: #fff; /* 全体の文字色（デフォルト） */
   }
 
-  /* iOS等の“引っ張り更新/バウンス”による挙動を抑える */
+  /* iOS等の"引っ張り更新/バウンス"による挙動を抑える */
   html,
   body {
     overscroll-behavior-y: none;
@@ -77,6 +77,41 @@ textarea {
 /* iOS のテキスト自動拡大（勝手に文字が大きくなる）を抑える */
 html {
   -webkit-text-size-adjust: 100%;
+}
+
+/* =========================
+   スクロールバーのスタイル（Mac/iPad対応）
+   ========================= */
+
+/* WebKit系（Chrome, Safari, Edge等）用スクロールバー */
+*::-webkit-scrollbar {
+  width: 12px; /* 縦スクロールバーの幅 */
+  height: 12px; /* 横スクロールバーの高さ */
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(30, 41, 59, 0.3); /* slate-800/30 相当 */
+  border-radius: 6px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.6); /* slate-400/60 相当 */
+  border-radius: 6px;
+  border: 2px solid rgba(30, 41, 59, 0.3); /* トラックとの間に境界線 */
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.8); /* ホバー時は濃く */
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background: rgba(148, 163, 184, 1); /* クリック時はさらに濃く */
+}
+
+/* Firefox用スクロールバー */
+* {
+  scrollbar-width: thin; /* 'auto' | 'thin' | 'none' */
+  scrollbar-color: rgba(148, 163, 184, 0.6) rgba(30, 41, 59, 0.3); /* thumb track */
 }
 
 /* =========================

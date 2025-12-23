@@ -1,5 +1,5 @@
 import { ButtonRed, SectionTitle } from "@/components";
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 type Props = {
   countX: number;
@@ -16,6 +16,66 @@ type Props = {
   /** フルスクリーン時など両軸スクロールを許可する */
   bothScroll?: boolean;
 };
+
+// マウスドラッグスクロール用のカスタムフック
+function useDragScroll<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
+  const [scrollPos, setScrollPos] = useState({ left: 0, top: 0 });
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const handleMouseDown = (e: MouseEvent) => {
+      setIsDragging(true);
+      setStartPos({ x: e.pageX, y: e.pageY });
+      setScrollPos({ left: el.scrollLeft, top: el.scrollTop });
+      el.style.cursor = "grabbing";
+      el.style.userSelect = "none";
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+      e.preventDefault();
+      const dx = e.pageX - startPos.x;
+      const dy = e.pageY - startPos.y;
+      el.scrollLeft = scrollPos.left - dx;
+      el.scrollTop = scrollPos.top - dy;
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      el.style.cursor = "grab";
+      el.style.userSelect = "";
+    };
+
+    const handleMouseLeave = () => {
+      if (isDragging) {
+        setIsDragging(false);
+        el.style.cursor = "grab";
+        el.style.userSelect = "";
+      }
+    };
+
+    el.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    el.addEventListener("mouseleave", handleMouseLeave);
+
+    el.style.cursor = "grab";
+
+    return () => {
+      el.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      el.removeEventListener("mouseleave", handleMouseLeave);
+    };
+  }, [isDragging, startPos, scrollPos]);
+
+  return ref;
+}
 
 // ====== 寸法（Tailwind: w-12=48px, h-7=28px に合わせる）======
 const CELL_W_PX = 48;
@@ -194,6 +254,7 @@ export function TableSection({
   spacingSeqY,
   bothScroll = false,
 }: Props) {
+  const scrollRef = useDragScroll<HTMLDivElement>();
   const redSet = showModule1 ? new Set(module1Nums) : new Set<number>();
   const blueSet = showModule2 ? new Set(module2Nums) : new Set<number>();
 
@@ -239,6 +300,7 @@ export function TableSection({
 
       {/* スクロールコンテナ */}
       <div
+        ref={scrollRef}
         className={
           (bothScroll
             ? "overflow-auto "
