@@ -23,6 +23,33 @@ interface Props {
   year?: string | null;
 }
 
+// HEICをJPEGに変換する関数
+const convertHeicToJpeg = async (file: File): Promise<File> => {
+  // heic2anyライブラリを動的にインポート
+  const heic2any = await import("heic2any");
+
+  try {
+    const convertedBlob = await heic2any.default({
+      blob: file,
+      toType: "image/jpeg",
+      quality: 0.9,
+    });
+
+    // Blobが配列で返される場合があるので最初の要素を取得
+    const blob = Array.isArray(convertedBlob)
+      ? convertedBlob[0]
+      : convertedBlob;
+
+    // 元のファイル名の拡張子を.jpgに変更
+    const newFileName = file.name.replace(/\.heic$/i, ".jpg");
+
+    return new File([blob], newFileName, { type: "image/jpeg" });
+  } catch (error) {
+    console.error("HEIC conversion failed:", error);
+    throw new Error("HEIC画像の変換に失敗しました");
+  }
+};
+
 export default function SitePhotosTab({
   edit,
   currentSchedule,
@@ -31,6 +58,8 @@ export default function SitePhotosTab({
   removeAt,
 }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const [isConverting, setIsConverting] = useState(false);
+
   const photos: PhotoItem[] = useMemo(
     () =>
       Array.isArray(currentSchedule?.photos) ? currentSchedule!.photos! : [],
@@ -78,14 +107,41 @@ export default function SitePhotosTab({
     return () => window.removeEventListener("keydown", onKey);
   }, [previewOpen, closePreview, showPrev, showNext]);
 
-  // File選択 → 署名GET → PUT → state反映
-  const handleSelectFiles: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+  // File選択 → HEIC変換 → 署名GET → PUT → state反映
+  const handleSelectFiles: React.ChangeEventHandler<HTMLInputElement> = async (
+    e
+  ) => {
     const files = Array.from(e.target.files ?? []);
     if (!files.length || !selectedId) return;
 
-    const newPhotos = files
-      .filter((f) => f.type.startsWith("image/"))
-      .map(
+    setIsConverting(true);
+
+    try {
+      const processedFiles: File[] = [];
+
+      // 各ファイルを処理（HEIC変換が必要なら変換）
+      for (const file of files) {
+        const isHeic = /\.heic$/i.test(file.name) || file.type === "image/heic";
+        const isImage = file.type.startsWith("image/") || isHeic;
+
+        if (!isImage) continue;
+
+        if (isHeic) {
+          try {
+            const converted = await convertHeicToJpeg(file);
+            processedFiles.push(converted);
+          } catch (error) {
+            console.error(`Failed to convert ${file.name}:`, error);
+            alert(
+              `${file.name}の変換に失敗しました。別のファイルを選択してください。`
+            );
+          }
+        } else {
+          processedFiles.push(file);
+        }
+      }
+
+      const newPhotos = processedFiles.map(
         (file) =>
           ({
             url: URL.createObjectURL(file),
@@ -94,15 +150,21 @@ export default function SitePhotosTab({
           } as any)
       );
 
-    setSchedules((prev) =>
-      prev.map((s) =>
-        s.id === selectedId
-          ? { ...s, photos: [...(s.photos ?? []), ...newPhotos] }
-          : s
-      )
-    );
+      setSchedules((prev) =>
+        prev.map((s) =>
+          s.id === selectedId
+            ? { ...s, photos: [...(s.photos ?? []), ...newPhotos] }
+            : s
+        )
+      );
 
-    if (inputRef.current) inputRef.current.value = "";
+      if (inputRef.current) inputRef.current.value = "";
+    } catch (error) {
+      console.error("File processing error:", error);
+      alert("ファイルの処理中にエラーが発生しました。");
+    } finally {
+      setIsConverting(false);
+    }
   };
 
   return (
@@ -126,7 +188,7 @@ export default function SitePhotosTab({
               <input
                 ref={inputRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,.heic"
                 multiple
                 onChange={handleSelectFiles}
                 className="hidden"
@@ -134,9 +196,10 @@ export default function SitePhotosTab({
               <ButtonRed
                 type="button"
                 onClick={() => inputRef.current?.click()}
+                disabled={isConverting}
                 className="w-full h-10 mt-3 md:-mt-11 disabled:opacity-60"
               >
-                写真を追加
+                {isConverting ? "変換中..." : "写真を追加"}
               </ButtonRed>
             </>
           )}
@@ -177,7 +240,6 @@ export default function SitePhotosTab({
                 </span>
 
                 <div className="flex items-center gap-2">
-                  {/* ← DL ボタンは削除 */}
                   {edit && (
                     <button
                       type="button"
