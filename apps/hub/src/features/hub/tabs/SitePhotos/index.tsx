@@ -183,26 +183,33 @@ export default function SitePhotosTab({
         </div>
 
         <div className="md:w-56 shrink-0 flex self-end">
-          {edit && (
-            <>
-              <input
-                ref={inputRef}
-                type="file"
-                accept="image/*,.heic"
-                multiple
-                onChange={handleSelectFiles}
-                className="hidden"
-              />
-              <ButtonRed
-                type="button"
-                onClick={() => inputRef.current?.click()}
-                disabled={isConverting}
-                className="w-full h-10 mt-3 md:-mt-11 disabled:opacity-60"
-              >
-                {isConverting ? "変換中..." : "写真を追加"}
-              </ButtonRed>
-            </>
-          )}
+          <div className="md:w-56 shrink-0 flex self-end">
+            {edit && (
+              <div className="w-full">
+                <input
+                  ref={inputRef}
+                  type="file"
+                  accept="image/*,.heic"
+                  multiple
+                  onChange={handleSelectFiles}
+                  className="hidden"
+                />
+                <ButtonRed
+                  type="button"
+                  onClick={() => inputRef.current?.click()}
+                  disabled={isConverting}
+                  className="w-full h-10 mt-3 md:-mt-11 disabled:opacity-60"
+                >
+                  {isConverting ? "変換中..." : "写真を追加"}
+                </ButtonRed>
+
+                {/* 追加：注意文 */}
+                <div className="mt-2 text-[11px] leading-4 text-slate-400">
+                  ※HEIC形式はiPhoneからのアップロードのみ対応
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
