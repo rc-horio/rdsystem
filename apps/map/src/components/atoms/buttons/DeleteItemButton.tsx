@@ -22,7 +22,7 @@ export function DeleteIconButton({
 }: Props) {
   const h = typeof height === "number" ? `${height}px` : height;
 
-  const iconSrc = `${import.meta.env.BASE_URL}icon_delete.png`;
+  const iconSrc = `${import.meta.env.BASE_URL}0014_icon_delete.png`;
 
   return (
     <button

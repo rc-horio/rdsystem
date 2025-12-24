@@ -22,7 +22,7 @@ export function DetailIconButton({
 }: Props) {
   const h = typeof height === "number" ? `${height}px` : height;
 
-  const iconSrc = `${import.meta.env.BASE_URL}_0002_icon_detail.png`;
+  const iconSrc = `${import.meta.env.BASE_URL}0003_icon_detail.png`;
 
   return (
     <button

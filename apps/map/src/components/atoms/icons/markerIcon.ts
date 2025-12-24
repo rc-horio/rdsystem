@@ -17,7 +17,7 @@ export function createMarkerIcon(
         anchor?: MarkerAnchor;
     }
 ): google.maps.Icon {
-    const iconSrc = `${import.meta.env.BASE_URL}icon_marker.png`;
+    const iconSrc = `${import.meta.env.BASE_URL}0100_icon_marker_rc.png`;
     const url = opts?.url ?? iconSrc;
     const w = (opts?.width ?? opts?.size ?? 28);
     const h = (opts?.height ?? opts?.size ?? 28);

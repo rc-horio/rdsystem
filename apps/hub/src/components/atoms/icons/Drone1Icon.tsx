@@ -18,7 +18,7 @@ export function Drone1Icon({
 }: Drone1IconProps) {
 
   // 共通staticの画像を /hub/ /map/ に合わせて解決
-  const iconSrc = `${import.meta.env.BASE_URL}_0000_icon_drone1.png`;
+  const iconSrc = `${import.meta.env.BASE_URL}0010_icon_drone1.png`;
   
   return (
     <img

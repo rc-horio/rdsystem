@@ -14,7 +14,7 @@ export function MinusButton({
 }) {
 
   // 共通staticの画像を /hub/ /map/ に合わせて解決
-  const iconSrc = `${import.meta.env.BASE_URL}_0006_icon_minus.png`;
+  const iconSrc = `${import.meta.env.BASE_URL}0007_icon_minus.png`;
   
   return (
     <button

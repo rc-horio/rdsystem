@@ -14,7 +14,7 @@ export function FilterButton({
 }) {
 
   // 共通staticの画像を /hub/ /map/ に合わせて解決
-  const iconSrc = `${import.meta.env.BASE_URL}_0004_icon_filter.png`;
+  const iconSrc = `${import.meta.env.BASE_URL}0005_icon_filter.png`;
   
   return (
     <button

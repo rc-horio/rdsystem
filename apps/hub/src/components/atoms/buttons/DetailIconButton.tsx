@@ -25,7 +25,7 @@ export function DetailIconButton({
   const ICON_CLASS = "h-[70%] w-auto object-contain pointer-events-none";
 
   // 共通staticの画像を /hub/ /map/ に合わせて解決
-  const iconSrc = `${import.meta.env.BASE_URL}_0002_icon_detail.png`;
+  const iconSrc = `${import.meta.env.BASE_URL}0003_icon_detail.png`;
 
   return (
     <button

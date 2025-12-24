@@ -20,8 +20,8 @@ export function ONButton({
 }: Props) {
   const h = typeof height === "number" ? `${height}px` : height;
 
-  const iconSrcMobile = `${import.meta.env.BASE_URL}icon_ON_mobile.png`;
-  const iconSrc = `${import.meta.env.BASE_URL}_0002_icon_ON.png`;
+  const iconSrcMobile = `${import.meta.env.BASE_URL}0002_icon_edit_on_sp.png`;
+  const iconSrc = `${import.meta.env.BASE_URL}0002_icon_edit_on_pc.png`;
   return (
     <button
       onClick={onClick}

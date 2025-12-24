@@ -17,7 +17,7 @@ export function FilterButton({
 }: Props) {
   const h = typeof height === "number" ? `${height}px` : height;
 
-  const iconSrc = `${import.meta.env.BASE_URL}_0004_icon_filter.png`;
+  const iconSrc = `${import.meta.env.BASE_URL}0005_icon_filter.png`;
   
   return (
     <button

@@ -15,8 +15,8 @@ export function OFFButton({
   const ICON_CLASS = "h-full w-auto object-contain pointer-events-none";
 
   // 共通staticの画像を /hub/ /map/ に合わせて解決
-  const iconSrcMobile = `${import.meta.env.BASE_URL}icon_OFF_mobile.png`;
-  const iconSrc = `${import.meta.env.BASE_URL}_0000_Icon_OFF.png`;
+  const iconSrcMobile = `${import.meta.env.BASE_URL}0002_icon_edit_off_sp.png`;
+  const iconSrc = `${import.meta.env.BASE_URL}0002_icon_edit_off_pc.png`;
 
   return (
     <button

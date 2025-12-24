@@ -24,7 +24,7 @@ export function DeleteItemButton({
   const ICON_CLASS = "h-[70%] w-auto object-contain pointer-events-none";
 
   // 共通staticの画像を /hub/ /map/ に合わせて解決
-  const iconSrc = `${import.meta.env.BASE_URL}icon_delete.png`;
+  const iconSrc = `${import.meta.env.BASE_URL}0014_icon_delete.png`;
   
   return (
     <button

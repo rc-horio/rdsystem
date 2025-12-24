@@ -29,11 +29,11 @@ export function SaveButton({
 
   const iconSrc = isInactive
     ? isMobile
-      ? `${import.meta.env.BASE_URL}icon_SAVE_OFF_mobile.png`
-      : `${import.meta.env.BASE_URL}icon_SAVE_OFF.png`
+      ? `${import.meta.env.BASE_URL}0001_icon_save_off_sp.png`
+      : `${import.meta.env.BASE_URL}0001_icon_save_off_pc.png`
     : isMobile
-    ? `${import.meta.env.BASE_URL}icon_SAVE_ON_mobile.png`
-    : `${import.meta.env.BASE_URL}_0001_icon_SAVE.png`;
+    ? `${import.meta.env.BASE_URL}0001_icon_save_on_sp.png`
+    : `${import.meta.env.BASE_URL}0001_icon_save_on_pc.png`;
 
   return (
     <button

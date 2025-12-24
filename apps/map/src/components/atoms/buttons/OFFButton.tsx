@@ -19,8 +19,8 @@ export function OFFButton({
 }: Props) {
   const h = typeof height === "number" ? `${height}px` : height;
 
-  const iconSrcMobile = `${import.meta.env.BASE_URL}icon_OFF_mobile.png`;
-  const iconSrc = `${import.meta.env.BASE_URL}_0000_Icon_OFF.png`;
+  const iconSrcMobile = `${import.meta.env.BASE_URL}0002_icon_edit_off_sp.png`;
+  const iconSrc = `${import.meta.env.BASE_URL}0002_icon_edit_off_pc.png`;
   return (
     <button
       onClick={onClick}

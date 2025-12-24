@@ -34,7 +34,7 @@ export function ScheduleButton({
       tabIndex={tabIndex}
     >
       <img
-        src="/_0000_icon_schedule.png"
+        src="/0013_icon_schedule.png"
         alt="詳細"
         className={ICON_CLASS}
         draggable={false}

@@ -17,7 +17,7 @@ export function HiddenIconButton({
 }: Props) {
   const h = typeof height === "number" ? `${height}px` : height;
 
-  const iconSrc = `${import.meta.env.BASE_URL}_0005_icon_hidden.png`;
+  const iconSrc = `${import.meta.env.BASE_URL}0006_icon_hidden.png`;
 
   return (
     <button

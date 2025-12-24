@@ -19,7 +19,7 @@ export function AddItemButton({
 }: Props) {
   const h = typeof height === "number" ? `${height}px` : height;
 
-  const iconSrc = `${import.meta.env.BASE_URL}_0007_icon_plus.png`;
+  const iconSrc = `${import.meta.env.BASE_URL}0008_icon_plus.png`;
   
   return (
     <button

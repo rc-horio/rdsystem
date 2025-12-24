@@ -11,7 +11,7 @@ export function Drone2Icon({
 }: React.ImgHTMLAttributes<HTMLImageElement>) {
 
   // 共通staticの画像を /hub/ /map/ に合わせて解決
-  const iconSrc = `${import.meta.env.BASE_URL}_0001_icon_drone2.png`;
+  const iconSrc = `${import.meta.env.BASE_URL}0011_icon_drone2.png`;
   
   return (
     <img

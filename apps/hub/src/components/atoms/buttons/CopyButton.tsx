@@ -13,7 +13,7 @@ export function CopyButton({
   title?: string;
 }) {
   // 共通staticの画像を /hub/ /map/ に合わせて解決
-  const iconSrc = `${import.meta.env.BASE_URL}_0001_icon_copy.png`;
+  const iconSrc = `${import.meta.env.BASE_URL}0012_icon_copy.png`;
 
   return (
     <button
