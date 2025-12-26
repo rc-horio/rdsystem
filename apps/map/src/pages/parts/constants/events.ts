@@ -27,7 +27,7 @@ export const EV_ADD_AREA_RESULT_COORDS = "map:add-area-result-coords";
 
 export const ROTATE_HANDLE_GAP_M = 5;
 
-export const SELECT_ZOOM_DESKTOP = 10;
+export const SELECT_ZOOM_DESKTOP = 17;
 export const SELECT_ZOOM_MOBILE = 13;
 
 export const MIN_ZOOM_DELTA_TO_CHANGE = 0.75;

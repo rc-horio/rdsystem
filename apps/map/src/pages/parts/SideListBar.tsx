@@ -1264,11 +1264,18 @@ function SideListBarBase({
                       onClick={async () => {
                         try {
                           const coords = await requestPlaceCoords(r.placeId);
-                          console.log("[add-area] selected:", {
-                            placeId: r.placeId,
-                            label: r.label,
-                            ...coords,
-                          });
+                          if (!coords) return;
+
+                          // 既存③へ統合（useAddAreaMode に渡す）
+                          window.dispatchEvent(
+                            new CustomEvent("map:add-area-picked", {
+                              detail: {
+                                lat: coords.lat,
+                                lng: coords.lng,
+                                label: r.label, // 「表示名/住所」をそのまま候補として渡す
+                              },
+                            })
+                          );
                         } catch (e) {
                           console.warn(
                             "[add-area] failed to resolve coords:",
@@ -1282,11 +1289,18 @@ function SideListBarBase({
                           e.preventDefault();
                           try {
                             const coords = await requestPlaceCoords(r.placeId);
-                            console.log("[add-area] selected:", {
-                              placeId: r.placeId,
-                              label: r.label,
-                              ...coords,
-                            });
+                            if (!coords) return;
+
+                            // 既存③へ統合（useAddAreaMode に渡す）
+                            window.dispatchEvent(
+                              new CustomEvent("map:add-area-picked", {
+                                detail: {
+                                  lat: coords.lat,
+                                  lng: coords.lng,
+                                  label: r.label, // 「表示名/住所」をそのまま候補として渡す
+                                },
+                              })
+                            );
                           } catch (err) {
                             console.warn(
                               "[add-area] failed to resolve coords:",

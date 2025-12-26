@@ -718,6 +718,7 @@ export default function MapView({ onLoaded }: Props) {
       }
     };
 
+    /** マーカーを選択した場合に地図を寄せる */
     const focusMapOnMarker = (
       mk: google.maps.Marker,
       opts?: { zoomTarget?: number; onlyPanIfClose?: boolean }

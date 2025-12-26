@@ -1,5 +1,6 @@
 // src/pages/parts/hook/useAddAreaMode.ts
 import { useEffect, useRef, useState } from "react";
+import { SELECT_ZOOM_DESKTOP, SELECT_ZOOM_MOBILE } from "../../pages/parts/constants/events";
 
 type Draft = {
     lat: number;
@@ -146,6 +147,23 @@ export function useAddAreaMode(
         addAreaConfirmInfoRef.current.open(map);
     };
 
+    /** 地図を寄せる */
+    const zoomTo = (latLng: google.maps.LatLng) => {
+        const map = mapRef.current;
+        if (!map) return;
+
+        map.panTo(latLng);
+
+        const target = window.matchMedia?.("(max-width: 767px)").matches
+            ? SELECT_ZOOM_MOBILE
+            : SELECT_ZOOM_DESKTOP;
+
+        // 少し遅らせると pan → zoom が自然になります
+        window.setTimeout(() => {
+            map.setZoom(target);
+        }, 120);
+    };
+
     /** 「エリア追加モード開始」イベント */
     useEffect(() => {
         const onStartAddArea = () => {
@@ -195,32 +213,23 @@ export function useAddAreaMode(
         const map = mapRef.current;
         if (!map) return;
 
-        const listener = map.addListener(
-            "click",
-            async (e: google.maps.MapMouseEvent) => {
-                const latLng = e.latLng;
-                if (!latLng) return;
-                if (!addingAreaModeRef.current) return;
+        const listener = map.addListener("click", async (e: google.maps.MapMouseEvent) => {
+            const latLng = e.latLng;
+            if (!latLng) return;
+            if (!addingAreaModeRef.current) return;
 
-                const lat = latLng.lat();
-                const lng = latLng.lng();
+            // ★追加：選択地点へズーム
+            zoomTo(latLng);
 
-                const { prefecture, address } = await reverseGeocodePrefecture(
-                    lat,
-                    lng
-                );
+            const lat = latLng.lat();
+            const lng = latLng.lng();
 
-                console.log("[map] clicked point:", {
-                    lat,
-                    lng,
-                    prefecture,
-                    address,
-                });
+            const { prefecture, address } = await reverseGeocodePrefecture(lat, lng);
 
-                const draft = { lat, lng, prefecture, address };
-                openAddAreaConfirm(latLng, draft);
-            }
-        );
+            const draft = { lat, lng, prefecture, address };
+            openAddAreaConfirm(latLng, draft);
+        });
+
 
         return () => {
             listener.remove();
@@ -235,6 +244,41 @@ export function useAddAreaMode(
             })
         );
     }, [addingAreaMode]);
+
+    /** 検索結果を選択した場合の座標を取得 */
+    useEffect(() => {
+        const onPicked = async (e: Event) => {
+            const d = (e as CustomEvent<{ lat?: number; lng?: number; label?: string | null }>).detail || {};
+            const lat = d.lat;
+            const lng = d.lng;
+            if (typeof lat !== "number" || typeof lng !== "number") return;
+
+            const map = mapRef.current;
+            if (!map) return;
+
+            if (!addingAreaModeRef.current) return;
+
+            const gmaps = getGMaps();
+            const latLng = new gmaps.LatLng(lat, lng);
+
+            // ★追加：選択地点へズーム
+            zoomTo(latLng);
+
+            const { prefecture, address } = await reverseGeocodePrefecture(lat, lng);
+            const draft = {
+                lat,
+                lng,
+                prefecture,
+                address: (d.label?.trim() || address) ?? null,
+            };
+
+            openAddAreaConfirm(latLng, draft);
+        };
+
+        window.addEventListener("map:add-area-picked", onPicked as EventListener);
+        return () =>
+            window.removeEventListener("map:add-area-picked", onPicked as EventListener);
+    }, [mapRef]);
 
     return {
         addingAreaMode,
