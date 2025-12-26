@@ -47,7 +47,21 @@ import {
   EV_GEOMETRY_RESPOND_DATA,
   EV_PROJECT_MODAL_SUBMIT,
   EV_DETAILBAR_REQUEST_DATA,
+  ADD_AREA_EMPTY_MESSAGE,
+  ADD_AREA_ERROR_MESSAGE,
 } from "./constants/events";
+
+type AddAreaSearchStatus = "idle" | "ok" | "empty" | "error";
+type AddAreaSearchResult = {
+  placeId: string;
+  label: string;
+};
+
+type AddAreaSearchEventDetail = {
+  status?: "ok" | "empty" | "error";
+  results?: AddAreaSearchResult[];
+  message?: string | null;
+};
 
 // サイドバーの基本コンポーネント
 function SideListBarBase({
@@ -82,8 +96,17 @@ function SideListBarBase({
 
   // エリア追加モードの状態
   const [isAddAreaMode, setIsAddAreaMode] = useState(false);
+  // エリア追加モード時の検索クエリ
   const [addAreaSearchQuery, setAddAreaSearchQuery] = useState("");
-
+  // エリア追加モード時の検索結果
+  const [addAreaSearchResults, setAddAreaSearchResults] = useState<
+    AddAreaSearchResult[]
+  >([]);
+  const [addAreaSearchStatus, setAddAreaSearchStatus] =
+    useState<AddAreaSearchStatus>("idle");
+  const [addAreaSearchMessage, setAddAreaSearchMessage] = useState<
+    string | null
+  >(null);
   // 検索クエリ state
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -523,7 +546,7 @@ function SideListBarBase({
           onRespond as EventListener,
           { once: true }
         );
-        window.dispatchEvent(new Event("detailbar:request-data"));
+        window.dispatchEvent(new Event(EV_DETAILBAR_REQUEST_DATA));
         timer = window.setTimeout(() => {
           window.removeEventListener(
             EV_DETAILBAR_RESPOND_DATA,
@@ -979,7 +1002,7 @@ function SideListBarBase({
       );
   }, []);
 
-  // エリア追加モードの状態を受け取る
+  // モードOFFでリセット
   useEffect(() => {
     const onModeChange = (e: Event) => {
       const d = (e as CustomEvent<{ active?: boolean }>).detail;
@@ -988,6 +1011,9 @@ function SideListBarBase({
 
       if (!active) {
         setAddAreaSearchQuery("");
+        setAddAreaSearchResults([]);
+        setAddAreaSearchStatus("idle");
+        setAddAreaSearchMessage(null);
       }
     };
 
@@ -1002,21 +1028,38 @@ function SideListBarBase({
       );
   }, []);
 
-  // エリア追加モードの状態を受け取る
+  // エリア追加モード時の検索結果を受け取る
   useEffect(() => {
-    const onModeChange = (e: Event) => {
-      const d = (e as CustomEvent<{ active?: boolean }>).detail;
-      setIsAddAreaMode(!!d?.active);
+    const onResult = (e: Event) => {
+      const d = (e as CustomEvent<AddAreaSearchEventDetail>).detail || {};
+      const results = Array.isArray(d.results) ? d.results : [];
+      const status = d.status ?? (results.length > 0 ? "ok" : "empty");
+
+      setAddAreaSearchResults(results);
+
+      if (status === "error") {
+        setAddAreaSearchStatus("error");
+        setAddAreaSearchMessage(d.message ?? ADD_AREA_ERROR_MESSAGE);
+        return;
+      }
+      if (status === "empty") {
+        setAddAreaSearchStatus("empty");
+        setAddAreaSearchMessage(d.message ?? ADD_AREA_EMPTY_MESSAGE);
+        return;
+      }
+
+      setAddAreaSearchStatus("ok");
+      setAddAreaSearchMessage(null);
     };
 
     window.addEventListener(
-      "map:add-area-mode-changed",
-      onModeChange as EventListener
+      "map:add-area-search-result",
+      onResult as EventListener
     );
     return () =>
       window.removeEventListener(
-        "map:add-area-mode-changed",
-        onModeChange as EventListener
+        "map:add-area-search-result",
+        onResult as EventListener
       );
   }, []);
 
@@ -1119,6 +1162,9 @@ function SideListBarBase({
                 if (e.key === "Enter") {
                   e.preventDefault();
                   submitAddAreaSearch();
+                } else if (e.key === "Escape") {
+                  e.preventDefault();
+                  window.dispatchEvent(new Event("map:cancel-add-area"));
                 }
               }}
             />
@@ -1129,6 +1175,56 @@ function SideListBarBase({
             >
               検索
             </button>
+          </div>
+          <div className="sidebar-add-area-search-results">
+            {addAreaSearchStatus === "idle" && (
+              <div className="location-empty" aria-live="polite">
+                検索すると候補が表示されます。
+              </div>
+            )}
+
+            {addAreaSearchStatus === "error" && (
+              <div className="location-empty" aria-live="polite">
+                {addAreaSearchMessage}
+              </div>
+            )}
+
+            {addAreaSearchStatus === "empty" && (
+              <div className="location-empty" aria-live="polite">
+                {addAreaSearchMessage}
+              </div>
+            )}
+
+            {addAreaSearchStatus === "ok" &&
+              addAreaSearchResults.length > 0 && (
+                <ul className="no-caret">
+                  {addAreaSearchResults.map((r) => (
+                    <li
+                      key={r.placeId}
+                      className="location-item"
+                      tabIndex={0}
+                      role="button"
+                      onClick={() => {
+                        console.debug(
+                          "[add-area] selected result (not implemented)",
+                          r
+                        );
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          console.debug(
+                            "[add-area] selected result (not implemented)",
+                            r
+                          );
+                        }
+                      }}
+                    >
+                      <span className="location-item__label">{r.label}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
           </div>
         </div>
       )}
@@ -1212,7 +1308,10 @@ function SideListBarBase({
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
                             e.preventDefault();
-                            submitAddAreaSearch();
+                            commitEditAreaName();
+                          } else if (e.key === "Escape") {
+                            e.preventDefault();
+                            cancelEditAreaName();
                           }
                         }}
                       />

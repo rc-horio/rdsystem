@@ -39,9 +39,17 @@ import {
   MARKERS_HIDE_ZOOM,
   DEFAULTS,
   EV_PROJECT_MODAL_OPEN,
+  ADD_AREA_EMPTY_MESSAGE,
+  ADD_AREA_ERROR_MESSAGE,
+  EV_DETAILBAR_SELECT_CANDIDATE,
 } from "./constants/events";
 import { AddAreaModal } from "./AddAreaModal";
 import { RegisterProjectModal } from "./RegisterProjectModal";
+
+type AddAreaSearchResult = {
+  placeId: string;
+  label: string; // 表示用（name / formatted_address）
+};
 
 /** =========================
  *  Component
@@ -289,15 +297,92 @@ export default function MapView({ onLoaded }: Props) {
     };
 
     window.addEventListener(
-      "detailbar:select-candidate", // ← EV_DETAILBAR_SELECT_CANDIDATE の実値に合わせてください
+      EV_DETAILBAR_SELECT_CANDIDATE,
       onSelectCandidate as EventListener
     );
-    return () => {
+    return () =>
       window.removeEventListener(
-        "detailbar:select-candidate",
+        EV_DETAILBAR_SELECT_CANDIDATE,
         onSelectCandidate as EventListener
       );
+  }, []);
+
+  useEffect(() => {
+    const onSearch = (e: Event) => {
+      const q =
+        (e as CustomEvent<{ query?: string }>).detail?.query?.trim() ?? "";
+      if (!q) return;
+
+      const map = mapRef.current;
+      if (!map) return;
+
+      const gmaps = getGMaps();
+
+      // PlacesService は Map インスタンスが必要
+      const service = new gmaps.places.PlacesService(map);
+
+      service.textSearch({ query: q, region: "JP" }, (results, status) => {
+        // status が OK 以外 = エラー
+        if (status !== gmaps.places.PlacesServiceStatus.OK) {
+          window.dispatchEvent(
+            new CustomEvent("map:add-area-search-result", {
+              detail: {
+                status: "error" as const,
+                results: [],
+                message: ADD_AREA_ERROR_MESSAGE,
+              },
+            })
+          );
+          return;
+        }
+
+        // OK だが 0件 = 空結果
+        if (!results || results.length === 0) {
+          window.dispatchEvent(
+            new CustomEvent("map:add-area-search-result", {
+              detail: {
+                status: "empty" as const,
+                results: [],
+                message: ADD_AREA_EMPTY_MESSAGE,
+              },
+            })
+          );
+          return;
+        }
+
+        // 10件に制限（既存）
+        const formatted: AddAreaSearchResult[] = results
+          .slice(0, 10)
+          .flatMap((r) => {
+            const placeId = r.place_id;
+            if (!placeId) return [];
+            const name = typeof r.name === "string" ? r.name : "";
+            const addr =
+              typeof (r as any).formatted_address === "string"
+                ? (r as any).formatted_address
+                : "";
+            const label = `${name}${addr ? " / " + addr : ""}`.trim();
+            return [{ placeId, label: label || "(名称不明)" }];
+          });
+
+        window.dispatchEvent(
+          new CustomEvent("map:add-area-search-result", {
+            detail: {
+              status: "ok" as const,
+              results: formatted,
+              message: null,
+            },
+          })
+        );
+      });
     };
+
+    window.addEventListener("map:search-add-area", onSearch as EventListener);
+    return () =>
+      window.removeEventListener(
+        "map:search-add-area",
+        onSearch as EventListener
+      );
   }, []);
 
   const candidateGeomMissingRef = useRef(false);
@@ -765,7 +850,7 @@ export default function MapView({ onLoaded }: Props) {
       const loader = new Loader({
         apiKey,
         version: "weekly",
-        libraries: ["geometry", "marker"],
+        libraries: ["geometry", "marker", "places"],
       });
       await loader.load();
       if (cancelled) return;

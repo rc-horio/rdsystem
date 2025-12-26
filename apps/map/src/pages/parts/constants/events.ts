@@ -87,3 +87,10 @@ export const DEFAULTS = {
     takeoff: { w: 100, h: 20, rot: 180, offsetX: 0, offsetY: -180 },
     audience: { w: 100, h: 20, rot: 0, offsetX: 0, offsetY: 200 },
 } as const;
+
+export const ADD_AREA_EMPTY_MESSAGE =
+    "該当する候補がありません。住所（例：舞浜 / 東京都浦安市）で再検索してください。";
+
+export const ADD_AREA_ERROR_MESSAGE =
+    "検索に失敗しました。時間を置いて再試行してください。";
+
