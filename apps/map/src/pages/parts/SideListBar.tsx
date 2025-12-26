@@ -49,6 +49,8 @@ import {
   EV_DETAILBAR_REQUEST_DATA,
   ADD_AREA_EMPTY_MESSAGE,
   ADD_AREA_ERROR_MESSAGE,
+  EV_ADD_AREA_SELECT_RESULT,
+  EV_ADD_AREA_RESULT_COORDS,
 } from "./constants/events";
 
 type AddAreaSearchStatus = "idle" | "ok" | "empty" | "error";
@@ -109,6 +111,73 @@ function SideListBarBase({
   >(null);
   // 検索クエリ state
   const [searchQuery, setSearchQuery] = useState("");
+  // エリア追加モード時の検索を送信
+  const submitAddAreaSearch = () => {
+    const q = addAreaSearchQuery.trim();
+    if (!q) return;
+
+    window.dispatchEvent(
+      new CustomEvent("map:search-add-area", {
+        detail: { query: q },
+      })
+    );
+  };
+
+  // placeId から座標を取得（MapView に問い合わせ）
+  const requestPlaceCoords = async (
+    placeId: string
+  ): Promise<{ lat: number; lng: number } | null> => {
+    const coords = await new Promise<{ lat: number; lng: number } | null>(
+      (resolve, reject) => {
+        let timer: number | null = null;
+
+        const onResp = (e: Event) => {
+          const d =
+            (
+              e as CustomEvent<{
+                placeId?: string;
+                lat?: number;
+                lng?: number;
+              }>
+            ).detail || {};
+
+          // 別リクエストの応答を拾わない
+          if (d.placeId !== placeId) return;
+
+          window.removeEventListener(
+            EV_ADD_AREA_RESULT_COORDS,
+            onResp as EventListener
+          );
+          if (timer != null) window.clearTimeout(timer);
+
+          if (typeof d.lat === "number" && typeof d.lng === "number") {
+            resolve({ lat: d.lat, lng: d.lng });
+          } else {
+            resolve(null);
+          }
+        };
+
+        window.addEventListener(
+          EV_ADD_AREA_RESULT_COORDS,
+          onResp as EventListener
+        );
+
+        window.dispatchEvent(
+          new CustomEvent(EV_ADD_AREA_SELECT_RESULT, { detail: { placeId } })
+        );
+
+        timer = window.setTimeout(() => {
+          window.removeEventListener(
+            EV_ADD_AREA_RESULT_COORDS,
+            onResp as EventListener
+          );
+          reject(new Error("map からの座標応答がありません"));
+        }, 1500);
+      }
+    );
+
+    return coords;
+  };
 
   // 案件紐づけモーダルで選ばれた「案件・スケジュール」を保持
   const pendingProjectLinkRef = useRef<{
@@ -1075,18 +1144,6 @@ function SideListBarBase({
     });
   }, [areaGroups, searchQuery, areaLabelOverrides]);
 
-  // エリア追加モード時の検索を送信
-  const submitAddAreaSearch = () => {
-    const q = addAreaSearchQuery.trim();
-    if (!q) return;
-
-    window.dispatchEvent(
-      new CustomEvent("map:search-add-area", {
-        detail: { query: q },
-      })
-    );
-  };
-
   return (
     <div id="sidebar" ref={rootRef} role="complementary" aria-label="Sidebar">
       <div className="mb-3">
@@ -1204,19 +1261,39 @@ function SideListBarBase({
                       className="location-item"
                       tabIndex={0}
                       role="button"
-                      onClick={() => {
-                        console.debug(
-                          "[add-area] selected result (not implemented)",
-                          r
-                        );
+                      onClick={async () => {
+                        try {
+                          const coords = await requestPlaceCoords(r.placeId);
+                          console.log("[add-area] selected:", {
+                            placeId: r.placeId,
+                            label: r.label,
+                            ...coords,
+                          });
+                        } catch (e) {
+                          console.warn(
+                            "[add-area] failed to resolve coords:",
+                            r,
+                            e
+                          );
+                        }
                       }}
-                      onKeyDown={(e) => {
+                      onKeyDown={async (e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          console.debug(
-                            "[add-area] selected result (not implemented)",
-                            r
-                          );
+                          try {
+                            const coords = await requestPlaceCoords(r.placeId);
+                            console.log("[add-area] selected:", {
+                              placeId: r.placeId,
+                              label: r.label,
+                              ...coords,
+                            });
+                          } catch (err) {
+                            console.warn(
+                              "[add-area] failed to resolve coords:",
+                              r,
+                              err
+                            );
+                          }
                         }
                       }}
                     >

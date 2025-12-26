@@ -42,6 +42,8 @@ import {
   ADD_AREA_EMPTY_MESSAGE,
   ADD_AREA_ERROR_MESSAGE,
   EV_DETAILBAR_SELECT_CANDIDATE,
+  EV_ADD_AREA_SELECT_RESULT,
+  EV_ADD_AREA_RESULT_COORDS,
 } from "./constants/events";
 import { AddAreaModal } from "./AddAreaModal";
 import { RegisterProjectModal } from "./RegisterProjectModal";
@@ -307,8 +309,9 @@ export default function MapView({ onLoaded }: Props) {
       );
   }, []);
 
+  // エリア追加モード時の検索を送信
   useEffect(() => {
-    const onSearch = (e: Event) => {
+    const onSearch = async (e: Event) => {
       const q =
         (e as CustomEvent<{ query?: string }>).detail?.query?.trim() ?? "";
       if (!q) return;
@@ -316,28 +319,25 @@ export default function MapView({ onLoaded }: Props) {
       const map = mapRef.current;
       if (!map) return;
 
-      const gmaps = getGMaps();
+      try {
+        const gmaps = getGMaps();
+        const { Place } = (await gmaps.importLibrary(
+          "places"
+        )) as google.maps.PlacesLibrary;
 
-      // PlacesService は Map インスタンスが必要
-      const service = new gmaps.places.PlacesService(map);
+        const req = {
+          textQuery: q,
+          region: "JP",
+          language: "ja",
+          maxResultCount: 10,
+          // 任意：地図中心付近を優先（要件に合わせて調整）
+          locationBias: map.getCenter() ?? undefined,
+          fields: ["displayName", "formattedAddress"],
+        };
 
-      service.textSearch({ query: q, region: "JP" }, (results, status) => {
-        // status が OK 以外 = エラー
-        if (status !== gmaps.places.PlacesServiceStatus.OK) {
-          window.dispatchEvent(
-            new CustomEvent("map:add-area-search-result", {
-              detail: {
-                status: "error" as const,
-                results: [],
-                message: ADD_AREA_ERROR_MESSAGE,
-              },
-            })
-          );
-          return;
-        }
+        const { places } = await Place.searchByText(req);
 
-        // OK だが 0件 = 空結果
-        if (!results || results.length === 0) {
+        if (!places || places.length === 0) {
           window.dispatchEvent(
             new CustomEvent("map:add-area-search-result", {
               detail: {
@@ -350,18 +350,17 @@ export default function MapView({ onLoaded }: Props) {
           return;
         }
 
-        // 10件に制限（既存）
-        const formatted: AddAreaSearchResult[] = results
+        const formatted: AddAreaSearchResult[] = places
           .slice(0, 10)
-          .flatMap((r) => {
-            const placeId = r.place_id;
+          .flatMap((p) => {
+            const placeId = p.id;
             if (!placeId) return [];
-            const name = typeof r.name === "string" ? r.name : "";
+
+            const name = typeof p.displayName === "string" ? p.displayName : "";
             const addr =
-              typeof (r as any).formatted_address === "string"
-                ? (r as any).formatted_address
-                : "";
+              typeof p.formattedAddress === "string" ? p.formattedAddress : "";
             const label = `${name}${addr ? " / " + addr : ""}`.trim();
+
             return [{ placeId, label: label || "(名称不明)" }];
           });
 
@@ -374,7 +373,18 @@ export default function MapView({ onLoaded }: Props) {
             },
           })
         );
-      });
+      } catch (err) {
+        console.warn("[add-area] Place.searchByText failed:", err);
+        window.dispatchEvent(
+          new CustomEvent("map:add-area-search-result", {
+            detail: {
+              status: "error" as const,
+              results: [],
+              message: ADD_AREA_ERROR_MESSAGE,
+            },
+          })
+        );
+      }
     };
 
     window.addEventListener("map:search-add-area", onSearch as EventListener);
@@ -382,6 +392,65 @@ export default function MapView({ onLoaded }: Props) {
       window.removeEventListener(
         "map:search-add-area",
         onSearch as EventListener
+      );
+  }, []);
+
+  // 検索結果を選択した場合の座標を取得
+  useEffect(() => {
+    const onSelectResult = async (e: Event) => {
+      const placeId =
+        (e as CustomEvent<{ placeId?: string }>).detail?.placeId ?? "";
+      if (!placeId) return;
+
+      const map = mapRef.current;
+      if (!map) return;
+
+      try {
+        const gmaps = getGMaps();
+        const { Place } = (await gmaps.importLibrary(
+          "places"
+        )) as google.maps.PlacesLibrary;
+
+        const place = new Place({ id: placeId });
+
+        // geometry ではなく location を取る（Place の新API）
+        await place.fetchFields({ fields: ["location"] });
+
+        const loc = place.location;
+        if (!loc) {
+          console.warn("[add-area] location missing:", { placeId });
+          window.dispatchEvent(
+            new CustomEvent(EV_ADD_AREA_RESULT_COORDS, { detail: { placeId } })
+          );
+          return;
+        }
+
+        const lat = loc.lat();
+        const lng = loc.lng();
+
+        console.log("[add-area] resolved coords:", { placeId, lat, lng });
+
+        window.dispatchEvent(
+          new CustomEvent(EV_ADD_AREA_RESULT_COORDS, {
+            detail: { placeId, lat, lng },
+          })
+        );
+      } catch (err) {
+        console.warn("[add-area] Place.fetchFields failed:", { placeId, err });
+        window.dispatchEvent(
+          new CustomEvent(EV_ADD_AREA_RESULT_COORDS, { detail: { placeId } })
+        );
+      }
+    };
+
+    window.addEventListener(
+      EV_ADD_AREA_SELECT_RESULT,
+      onSelectResult as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        EV_ADD_AREA_SELECT_RESULT,
+        onSelectResult as EventListener
       );
   }, []);
 

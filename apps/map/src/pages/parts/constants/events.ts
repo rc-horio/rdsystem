@@ -22,6 +22,8 @@ export const EV_DETAILBAR_APPLY_METRICS = "detailbar:apply-metrics";
 
 export const EV_PROJECT_MODAL_OPEN = "project:open-modal";
 export const EV_PROJECT_MODAL_SUBMIT = "project-modal:submit";
+export const EV_ADD_AREA_SELECT_RESULT = "map:add-area-select-result";
+export const EV_ADD_AREA_RESULT_COORDS = "map:add-area-result-coords";
 
 export const ROTATE_HANDLE_GAP_M = 5;
 
