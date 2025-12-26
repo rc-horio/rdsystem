@@ -33,7 +33,14 @@ export function useAddAreaMode(
         setAddingAreaMode(false);
         resetDraft();
         addAreaConfirmInfoRef.current?.close();
+
+        window.dispatchEvent(
+            new CustomEvent("map:add-area-mode-changed", {
+                detail: { active: false },
+            })
+        );
     };
+
 
     /** クリックした座標から住所＋都道府県を取得 */
     const reverseGeocodePrefecture = async (
@@ -219,6 +226,15 @@ export function useAddAreaMode(
             listener.remove();
         };
     }, [mapRef, addingAreaMode]);
+
+    /** エリア追加モードの状態を外部に通知 */
+    useEffect(() => {
+        window.dispatchEvent(
+            new CustomEvent("map:add-area-mode-changed", {
+                detail: { active: addingAreaMode }
+            })
+        );
+    }, [addingAreaMode]);
 
     return {
         addingAreaMode,

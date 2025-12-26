@@ -145,6 +145,15 @@ export default function MapView({ onLoaded }: Props) {
     info.open({ map, anchor: marker });
   }, [editable, addingAreaMode]);
 
+  /** エリア追加モードをキャンセル */
+  useEffect(() => {
+    const onCancel = () => {
+      cancelAddMode();
+    };
+    window.addEventListener("map:cancel-add-area", onCancel);
+    return () => window.removeEventListener("map:cancel-add-area", onCancel);
+  }, [cancelAddMode]);
+
   /** 新規エリア作成完了トーストを一定時間表示 */
   const notifyAreaCreated = () => {
     // 既存タイマーがあればクリア
@@ -948,12 +957,12 @@ export default function MapView({ onLoaded }: Props) {
     if (!editable) return;
 
     const handleDocumentClickForAddArea = (e: MouseEvent) => {
-      // 追加モードでなければ何もしない
       if (!addingAreaMode) return;
 
       const target = e.target as Node | null;
       const mapEl = mapDivRef.current;
       const hintLayer = document.querySelector(".add-area-hint-layer");
+      const sidebarEl = document.getElementById("sidebar");
 
       const clickedInsideMap = !!(mapEl && target && mapEl.contains(target));
       const clickedInsideHint = !!(
@@ -961,16 +970,19 @@ export default function MapView({ onLoaded }: Props) {
         target &&
         hintLayer.contains(target)
       );
+      const clickedInsideSidebar = !!(
+        sidebarEl &&
+        target &&
+        sidebarEl.contains(target)
+      );
 
-      // マップ上の座標（map要素）でもヒントレイヤー内でもない → 追加モードを終了
-      if (!clickedInsideMap && !clickedInsideHint) {
+      // 地図・ヒント・サイドバー以外をクリックしたらキャンセル
+      if (!clickedInsideMap && !clickedInsideHint && !clickedInsideSidebar) {
         cancelAddMode();
       }
     };
 
-    // キャプチャフェーズで拾う（他のハンドラより前に動かしたいので true）
     document.addEventListener("click", handleDocumentClickForAddArea, true);
-
     return () => {
       document.removeEventListener(
         "click",
@@ -1105,22 +1117,6 @@ export default function MapView({ onLoaded }: Props) {
   return (
     <div className="map-page app-fullscreen">
       <div id="map" ref={mapDivRef} />
-      {editable && addingAreaMode && (
-        <div className="add-area-hint-layer">
-          <div className="add-area-hint" aria-live="polite">
-            <span className="add-area-hint__text">
-              追加したいエリアを地図上でクリックして選択してください
-            </span>
-            <button
-              type="button"
-              className="add-area-hint__cancel"
-              onClick={cancelAddMode}
-            >
-              キャンセル
-            </button>
-          </div>
-        </div>
-      )}
       {/* 座標変更モード中のヒント */}
       {editable && isChangingPosition && (
         <div className="add-area-hint-layer">

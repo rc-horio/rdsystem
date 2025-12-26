@@ -80,6 +80,10 @@ function SideListBarBase({
   const currentCandidateIndexRef = useRef<number | null>(null);
   const currentCandidateTitleRef = useRef<string | undefined>(undefined);
 
+  // エリア追加モードの状態
+  const [isAddAreaMode, setIsAddAreaMode] = useState(false);
+  const [addAreaSearchQuery, setAddAreaSearchQuery] = useState("");
+
   // 検索クエリ state
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -975,6 +979,47 @@ function SideListBarBase({
       );
   }, []);
 
+  // エリア追加モードの状態を受け取る
+  useEffect(() => {
+    const onModeChange = (e: Event) => {
+      const d = (e as CustomEvent<{ active?: boolean }>).detail;
+      const active = !!d?.active;
+      setIsAddAreaMode(active);
+
+      if (!active) {
+        setAddAreaSearchQuery("");
+      }
+    };
+
+    window.addEventListener(
+      "map:add-area-mode-changed",
+      onModeChange as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        "map:add-area-mode-changed",
+        onModeChange as EventListener
+      );
+  }, []);
+
+  // エリア追加モードの状態を受け取る
+  useEffect(() => {
+    const onModeChange = (e: Event) => {
+      const d = (e as CustomEvent<{ active?: boolean }>).detail;
+      setIsAddAreaMode(!!d?.active);
+    };
+
+    window.addEventListener(
+      "map:add-area-mode-changed",
+      onModeChange as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        "map:add-area-mode-changed",
+        onModeChange as EventListener
+      );
+  }, []);
+
   // 表示する areaGroups をフィルタする
   const visibleAreaGroups = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -987,13 +1032,25 @@ function SideListBarBase({
     });
   }, [areaGroups, searchQuery, areaLabelOverrides]);
 
+  // エリア追加モード時の検索を送信
+  const submitAddAreaSearch = () => {
+    const q = addAreaSearchQuery.trim();
+    if (!q) return;
+
+    window.dispatchEvent(
+      new CustomEvent("map:search-add-area", {
+        detail: { query: q },
+      })
+    );
+  };
+
   return (
     <div id="sidebar" ref={rootRef} role="complementary" aria-label="Sidebar">
       <div className="mb-3">
         <LogoButton size={70} />
       </div>
 
-      {/* toolbar は上部に残す（元の位置に近い） */}
+      {/* toolbar */}
       <div
         className="toolbar no-caret"
         contentEditable={false}
@@ -1012,6 +1069,7 @@ function SideListBarBase({
         </div>
       </div>
 
+      {/* エリア追加ボタン */}
       {isOn && (
         <button
           type="button"
@@ -1027,97 +1085,138 @@ function SideListBarBase({
             window.dispatchEvent(new Event("map:start-add-area"));
           }}
         >
-          <span className="add-icon">＋ </span>エリアを追加する
+          <span className="add-icon">＋ </span>
+          エリアを追加する
         </button>
       )}
 
-      {/* ここに検索を移動（ボタンと一覧の間） */}
-      <div id="searchWrap" role="search" aria-label="Search markers">
-        <div className="search-field">
-          <label htmlFor="searchBox" className="sr-only">
-            Search markers
-          </label>
-          <input
-            id="searchBox"
-            type="text"
-            placeholder="エリア名を検索"
-            autoComplete="off"
-            inputMode="search"
-            aria-describedby="searchHint"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+      {isOn && isAddAreaMode && (
+        <div className="sidebar-add-area-panel">
+          {/* ヒント */}
+          <div className="sidebar-add-area-hint" aria-live="polite">
+            <div className="hint-text">
+              追加したいエリアを地図上でクリックするか、名称・住所で検索してください。
+            </div>
+            <button
+              type="button"
+              className="hint-cancel"
+              onClick={() => {
+                window.dispatchEvent(new Event("map:cancel-add-area"));
+              }}
+            >
+              キャンセル
+            </button>
+          </div>
+
+          {/* 検索 */}
+          <div className="sidebar-add-area-search" role="search">
+            <input
+              type="text"
+              placeholder="地名・施設名・住所で検索"
+              value={addAreaSearchQuery}
+              onChange={(e) => setAddAreaSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  submitAddAreaSearch();
+                }
+              }}
+            />
+            <button
+              type="button"
+              disabled={!addAreaSearchQuery.trim()}
+              onClick={submitAddAreaSearch}
+            >
+              検索
+            </button>
+          </div>
         </div>
-        <div id="searchHint" aria-live="polite" />
-      </div>
+      )}
 
-      {/* エリア名（重複集約） */}
-      <ul id="locationList" className="no-caret">
-        {visibleAreaGroups.filter(({ area }) => !deletedAreas.has(area))
-          .length === 0 ? (
-          <li className="location-empty" aria-live="polite">
-            該当するエリアはありません
-          </li>
-        ) : (
-          visibleAreaGroups
-            .filter(({ area }) => !deletedAreas.has(area))
-            .map(({ area, indices }) => {
-              const isActive = activeKey === area;
-              const displayLabel = areaLabelOverrides[area] ?? area;
+      {/* 通常検索（エリア追加モードでは非表示） */}
+      {!isAddAreaMode && (
+        <div id="searchWrap" role="search" aria-label="Search markers">
+          <div className="search-field">
+            <label htmlFor="searchBox" className="sr-only">
+              Search markers
+            </label>
+            <input
+              id="searchBox"
+              type="text"
+              placeholder="エリア名を検索"
+              autoComplete="off"
+              inputMode="search"
+              aria-describedby="searchHint"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div id="searchHint" aria-live="polite" />
+        </div>
+      )}
 
-              return (
-                <li
-                  key={area}
-                  data-indices={indices.join(",")}
-                  data-area={area}
-                  className={isActive ? "active" : undefined}
-                  onClick={(e) => {
-                    if (editingAreaKey === area) return;
-                    if (isOn && e.detail === 2) {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      beginEditAreaName(area);
-                      return;
-                    }
-                    activateArea(area);
-                  }}
-                  onKeyDown={(e) => {
-                    if (editingAreaKey === area) {
-                      if (e.key === "Escape") {
+      {/* エリア一覧（エリア追加モードでは非表示） */}
+      {!isAddAreaMode && (
+        <ul id="locationList" className="no-caret">
+          {visibleAreaGroups.filter(({ area }) => !deletedAreas.has(area))
+            .length === 0 ? (
+            <li className="location-empty" aria-live="polite">
+              該当するエリアはありません
+            </li>
+          ) : (
+            visibleAreaGroups
+              .filter(({ area }) => !deletedAreas.has(area))
+              .map(({ area, indices }) => {
+                const isActive = activeKey === area;
+                const displayLabel = areaLabelOverrides[area] ?? area;
+
+                return (
+                  <li
+                    key={area}
+                    data-indices={indices.join(",")}
+                    data-area={area}
+                    className={isActive ? "active" : undefined}
+                    onClick={(e) => {
+                      if (editingAreaKey === area) return;
+                      if (isOn && e.detail === 2) {
                         e.preventDefault();
-                        cancelEditAreaName();
+                        e.stopPropagation();
+                        beginEditAreaName(area);
+                        return;
                       }
-                      return;
-                    }
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
                       activateArea(area);
-                    }
-                  }}
-                >
-                  {/* ここから下は既存の li 中身をそのまま */}
-                  {editingAreaKey === area ? (
-                    <input
-                      ref={editingInputRef}
-                      type="text"
-                      value={editingTempName}
-                      onChange={(e) => setEditingTempName(e.target.value)}
-                      // input クリックが親 li の onClick に行かないようにする
-                      onClick={(e) => e.stopPropagation()}
-                      onDoubleClick={(e) => e.stopPropagation()}
-                      onBlur={commitEditAreaName}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          commitEditAreaName();
-                        } else if (e.key === "Escape") {
+                    }}
+                    onKeyDown={(e) => {
+                      if (editingAreaKey === area) {
+                        if (e.key === "Escape") {
                           e.preventDefault();
                           cancelEditAreaName();
                         }
-                      }}
-                    />
-                  ) : (
-                    <>
+                        return;
+                      }
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        activateArea(area);
+                      }
+                    }}
+                  >
+                    {editingAreaKey === area ? (
+                      <input
+                        ref={editingInputRef}
+                        type="text"
+                        value={editingTempName}
+                        onChange={(e) => setEditingTempName(e.target.value)}
+                        onClick={(e) => e.stopPropagation()}
+                        onDoubleClick={(e) => e.stopPropagation()}
+                        onBlur={commitEditAreaName}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            submitAddAreaSearch();
+                          }
+                        }}
+                      />
+                    ) : (
                       <>
                         <span className="location-label">
                           {displayLabel}
@@ -1127,9 +1226,7 @@ function SideListBarBase({
                         {isOn && (
                           <span
                             className="location-delete"
-                            onClick={(e) => {
-                              e.stopPropagation(); // 行クリックを発火させない
-                            }}
+                            onClick={(e) => e.stopPropagation()}
                           >
                             <DeleteIconButton
                               title="このエリアを削除"
@@ -1142,27 +1239,23 @@ function SideListBarBase({
 
                                 const areaUuid = getAreaUuidByAreaName(area);
 
-                                // 画面上の一覧から非表示にする（削除扱いとしてマーク）
                                 setDeletedAreas((prev) => {
                                   const next = new Set(prev);
                                   next.add(area);
                                   return next;
                                 });
 
-                                // 削除したエリアがアクティブなら選択状態もクリアしておく
                                 if (activeKey === area) {
                                   setActiveKey(null);
                                   closeDetailBar();
                                 }
 
-                                // Map 側などで使う場合に備えてイベントは残しておく
                                 window.dispatchEvent(
                                   new CustomEvent("sidebar:delete-area", {
                                     detail: { areaName: area, areaUuid },
                                   })
                                 );
 
-                                // 削除完了の通知ポップアップ（S3 にはまだ反映されていない）
                                 window.alert(
                                   "エリアを削除しました。\nこの変更は「保存」ボタンを押すまで S3 には反映されません。"
                                 );
@@ -1170,14 +1263,14 @@ function SideListBarBase({
                             />
                           </span>
                         )}
-                      </>{" "}
-                    </>
-                  )}
-                </li>
-              );
-            })
-        )}
-      </ul>
+                      </>
+                    )}
+                  </li>
+                );
+              })
+          )}
+        </ul>
+      )}
     </div>
   );
 }

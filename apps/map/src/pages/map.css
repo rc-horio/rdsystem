@@ -371,6 +371,72 @@ body,
   gap: 8px;
 }
 
+/* --- 2-5) Sidebar Add Area Panel（エリア追加用 検索ボックス） --- */
+/* Sidebar内：エリア追加モード用ヒント */
+.sidebar-add-area-hint {
+  margin-top: 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-add-area-hint .hint-text {
+  font-size: 13px;
+}
+
+.sidebar-add-area-hint .hint-cancel {
+  margin-top: 10px;
+  align-self: flex-end;
+  margin-left: auto;
+
+  border: 1px solid rgba(255, 255, 255, 0.35);
+
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 999px;
+
+  cursor: pointer;
+}
+
+.sidebar-add-area-hint .hint-cancel:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* エリア追加用 検索ボックス */
+.sidebar-add-area-search {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+}
+
+.sidebar-add-area-search input {
+  flex: 1;
+  height: 34px;
+  padding: 0 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 12px;
+}
+
+.sidebar-add-area-search button {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid #ed1b24;
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.sidebar-add-area-search button:disabled {
+  opacity: 0.4;
+  cursor: default !important;
+}
+
 /* =========================================
    3) Sidebar Toggle Button（中央の丸ボタン）
    ========================================= */
