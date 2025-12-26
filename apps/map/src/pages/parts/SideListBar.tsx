@@ -992,42 +992,24 @@ function SideListBarBase({
       <div className="mb-3">
         <LogoButton size={70} />
       </div>
-      <div id="searchWrap" role="search" aria-label="Search markers">
-        <div className="search-field">
-          <label htmlFor="searchBox" className="sr-only">
-            Search markers
-          </label>
-          <input
-            id="searchBox"
-            type="text"
-            placeholder="Search markers…"
-            autoComplete="off"
-            inputMode="search"
-            aria-describedby="searchHint"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+
+      {/* toolbar は上部に残す（元の位置に近い） */}
+      <div
+        className="toolbar no-caret"
+        contentEditable={false}
+        onMouseDown={blurActiveInput}
+      >
+        <div className="toolbar-group">
+          <FilterButton onClick={() => {}} height={iconH} />
+
+          <div className="spacer" />
+          {isOn ? (
+            <ONButton onClick={() => setIsOn(false)} height={iconH} />
+          ) : (
+            <OFFButton onClick={() => setIsOn(true)} height={iconH} />
+          )}
+          {isOn && <SaveButton onClick={handleSave} height={iconH} />}
         </div>
-
-        <div
-          className="toolbar no-caret"
-          contentEditable={false}
-          onMouseDown={blurActiveInput}
-        >
-          <div className="toolbar-group">
-            <FilterButton onClick={() => {}} height={iconH} />
-
-            <div className="spacer" />
-            {isOn ? (
-              <ONButton onClick={() => setIsOn(false)} height={iconH} />
-            ) : (
-              <OFFButton onClick={() => setIsOn(true)} height={iconH} />
-            )}
-            {isOn && <SaveButton onClick={handleSave} height={iconH} />}
-          </div>
-        </div>
-
-        <div id="searchHint" aria-live="polite" />
       </div>
 
       {isOn && (
@@ -1039,7 +1021,7 @@ function SideListBarBase({
             currentAreaUuidRef.current = undefined;
             currentCandidateIndexRef.current = null;
             currentCandidateTitleRef.current = undefined;
-            pendingProjectLinkRef.current = null; // 新規エリア開始時はクリア
+            pendingProjectLinkRef.current = null;
 
             closeDetailBar();
             window.dispatchEvent(new Event("map:start-add-area"));
@@ -1048,6 +1030,26 @@ function SideListBarBase({
           <span className="add-icon">＋ </span>エリアを追加する
         </button>
       )}
+
+      {/* ここに検索を移動（ボタンと一覧の間） */}
+      <div id="searchWrap" role="search" aria-label="Search markers">
+        <div className="search-field">
+          <label htmlFor="searchBox" className="sr-only">
+            Search markers
+          </label>
+          <input
+            id="searchBox"
+            type="text"
+            placeholder="エリア名を検索"
+            autoComplete="off"
+            inputMode="search"
+            aria-describedby="searchHint"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div id="searchHint" aria-live="polite" />
+      </div>
 
       {/* エリア名（重複集約） */}
       <ul id="locationList" className="no-caret">

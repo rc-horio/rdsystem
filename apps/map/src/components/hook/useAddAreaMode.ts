@@ -21,11 +21,13 @@ export function useAddAreaMode(
     const [areaNameInput, setAreaNameInput] = useState("");
     const addAreaConfirmInfoRef = useRef<google.maps.InfoWindow | null>(null);
 
+    /** ドラフト情報をリセット */
     const resetDraft = () => {
         setNewAreaDraft(null);
         setAreaNameInput("");
     };
 
+    /** 追加モードをキャンセル */
     const cancelAddMode = () => {
         addingAreaModeRef.current = false;
         setAddingAreaMode(false);
@@ -75,6 +77,7 @@ export function useAddAreaMode(
         });
     };
 
+    /** 追加モード確認ダイアログを表示 */
     const openAddAreaConfirm = (
         latLng: google.maps.LatLng,
         draft: NonNullable<Draft>
@@ -136,7 +139,7 @@ export function useAddAreaMode(
         addAreaConfirmInfoRef.current.open(map);
     };
 
-    // 「エリア追加モード開始」イベント
+    /** 「エリア追加モード開始」イベント */
     useEffect(() => {
         const onStartAddArea = () => {
             console.log("[map] start add-area mode");
@@ -153,7 +156,7 @@ export function useAddAreaMode(
         };
     }, []);
 
-    // 追加モード中のカーソル変更
+    /** 追加モード中のカーソル変更 */
     useEffect(() => {
         const map = mapRef.current;
         if (!map) return;
@@ -165,7 +168,7 @@ export function useAddAreaMode(
         }
     }, [addingAreaMode, mapRef]);
 
-    // Esc キーで追加モードをキャンセル
+    /** Esc キーで追加モードをキャンセル */
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
             if (e.key === "Escape" && addingAreaModeRef.current) {
@@ -179,7 +182,7 @@ export function useAddAreaMode(
         };
     }, []);
 
-    // 地図クリック → 逆ジオコーディング → 確認ダイアログ
+    /** 地図クリック → 逆ジオコーディング → 確認ダイアログ */
     // 座標＋都道府県を取得
     useEffect(() => {
         const map = mapRef.current;

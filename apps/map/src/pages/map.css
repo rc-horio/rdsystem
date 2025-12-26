@@ -256,6 +256,7 @@ body,
 
 /* サイドバー専用：左サイドの「＋エリアを追加する」ボタン */
 .add-area-button--sidebar {
+  margin-top: 16px;
   margin-left: -10px; /* これまでと同じ見た目を維持 */
   font-size: 16px; /* サイドバーだけ少し大きめ */
   font-weight: 500;
