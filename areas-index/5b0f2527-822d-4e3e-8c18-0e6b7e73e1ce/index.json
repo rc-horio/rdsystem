@@ -1,0 +1,22 @@
+{
+  "areaName": "あ",
+  "overview": {
+    "address": "三重県御浜町",
+    "prefecture": "三重県",
+    "manager": "",
+    "droneRecord": "",
+    "droneCountEstimate": "",
+    "heightLimitM": "",
+    "availability": ""
+  },
+  "details": {
+    "statusMemo": "",
+    "permitMemo": "",
+    "restrictionsMemo": "",
+    "remarks": ""
+  },
+  "history": [],
+  "candidate": [],
+  "updated_at": "2025-11-17T04:19:41.616Z",
+  "updated_by": "ui"
+}

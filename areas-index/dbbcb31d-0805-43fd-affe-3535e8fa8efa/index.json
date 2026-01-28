@@ -1,0 +1,22 @@
+{
+  "areaName": "クリエーティブセンター大阪",
+  "overview": {
+    "address": "大阪府大阪市住之江区北加賀屋４丁目１−５５",
+    "prefecture": "大阪府",
+    "manager": "",
+    "droneRecord": "無",
+    "droneCountEstimate": "",
+    "heightLimitM": "",
+    "availability": ""
+  },
+  "details": {
+    "statusMemo": "",
+    "permitMemo": "",
+    "restrictionsMemo": "",
+    "remarks": ""
+  },
+  "history": [],
+  "candidate": [],
+  "updated_at": "2025-12-16T02:01:01.675Z",
+  "updated_by": "ui"
+}

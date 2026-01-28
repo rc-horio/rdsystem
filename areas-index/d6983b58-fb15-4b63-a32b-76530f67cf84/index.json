@@ -1,0 +1,33 @@
+{
+  "areaName": "万博記念公園",
+  "overview": {
+    "address": "大阪府吹田市千里万博公園１０−１０",
+    "prefecture": "大阪府",
+    "manager": "",
+    "droneRecord": "",
+    "droneCountEstimate": "",
+    "heightLimitM": "",
+    "availability": ""
+  },
+  "details": {
+    "statusMemo": "",
+    "permitMemo": "",
+    "restrictionsMemo": "",
+    "remarks": ""
+  },
+  "history": [
+    {
+      "uuid": "",
+      "projectuuid": "0d2bf91f-a5db-49d7-9083-fa9251abd1ac",
+      "scheduleuuid": "7b208107-7bad-47c7-b499-fdcb6bea34bf"
+    },
+    {
+      "uuid": "",
+      "projectuuid": "0d2bf91f-a5db-49d7-9083-fa9251abd1ac",
+      "scheduleuuid": "015ee7bf-dc4a-401b-8a38-e81a0b70ff76"
+    }
+  ],
+  "candidate": [],
+  "updated_at": "2026-01-08T10:46:46.819Z",
+  "updated_by": "ui"
+}

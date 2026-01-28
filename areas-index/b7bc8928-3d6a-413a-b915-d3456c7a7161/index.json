@@ -1,0 +1,22 @@
+{
+  "areaName": "アクティブ・スクウェア・大東",
+  "overview": {
+    "address": "大阪府大東市深野３丁目２８−３",
+    "prefecture": "大阪府",
+    "manager": "",
+    "droneRecord": "",
+    "droneCountEstimate": "",
+    "heightLimitM": "",
+    "availability": ""
+  },
+  "details": {
+    "statusMemo": "",
+    "permitMemo": "",
+    "restrictionsMemo": "",
+    "remarks": ""
+  },
+  "history": [],
+  "candidate": [],
+  "updated_at": "2025-12-16T02:10:32.880Z",
+  "updated_by": "ui"
+}

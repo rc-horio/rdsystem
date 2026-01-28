@@ -1,0 +1,22 @@
+{
+  "areaName": "日本海",
+  "overview": {
+    "address": "",
+    "prefecture": "",
+    "manager": "",
+    "droneRecord": "",
+    "droneCountEstimate": "",
+    "heightLimitM": "",
+    "availability": ""
+  },
+  "details": {
+    "statusMemo": "",
+    "permitMemo": "",
+    "restrictionsMemo": "",
+    "remarks": ""
+  },
+  "history": [],
+  "candidate": [],
+  "updated_at": "2025-11-21T03:43:39.640Z",
+  "updated_by": "ui"
+}

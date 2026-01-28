@@ -92,8 +92,8 @@ export default function MobileLayout(props: any) {
             {" "}
             {(
               [
-                "リソース管理",
-                "エリア情報",
+                "リソース",
+                "エリア",
                 "オペレーション",
                 "現場写真",
               ] as const
@@ -128,7 +128,7 @@ export default function MobileLayout(props: any) {
 
       {/* タブ内容 */}
       <div className="p-4 md:p-6 lg:p-8">
-        <section hidden={activeTab !== "リソース管理"}>
+        <section hidden={activeTab !== "リソース"}>
           {projectData && (
             <ResourceTab
               edit={edit}
@@ -146,7 +146,7 @@ export default function MobileLayout(props: any) {
           )}
         </section>
 
-        <section hidden={activeTab !== "エリア情報"}>
+        <section hidden={activeTab !== "エリア"}>
           <AreaInfoTab
             edit={edit}
             setEdit={setEdit}

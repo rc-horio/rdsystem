@@ -54,7 +54,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     number | null
   >(null);
 
-  // 候補タイトルのインライン編集用 state
+  // 候補ラベルのインライン編集用 state
   const [editingCandidateIdx, setEditingCandidateIdx] = useState<number | null>(
     null
   );
@@ -101,16 +101,10 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   const buildHubUrl = (projectUuid?: string, date?: string): string | null => {
     if (!projectUuid) return null;
 
+    // ローカル開発の場合
     const { protocol, hostname } = window.location;
-
-    // ローカル開発 or LAN アクセス（ポート違い）
     const isLocalLike =
       hostname === "localhost" || hostname.startsWith("192.168.");
-
-    // Hub 側のベース URL
-    const baseOrigin = isLocalLike
-      ? `${protocol}//${hostname}:5174` // 開発: :5174/hub/
-      : `${protocol}//${hostname}`; // 本番: https://d3jv4hxjgqnm4c.cloudfront.net/hub/
 
     // スケジュール日付から year を推定（なければ現在年）
     const yearFromDate =
@@ -118,7 +112,21 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
         ? date.slice(0, 4)
         : String(new Date().getFullYear());
 
-    return `${baseOrigin}/hub/${projectUuid}?source=s3&year=${yearFromDate}`;
+    // ローカル開発の場合,ローカルのベースURLを返す
+    if (isLocalLike) {
+      return `${protocol}//${hostname}:5174/hub/${projectUuid}?source=s3&year=${yearFromDate}`;
+    }
+
+    // 本番の場合,環境変数からベースURLを取得
+    const base = String(import.meta.env.VITE_HUB_BASE_URL || "").replace(
+      /\/+$/,
+      ""
+    );
+    // ベースURLがない場合はnullを返す
+    if (!base) return null;
+
+    // ベースURLとプロジェクトUUIDを組み合わせてURLを生成
+    return `${base}/${projectUuid}?source=s3&year=${yearFromDate}`;
   };
 
   const fmtDate = (isoLike: string) => {
@@ -187,7 +195,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     const trimmed = editingCandidateTitle.trim();
 
     // 最終的なタイトル文字列（空ならデフォルト）
-    const finalTitle = trimmed || "候補地タイトル";
+    const finalTitle = trimmed || "候補地ラベル";
 
     // ===== 重複チェック =====
     if (hasDuplicateCandidateTitle(finalTitle, idx)) {
@@ -876,7 +884,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                             type="text"
                             className="candidate-title-input"
                             value={editingCandidateTitle}
-                            placeholder="候補地タイトル"
+                            placeholder="候補地ラベル"
                             onChange={(e) =>
                               setEditingCandidateTitle(e.target.value)
                             }

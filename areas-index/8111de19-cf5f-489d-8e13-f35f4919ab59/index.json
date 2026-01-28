@@ -1,0 +1,28 @@
+{
+  "areaName": "宮城テスト",
+  "overview": {
+    "address": "宮城県東松島市",
+    "prefecture": "宮城県",
+    "manager": "",
+    "droneRecord": "",
+    "droneCountEstimate": "",
+    "heightLimitM": "",
+    "availability": ""
+  },
+  "details": {
+    "statusMemo": "",
+    "permitMemo": "",
+    "restrictionsMemo": "",
+    "remarks": ""
+  },
+  "history": [
+    {
+      "uuid": "",
+      "projectuuid": "d33d2d2f-dd0b-4790-b56e-a854057f6469",
+      "scheduleuuid": "f8bc8915-eb76-4c37-b99f-8188c421aace"
+    }
+  ],
+  "candidate": [],
+  "updated_at": "2025-12-24T07:45:18.157Z",
+  "updated_by": "ui"
+}

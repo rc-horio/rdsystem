@@ -1,0 +1,91 @@
+{
+  "overview": {
+    "address": "秋田県大仙市 大曲エリア",
+    "prefecture": "秋田",
+    "manager": "佐藤",
+    "droneRecord": "あり",
+    "droneCountEstimate": "10",
+    "heightLimitM": "90",
+    "availability": "可"
+  },
+  "details": {
+    "statusMemo": "近隣イベントと日程調整が必要。",
+    "permitMemo": "自治体の占用許可が別途必要。",
+    "restrictionsMemo": "学校上空は終業後のみ可。",
+    "remarks": "雨天時は翌日に順延。"
+  },
+  "history": [
+    {
+      "projectuuid": "",
+      "scheduleuuid": ""
+    }
+  ],
+  "candidate": [
+    {
+      "title": "候補1",
+      "flightAltitude_m": 120,
+      "takeoffArea": {
+        "type": "rectangle",
+        "coordinates": [
+          [
+            140.45759163696772,
+            39.45656588647057
+          ],
+          [
+            140.4564281835389,
+            39.45656588647057
+          ],
+          [
+            140.4564281835389,
+            39.45638622423557
+          ],
+          [
+            140.45759163696772,
+            39.45638622423557
+          ]
+        ],
+        "referencePointIndex": 0
+      },
+      "flightArea": {
+        "type": "ellipse",
+        "center": [
+          140.4570099102533,
+          39.45809301546806
+        ],
+        "radiusX_m": 150,
+        "radiusY_m": 100,
+        "rotation_deg": 0
+      },
+      "safetyArea": {
+        "type": "ellipse",
+        "buffer_m": 50
+      },
+      "audienceArea": {
+        "type": "rectangle",
+        "coordinates": [
+          [
+            140.45642815501057,
+            39.459799806700545
+          ],
+          [
+            140.45759166549604,
+            39.459799806700545
+          ],
+          [
+            140.45759166549604,
+            39.45997946893554
+          ],
+          [
+            140.45642815501057,
+            39.45997946893554
+          ]
+        ]
+      }
+    },
+    {
+      "title": "候補2"
+    }
+  ],
+  "updated_at": "2025-10-25T17:40:10.418Z",
+  "updated_by": "ui"
+}

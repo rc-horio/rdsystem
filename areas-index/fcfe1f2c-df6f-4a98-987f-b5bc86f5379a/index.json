@@ -1,0 +1,149 @@
+{
+  "overview": {
+    "address": "北海道帯広市 十勝大橋 河川敷",
+    "prefecture": "北海道",
+    "manager": "佐藤",
+    "droneRecord": "あり",
+    "droneCountEstimate": "6",
+    "heightLimitM": "70",
+    "availability": "可"
+  },
+  "details": {
+    "statusMemo": "近隣イベントと日程調整が必要。",
+    "permitMemo": "自治体の占用許可が別途必要。",
+    "restrictionsMemo": "学校上空は終業後のみ可。",
+    "remarks": "雨天時は翌日に順延。"
+  },
+  "history": [
+    {
+      "projectuuid": "",
+      "scheduleuuid": ""
+    }
+  ],
+  "candidate": [
+    {
+      "title": "候補1",
+      "flightAltitude_m": 120,
+      "takeoffArea": {
+        "type": "rectangle",
+        "coordinates": [
+          [
+            143.19560226736306,
+            42.92893479117415
+          ],
+          [
+            143.19437540168812,
+            42.92893479117415
+          ],
+          [
+            143.19437540168812,
+            42.92875512893915
+          ],
+          [
+            143.19560226736306,
+            42.92875512893915
+          ]
+        ],
+        "referencePointIndex": 0
+      },
+      "flightArea": {
+        "type": "ellipse",
+        "center": [
+          143.1949888345256,
+          42.93046192017164
+        ],
+        "radiusX_m": 150,
+        "radiusY_m": 100,
+        "rotation_deg": 0
+      },
+      "safetyArea": {
+        "type": "ellipse",
+        "buffer_m": 50
+      },
+      "audienceArea": {
+        "type": "rectangle",
+        "coordinates": [
+          [
+            143.19437536768905,
+            42.932168711404124
+          ],
+          [
+            143.19560230136213,
+            42.932168711404124
+          ],
+          [
+            143.19560230136213,
+            42.93234837363912
+          ],
+          [
+            143.19437536768905,
+            42.93234837363912
+          ]
+        ]
+      }
+    },
+    {
+      "title": "候補2",
+      "flightAltitude_m": 120,
+      "takeoffArea": {
+        "type": "rectangle",
+        "coordinates": [
+          [
+            143.19560226825794,
+            42.92902464849528
+          ],
+          [
+            143.19437540079323,
+            42.92902464849528
+          ],
+          [
+            143.19437540079323,
+            42.92884498626028
+          ],
+          [
+            143.19560226825794,
+            42.92884498626028
+          ]
+        ],
+        "referencePointIndex": 0
+      },
+      "flightArea": {
+        "type": "ellipse",
+        "center": [
+          143.1949888345256,
+          42.93055177749277
+        ],
+        "radiusX_m": 150,
+        "radiusY_m": 100,
+        "rotation_deg": 0
+      },
+      "safetyArea": {
+        "type": "ellipse",
+        "buffer_m": 50
+      },
+      "audienceArea": {
+        "type": "rectangle",
+        "coordinates": [
+          [
+            143.194375366794,
+            42.93225856872525
+          ],
+          [
+            143.19560230225719,
+            42.93225856872525
+          ],
+          [
+            143.19560230225719,
+            42.93243823096025
+          ],
+          [
+            143.194375366794,
+            42.93243823096025
+          ]
+        ]
+      }
+    }
+  ],
+  "updated_at": "2025-11-20T12:03:46.910Z",
+  "updated_by": "ui"
+}

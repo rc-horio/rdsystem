@@ -1,0 +1,85 @@
+{
+  "areaName": "テスト2",
+  "overview": {
+    "address": "CBTS三宮駅前テストセンター / 〒651-0087 兵庫県神戸市中央区御幸通６丁目１−１０ ４階",
+    "prefecture": "兵庫県",
+    "manager": "",
+    "droneRecord": "",
+    "droneCountEstimate": "",
+    "heightLimitM": "",
+    "availability": ""
+  },
+  "details": {
+    "statusMemo": "",
+    "permitMemo": "",
+    "restrictionsMemo": "",
+    "remarks": ""
+  },
+  "history": [],
+  "candidate": [
+    {
+      "title": "駐車場",
+      "flightAltitude_min_m": 0,
+      "flightAltitude_Max_m": 149,
+      "takeoffArea": {
+        "type": "rectangle",
+        "coordinates": [
+          [
+            135.19829956402984,
+            34.6912689710025
+          ],
+          [
+            135.19720703597014,
+            34.6912689710025
+          ],
+          [
+            135.19720703597014,
+            34.6910893087675
+          ],
+          [
+            135.19829956402984,
+            34.6910893087675
+          ]
+        ],
+        "referencePointIndex": 0
+      },
+      "flightArea": {
+        "type": "ellipse",
+        "center": [
+          135.19967376165462,
+          34.692818153538305
+        ],
+        "radiusX_m": 150,
+        "radiusY_m": 100,
+        "rotation_deg": 270.378667248907
+      },
+      "safetyArea": {
+        "type": "ellipse",
+        "buffer_m": 50
+      },
+      "audienceArea": {
+        "type": "rectangle",
+        "coordinates": [
+          [
+            135.1972070134401,
+            34.694502891232474
+          ],
+          [
+            135.19829958655987,
+            34.694502891232474
+          ],
+          [
+            135.19829958655987,
+            34.69468255346747
+          ],
+          [
+            135.1972070134401,
+            34.69468255346747
+          ]
+        ]
+      }
+    }
+  ],
+  "updated_at": "2026-01-08T06:30:10.770Z",
+  "updated_by": "ui"
+}

@@ -42,8 +42,9 @@ export const MARKERS_HIDE_ZOOM = 16;
 
 export const CLS_DETAILBAR_OPEN = "detailbar-open";
 
-export const S3_BASE =
-    "https://rc-rdsystem-dev-catalog.s3.ap-northeast-1.amazonaws.com/catalog/v1/";
+// 開発用のCatalogのベースURL   
+// export const S3_BASE =
+//     "https://rc-rdsystem-dev-catalog.s3.ap-northeast-1.amazonaws.com/catalog/v1/";
 
 /** Google Maps 図形/マーカー用の共通レイヤー定義 */
 export const Z = {

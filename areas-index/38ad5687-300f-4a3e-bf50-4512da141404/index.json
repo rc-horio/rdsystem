@@ -1,0 +1,22 @@
+{
+  "areaName": "別府温泉",
+  "overview": {
+    "address": "大分県別府市京町１１−８１８−４７３",
+    "prefecture": "大分県",
+    "manager": "",
+    "droneRecord": "",
+    "droneCountEstimate": "",
+    "heightLimitM": "",
+    "availability": ""
+  },
+  "details": {
+    "statusMemo": "",
+    "permitMemo": "",
+    "restrictionsMemo": "",
+    "remarks": ""
+  },
+  "history": [],
+  "candidate": [],
+  "updated_at": "2026-01-07T06:03:49.512Z",
+  "updated_by": "ui"
+}

@@ -1,0 +1,33 @@
+{
+    "overview": {
+        "address": "山口県下関市 下関港エリア",
+        "prefecture": "山口",
+        "manager": "佐藤",
+        "droneRecord": "あり",
+        "droneCountEstimate": "8",
+        "heightLimitM": "100",
+        "availability": "可"
+    },
+    "details": {
+        "statusMemo": "近隣イベントと日程調整が必要。",
+        "permitMemo": "自治体の占用許可が別途必要。",
+        "restrictionsMemo": "学校上空は終業後のみ可。",
+        "remarks": "雨天時は翌日に順延。"
+    },
+    "history": [
+        {
+            "projectuuid": "",
+            "scheduleuuid": ""
+        }
+    ],
+    "candidate": [
+        {
+            "title": "候補1"
+        },
+        {
+            "title": "候補2"
+        }
+    ],
+    "updated_at": "2025-10-25T17:40:10.418Z",
+    "updated_by": "ui"
+}

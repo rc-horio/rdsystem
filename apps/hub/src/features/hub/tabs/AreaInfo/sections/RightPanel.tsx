@@ -8,8 +8,13 @@ import {
 } from "@/components";
 import { useEffect, useState } from "react";
 
+// 開発用のCatalogのベースURL
+// const S3_BASE =
+//   "https://rc-rdsystem-dev-catalog.s3.ap-northeast-1.amazonaws.com/catalog/v1/";
+
+// 本番用のCatalogのベースURL
 const S3_BASE =
-  "https://rc-rdsystem-dev-catalog.s3.ap-northeast-1.amazonaws.com/catalog/v1/";
+  String(import.meta.env.VITE_CATALOG_BASE_URL || "").replace(/\/+$/, "") + "/";
 
 type Props = {
   edit: boolean;
@@ -29,10 +34,7 @@ type RDMapArea = {
 // S3 上の JSON への URL
 // ・本番では環境変数の値を推奨
 // ・一旦は S3 の公開 URL をデフォルトにしておく
-const AREAS_JSON_URL =
-  (typeof process !== "undefined" &&
-    (process as any).env?.NEXT_PUBLIC_AREAS_JSON_URL) ||
-  S3_BASE + "areas.json";
+const AREAS_JSON_URL = S3_BASE + "areas.json";
 
 export function RightPanel({
   edit,
@@ -40,7 +42,7 @@ export function RightPanel({
   onPatchArea,
   onChangeAreaName,
 }: Props) {
-  // --- 開催エリアプルダウン用の状態 ---
+  // --- 開催地プルダウン用の状態 ---
   const [areaOptions, setAreaOptions] = useState<SelectOption[]>([]);
   const [rdMapAreas, setRdMapAreas] = useState<RDMapArea[]>([]);
 
@@ -149,7 +151,7 @@ export function RightPanel({
       } catch (e) {
         console.error(e);
         if (!cancelled) {
-          setAreasError("開催エリア一覧の取得に失敗しました");
+          setAreasError("開催地一覧の取得に失敗しました");
         }
       } finally {
         if (!cancelled) {
@@ -167,9 +169,9 @@ export function RightPanel({
 
   return (
     <div className="space-y-1">
-      {/* 開催エリア */}
+      {/* 開催地 */}
       <div className="mt-5">
-        <SectionTitle title="開催エリア" compact />
+        <SectionTitle title="開催地" compact />
         <div className="pl-4 md:pl-6">
           <DisplayOrSelect
             edit={edit}
@@ -269,27 +271,6 @@ export function RightPanel({
         </div>{" "}
       </div>
 
-      {/* 旋回 */}
-      <div className="mt-5">
-        <SectionTitle title="旋回" />
-        <div className="pl-4 md:pl-6">
-          <DisplayOrTextarea
-            edit={edit}
-            value={
-              turn
-                ? turn.direction === "ccw"
-                  ? `反時計回りに${turn.angle_deg}度回転`
-                  : `時計回りに${turn.angle_deg}度回転`
-                : "—"
-            }
-            onChange={(v) => patch(["actions", "turn"], v)}
-            heightClass="h-15"
-            size="sm"
-            className="max-w-[260px]"
-          />
-        </div>{" "}
-      </div>
-
       {/* 障害物 */}
       <div className="mt-5">
         <SectionTitle title="障害物" />
@@ -342,21 +323,36 @@ export function RightPanel({
         </div>{" "}
       </div>
 
+      {/* 旋回 */}
+      <div className="mt-5">
+        <SectionTitle title="旋回" />
+        <div className="pl-4 md:pl-6">
+          <DisplayOrInput
+            edit={false}
+            value={
+              turn
+                ? turn.direction === "ccw"
+                  ? `反時計回りに${turn.angle_deg}度回転`
+                  : `時計回りに${turn.angle_deg}度回転`
+                : "—"
+            }
+            className="max-w-[260px]"
+          />
+        </div>{" "}
+      </div>
+
       {/* 観客からの距離 */}
       <div className="mt-5">
         <SectionTitle title="観客からの距離" />
         <div className={rowCls}>
-          <span className="w-4">約</span>
+          <span className="w-33 text-sm text-right">約</span>
           <DisplayOrInput
-            edit={edit}
+            edit={false}
             value={(A.distance_from_viewers_m ?? "").toString()}
-            onChange={(e) =>
-              patch(["distance_from_viewers_m"], num(e.target.value))
-            }
             inputMode="numeric"
             type="number"
             className={numericInputW}
-          />{" "}
+          />
           <span className="w-6">m</span>
         </div>
       </div>
@@ -370,9 +366,6 @@ export function RightPanel({
           <DisplayOrInput
             edit={false}
             value={(geo.flightAltitude_min_m ?? "").toString()}
-            // onChange={(e) =>
-            //   patch(["geometry", "flightAltitude_min_m"], num(e.target.value))
-            // }
             inputMode="numeric"
             type="number"
             className={numericInputW}
@@ -385,9 +378,6 @@ export function RightPanel({
           <DisplayOrInput
             edit={false}
             value={(geo.flightAltitude_Max_m ?? "").toString()}
-            // onChange={(e) =>
-            //   patch(["geometry", "flightAltitude_Max_m"], num(e.target.value))
-            // }
             inputMode="numeric"
             type="number"
             className={numericInputW}
@@ -411,9 +401,9 @@ export function RightPanel({
         </div>
       </div>
 
-      {/* アニメーションエリア */}
+      {/* アニメーションサイズ */}
       <div className="mt-5">
-        <SectionTitle title="アニメーションエリア" />
+        <SectionTitle title="アニメーションサイズ" />
         <div className={rowCls}>
           <span className="w-24 text-sm">横幅</span>
           <span className="w-4 text-2xl leading-none text-center mr-3">:</span>

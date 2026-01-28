@@ -84,8 +84,16 @@ export function MapCard({ areaName, projectUuid, scheduleUuid }: Props) {
     const fetchAreaUuid = async () => {
       setLoading(true);
       try {
+        // 開発用のCatalogのベースURL
+        // const S3_BASE =
+        //   "https://rc-rdsystem-dev-catalog.s3.ap-northeast-1.amazonaws.com/catalog/v1/";
+
+        // 本番用のCatalogのベースURL
         const S3_BASE =
-          "https://rc-rdsystem-dev-catalog.s3.ap-northeast-1.amazonaws.com/catalog/v1/";
+          String(import.meta.env.VITE_CATALOG_BASE_URL || "").replace(
+            /\/+$/,
+            ""
+          ) + "/";
         const res = await fetch(S3_BASE + "areas.json");
         if (!res.ok) throw new Error("areas.json fetch failed");
 
@@ -104,22 +112,52 @@ export function MapCard({ areaName, projectUuid, scheduleUuid }: Props) {
   }, [areaName]);
 
   const handleOpenMap = () => {
+    // ローカル開発の場合
     const { protocol, hostname } = window.location;
+    // ローカル開発の場合はlocalhostまたは192.168.x.xの場合
     const isLocalLike =
       hostname === "localhost" || hostname.startsWith("192.168.");
 
-    const baseUrl = isLocalLike
-      ? `${protocol}//${hostname}:5175`
-      : `${protocol}//${hostname}/map`;
-
+    // パラメータを設定
     const params = new URLSearchParams();
-
+    // エリアUUIDをパラメータに設定
     if (areaUuid) params.set("areaUuid", areaUuid);
+    // プロジェクトUUIDをパラメータに設定
     if (projectUuid) params.set("projectUuid", projectUuid);
+    // スケジュールUUIDをパラメータに設定
     if (scheduleUuid) params.set("scheduleUuid", scheduleUuid);
 
-    const url = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
-    window.open(url, "_blank", "noopener,noreferrer");
+    // ローカル開発の場合はローカルのベースURLを使用
+    if (isLocalLike) {
+      const localBase = `${protocol}//${hostname}:5175/map/`;
+      // ローカルのベースURLとパラメータを組み合わせてURLを生成
+      const u = new URL(localBase);
+      // パラメータを設定
+      for (const [k, v] of params.entries()) u.searchParams.set(k, v);
+      window.open(u.toString(), "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    // 本番の場合は環境変数からベースURLを取得
+    const fromEnv = String(import.meta.env.VITE_MAP_BASE_URL || "").trim();
+    if (fromEnv) {
+      // 環境変数からベースURLを取得
+      const normalized = normalizeMapUrl(fromEnv);
+      // ベースURLとパラメータを組み合わせてURLを生成
+      const u = new URL(normalized);
+      for (const [k, v] of params.entries()) u.searchParams.set(k, v);
+      window.open(u.toString(), "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    // ローカル開発の場合はローカルのベースURLを使用
+    const fallbackBase = `${protocol}//${hostname}/map/`;
+
+    // ベースURLとパラメータを組み合わせてURLを生成
+    const u = new URL(fallbackBase);
+    for (const [k, v] of params.entries()) u.searchParams.set(k, v);
+    // ブラウザで新しいタブで開く
+    window.open(u.toString(), "_blank", "noopener,noreferrer");
   };
 
   return (

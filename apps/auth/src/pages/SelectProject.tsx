@@ -14,10 +14,20 @@ const MAP_BASE = String(import.meta.env.VITE_MAP_BASE_URL || "");
 const join = (base: string, path: string) =>
   `${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
 
+// 開発用のCatalogのベースURLと書き込みURL
+// const LIST_URL =
+//   "https://rc-rdsystem-dev-catalog.s3.ap-northeast-1.amazonaws.com/catalog/v1/projects.json";
+// const LAMBDA_URL =
+//   "https://u64h3yye227qjsnem7yyydakpu0vpkxn.lambda-url.ap-northeast-1.on.aws";
+
+// 本番用のCatalogのベースURLと書き込みURL
+// 環境変数からCatalogのベースURLを取得
 const LIST_URL =
-  "https://rc-rdsystem-dev-catalog.s3.ap-northeast-1.amazonaws.com/catalog/v1/projects.json";
-const LAMBDA_URL =
-  "https://u64h3yye227qjsnem7yyydakpu0vpkxn.lambda-url.ap-northeast-1.on.aws";
+  String(import.meta.env.VITE_CATALOG_BASE_URL || "").replace(/\/+$/, "") +
+  "/projects.json";
+
+// 環境変数からCatalogの書き込みURLを取得
+const LAMBDA_URL = String(import.meta.env.VITE_CATALOG_WRITE_URL || "");
 
 interface ProjectMeta {
   uuid: string;

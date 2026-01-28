@@ -1,0 +1,94 @@
+{
+  "areaName": "羽田空港",
+  "overview": {
+    "address": "羽田空港 / 〒144-0041 東京都大田区羽田空港",
+    "prefecture": "東京都",
+    "manager": "",
+    "droneRecord": "",
+    "droneCountEstimate": "",
+    "heightLimitM": "",
+    "availability": ""
+  },
+  "details": {
+    "statusMemo": "",
+    "permitMemo": "",
+    "restrictionsMemo": "",
+    "remarks": ""
+  },
+  "history": [
+    {
+      "uuid": "",
+      "projectuuid": "fea7e6c5-7f8b-4fc9-b3f8-a6abf5be8d92",
+      "scheduleuuid": "cb8551e6-f436-4b9d-b342-ce2388e671ad"
+    }
+  ],
+  "candidate": [
+    {
+      "title": "候補A",
+      "flightAltitude_min_m": 0,
+      "flightAltitude_Max_m": 149,
+      "takeoffArea": {
+        "type": "rectangle",
+        "coordinates": [
+          [
+            139.77854713211573,
+            35.54694897349393
+          ],
+          [
+            139.77744306788426,
+            35.54694897349393
+          ],
+          [
+            139.77744306788426,
+            35.546769311258934
+          ],
+          [
+            139.77854713211573,
+            35.546769311258934
+          ]
+        ],
+        "referencePointIndex": 0
+      },
+      "flightArea": {
+        "type": "ellipse",
+        "center": [
+          139.7779951,
+          35.54847610249142
+        ],
+        "radiusX_m": 150,
+        "radiusY_m": 100,
+        "rotation_deg": 0
+      },
+      "safetyArea": {
+        "type": "ellipse",
+        "buffer_m": 50
+      },
+      "audienceArea": {
+        "type": "rectangle",
+        "coordinates": [
+          [
+            139.7774430443821,
+            35.55018289372391
+          ],
+          [
+            139.7785471556179,
+            35.55018289372391
+          ],
+          [
+            139.7785471556179,
+            35.550362555958905
+          ],
+          [
+            139.7774430443821,
+            35.550362555958905
+          ]
+        ]
+      }
+    },
+    {
+      "title": "候補B"
+    }
+  ],
+  "updated_at": "2026-01-09T05:33:12.121Z",
+  "updated_by": "ui"
+}

@@ -11,11 +11,7 @@ import {
 } from "@/components";
 import type { Props, Point, Geometry } from "@/features/types";
 import { fetchAreaInfo, createNewArea } from "./areasApi";
-import {
-  EV_DETAILBAR_SELECTED,
-  OPEN_INFO_ON_SELECT,
-  S3_BASE,
-} from "./constants/events";
+import { EV_DETAILBAR_SELECTED, OPEN_INFO_ON_SELECT } from "./constants/events";
 import "../map.css";
 import {
   openDetailBar,
@@ -47,6 +43,10 @@ import {
 } from "./constants/events";
 import { AddAreaModal } from "./AddAreaModal";
 import { RegisterProjectModal } from "./RegisterProjectModal";
+
+// 本番用のCatalogのベースURL
+const CATALOG =
+  String(import.meta.env.VITE_CATALOG_BASE_URL || "").replace(/\/+$/, "") + "/";
 
 type AddAreaSearchResult = {
   placeId: string;
@@ -631,7 +631,7 @@ export default function MapView({ onLoaded }: Props) {
    *  ========================= */
   async function loadAreasPoints(): Promise<Point[]> {
     try {
-      const resp = await fetch(S3_BASE + "areas.json", {
+      const resp = await fetch(CATALOG + "areas.json", {
         mode: "cors",
         cache: "no-store",
       });
@@ -675,8 +675,12 @@ export default function MapView({ onLoaded }: Props) {
     } catch (e) {
       console.warn("loadAreasPoints() fallback to local dev data.", e);
       return [
-        { name: "デモA", lat: 35.6861, lng: 139.4077, areaName: "デモA" },
-        { name: "デモB", lat: 35.9596, lng: 137.8075, areaName: "デモB" },
+        {
+          name: "エリアが登録されていません。",
+          lat: 35.6861,
+          lng: 139.4077,
+          areaName: "エリアが登録されていません。",
+        },
       ];
     }
   }
@@ -1259,7 +1263,7 @@ export default function MapView({ onLoaded }: Props) {
     // 画面上の図形を削除し、「削除ペンディング」の状態にするだけ
     geomRef.current?.deleteCurrentGeometry();
 
-    // “未設定” 用の CTA を出す（「エリア情報を作成する」ボタン）
+    // “未設定” 用の CTA を出す（「飛行エリアを作図する」ボタン）
     setShowCreateGeomCta(true);
 
     // ログだけ出しておく（S3 にはまだ反映していない）
@@ -1313,9 +1317,9 @@ export default function MapView({ onLoaded }: Props) {
               onClick={() => {
                 createDefaultGeometry();
               }}
-              aria-label="エリア情報を作成する"
+              aria-label="飛行エリアを作図する"
             >
-              エリア情報を作成する
+              飛行エリアを作図する
             </button>
           )}
 

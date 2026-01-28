@@ -200,7 +200,7 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
         `離陸: ${takeoff}\n着陸: ${landing}\n ${note}`
     );
 
-    // ■アニメーションエリア
+    // ■アニメーションサイズ
     const w = text(anim?.width_m, "");
     const d = text(anim?.depth_m, "");
     setTxt("#v-anim", (w && d) ? `W${w}m × L${d}m` : (w ? `W${w}m` : (d ? `L${d}m` : "—")));

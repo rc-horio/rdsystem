@@ -1,15 +1,45 @@
 // src/pages/parts/areasApi.ts
 import type { HistoryLite, DetailMeta, Candidate } from "@/features/types";
-import { S3_BASE } from "./constants/events";
 import { getCurrentTurnMetrics } from "./geometry/orientationDebug";
+
+const CATALOG =
+    String(import.meta.env.VITE_CATALOG_BASE_URL || "").replace(/\/+$/, "") + "/";
+
+// 本番用のCatalogの書き込みURL
+const WRITE_URL = String(import.meta.env.VITE_CATALOG_WRITE_URL || "");
+
+//　CatalogにJSONを書き込む
+async function writeJsonToCatalog(key: string, body: any): Promise<boolean> {
+    if (!WRITE_URL) {
+        console.error("VITE_CATALOG_WRITE_URL is not set");
+        return false;
+    }
+    const res = await fetch(WRITE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            key,
+            body,
+            contentType: "application/json; charset=utf-8",
+        }),
+    });
+
+    const raw = await res.text();
+    const data = raw ? JSON.parse(raw) : null;
+    if (!res.ok || data?.error) {
+        console.error("writeJsonToCatalog failed:", data?.error ?? raw);
+        return false;
+    }
+    return true;
+}
 
 // ========= Internals =========
 const GET_INIT: RequestInit = { mode: "cors", cache: "no-store" };
 // S3 に匿名 PUT するため、保存直後に誰でも GET できるよう ACL を付与
-const JSON_HEADERS = {
-    "Content-Type": "application/json" as const,
-    "x-amz-acl": "public-read" as const
-};
+// const JSON_HEADERS = {
+//     "Content-Type": "application/json" as const,
+//     "x-amz-acl": "public-read" as const
+// };
 
 function generateUuid(): string {
     if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -23,9 +53,9 @@ function generateUuid(): string {
 }
 
 const areaIndexUrl = (uuid: string) =>
-    `${S3_BASE}areas/${encodeURIComponent(uuid)}/index.json`;
+    `${CATALOG}areas/${encodeURIComponent(uuid)}/index.json`;
 const projectIndexUrl = (uuid: string) =>
-    `${S3_BASE}projects/${encodeURIComponent(uuid)}/index.json`;
+    `${CATALOG}projects/${encodeURIComponent(uuid)}/index.json`;
 
 async function getJson<T = any>(url: string): Promise<T | null> {
     try {
@@ -47,24 +77,13 @@ const toStr = (v: unknown) => (v == null ? "" : String(v));
  *  ========================= */
 /** areas.json を読み、エリア一覧を返す。存在しない場合は空 */
 export async function fetchAreasList(): Promise<any[]> {
-    const data = await getJson<any[]>(S3_BASE + "areas.json");
+    const data = await getJson<any[]>(CATALOG + "areas.json");
     return Array.isArray(data) ? data : [];
 }
 
 /** areas.json を保存（PUT）。成功なら true */
 export async function saveAreasList(list: any[]): Promise<boolean> {
-    try {
-        const r = await fetch(S3_BASE + "areas.json", {
-            method: "PUT",
-            mode: "cors",
-            headers: JSON_HEADERS,
-            body: JSON.stringify(list, null, 2),
-        });
-        return r.ok;
-    } catch (e) {
-        console.error("saveAreasList error", e);
-        return false;
-    }
+    return await writeJsonToCatalog("catalog/v1/areas.json", list);
 }
 
 /** index.json の内容から areas.json の該当レコードを upsert。成功なら true */
@@ -179,7 +198,7 @@ export async function fetchProjectsList(): Promise<
 > {
     const data = await getJson<
         { uuid: string; projectId: string; projectName: string }[]
-    >(S3_BASE + "projects.json");
+    >(CATALOG + "projects.json");
     return Array.isArray(data) ? data : [];
 }
 
@@ -312,46 +331,16 @@ function parseDetailMeta(info: any, fallbackAreaName?: string): DetailMeta {
 }
 
 /** index.json を保存（PUT）。成功なら true */
-export async function saveAreaInfo(
-    areaUuid: string,
-    info: any
-): Promise<boolean> {
+export async function saveAreaInfo(areaUuid: string, info: any): Promise<boolean> {
     if (!areaUuid) return false;
-    try {
-        const r = await fetch(areaIndexUrl(areaUuid), {
-            method: "PUT",
-            mode: "cors",
-            headers: JSON_HEADERS,
-            // S3 側の CORS/ACL/署名の設定が必要です（開発中は匿名 PUT でも可）
-            body: JSON.stringify(info, null, 2),
-        });
-        return r.ok;
-    } catch (e) {
-        console.error("saveAreaInfo error", e);
-        return false;
-    }
+    return await writeJsonToCatalog(`catalog/v1/areas/${areaUuid}/index.json`, info);
 }
 
 /** projects/<projectUuid>/index.json を保存（PUT）。成功なら true */
-export async function saveProjectIndex(
-    projectUuid: string,
-    info: any
-): Promise<boolean> {
+export async function saveProjectIndex(projectUuid: string, info: any): Promise<boolean> {
     if (!projectUuid) return false;
-    try {
-        const r = await fetch(`${S3_BASE}projects/${encodeURIComponent(projectUuid)}/index.json`, {
-            method: "PUT",
-            mode: "cors",
-            headers: JSON_HEADERS,
-            body: JSON.stringify(info, null, 2),
-        });
-        return r.ok;
-    } catch (e) {
-        console.error("saveProjectIndex error", e);
-        return false;
-    }
+    return await writeJsonToCatalog(`catalog/v1/projects/${projectUuid}/index.json`, info);
 }
-
 
 /**
  * エリア index.json の candidate に 1 件追加して保存します（存在しなければ配列を作成）

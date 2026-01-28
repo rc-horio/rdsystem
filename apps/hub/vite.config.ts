@@ -7,7 +7,7 @@ import path from 'path'
 export default defineConfig({
   plugins: [react()],
   base: '/hub/',
-  envDir: path.resolve(__dirname, '../../'),
+  envDir: __dirname,
   publicDir: path.resolve(__dirname, '../../static'),
   resolve: {
     alias: {

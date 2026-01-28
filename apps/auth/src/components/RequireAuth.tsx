@@ -16,5 +16,5 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     })();
   }, []);
   if (ok === null) return null;
-  return ok ? <>{children}</> : <Navigate to="/" replace />;
+  return ok ? <>{children}</> : <Navigate to="/login" replace />;
 }

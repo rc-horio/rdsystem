@@ -9,7 +9,7 @@ import type { MapGeometry } from "../../pages/parts/MapGeometry";
 type UseCandidateSectionParams = {
     // MapGeometry インスタンスへの参照（外側の MapView で生成されたもの）
     geomRef: MutableRefObject<MapGeometry | null>;
-    // 「エリア情報を作成する」CTA の表示状態を切り替える
+    // 「飛行エリアを作図する」CTA の表示状態を切り替える
     // ※候補セクションではボタンを出さないが、念のため false をセットして隠す用途で利用
     setShowCreateGeomCta: (v: boolean) => void;
     // 既存のジオメトリ描画を全てクリアするコールバック
@@ -21,9 +21,9 @@ type UseCandidateSectionParams = {
     currentScheduleUuidRef: MutableRefObject<string | undefined>;
     // 現在選択中の候補 index（保存時にどの候補を上書きするかに利用）
     currentCandidateIndexRef: MutableRefObject<number | null>;
-    // 現在選択中の候補タイトル（保存時にタイトルを維持するために利用）
+    // 現在選択中の候補ラベル（保存時にラベルを維持するために利用）
     currentCandidateTitleRef: MutableRefObject<string | undefined>;
-    // 「候補タイトル確定 or 候補選択だが geometry が無い」ケースで
+    // 「候補ラベル確定 or 候補選択だが geometry が無い」ケースで
     // デフォルトジオメトリを生成するためのコールバック
     createDefaultGeometryForCandidate: () => void;
 };
@@ -94,7 +94,7 @@ export function useCandidateSection({
             // どの候補を編集しているか（何番目か）を記録
             currentCandidateIndexRef.current =
                 typeof detail.index === "number" ? detail.index : null;
-            // 候補タイトルも記録（保存時にタイトルを維持するため）
+            // 候補ラベルも記録（保存時にラベルを維持するため）
             currentCandidateTitleRef.current =
                 typeof detail.title === "string" ? detail.title : undefined;
 

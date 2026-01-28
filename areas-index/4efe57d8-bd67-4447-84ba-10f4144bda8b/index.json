@@ -1,0 +1,28 @@
+{
+  "areaName": "静岡花火",
+  "overview": {
+    "address": "静岡県掛川市千浜４３７",
+    "prefecture": "静岡県",
+    "manager": "",
+    "droneRecord": "",
+    "droneCountEstimate": "",
+    "heightLimitM": "",
+    "availability": ""
+  },
+  "details": {
+    "statusMemo": "",
+    "permitMemo": "",
+    "restrictionsMemo": "",
+    "remarks": ""
+  },
+  "history": [
+    {
+      "uuid": "",
+      "projectuuid": "9117d908-92b3-4f67-a041-9febf2c9d70c",
+      "scheduleuuid": "bb8b5d23-4df8-4f15-8a31-a7211edfd25e"
+    }
+  ],
+  "candidate": [],
+  "updated_at": "2025-12-24T06:59:43.630Z",
+  "updated_by": "ui"
+}

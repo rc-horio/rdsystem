@@ -1,0 +1,96 @@
+{
+  "overview": {
+    "address": "新潟県長岡市あ",
+    "prefecture": "新潟",
+    "manager": "三浦",
+    "droneRecord": "あり",
+    "droneCountEstimate": "1500",
+    "heightLimitM": "120",
+    "availability": "可"
+  },
+  "details": {
+    "statusMemo": "近隣イベントと日程調整が必要。",
+    "permitMemo": "自治体の占用許可が別途必要。",
+    "restrictionsMemo": "学校上空は終業後のみ可。",
+    "remarks": "雨天時は翌日に順延。"
+  },
+  "history": [
+    {
+      "uuid": "",
+      "projectuuid": "237215c1-d78f-439c-bf64-4e2293eab2c4",
+      "scheduleuuid": "b95d0a70-d8d6-4048-ac93-6463b7e30a31"
+    },
+    {
+      "uuid": "",
+      "projectuuid": "237215c1-d78f-439c-bf64-4e2293eab2c4",
+      "scheduleuuid": "0e66c69d-1742-4ad1-985c-696086575271"
+    }
+  ],
+  "candidate": [
+    {
+      "title": "候補2",
+      "takeoffArea": {
+        "type": "rectangle",
+        "coordinates": [
+          [
+            133.04444109763617,
+            35.46104882480439
+          ],
+          [
+            133.043338213628,
+            35.46104882480439
+          ],
+          [
+            133.043338213628,
+            35.46086916256939
+          ],
+          [
+            133.04444109763617,
+            35.46086916256939
+          ]
+        ],
+        "referencePointIndex": 0
+      },
+      "flightArea": {
+        "type": "ellipse",
+        "center": [
+          133.04684008554847,
+          35.46302162012213
+        ],
+        "radiusX_m": 150,
+        "radiusY_m": 100,
+        "rotation_deg": 0
+      },
+      "safetyArea": {
+        "type": "ellipse",
+        "buffer_m": 50
+      },
+      "audienceArea": {
+        "type": "rectangle",
+        "coordinates": [
+          [
+            133.0433381902253,
+            35.46428274503436
+          ],
+          [
+            133.04444112103886,
+            35.46428274503436
+          ],
+          [
+            133.04444112103886,
+            35.46446240726936
+          ],
+          [
+            133.0433381902253,
+            35.46446240726936
+          ]
+        ]
+      }
+    },
+    {
+      "title": ""
+    }
+  ],
+  "updated_at": "2025-12-18T06:35:49.558Z",
+  "updated_by": "ui"
+}

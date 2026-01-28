@@ -9,13 +9,15 @@ import React from "react";
 export default function App() {
   return (
     <Routes>
-      <Route index element={<Login />} />
-      <Route path="login" element={<Login />} />
-      <Route path="callback" element={<AuthCallback />} />
+      {/* / は /login に統一 */}
+      <Route index element={<Navigate to="/login" replace />} />
+
+      <Route path="/login" element={<Login />} />
+      <Route path="/callback" element={<AuthCallback />} />
 
       {/* 認証が必要なページ群 */}
       <Route
-        path="select"
+        path="/select"
         element={
           <RequireAuth>
             <Select />
@@ -23,8 +25,8 @@ export default function App() {
         }
       />
 
-      {/* フォールバック */}
-      <Route path="*" element={<Navigate to="." replace />} />
+      {/* フォールバックは /login */}
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }

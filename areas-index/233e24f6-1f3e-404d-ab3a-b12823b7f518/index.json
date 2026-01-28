@@ -1,0 +1,28 @@
+{
+  "areaName": "新港第一突堤緑地",
+  "overview": {
+    "address": "兵庫県神戸市中央区新港町１ 新港第一突堤緑地",
+    "prefecture": "兵庫県",
+    "manager": "テスト",
+    "droneRecord": "",
+    "droneCountEstimate": "",
+    "heightLimitM": "",
+    "availability": ""
+  },
+  "details": {
+    "statusMemo": "テスト",
+    "permitMemo": "",
+    "restrictionsMemo": "",
+    "remarks": ""
+  },
+  "history": [
+    {
+      "uuid": "",
+      "projectuuid": "39aa4ba4-bddc-4db3-a046-8600574c044f",
+      "scheduleuuid": "dae3d461-8792-4a06-8c23-c24a5c3ed2e6"
+    }
+  ],
+  "candidate": [],
+  "updated_at": "2025-12-03T04:19:33.888Z",
+  "updated_by": "ui"
+}

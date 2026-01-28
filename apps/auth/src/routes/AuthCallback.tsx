@@ -1,3 +1,4 @@
+// apps/auth/src/routes/AuthCallback.tsx
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchAuthSession } from "aws-amplify/auth";
@@ -8,14 +9,12 @@ export default function AuthCallback() {
     (async () => {
       try {
         await fetchAuthSession();
-        const back = sessionStorage.getItem("postLoginUrl");
+        // ログイン後は基本 /selectへリダイレクト
         sessionStorage.removeItem("postLoginUrl");
-        nav(back ? back.replace(location.origin, "") : "/select", {
-          replace: true,
-        });
+        nav("/select", { replace: true });
       } catch (e) {
         console.error("AuthCallback error", e);
-        nav("/", { replace: true });
+        nav("/login", { replace: true });
       }
     })();
   }, [nav]);

@@ -10,7 +10,7 @@ import type { MapGeometry } from "../../pages/parts/MapGeometry";
 type UseScheduleSectionParams = {
     // MapGeometry インスタンスへの参照（外側の MapView で生成されたもの）
     geomRef: MutableRefObject<MapGeometry | null>;
-    // 「エリア情報を作成する」CTA の表示状態を切り替える
+    // 「飛行エリアを作図する」CTA の表示状態を切り替える
     setShowCreateGeomCta: (v: boolean) => void;
     // 既存のジオメトリ描画を全てクリアするコールバック
     clearGeometryOverlays: () => void;
@@ -27,7 +27,7 @@ type UseScheduleSectionParams = {
  * - projectUuid / scheduleUuid の記録
  * - 該当スケジュールの geometry 取得
  * - MapGeometry への描画
- * - CTA（エリア情報を作成）の表示制御
+ * - CTA（飛行エリアを作図する）の表示制御
  * をまとめて行うカスタムフック。
  *
  * MapView 側からはこのフックを呼ぶだけで、
@@ -117,7 +117,7 @@ export function useScheduleSection({
                     // ジオメトリを描画（内部で fitBounds などが走る）
                     geomRef.current?.renderGeometry(geom);
                 } else {
-                    // 既存スケジュールだが geometry が無い → 「エリア情報を作成する」CTA を出す
+                    // 既存スケジュールだが geometry が無い → 「飛行エリアを作図する」CTA を出す
                     setShowCreateGeomCta(true);
                     console.info(
                         `[map] geometry: ABSENT for "${label}" (id=${sch?.id}) on ${sch?.date ?? "N/A"

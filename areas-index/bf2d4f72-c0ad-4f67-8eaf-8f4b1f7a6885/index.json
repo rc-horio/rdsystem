@@ -1,0 +1,83 @@
+{
+  "overview": {
+    "address": "栃木県足利市 朝倉福富緑地",
+    "prefecture": "栃木",
+    "manager": "佐藤",
+    "droneRecord": "あり",
+    "droneCountEstimate": "8",
+    "heightLimitM": "80",
+    "availability": "可"
+  },
+  "details": {
+    "statusMemo": "近隣イベントと日程調整が必要。",
+    "permitMemo": "自治体の占用許可が別途必要。",
+    "restrictionsMemo": "学校上空は終業後のみ可。",
+    "remarks": "雨天時は翌日に順延。"
+  },
+  "history": [],
+  "candidate": [
+    {
+      "title": "あ",
+      "flightAltitude_m": 120,
+      "takeoffArea": {
+        "type": "rectangle",
+        "coordinates": [
+          [
+            135.19556625537786,
+            34.67833614480066
+          ],
+          [
+            135.1944738979655,
+            34.67833614480066
+          ],
+          [
+            135.1944738979655,
+            34.67815648256566
+          ],
+          [
+            135.19556625537786,
+            34.67815648256566
+          ]
+        ],
+        "referencePointIndex": 0
+      },
+      "flightArea": {
+        "type": "ellipse",
+        "center": [
+          135.19502007667168,
+          34.67986327379815
+        ],
+        "radiusX_m": 150,
+        "radiusY_m": 100,
+        "rotation_deg": 0
+      },
+      "safetyArea": {
+        "type": "ellipse",
+        "buffer_m": 50
+      },
+      "audienceArea": {
+        "type": "rectangle",
+        "coordinates": [
+          [
+            135.19447387544986,
+            34.681570065030634
+          ],
+          [
+            135.1955662778935,
+            34.681570065030634
+          ],
+          [
+            135.1955662778935,
+            34.68174972726563
+          ],
+          [
+            135.19447387544986,
+            34.68174972726563
+          ]
+        ]
+      }
+    }
+  ],
+  "updated_at": "2025-12-03T07:22:47.099Z",
+  "updated_by": "ui"
+}

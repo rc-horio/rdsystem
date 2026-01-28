@@ -1035,7 +1035,7 @@ body.detailbar-open #detailbar {
   height: 23px;
 }
 
-/* 候補地タイトル編集用インプット（シンプル版） */
+/* 候補地ラベル編集用インプット（シンプル版） */
 #detailbar .candidate-title-input {
   font-size: var(--ds-name-fz);
   line-height: 2.5;

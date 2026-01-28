@@ -1,0 +1,26 @@
+{
+  "areaName": "船橋競馬場",
+  "overview": {
+    "address": "船橋競馬場 / 〒273-0013 千葉県船橋市若松１丁目２−１",
+    "prefecture": "千葉県",
+    "manager": "",
+    "droneRecord": "",
+    "droneCountEstimate": "",
+    "heightLimitM": "",
+    "availability": ""
+  },
+  "details": {
+    "statusMemo": "",
+    "permitMemo": "",
+    "restrictionsMemo": "",
+    "remarks": ""
+  },
+  "history": [],
+  "candidate": [
+    {
+      "title": "テスト"
+    }
+  ],
+  "updated_at": "2025-12-26T12:35:05.093Z",
+  "updated_by": "ui"
+}

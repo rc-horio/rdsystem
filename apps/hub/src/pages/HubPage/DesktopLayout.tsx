@@ -66,7 +66,7 @@ export default function DesktopLayout(props: any) {
       <main className="flex-1 p-0 overflow-x-hidden md:ml-88">
         {" "}
         <div className="p-6">
-          <section hidden={activeTab !== "リソース管理"}>
+          <section hidden={activeTab !== "リソース"}>
             {projectData && (
               <ResourceTab
                 edit={edit}
@@ -84,7 +84,7 @@ export default function DesktopLayout(props: any) {
             )}
           </section>
 
-          <section hidden={activeTab !== "エリア情報"}>
+          <section hidden={activeTab !== "エリア"}>
             <AreaInfoTab
               edit={edit}
               setEdit={setEdit}

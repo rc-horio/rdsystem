@@ -8,17 +8,20 @@ import {
 } from "./builders";
 import { v4 as uuid } from "uuid";
 
-// 写真アップロード用のLambda関数API
-const PRESIGN_API =
-  "https://k5nnpin5wvwzkcl6is5vbdzlb40mkpqk.lambda-url.ap-northeast-1.on.aws/";
+// 環境変数からCatalogのベースURLを取得
+const CATALOG = String(import.meta.env.VITE_CATALOG_BASE_URL || "").replace(/\/+$/, "");
 
-// 写真削除用のLambda関数API
-const DELETE_API =
-  "https://wxhn4vu2b7nz2gvdkix7xj7k4u0bsydf.lambda-url.ap-northeast-1.on.aws/";
+// 環境変数からCatalogの書き込みURLを取得
+const CATALOG_WRITE_URL = String(import.meta.env.VITE_CATALOG_WRITE_URL || "").replace(/\/+$/, "");
 
-// 
-const AREAS_BASE_URL =
-  "https://rc-rdsystem-dev-catalog.s3.ap-northeast-1.amazonaws.com/catalog/v1/areas";
+// 環境変数から写真アップロード用のLambda関数APIを取得
+const PRESIGN_API = String(import.meta.env.VITE_HUB_PHOTO_PRESIGN_URL || "").replace(/\/+$/, "");
+
+// 環境変数から写真削除用のLambda関数APIを取得
+const DELETE_API = String(import.meta.env.VITE_HUB_PHOTO_DELETE_URL || "").replace(/\/+$/, "");
+
+// エリア情報のベースURL
+const AREAS_BASE_URL = `${CATALOG}/areas`;
 
 const deepClone = <T>(v: T): T => JSON.parse(JSON.stringify(v));
 
@@ -48,8 +51,8 @@ export function useHubPageState() {
   const initLabel = q.get("label") || "";
 
   const [activeTab, setActiveTab] = useState<
-    "リソース管理" | "エリア情報" | "オペレーション" | "現場写真"
-  >("リソース管理");
+    "リソース" | "エリア" | "オペレーション" | "現場写真"
+  >("リソース");
   const [edit, setEdit] = useState(false);
   const [projectData, setProjectData] = useState<any>(null);
   const [schedules, setSchedules] = useState<ScheduleDetail[]>([]);
@@ -124,7 +127,7 @@ export function useHubPageState() {
   // 既存の「JSON保存用 Lambda」を使って任意のJSONを書き込むヘルパー
   const putJsonViaLambda = async (params: { key: string; body: any }) => {
     const res = await fetch(
-      "https://u64h3yye227qjsnem7yyydakpu0vpkxn.lambda-url.ap-northeast-1.on.aws",
+      CATALOG_WRITE_URL,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -283,14 +286,15 @@ export function useHubPageState() {
         const BASE = import.meta.env.BASE_URL;
         const makeUrl = () =>
           source === "local" ? `${BASE}index.json`
-            : `https://rc-rdsystem-dev-catalog.s3.ap-northeast-1.amazonaws.com/catalog/v1/projects/${id}/index.json`;
+            : `${CATALOG}/projects/${id}/index.json`;
+
         if (source === "s3" && !id) return;
 
         // init=1 の場合は“空”で開始（ただし duplicateFrom 指定時はコピー読込）
         if (isInit) {
           if (duplicateFrom) {
             // 1) 複製元の index.json を取得
-            const srcUrl = `https://rc-rdsystem-dev-catalog.s3.ap-northeast-1.amazonaws.com/catalog/v1/projects/${duplicateFrom}/index.json`;
+            const srcUrl = `${CATALOG}/projects/${duplicateFrom}/index.json`;
 
             let copied: any | null = null;
             try {
@@ -375,7 +379,7 @@ export function useHubPageState() {
         let res = await fetch(makeUrl(), { cache: "no-cache" });
         // local の場合のフォールバック（既存仕様）
         if (source === "local" && res.status === 404 && id) {
-          const fb = `https://rc-rdsystem-dev-catalog.s3.ap-northeast-1.amazonaws.com/catalog/v1/projects/${id}/index.json`;
+          const fb = `${CATALOG}/projects/${id}/index.json`;
           res = await fetch(fb, { cache: "no-cache" });
         }
 
@@ -597,7 +601,7 @@ export function useHubPageState() {
 
       // ③ 既存の JSON 保存 Lambda を叩く
       const res = await fetch(
-        "https://u64h3yye227qjsnem7yyydakpu0vpkxn.lambda-url.ap-northeast-1.on.aws",
+        CATALOG_WRITE_URL,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -615,7 +619,7 @@ export function useHubPageState() {
       // 🟢 projects.json も同期（projectId / projectName 変更時）
       try {
         const listUrl =
-          "https://rc-rdsystem-dev-catalog.s3.ap-northeast-1.amazonaws.com/catalog/v1/projects.json";
+          `${CATALOG}/projects.json`;
         const listRes = await fetch(listUrl, { cache: "no-cache" });
         let list: any[] = [];
         if (listRes.ok) {
@@ -642,7 +646,7 @@ export function useHubPageState() {
 
         // Lambda 経由で上書き保存
         const updateRes = await fetch(
-          "https://u64h3yye227qjsnem7yyydakpu0vpkxn.lambda-url.ap-northeast-1.on.aws",
+          CATALOG_WRITE_URL,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },

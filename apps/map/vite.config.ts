@@ -29,7 +29,7 @@ export default defineConfig({
     // })
   ],
   base: '/map/',
-  envDir: path.resolve(__dirname, '../../'),
+  envDir: __dirname,
   publicDir: path.resolve(__dirname, '../../static'),
   resolve: {
     alias: {

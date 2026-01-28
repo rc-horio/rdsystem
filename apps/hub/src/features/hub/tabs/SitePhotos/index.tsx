@@ -294,7 +294,7 @@ export default function SitePhotosTab({
               onClick={showPrev}
               className="px-3 h-10 rounded-lg border border-slate-600 text-slate-200 text-sm"
             >
-              ← 前へ
+              ◀
             </button>
             <div className="text-xs text-slate-400">
               {previewIndex + 1} / {photos.length}
@@ -304,7 +304,7 @@ export default function SitePhotosTab({
               onClick={showNext}
               className="px-3 h-10 rounded-lg border border-slate-600 text-slate-200 text-sm"
             >
-              次へ →
+              ▶
             </button>
           </div>
         </FormModal>

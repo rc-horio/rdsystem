@@ -1,0 +1,25 @@
+{
+  "overview": {
+    "address": "神奈川県藤沢市 いすゞ自動車あ",
+    "prefecture": "神奈川",
+    "manager": "佐藤さん",
+    "droneRecord": "あり",
+    "droneCountEstimate": "15",
+    "heightLimitM": "150",
+    "availability": "可"
+  },
+  "details": {
+    "statusMemo": "近隣イベントと日程調整が必要。",
+    "permitMemo": "自治体の占用許可が別途必要。",
+    "restrictionsMemo": "学校上空は終業後のみ可。",
+    "remarks": "雨天時は翌日に順延。"
+  },
+  "history": [],
+  "candidate": [
+    {
+      "title": "候補2"
+    }
+  ],
+  "updated_at": "2026-01-08T11:55:52.762Z",
+  "updated_by": "ui"
+}

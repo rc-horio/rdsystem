@@ -1,0 +1,28 @@
+{
+  "areaName": "ああああ",
+  "overview": {
+    "address": "長野県山ノ内町",
+    "prefecture": "長野県",
+    "manager": "",
+    "droneRecord": "",
+    "droneCountEstimate": "",
+    "heightLimitM": "",
+    "availability": ""
+  },
+  "details": {
+    "statusMemo": "",
+    "permitMemo": "",
+    "restrictionsMemo": "",
+    "remarks": ""
+  },
+  "history": [
+    {
+      "uuid": "",
+      "projectuuid": "6c517ae0-d821-4083-a9f0-c487098b83ea",
+      "scheduleuuid": "2afa9b81-06fe-4204-8deb-f3ed49097943"
+    }
+  ],
+  "candidate": [],
+  "updated_at": "2025-11-25T10:05:55.423Z",
+  "updated_by": "ui"
+}
