@@ -1,7 +1,9 @@
 // features/hub/tabs/AreaInfo/sections/layout/DesktopPanel.tsx
 import { MapCard, LandingAreaFigure, RightPanel } from "..";
-import { ButtonRed } from "@/components/atoms/buttons/RedButton";
 import type { AreaInfo } from "../..";
+import {
+  exportDanceSpecPptxFromHtml
+} from "../../pdf/exportLandscape";
 
 type Props = {
   edit: boolean;
@@ -9,6 +11,8 @@ type Props = {
   area: AreaInfo | null;
   onPatchArea: (patch: Partial<AreaInfo>) => void;
   onExportPdf: () => void;
+  projectName: string;
+  scheduleLabel: string;
   areaName: string | null;
   projectUuid?: string | null;
   scheduleUuid?: string | null;
@@ -19,10 +23,20 @@ export default function DesktopPanel({
   area,
   onPatchArea,
   onExportPdf,
+  projectName,
+  scheduleLabel,
   areaName,
   projectUuid,
   scheduleUuid,
 }: Props) {
+  const onExportPptx = () =>
+    exportDanceSpecPptxFromHtml({
+      projectName,
+      scheduleLabel,
+      gradPx: 3,
+      area,
+    });
+
   return (
     // 左(=Map+Figure) と 右(=RightPanel) の2カラム
     <div className="grid gap-y-6 gap-x-1 lg:grid-cols-[4fr_1fr] w-full">
@@ -30,24 +44,39 @@ export default function DesktopPanel({
       <div className="relative pr-6 lg:pr-4">
         <div className="absolute inset-y-0 right-0 w-px bg-red-900/40 pointer-events-none" />
 
-        <div className="mb-4">
-          <ButtonRed onClick={onExportPdf} className="px-3 py-1 text-xs">
-            PDF出力(開発中)
-          </ButtonRed>
+        <div className="mb-4 flex items-center gap-3">
+          <span className="text-xs text-slate-200">
+            ダンスファイル指示書出力
+          </span>
+
+          <div className="inline-flex overflow-hidden rounded-md border border-slate-600">
+            <button
+              type="button"
+              onClick={onExportPdf}
+              className="px-3 py-1 text-xs hover:bg-slate-700"
+            >
+              PDF
+            </button>
+            <div className="w-px bg-slate-600" />
+            <button
+              type="button"
+              onClick={onExportPptx}
+              className="px-3 py-1 text-xs hover:bg-slate-700"
+            >
+              PPTX
+            </button>
+          </div>
         </div>
 
-        {/* 縦並びに */}
+
+        {/* 縦並びに\ */}
         <div className="space-y-6">
           <MapCard
             areaName={areaName}
             projectUuid={projectUuid ?? undefined}
             scheduleUuid={scheduleUuid ?? undefined}
           />
-          <LandingAreaFigure
-            edit={edit}
-            area={area}
-            onPatchArea={onPatchArea}
-          />
+          <LandingAreaFigure edit={edit} area={area} onPatchArea={onPatchArea} />
         </div>
       </div>
 

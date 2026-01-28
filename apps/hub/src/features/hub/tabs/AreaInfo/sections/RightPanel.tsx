@@ -36,6 +36,13 @@ type RDMapArea = {
 // ・一旦は S3 の公開 URL をデフォルトにしておく
 const AREAS_JSON_URL = S3_BASE + "areas.json";
 
+export function formatTurn(turn: any): string {
+  if (!turn) return "—";
+  return turn.direction === "ccw"
+    ? `反時計回りに${turn.angle_deg}度回転`
+    : `時計回りに${turn.angle_deg}度回転`;
+}
+
 export function RightPanel({
   edit,
   area,
@@ -182,8 +189,8 @@ export function RightPanel({
               areasError
                 ? "エリア取得エラー"
                 : isLoadingAreas
-                ? "読込中..."
-                : "未設定"
+                  ? "読込中..."
+                  : "未設定"
             }
             className="max-w-[260px]"
             isLoading={isLoadingAreas}
@@ -329,13 +336,7 @@ export function RightPanel({
         <div className="pl-4 md:pl-6">
           <DisplayOrInput
             edit={false}
-            value={
-              turn
-                ? turn.direction === "ccw"
-                  ? `反時計回りに${turn.angle_deg}度回転`
-                  : `時計回りに${turn.angle_deg}度回転`
-                : "—"
-            }
+            value={formatTurn(geo.turn)}
             className="max-w-[260px]"
           />
         </div>{" "}
