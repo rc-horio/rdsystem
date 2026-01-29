@@ -19,7 +19,7 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
 
   const rotation =
     typeof area?.drone_orientation_deg === "number" &&
-    Number.isFinite(area.drone_orientation_deg)
+      Number.isFinite(area.drone_orientation_deg)
       ? (area.drone_orientation_deg as number)
       : 0;
 
@@ -80,7 +80,7 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
       {/* 左右並び：左=離発着エリア図、右=アイコン1&2セット */}
       <div className="my-4 flex flex-col lg:flex-row gap-4">
         {/* 左: 離発着エリア図 */}
-        <div className="flex-1 lg:basis-12/12">
+        <div className="flex-1 lg:basis-6/12">
           <div className="h-120 w-full border border-slate-600">
             <svg
               viewBox="0 0 400 200"
@@ -116,7 +116,7 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
         </div>
 
         {/* 右: 機体の向き 図（アイコン1セット & アイコン2セット） */}
-        <div className="flex-1 lg:basis-5/12">
+        <div className="flex-1 lg:basis-4/12">
           <div className="h-120 w-full relative flex flex-col items-center justify-center border border-slate-600">
             {/* ラベル */}
             <span className="absolute top-2 left-3 text-white text-sm font-semibold">
@@ -185,12 +185,12 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
             {/* ===== アイコン2セット ===== */}
             <div className="relative flex flex-col items-center justify-center">
               {/* 中央距離（horizontal） */}
-              <div className="absolute left-[-65px] flex items-center gap-2">
+              <div className="absolute left-[-100px] flex items-center gap-2">
                 <DisplayOrInput
                   edit={edit}
                   value={horizontal}
                   onChange={(e) => setHorizontal(e.target.value)}
-                  className="w-[50px]! text-center"
+                  className="w-[80px]! text-center"
                 />
                 <span className="text-slate-100 text-sm">m</span>
               </div>
@@ -202,17 +202,13 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
 
               {/* 下部距離（vertical） */}
               <div
-                className="absolute flex items-center gap-2"
-                style={{
-                  top: "100px",
-                  left: "20px",
-                }}
+                className="absolute top-[100px] left-[-5px] flex items-center gap-2"
               >
                 <DisplayOrInput
                   edit={edit}
                   value={vertical}
                   onChange={(e) => setVertical(e.target.value)}
-                  className="w-[50px]! text-center"
+                  className="w-[80px]! text-center"
                 />
                 <span className="text-slate-100 text-sm">m</span>
               </div>

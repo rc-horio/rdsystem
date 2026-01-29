@@ -4,7 +4,7 @@ import type { ExportOpts } from "./types";
 import { loadDanceSpecHtml } from "./template";
 import { captureElement } from "./capture";
 import { jsPDF } from "jspdf";
-import { sanitize, formatTurnText } from "./texts";
+import { sanitize, formatTurnText, getSpacingBetweenDronesText } from "./texts";
 
 /**
  * PDFを出力
@@ -55,12 +55,13 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
     const headerEl = p2clone.querySelector("#page2-header") as HTMLElement | null;
     if (headerEl) headerEl.textContent = page2Header;
 
-    // ===== 右サイド値の注入 =====
+    // ===== 値の注入 =====
     const area = opts?.area ?? {};
     const drone = area?.drone_count ?? {};
     const model = (drone?.model ?? "").trim();
     const actions = area?.actions ?? {};
     const lights = area?.lights ?? {};
+    const { horizontal, vertical } = getSpacingBetweenDronesText(area);
 
     const text = (v: any, fallback = "—") =>
         (v === 0 || (typeof v === "string" && v.trim()) || Number.isFinite(v))
@@ -119,6 +120,12 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
     const d = text(area?.geometry?.flightArea.radiusY_m * 2, "");
     setTxt("#v-anim", (w && d) ? `W${w}m × L${d}m` : (w ? `W${w}m` : (d ? `L${d}m` : "—")));
 
+    // ■並べる間隔（左）
+    setTxt(".spacing-label--left", horizontal);
+    
+    // ■並べる間隔（下）
+    setTxt(".spacing-label--bottom", vertical);
+
     // ==== 3) キャプチャ ====
     const cssVars = { "--grad-from": gradFrom, "--grad-to": gradTo };
     const [c1, c2] = await Promise.all([
@@ -154,8 +161,23 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
     addFull(c2, true);
 
 
-    // ==== 5) ファイル名 ====
+    // // ==== 5) ファイル名 ====
+    // const fileName =
+    //     [sanitize(project), sanitize(schedule), "ダンスファイル指示書"].filter(Boolean).join("_") + ".pdf";
+    // pdf.save(fileName);
+
+    // ==== 5) ★開発用：出力 ====
     const fileName =
         [sanitize(project), sanitize(schedule), "ダンスファイル指示書"].filter(Boolean).join("_") + ".pdf";
-    pdf.save(fileName);
+
+    if (import.meta.env.DEV) {
+        const blob = pdf.output("blob");
+        const url = URL.createObjectURL(blob);
+        window.open(url, "_blank", "noopener,noreferrer");
+        // メモリ解放（適当なタイミングでOK）
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } else {
+        pdf.save(fileName);
+    }
 }
+

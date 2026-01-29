@@ -4,7 +4,7 @@
 export function getTemplateBase(): string {
     // BASE_URL = "/hub/" 想定
     return new URL(
-        "pdf-templates/",
+        "dance-spec--templates/",
         new URL(import.meta.env.BASE_URL, window.location.origin)
     ).toString();
 }

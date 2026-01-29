@@ -75,7 +75,7 @@ body {
 
 /* ── 2ページ目（白背景） ───────────────────────── */
 #page2 {
-  background: #fff;
+  background: #555;
   color: #000;
   position: relative;
 }
@@ -144,10 +144,14 @@ body {
 .frame-left {
   height: 100%;
 }
+
+/* 中央・上段枠の中身 */
 .frame-mid-top {
   position: relative;
   min-height: 0;
 }
+
+/* 中央・下段枠の中身 */
 .frame-mid-bottom {
   position: relative;
 }
@@ -160,18 +164,109 @@ body {
   grid-template-columns: 1fr 1fr;
   pointer-events: none; /* 将来画像等を重ねても操作妨げない */
 }
+
+/* 中央・下段枠のセル */
 .midbottom-cell {
   display: flex;
   justify-content: center; /* 横中央 */
   align-items: flex-start; /* 縦中央（上寄せなら flex-start） */
 }
+
+/* 中央・下段枠のタイトル */
 .midbottom-title {
   font-weight: 600;
   font-size: 22px;
   color: #222;
 }
 
-/* 右サイド（サイドバー） */
+/* 中央・下段枠の中身を「縦積み」にする */
+.midbottom-stack{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  gap: 60px; 
+}
+
+/* Antenna */
+.drone-label--antenna {
+  top: -35px;     
+  color: #e00022;
+}
+
+/* Battery */
+.drone-label--battery {
+  bottom: -23px;
+  color: #000;   
+}
+
+/* 画像行 */
+.midbottom-figRow{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+/* 2つのアイコンサイズ */
+.midbottom-figRow img{
+  width: 130px;
+  height: 130px;
+  object-fit: contain;
+}
+
+/* アイコン1の回転 */
+.drone-icon-rotate {
+  transform: rotate(180deg);
+}
+
+/* アイコンのラベル */
+.midbottom-figRow--label {
+  position: relative;
+}
+
+/* アイコンのラベルの位置 */
+.drone-label {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* アイコン2 + 距離表示のコンテナ */
+.midbottom-figRow--spacing{
+  position: relative;
+}
+
+/* アイコン2のラベル */
+.spacing-label{
+  position: absolute;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  color: #222;
+}
+
+/* アイコン2のラベルの位置（左） */
+.spacing-label--left{
+  left: 25px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* アイコン2のラベルの位置（下） */
+.spacing-label--bottom{
+  top: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* ───────────────────────── 右サイドバー ───────────────────────── */
 #page2 .sidebar {
   position: absolute;
   inset: 0;

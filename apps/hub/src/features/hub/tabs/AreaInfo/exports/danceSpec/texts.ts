@@ -125,6 +125,25 @@ export function getShowText(areaInput: any): string {
     return `離陸: ${takeoff}\n着陸: ${landing}\n ${note}`;
 }
 
+/** 並べる間隔 */
+const meterText = (v: any) => {
+    // "51" / 51 / 0 を許容。空やnullは "—"
+    const ok =
+        v === 0 ||
+        Number.isFinite(Number(v)) ||
+        (typeof v === "string" && v.trim() !== "");
+    return ok ? `${String(v).trim()}m` : "—";
+};
+
+export function getSpacingBetweenDronesText(areaInput: any): { horizontal: string; vertical: string } {
+    const area = normalizeArea(areaInput);
+    const spacing = area?.spacing_between_drones_m ?? {};
+    return {
+        horizontal: meterText(spacing?.horizontal),
+        vertical: meterText(spacing?.vertical),
+    };
+}
+
 /** その他そのまま表示系 */
 export function getMoveText(areaInput: any): string {
     const area = normalizeArea(areaInput);

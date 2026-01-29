@@ -4,7 +4,7 @@ import type { ExportOpts } from "./types";
 import { loadDanceSpecHtml } from "./template";
 import { canvasToDataUri, captureElement } from "./capture";
 import PptxGenJS from "pptxgenjs";
-import { buildFileBaseName } from "./texts";
+import { buildFileBaseName, getSpacingBetweenDronesText } from "./texts";
 
 /**
  * PPTXを出力
@@ -54,12 +54,11 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
 
     // ===== 右サイド値の注入（PDFと同じ） =====
     const area = opts?.area ?? {};
-    const flight = area?.flight_area ?? {};
     const drone = area?.drone_count ?? {};
     const model = (drone?.model ?? "").trim();
     const actions = area?.actions ?? {};
     const lights = area?.lights ?? {};
-    const anim = area?.animation_area ?? {};
+    const { horizontal, vertical } = getSpacingBetweenDronesText(area);
 
     const text = (v: any, fallback = "—") =>
         (v === 0 || (typeof v === "string" && v.trim()) || Number.isFinite(v)) ? String(v) : fallback;
@@ -110,6 +109,12 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
     const w = text(area?.geometry?.flightArea.radiusX_m * 2, "");
     const d = text(area?.geometry?.flightArea.radiusY_m * 2, "");
     setTxt("#v-anim", (w && d) ? `W${w}m × L${d}m` : (w ? `W${w}m` : (d ? `L${d}m` : "—")));
+
+    // ■並べる間隔（左）
+    setTxt(".spacing-label--left", horizontal);
+
+    // ■並べる間隔（下）
+    setTxt(".spacing-label--bottom", vertical);
 
     // ==== 3) キャプチャ（PDFと同じ） ====
     const cssVars = { "--grad-from": gradFrom, "--grad-to": gradTo };
