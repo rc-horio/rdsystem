@@ -122,7 +122,7 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
 
     // ■並べる間隔（左）
     setTxt(".spacing-label--left", horizontal);
-    
+
     // ■並べる間隔（下）
     setTxt(".spacing-label--bottom", vertical);
 
@@ -160,16 +160,11 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
     addFull(c1);
     addFull(c2, true);
 
-
-    // // ==== 5) ファイル名 ====
-    // const fileName =
-    //     [sanitize(project), sanitize(schedule), "ダンスファイル指示書"].filter(Boolean).join("_") + ".pdf";
-    // pdf.save(fileName);
-
-    // ==== 5) ★開発用：出力 ====
+    // ==== 5) 開発用：出力 ====
     const fileName =
         [sanitize(project), sanitize(schedule), "ダンスファイル指示書"].filter(Boolean).join("_") + ".pdf";
 
+    // 環境変数VITE_DISABLE_AUTHがtrueの場合は開発用
     if (import.meta.env.DEV) {
         const blob = pdf.output("blob");
         const url = URL.createObjectURL(blob);
@@ -179,5 +174,6 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
     } else {
         pdf.save(fileName);
     }
+
 }
 
