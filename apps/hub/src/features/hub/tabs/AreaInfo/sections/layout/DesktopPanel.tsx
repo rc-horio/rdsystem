@@ -1,9 +1,6 @@
 // features/hub/tabs/AreaInfo/sections/layout/DesktopPanel.tsx
 import { MapCard, LandingAreaFigure, RightPanel } from "..";
 import type { AreaInfo } from "../..";
-import {
-  exportDanceSpecPptxFromHtml
-} from "../../pdf/exportLandscape";
 
 type Props = {
   edit: boolean;
@@ -11,8 +8,7 @@ type Props = {
   area: AreaInfo | null;
   onPatchArea: (patch: Partial<AreaInfo>) => void;
   onExportPdf: () => void;
-  projectName: string;
-  scheduleLabel: string;
+  onExportPptx: () => void;
   areaName: string | null;
   projectUuid?: string | null;
   scheduleUuid?: string | null;
@@ -23,20 +19,11 @@ export default function DesktopPanel({
   area,
   onPatchArea,
   onExportPdf,
-  projectName,
-  scheduleLabel,
+  onExportPptx,
   areaName,
   projectUuid,
   scheduleUuid,
 }: Props) {
-  const onExportPptx = () =>
-    exportDanceSpecPptxFromHtml({
-      projectName,
-      scheduleLabel,
-      gradPx: 3,
-      area,
-    });
-
   return (
     // 左(=Map+Figure) と 右(=RightPanel) の2カラム
     <div className="grid gap-y-6 gap-x-1 lg:grid-cols-[4fr_1fr] w-full">
@@ -53,7 +40,7 @@ export default function DesktopPanel({
             <button
               type="button"
               onClick={onExportPdf}
-              className="px-3 py-1 text-xs hover:bg-slate-700"
+              className="px-3 py-1 text-xs hover:bg-slate-700 cursor-pointer"
             >
               PDF
             </button>
@@ -61,7 +48,7 @@ export default function DesktopPanel({
             <button
               type="button"
               onClick={onExportPptx}
-              className="px-3 py-1 text-xs hover:bg-slate-700"
+              className="px-3 py-1 text-xs hover:bg-slate-700 cursor-pointer"
             >
               PPTX
             </button>

@@ -1,7 +1,7 @@
 // features/hub/tabs/AreaInfo/index.tsx
 import DesktopPanel from "./sections/layout/DesktopPanel";
 import MobilePanel from "./sections/layout/MobilePanel";
-import { exportDanceSpecPdfFromHtml } from "./pdf/exportLandscape";
+import { exportDanceSpecPdfFromHtml, exportDanceSpecPptxFromHtml } from "./exports/danceSpec"; // 例：新しいindex.tsに寄せる
 
 export type AreaInfo = any;
 
@@ -26,13 +26,14 @@ export default function AreaInfoTab({
   projectUuid,
   scheduleUuid,
 }: Props) {
+
+  // ダンスファイル指示書(PDF)を出力
   const onExportPdf = () =>
-    exportDanceSpecPdfFromHtml({
-      projectName,
-      scheduleLabel,
-      gradPx: 3,
-      area,
-    });
+    exportDanceSpecPdfFromHtml({ projectName, scheduleLabel, gradPx: 3, area });
+
+  // ダンスファイル指示書(PPTX)を出力
+  const onExportPptx = () =>
+    exportDanceSpecPptxFromHtml({ projectName, scheduleLabel, gradPx: 3, area });
 
   // いったん state で selectedAreaName は持たず、area だけを見る
   const areaName = area?.area_name ?? null;
@@ -42,11 +43,12 @@ export default function AreaInfoTab({
       {/* SP */}
       <div className="md:hidden">
         <MobilePanel
+          onExportPdf={onExportPdf}
+          onExportPptx={onExportPptx}
           edit={edit}
           setEdit={setEdit}
           area={area}
           onPatchArea={onPatchArea}
-          onExportPdf={onExportPdf}
           areaName={areaName}
           projectUuid={projectUuid}
           scheduleUuid={scheduleUuid}
@@ -60,6 +62,7 @@ export default function AreaInfoTab({
           area={area}
           onPatchArea={onPatchArea}
           onExportPdf={onExportPdf}
+          onExportPptx={onExportPptx}
           areaName={areaName}
           projectUuid={projectUuid}
           scheduleUuid={scheduleUuid}

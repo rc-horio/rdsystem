@@ -1,8 +1,6 @@
 // features/hub/tabs/AreaInfo/sections/layout/MobilePanel.tsx
 import { MapCard, LandingAreaFigure, RightPanel } from "..";
-import { ButtonRed } from "@/components/atoms/buttons/RedButton";
 import type { AreaInfo } from "../..";
-import { exportDanceSpecPptxFromHtml } from "../../pdf/exportLandscape";
 
 type Props = {
   edit: boolean;
@@ -10,8 +8,7 @@ type Props = {
   area: AreaInfo | null;
   onPatchArea: (patch: Partial<AreaInfo>) => void;
   onExportPdf: () => void;
-  projectName: string;
-  scheduleLabel: string;
+  onExportPptx: () => void;
   areaName: string | null;
   projectUuid?: string | null;
   scheduleUuid?: string | null;
@@ -22,20 +19,11 @@ export default function MobilePanel({
   area,
   onPatchArea,
   onExportPdf,
-  projectName,
-  scheduleLabel,
+  onExportPptx,
   areaName,
   projectUuid,
   scheduleUuid,
 }: Props) {
-  const onExportPptx = () =>
-    exportDanceSpecPptxFromHtml({
-      projectName,
-      scheduleLabel,
-      gradPx: 3,
-      area,
-    });
-
   return (
     <div className="space-y-6 overflow-x-hidden">
       {/* 出力 */}

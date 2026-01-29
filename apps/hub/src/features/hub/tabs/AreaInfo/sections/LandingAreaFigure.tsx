@@ -1,3 +1,5 @@
+// src/features/hub/tabs/AreaInfo/sections/LandingAreaFigure.tsx
+
 import {
   SectionTitle,
   Drone1Icon,
