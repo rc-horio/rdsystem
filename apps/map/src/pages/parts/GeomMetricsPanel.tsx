@@ -104,10 +104,20 @@ export default function GeomMetricsPanel() {
   const toInput = (n?: number) =>
     typeof n === "number" && Number.isFinite(n) ? String(Math.round(n)) : "";
 
+  // 数値を表示用に（小数1桁固定）
+  const toInputDec1 = (n?: number) =>
+    typeof n === "number" && Number.isFinite(n) ? (Math.round(n * 10) / 10).toFixed(1) : "";
+
   // 入力を整数[m]として取得（空は undefined）
   const parseIntMeters = (ev: ChangeEvent<HTMLInputElement>) => {
     const n = Number(ev.target.value);
     return Number.isFinite(n) ? Math.max(0, Math.round(n)) : undefined;
+  };
+
+  // 入力を小数1桁[m]として取得（空は undefined）
+  const parseDec1Meters = (ev: ChangeEvent<HTMLInputElement>) => {
+    const n = Number(ev.target.value);
+    return Number.isFinite(n) ? Math.max(0, Math.round(n * 10) / 10) : undefined;
   };
 
   // 数値を外部イベントに送信
@@ -176,9 +186,8 @@ export default function GeomMetricsPanel() {
             <div className="geom-row">
               <span className="k radio-position">
                 <label
-                  className={`inline-flex items-center gap-1 ${
-                    !editable ? "radio-readonly" : ""
-                  }`}
+                  className={`inline-flex items-center gap-1 ${!editable ? "radio-readonly" : ""
+                    }`}
                 >
                   <input
                     type="radio"
@@ -210,9 +219,8 @@ export default function GeomMetricsPanel() {
             <div className="geom-row">
               <span className="k radio-position">
                 <label
-                  className={`inline-flex items-center gap-1 ${
-                    !editable ? "radio-readonly" : ""
-                  }`}
+                  className={`inline-flex items-center gap-1 ${!editable ? "radio-readonly" : ""
+                    }`}
                 >
                   <input
                     type="radio"
@@ -298,13 +306,13 @@ export default function GeomMetricsPanel() {
               <input
                 className="v geom-input"
                 type="number"
-                inputMode="numeric"
-                step={1}
+                inputMode="decimal"
+                step={0.1}
                 min={0}
                 placeholder="-"
-                value={toInput(m.rectWidth_m)}
+                value={toInputDec1(m.rectWidth_m)}
                 onChange={(e) => {
-                  const n = parseIntMeters(e);
+                  const n = parseDec1Meters(e);
                   setM((p) => ({ ...p, rectWidth_m: n }));
                   if (n !== undefined) send({ rectWidth_m: n });
                 }}
@@ -318,13 +326,13 @@ export default function GeomMetricsPanel() {
               <input
                 className="v geom-input"
                 type="number"
-                inputMode="numeric"
-                step={1}
+                inputMode="decimal"
+                step={0.1}
                 min={0}
                 placeholder="-"
-                value={toInput(m.rectDepth_m)}
+                value={toInputDec1(m.rectDepth_m)}
                 onChange={(e) => {
-                  const n = parseIntMeters(e);
+                  const n = parseDec1Meters(e);
                   setM((p) => ({ ...p, rectDepth_m: n }));
                   if (n !== undefined) send({ rectDepth_m: n });
                 }}
@@ -394,8 +402,8 @@ export default function GeomMetricsPanel() {
                 {m.turnDirection === "ccw"
                   ? "反時計回りに"
                   : m.turnDirection === "cw"
-                  ? "時計回りに"
-                  : "—"}
+                    ? "時計回りに"
+                    : "—"}
               </span>
               <span className="u" />
             </div>

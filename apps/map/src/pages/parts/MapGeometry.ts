@@ -38,6 +38,15 @@ export class MapGeometry {
     private ellipseEditor: EllipseEditor;
     private rectEditor: RectEditor;
 
+    // 四捨五入
+    private roundInt(n: number) {
+        return Math.round(n);
+    }
+    // 小数1桁四捨五入
+    private roundDec1(n: number) {
+        return Math.round(n * 10) / 10;
+    }
+
     /** =========================
      *  現在のスケジュール
      *  ========================= */
@@ -345,9 +354,30 @@ export class MapGeometry {
 
         // --- 観客エリア（矩形） ---
         const { hasAudience, metrics: audM } = this.audienceEditor.render(geom, bounds);
+        // --- 観客エリア（矩形） ---
         if (hasAudience && audM) {
-            metrics.spectatorWidth_m = audM.spectatorWidth_m;
-            metrics.spectatorDepth_m = audM.spectatorDepth_m;
+            metrics.spectatorWidth_m =
+                typeof audM.spectatorWidth_m === "number" && Number.isFinite(audM.spectatorWidth_m)
+                    ? Math.round(audM.spectatorWidth_m)
+                    : undefined;
+
+            metrics.spectatorDepth_m =
+                typeof audM.spectatorDepth_m === "number" && Number.isFinite(audM.spectatorDepth_m)
+                    ? Math.round(audM.spectatorDepth_m)
+                    : undefined;
+        }
+
+        // --- 離発着エリア（rectEditor.render が返すならここも） ---
+        if (hasRect && rectMetrics) {
+            metrics.rectWidth_m =
+                typeof rectMetrics.rectWidth_m === "number" && Number.isFinite(rectMetrics.rectWidth_m)
+                    ? Math.round(rectMetrics.rectWidth_m * 10) / 10
+                    : undefined;
+
+            metrics.rectDepth_m =
+                typeof rectMetrics.rectDepth_m === "number" && Number.isFinite(rectMetrics.rectDepth_m)
+                    ? Math.round(rectMetrics.rectDepth_m * 10) / 10
+                    : undefined;
         }
 
         // 飛行高度（min / max）
@@ -457,6 +487,9 @@ export class MapGeometry {
             }>
         >).detail || {};
 
+        // 半径を四捨五入
+        const quantizeHalf = (r: number) => Math.round(r * 2) / 2;
+
         // ---- 飛行エリア（楕円）: w/d => 半径X/Y ----
         const f = this.currentGeomRef?.flightArea;
         if (f?.type === "ellipse" && Array.isArray(f.center)) {
@@ -468,6 +501,11 @@ export class MapGeometry {
             if (typeof d.flightDepth_m === "number" && Number.isFinite(d.flightDepth_m)) {
                 ry = Math.max(0, d.flightDepth_m / 2);
             }
+
+            // 四捨五入して半径を整数化
+            rx = quantizeHalf(rx);
+            ry = quantizeHalf(ry)
+
             if (rx !== f.radiusX_m || ry !== f.radiusY_m) {
                 this.ellipseEditor.updateOverlays(f.center, rx, ry, f.rotation_deg || 0);
                 this.currentGeomRef = {
@@ -478,10 +516,34 @@ export class MapGeometry {
         }
 
         // ---- 離発着エリア（矩形）: w/d
-        this.rectEditor.applyPanelRectMetrics(d.rectWidth_m, d.rectDepth_m);
+        {
+            const w =
+                typeof d.rectWidth_m === "number" && Number.isFinite(d.rectWidth_m)
+                    ? Math.max(0, this.roundDec1(d.rectWidth_m))
+                    : undefined;
+
+            const dep =
+                typeof d.rectDepth_m === "number" && Number.isFinite(d.rectDepth_m)
+                    ? Math.max(0, this.roundDec1(d.rectDepth_m))
+                    : undefined;
+
+            this.rectEditor.applyPanelRectMetrics(w, dep);
+        }
 
         // ---- 観客エリア（矩形）: w/d
-        this.audienceEditor.applyPanelAudienceMetrics(d.spectatorWidth_m, d.spectatorDepth_m);
+        {
+            const w =
+                typeof d.spectatorWidth_m === "number" && Number.isFinite(d.spectatorWidth_m)
+                    ? Math.max(0, this.roundInt(d.spectatorWidth_m))
+                    : undefined;
+
+            const dep =
+                typeof d.spectatorDepth_m === "number" && Number.isFinite(d.spectatorDepth_m)
+                    ? Math.max(0, this.roundInt(d.spectatorDepth_m))
+                    : undefined;
+
+            this.audienceEditor.applyPanelAudienceMetrics(w, dep);
+        }
 
         // ---- 高度（m）＋ 保安距離モード：Geometry へ保存 + 保安距離更新 ----
         {

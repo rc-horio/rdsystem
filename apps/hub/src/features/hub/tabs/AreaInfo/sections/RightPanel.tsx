@@ -415,12 +415,6 @@ export function RightPanel({
                 ? String(flightArea.radiusX_m * 2) // ← 表示は×2
                 : ""
             }
-            // onChange={(e) =>
-            //   patch(
-            //     ["geometry", "flightArea", "radiusX_m"],
-            //     num(e.target.value)
-            //   )
-            // }
             inputMode="numeric"
             type="number"
             className={numericInputW}
@@ -438,12 +432,6 @@ export function RightPanel({
                 ? String(flightArea.radiusY_m * 2) // ← 表示は×2
                 : ""
             }
-            // onChange={(e) =>
-            //   patch(
-            //     ["geometry", "flightArea", "radiusY_m"],
-            //     num(e.target.value)
-            //   )
-            // }
             inputMode="numeric"
             type="number"
             className={numericInputW}
