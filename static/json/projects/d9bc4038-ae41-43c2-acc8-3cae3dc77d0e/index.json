@@ -7,208 +7,394 @@
     },
     "schedules": [
         {
-            "id": "ffb70017-a73f-4766-a311-3888f4c8ef0f",
-            "label": "本番",
-            "date": "2026-01-01",
+            "id": "c2e2c08b-5b34-46c9-9f9f-84589e9f1881",
+            "label": "2/3 初日",
+            "date": "2026-02-03",
             "location": "",
-            "photosMemo": "53",
+            "photosMemo": "",
             "resources": {
                 "drones": [
                     {
-                        "model": "16",
-                        "color": "17",
-                        "count": 18
+                        "model": "EMO",
+                        "color": "",
+                        "count": 550
                     }
                 ],
                 "batteries": [
                     {
-                        "model": "20",
-                        "count": 21
+                        "model": "EMO",
+                        "count": 1200
                     }
                 ],
                 "modules": [
                     {
-                        "type": "22",
-                        "count": 23
+                        "type": "フラッシュ",
+                        "count": 160
                     }
                 ],
                 "vehicles": {
                     "rows": [
                         {
-                            "type": "12",
-                            "driver": "13"
+                            "type": "",
+                            "driver": ""
                         }
                     ],
-                    "memo": "14"
+                    "memo": ""
                 },
-                "equipment": [
-                    {
-                        "name": "24",
-                        "qty": 25
-                    }
-                ],
-                "hotels": [
-                    {
-                        "name": "15",
-                        "memo": ""
-                    }
-                ],
+                "equipment": [],
+                "hotels": [],
                 "members": {
                     "producer": [
                         {
-                            "name": "1",
-                            "role": "2",
+                            "name": "細井 勇吾",
+                            "role": "",
                             "memo": ""
                         }
                     ],
                     "director": [
                         {
-                            "name": "3",
-                            "role": "4",
+                            "name": "高橋 昂希",
+                            "role": "",
                             "memo": ""
                         }
                     ],
                     "operator": [
                         {
-                            "name": "5",
-                            "role": "6",
+                            "name": "中村 友星",
+                            "role": "",
+                            "memo": ""
+                        },
+                        {
+                            "name": "山口 遼",
+                            "role": "",
+                            "memo": ""
+                        },
+                        {
+                            "name": "増田 実",
+                            "role": "",
                             "memo": ""
                         }
                     ],
                     "veteran_part_time": {
-                        "members": [
-                            {
-                                "name": "7",
-                                "role": "8",
-                                "memo": ""
-                            }
-                        ]
+                        "members": []
                     },
                     "local_staff": {
                         "members": [
                             {
-                                "source": "9",
-                                "count": 10,
+                                "source": "タイ現地",
+                                "count": 5,
                                 "memo": ""
                             }
                         ]
                     },
-                    "memo": "11"
+                    "memo": ""
                 }
             },
             "operation": {
                 "placement": {
-                    "x": 37,
-                    "y": 38,
-                    "spacing_m": 51.5
+                    "x": null,
+                    "y": null,
+                    "spacing_m": null
                 },
-                "modules": [
-                    {
-                        "name": "30",
-                        "ids": [
-                            31
-                        ]
-                    },
-                    {
-                        "name": "32",
-                        "ids": [
-                            33
-                        ]
-                    }
-                ],
+                "modules": [],
                 "measurement": {
                     "target_id": null,
                     "result": null
                 },
-                "memo": "34"
+                "memo": ""
             },
             "area": {
-                "area_uuid": "9217915c-a929-4ffb-b1e3-be52584e3adc",
-                "area_name": "屋久島",
+                "area_uuid": "b224e799-3100-45f3-8a6e-670f53f80f0e",
+                "area_name": "タイ　ナーン",
                 "drone_count": {
-                    "model": "EMO",
-                    "count": 36,
-                    "x_count": 37,
-                    "y_count": 38
+                    "model": "",
+                    "count": 0,
+                    "x_count": null,
+                    "y_count": null
                 },
                 "actions": {
-                    "liftoff": "42",
-                    "turn": "43"
+                    "liftoff": "",
+                    "turn": ""
                 },
-                "obstacle_note": "44",
+                "obstacle_note": "",
                 "lights": {
-                    "takeoff": "45",
-                    "landing": "46"
+                    "takeoff": "",
+                    "landing": ""
                 },
-                "return_note": "47",
-                "distance_from_viewers_m": 50,
+                "return_note": "",
+                "distance_from_viewers_m": null,
                 "spacing_between_drones_m": {
-                    "horizontal": "51",
-                    "vertical": "52"
+                    "horizontal": "",
+                    "vertical": ""
                 },
-                "drone_orientation_deg": 90,
                 "geometry": {
-                    "flightAltitude_min_m": 6,
-                    "flightAltitude_Max_m": 55,
+                    "flightAltitude_min_m": 140,
+                    "flightAltitude_Max_m": 250,
                     "takeoffArea": {
                         "type": "rectangle",
                         "coordinates": [
                             [
-                                130.5319609864632,
-                                30.341662697534943
+                                100.775126756812,
+                                18.7696850462801
                             ],
                             [
-                                130.53108924391054,
-                                30.34117185469945
+                                100.77516564435,
+                                18.769853267696
                             ],
                             [
-                                130.53120299247237,
-                                30.341021386480982
+                                100.774942226802,
+                                18.7698995676333
                             ],
                             [
-                                130.53207473502502,
-                                30.341512229316475
+                                100.774903339265,
+                                18.7697313462174
                             ]
                         ],
-                        "referencePointIndex": 2
+                        "referencePointIndex": 1
                     },
                     "flightArea": {
                         "type": "ellipse",
                         "center": [
-                            130.5299082910425,
-                            30.34179695042322
+                            100.775720412034,
+                            18.7697351522204
                         ],
-                        "radiusX_m": 1,
-                        "radiusY_m": 25,
-                        "rotation_deg": 330.4195954187515
+                        "radiusX_m": 90,
+                        "radiusY_m": 60,
+                        "rotation_deg": 15.555578756947
                     },
                     "safetyArea": {
                         "type": "ellipse",
-                        "mode": "new",
-                        "buffer_m": 18.4
+                        "buffer_m": 46.3,
+                        "mode": "new"
                     },
                     "audienceArea": {
                         "type": "rectangle",
                         "coordinates": [
                             [
-                                130.5293878395493,
-                                30.343503741655702
+                                100.774493490502,
+                                18.7761072639688
                             ],
                             [
-                                130.5304287425357,
-                                30.343503741655702
+                                100.77355410691,
+                                18.7762548193575
                             ],
                             [
-                                130.5304287425357,
-                                30.3436834038907
+                                100.7734765551,
+                                18.7758122493162
                             ],
                             [
-                                130.5293878395493,
-                                30.3436834038907
+                                100.774415938693,
+                                18.7756646939275
                             ]
                         ]
+                    },
+                    "turn": {
+                        "direction": "ccw",
+                        "angle_deg": 25
                     }
                 }
+            },
+            "photos": [
+                {
+                    "url": "https://d3uec5pspehg0b.cloudfront.net/catalog/v1/projects/e93fd877-6439-4574-a185-8903f8009990/photos/c2e2c08b-5b34-46c9-9f9f-84589e9f1881/5a0fd7d8-cf0d-47da-ab50-d7c726a870b0.jpeg",
+                    "caption": "IMG_4209.jpeg",
+                    "key": "catalog/v1/projects/e93fd877-6439-4574-a185-8903f8009990/photos/c2e2c08b-5b34-46c9-9f9f-84589e9f1881/5a0fd7d8-cf0d-47da-ab50-d7c726a870b0.jpeg"
+                },
+                {
+                    "url": "https://d3uec5pspehg0b.cloudfront.net/catalog/v1/projects/e93fd877-6439-4574-a185-8903f8009990/photos/c2e2c08b-5b34-46c9-9f9f-84589e9f1881/6bfc1158-cdf2-489c-891b-f336594921ed.jpeg",
+                    "caption": "IMG_4211.jpeg",
+                    "key": "catalog/v1/projects/e93fd877-6439-4574-a185-8903f8009990/photos/c2e2c08b-5b34-46c9-9f9f-84589e9f1881/6bfc1158-cdf2-489c-891b-f336594921ed.jpeg"
+                }
+            ]
+        },
+        {
+            "id": "ef60cf83-8f51-41a5-8025-c57ead864df1",
+            "label": "2/4 二日目",
+            "date": "2026-02-04",
+            "location": "",
+            "photosMemo": "",
+            "resources": {
+                "drones": [
+                    {
+                        "model": "EMO",
+                        "color": "",
+                        "count": 550
+                    }
+                ],
+                "batteries": [
+                    {
+                        "model": "EMO",
+                        "count": 1200
+                    }
+                ],
+                "modules": [
+                    {
+                        "type": "フラッシュ",
+                        "count": 160
+                    }
+                ],
+                "vehicles": {
+                    "rows": [
+                        {
+                            "type": "",
+                            "driver": ""
+                        }
+                    ],
+                    "memo": ""
+                },
+                "equipment": [],
+                "hotels": [],
+                "members": {
+                    "producer": [
+                        {
+                            "name": "細井 勇吾",
+                            "role": "",
+                            "memo": ""
+                        }
+                    ],
+                    "director": [
+                        {
+                            "name": "高橋 昂希",
+                            "role": "",
+                            "memo": ""
+                        }
+                    ],
+                    "operator": [
+                        {
+                            "name": "中村 友星",
+                            "role": "",
+                            "memo": ""
+                        },
+                        {
+                            "name": "山口 遼",
+                            "role": "",
+                            "memo": ""
+                        },
+                        {
+                            "name": "増田 実",
+                            "role": "",
+                            "memo": ""
+                        }
+                    ],
+                    "veteran_part_time": {
+                        "members": []
+                    },
+                    "local_staff": {
+                        "members": [
+                            {
+                                "source": "タイ現地",
+                                "count": 5,
+                                "memo": ""
+                            }
+                        ]
+                    },
+                    "memo": ""
+                }
+            },
+            "operation": {
+                "placement": {
+                    "x": 25,
+                    "y": 20,
+                    "spacing_m": 1
+                },
+                "modules": [],
+                "measurement": {
+                    "target_id": null,
+                    "result": null
+                },
+                "memo": ""
+            },
+            "area": {
+                "area_uuid": "b224e799-3100-45f3-8a6e-670f53f80f0e",
+                "area_name": "タイ　ナーン",
+                "drone_count": {
+                    "model": "",
+                    "count": 500,
+                    "x_count": 25,
+                    "y_count": 20
+                },
+                "actions": {
+                    "liftoff": "・ドローン50m上昇\n・0番を基準に左側へ160m移動\n・下側へ30m移動\n",
+                    "turn": ""
+                },
+                "obstacle_note": "なし",
+                "lights": {
+                    "takeoff": "レインボー",
+                    "landing": "光らせない"
+                },
+                "return_note": " 元の位置にドローン戻る",
+                "distance_from_viewers_m": null,
+                "spacing_between_drones_m": {
+                    "horizontal": "1.0",
+                    "vertical": "1.0"
+                },
+                "geometry": {
+                    "flightAltitude_min_m": 140,
+                    "flightAltitude_Max_m": 230,
+                    "takeoffArea": {
+                        "type": "rectangle",
+                        "coordinates": [
+                            [
+                                100.78717800673,
+                                18.7620842575505
+                            ],
+                            [
+                                100.787070412531,
+                                18.7622231025218
+                            ],
+                            [
+                                100.786886018731,
+                                18.7620949938136
+                            ],
+                            [
+                                100.786993612931,
+                                18.7619561488422
+                            ]
+                        ],
+                        "referencePointIndex": 3
+                    },
+                    "flightArea": {
+                        "type": "ellipse",
+                        "center": [
+                            100.785939628381,
+                            18.7608921478694
+                        ],
+                        "radiusX_m": 75,
+                        "radiusY_m": 55,
+                        "rotation_deg": 242.681693148448
+                    },
+                    "safetyArea": {
+                        "type": "ellipse",
+                        "buffer_m": 43.4,
+                        "mode": "new"
+                    },
+                    "audienceArea": {
+                        "type": "rectangle",
+                        "coordinates": [
+                            [
+                                100.79098353893,
+                                18.7579577489212
+                            ],
+                            [
+                                100.791330826033,
+                                18.7587972884884
+                            ],
+                            [
+                                100.790889628621,
+                                18.7589609221959
+                            ],
+                            [
+                                100.790542341518,
+                                18.7581213826287
+                            ]
+                        ]
+                    },
+                    "turn": {
+                        "direction": "ccw",
+                        "angle_deg": 30
+                    }
+                },
+                "drone_orientation_deg": 180
             },
             "photos": []
         }

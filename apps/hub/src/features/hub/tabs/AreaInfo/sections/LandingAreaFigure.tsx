@@ -201,17 +201,22 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
               </div>
 
               {/* 下部距離（vertical） */}
-              <div
-                className="absolute top-[100px] left-[-5px] flex items-center gap-2"
-              >
-                <DisplayOrInput
-                  edit={edit}
-                  value={vertical}
-                  onChange={(e) => setVertical(e.target.value)}
-                  className="w-[80px]! text-center"
-                />
-                <span className="text-slate-100 text-sm">m</span>
+              <div className="absolute top-[100px] left-[-5px] flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <DisplayOrInput
+                    edit={edit}
+                    value={vertical}
+                    onChange={(e) => setVertical(e.target.value)}
+                    className="w-[80px]! text-center"
+                  />
+                  <span className="text-slate-100 text-sm">m</span>
+                </div>
               </div>
+
+              {/* 注釈：枠の左右中央に固定 */}
+              <span className="absolute top-[150px] left-1/2 -translate-x-1/2 text-[12px] leading-tight text-slate-300 whitespace-nowrap">
+                ※複数値をカンマ区切りで指定
+              </span>
             </div>
           </div>
         </div>

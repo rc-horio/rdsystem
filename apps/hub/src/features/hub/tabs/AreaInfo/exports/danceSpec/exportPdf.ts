@@ -23,14 +23,14 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
             if (!schedule && parts[1]) schedule = parts[1];
         }
     }
-    if (!project) project = "案件名"; // 最低限のデフォルト
+    if (!project) project = "案件名";
 
     const company = (opts?.companyName ?? "株式会社レッドクリフ").trim();
     const page2Header = (opts?.page2HeaderText ?? "離発着情報").trim();
     const gradFrom = opts?.gradFrom ?? "#E00022";
     const gradTo = opts?.gradTo ?? "#FFD23A";
 
-    // ==== 2) テンプレ読み込み & 値の注入 ====
+    // ==== 2) テンプレ読み込み & 値注入 ====
     const { doc } = await loadDanceSpecHtml();
     const styleNodes = Array.from(
         doc.head.querySelectorAll("style, link[rel='stylesheet']")
@@ -47,7 +47,6 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
     const titleEl = p1clone.querySelector("#title") as HTMLElement | null;
     if (titleEl) titleEl.textContent = `${project}　${schedule}　ダンスファイル指示書`;
 
-
     const companyEl = p1clone.querySelector("#company") as HTMLElement | null;
     if (companyEl) companyEl.textContent = company;
 
@@ -55,7 +54,7 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
     const headerEl = p2clone.querySelector("#page2-header") as HTMLElement | null;
     if (headerEl) headerEl.textContent = page2Header;
 
-    // ===== 値の注入 =====
+    // ===== 右サイド値の注入 =====
     const area = opts?.area ?? {};
     const drone = area?.drone_count ?? {};
     const model = (drone?.model ?? "").trim();
@@ -67,6 +66,7 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
         (v === 0 || (typeof v === "string" && v.trim()) || Number.isFinite(v))
             ? String(v)
             : fallback;
+
     const fmtInt = (n: any) => {
         const v = Number(n);
         return Number.isFinite(v) ? v.toLocaleString("ja-JP") : "";

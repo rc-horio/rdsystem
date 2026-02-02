@@ -4,7 +4,7 @@ import type { ExportOpts } from "./types";
 import { loadDanceSpecHtml } from "./template";
 import { canvasToDataUri, captureElement } from "./capture";
 import PptxGenJS from "pptxgenjs";
-import { buildFileBaseName, getSpacingBetweenDronesText } from "./texts";
+import { buildFileBaseName, formatTurnText, getSpacingBetweenDronesText } from "./texts";
 
 /**
  * PPTXを出力
@@ -30,7 +30,7 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
     const gradFrom = opts?.gradFrom ?? "#E00022";
     const gradTo = opts?.gradTo ?? "#FFD23A";
 
-    // ==== 2) テンプレ読み込み & 値注入（PDFと同じ） ====
+    // ==== 2) テンプレ読み込み & 値注入 ====
     const { doc } = await loadDanceSpecHtml();
     const styleNodes = Array.from(
         doc.head.querySelectorAll("style, link[rel='stylesheet']")
@@ -43,16 +43,18 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
     const p1clone = p1.cloneNode(true) as HTMLElement;
     const p2clone = p2.cloneNode(true) as HTMLElement;
 
+    // 1ページ目
     const titleEl = p1clone.querySelector("#title") as HTMLElement | null;
     if (titleEl) titleEl.textContent = `${project}　${schedule}　ダンスファイル指示書`;
 
     const companyEl = p1clone.querySelector("#company") as HTMLElement | null;
     if (companyEl) companyEl.textContent = company;
 
+    // 2ページ目
     const headerEl = p2clone.querySelector("#page2-header") as HTMLElement | null;
     if (headerEl) headerEl.textContent = page2Header;
 
-    // ===== 右サイド値の注入（PDFと同じ） =====
+    // ===== 右サイド値の注入 =====
     const area = opts?.area ?? {};
     const drone = area?.drone_count ?? {};
     const model = (drone?.model ?? "").trim();
@@ -61,7 +63,9 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
     const { horizontal, vertical } = getSpacingBetweenDronesText(area);
 
     const text = (v: any, fallback = "—") =>
-        (v === 0 || (typeof v === "string" && v.trim()) || Number.isFinite(v)) ? String(v) : fallback;
+        (v === 0 || (typeof v === "string" && v.trim()) || Number.isFinite(v))
+            ? String(v)
+            : fallback;
 
     const fmtInt = (n: any) => {
         const v = Number(n);
@@ -80,7 +84,10 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
             : (fmtInt(drone?.x_count) && fmtInt(drone?.y_count))
                 ? `${fmtInt(drone.x_count)} × ${fmtInt(drone.y_count)} 機`
                 : "—";
-    if (aircraftVal !== "—" && model) aircraftVal = `${model}：${aircraftVal}`;
+
+    if (aircraftVal !== "—" && model) {
+        aircraftVal = `${model}：${aircraftVal}`;
+    }
     setTxt("#v-aircraft", aircraftVal);
 
     // ■最低、最高高度
@@ -94,7 +101,7 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
     setTxt("#v-move", text(actions?.liftoff, "—"));
 
     // ■旋回
-    setTxt("#v-turn", text(actions?.turn, "—"));
+    setTxt("#v-turn", formatTurnText(area?.geometry?.turn));
 
     // ■障害物情報
     setTxt("#v-obstacles", text(area?.obstacle_note, "なし"));
@@ -103,7 +110,10 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
     const takeoff = text(lights?.takeoff, "—");
     const landing = text(lights?.landing, "—");
     const note = text(area?.return_note, "—");
-    setTxt("#v-show", `離陸: ${takeoff}\n着陸: ${landing}\n ${note}`);
+    setTxt(
+        "#v-show",
+        `離陸: ${takeoff}\n着陸: ${landing}\n ${note}`
+    );
 
     // ■アニメーションサイズ
     const w = text(area?.geometry?.flightArea.radiusX_m * 2, "");
@@ -116,7 +126,7 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
     // ■並べる間隔（下）
     setTxt(".spacing-label--bottom", vertical);
 
-    // ==== 3) キャプチャ（PDFと同じ） ====
+    // ==== 3) キャプチャ ====
     const cssVars = { "--grad-from": gradFrom, "--grad-to": gradTo };
     const [c1, c2] = await Promise.all([
         captureElement(p1clone, "#000", styleNodes, cssVars),
@@ -131,16 +141,17 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
     const SLIDE_W = 13.333;
     const SLIDE_H = 7.5;
 
-    const addSlideFull = (canvas: HTMLCanvasElement) => {
+    const addFull = (canvas: HTMLCanvasElement) => {
         const slide = pptx.addSlide();
         // JPEGでもPNGでもOK。線や文字が細いならPNG推奨（重くなる）
         const data = canvasToDataUri(canvas, true);
         slide.addImage({ data, x: 0, y: 0, w: SLIDE_W, h: SLIDE_H });
     };
 
-    addSlideFull(c1);
-    addSlideFull(c2);
+    addFull(c1);
+    addFull(c2);
 
     const baseName = buildFileBaseName(project, schedule);
     await pptx.writeFile({ fileName: `${baseName}.pptx` });
 }
+

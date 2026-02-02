@@ -211,8 +211,6 @@ body {
 
 /* 2つのアイコンサイズ */
 .midbottom-figRow img{
-  width: 130px;
-  height: 130px;
   object-fit: contain;
 }
 
