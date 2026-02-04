@@ -83,7 +83,7 @@ const CELL_H_PX = 28;
 
 // 目盛り・ラベルの寸法
 const TICK_X = 8; // 左右方向（Y軸の目盛り線の長さ）
-const LABEL_X = 18; // Yラベルの幅
+const LABEL_X = 7; // Yラベルの幅
 const TICK_Y = 8; // 上下方向（X軸の目盛り線の長さ）
 const LABEL_Y = 14; // Xラベルの高さ
 
@@ -92,6 +92,10 @@ const PAD_LEFT = TICK_X + LABEL_X + 6;
 const PAD_RIGHT = TICK_X + LABEL_X + 6;
 const PAD_TOP = TICK_Y + LABEL_Y + 4;
 const PAD_BOTTOM = TICK_Y + LABEL_Y + 4;
+
+// X軸ラベルの右オフセット(px)
+const X_LABEL_OFFSET_PX = 24;
+const Y_LABEL_OFFSET_PX = 14;
 
 /* ---------------- Rulers ---------------- */
 
@@ -134,12 +138,12 @@ function RulerX({
       style={{ width, height: tickH + LABEL_Y, ...style }}
     >
       {/* 縦線の延長 */}
-      {Array.from({ length: count + 1 }).map((_, i) => (
+      {Array.from({ length: count }).map((_, i) => (
         <div
           key={`x-line-${i}`}
           className="absolute bg-slate-500/70"
           style={{
-            left: i * CELL_W_PX,
+            left: i * CELL_W_PX + X_LABEL_OFFSET_PX,
             top: isTop ? 0 : 0,
             width: 1,
             height: tickH,
@@ -151,12 +155,12 @@ function RulerX({
       ))}
 
       {/* 数値（線の先端） */}
-      {Array.from({ length: count + 1 }).map((_, i) => (
+      {Array.from({ length: count }).map((_, i) => (
         <div
           key={`x-num-${i}`}
           className="absolute"
           style={{
-            left: i * CELL_W_PX,
+            left: i * CELL_W_PX + X_LABEL_OFFSET_PX,
             top: isTop ? -tickH - (LABEL_Y - 2) : tickH,
             transform: "translateX(-50%)",
             lineHeight: "12px",
@@ -195,15 +199,15 @@ function RulerY({
       style={{ width: tickW + labelW, height, ...style }}
     >
       {/* 横線の延長：上端からの距離で揃える（格子線と一致） */}
-      {Array.from({ length: count + 1 }).map((_, i) => {
+      {Array.from({ length: count }).map((_, i) => {
         const y = i * CELL_H_PX;
         return (
           <div
             key={`y-line-${i}`}
             className="absolute bg-slate-500/70"
             style={{
-              top: y,
-              left: 0,
+              top: y + Y_LABEL_OFFSET_PX,
+              left: 7,
               width: tickW,
               height: 1,
               transform: "translateY(-0.5px)",
@@ -213,17 +217,17 @@ function RulerY({
       })}
 
       {/* 数値（線の先端） */}
-      {Array.from({ length: count + 1 }).map((_, i) => {
+      {Array.from({ length: count }).map((_, i) => {
         const y = i * CELL_H_PX;
         // 下が0m。上へ行くほど値が増えるので、上端＝ count * spacing
-        const label = cumDist(count - i, seq, fallback);
+        const label = cumDist(count - 1 - i, seq, fallback);
         return (
           <div
             key={`y-num-${i}`}
             className="absolute"
             style={{
-              top: y,
-              left: isLeft ? 0 : tickW + 2,
+              top: y + Y_LABEL_OFFSET_PX,
+              left: isLeft ? 0 : tickW,
               transform: "translateY(-50%)",
               minWidth: isLeft ? labelW : 0,
               lineHeight: "12px",
@@ -342,10 +346,10 @@ export function TableSection({
                         isRed && isBlue
                           ? "bg-fuchsia-500 text-white"
                           : isRed
-                          ? "bg-red-500 text-white"
-                          : isBlue
-                          ? "bg-blue-500 text-white"
-                          : "";
+                            ? "bg-red-500 text-white"
+                            : isBlue
+                              ? "bg-blue-500 text-white"
+                              : "";
 
                       return (
                         <td
