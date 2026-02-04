@@ -207,7 +207,7 @@ function RulerY({
             className="absolute bg-slate-500/70"
             style={{
               top: y + Y_LABEL_OFFSET_PX,
-              left: 7,
+              left: isLeft ? 7 : 1,
               width: tickW,
               height: 1,
               transform: "translateY(-0.5px)",
@@ -227,7 +227,7 @@ function RulerY({
             className="absolute"
             style={{
               top: y + Y_LABEL_OFFSET_PX,
-              left: isLeft ? 0 : tickW,
+              left: isLeft ? -5 : tickW,
               transform: "translateY(-50%)",
               minWidth: isLeft ? labelW : 0,
               lineHeight: "12px",
