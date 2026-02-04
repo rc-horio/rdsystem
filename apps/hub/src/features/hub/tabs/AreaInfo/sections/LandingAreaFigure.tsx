@@ -51,6 +51,12 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
   const xOk = Number.isFinite(countX) && countX > 0;
   const yOk = Number.isFinite(countY) && countY > 0;
 
+  // 間隔の入力有無（要件通り「間隔も」必須にする）
+  const spacingOk = seqX.length > 0 && seqY.length > 0;
+
+  // 左図を描画してよい条件
+  const canRenderFigure = xOk && yOk && spacingOk;
+
   // 幅/高さ(m)：テーブルのルーラーと同一計算
   // 「点(機体)の最小〜最大」の長さ = (count-1)ステップ分の累積
   const widthM =
@@ -179,127 +185,126 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
                   <path d="M0,0 L6,3 L0,6 Z" fill="#ffffff" />
                 </marker>
               </defs>
-
-              {/* 本体矩形 */}
-              <rect
-                x={rx}
-                y={ry}
-                width={rectW}
-                height={rectH}
-                stroke="#ed1b24"
-                strokeWidth={2}
-                strokeOpacity={0.9}
-                fill="#ed1b24"
-                fillOpacity={0.35}
-              />
-              
-
-              {/* 四隅の機体ID */}
-              {corner && (
+              {canRenderFigure ? (
                 <>
-                  {/* TL */}
-                  <text
+                  {/* 本体矩形 */}
+                  <rect
                     x={rx}
-                    y={ry - 8}
+                    y={ry}
+                    width={rectW}
+                    height={rectH}
+                    stroke="#ed1b24"
+                    strokeWidth={2}
+                    strokeOpacity={0.9}
+                    fill="#ed1b24"
+                    fillOpacity={0.35}
+                  />
+
+
+                  {/* 四隅の機体ID */}
+                  {corner && (
+                    <>
+                      {/* TL */}
+                      <text
+                        x={rx}
+                        y={ry - 8}
+                        fontSize="12"
+                        fill="#ffffff"
+                        textAnchor="start"
+                      >
+                        {corner.tl}
+                      </text>
+                      {/* TR */}
+                      <text
+                        x={rx + rectW}
+                        y={ry - 8}
+                        fontSize="12"
+                        fill="#ffffff"
+                        textAnchor="end"
+                      >
+                        {corner.tr}
+                      </text>
+                      {/* BL */}
+                      <text
+                        x={rx}
+                        y={ry + rectH + 16}
+                        fontSize="12"
+                        fill="#ffffff"
+                        textAnchor="start"
+                      >
+                        {corner.bl}
+                      </text>
+                      {/* BR */}
+                      <text
+                        x={rx + rectW}
+                        y={ry + rectH + 16}
+                        fontSize="12"
+                        fill="#ffffff"
+                        textAnchor="end"
+                      >
+                        {corner.br}
+                      </text>
+                    </>
+                  )}
+
+                  {/* 横幅寸法線 */}
+                  <line
+                    x1={rx}
+                    y1={ry + rectH + 26}
+                    x2={rx + rectW}
+                    y2={ry + rectH + 26}
+                    stroke="#ffffff"
+                    strokeWidth={1}
+                    markerStart={`url(#${arrow.markerId})`}
+                    markerEnd={`url(#${arrow.markerId})`}
+                    opacity={0.9}
+                  />
+                  <text
+                    x={rx + rectW / 2}
+                    y={ry + rectH + 42}
                     fontSize="12"
                     fill="#ffffff"
-                    textAnchor="start"
+                    textAnchor="middle"
                   >
-                    {corner.tl}
+                    {xOk ? `${fmt(widthM)}m` : "—m"}
                   </text>
-                  {/* TR */}
+
+                  {/* 縦幅寸法線 */}
+                  <line
+                    x1={rx - 15}
+                    y1={ry}
+                    x2={rx - 15}
+                    y2={ry + rectH}
+                    stroke="#ffffff"
+                    strokeWidth={1}
+                    markerStart={`url(#${arrow.markerId})`}
+                    markerEnd={`url(#${arrow.markerId})`}
+                    opacity={0.9}
+                  />
                   <text
-                    x={rx + rectW}
-                    y={ry - 8}
+                    x={rx - 20}
+                    y={ry + rectH / 2}
                     fontSize="12"
                     fill="#ffffff"
                     textAnchor="end"
+                    dominantBaseline="middle"
                   >
-                    {corner.tr}
-                  </text>
-                  {/* BL */}
-                  <text
-                    x={rx}
-                    y={ry + rectH + 16}
-                    fontSize="12"
-                    fill="#ffffff"
-                    textAnchor="start"
-                  >
-                    {corner.bl}
-                  </text>
-                  {/* BR */}
-                  <text
-                    x={rx + rectW}
-                    y={ry + rectH + 16}
-                    fontSize="12"
-                    fill="#ffffff"
-                    textAnchor="end"
-                  >
-                    {corner.br}
+                    {yOk ? `${fmt(heightM)}m` : "—m"}
                   </text>
                 </>
-              )}
-
-              {/* 横幅寸法線 */}
-              <line
-                x1={rx}
-                y1={ry + rectH + 26}
-                x2={rx + rectW}
-                y2={ry + rectH + 26}
-                stroke="#ffffff"
-                strokeWidth={1}
-                markerStart={`url(#${arrow.markerId})`}
-                markerEnd={`url(#${arrow.markerId})`}
-                opacity={0.9}
-              />
-              <text
-                x={rx + rectW / 2}
-                y={ry + rectH + 42}
-                fontSize="12"
-                fill="#ffffff"
-                textAnchor="middle"
-              >
-                {xOk ? `${fmt(widthM)}m` : "—m"}
-              </text>
-
-              {/* 縦幅寸法線 */}
-              <line
-                x1={rx - 15}
-                y1={ry}
-                x2={rx - 15}
-                y2={ry + rectH}
-                stroke="#ffffff"
-                strokeWidth={1}
-                markerStart={`url(#${arrow.markerId})`}
-                markerEnd={`url(#${arrow.markerId})`}
-                opacity={0.9}
-              />
-              <text
-                x={rx - 20}
-                y={ry + rectH / 2}
-                fontSize="12"
-                fill="#ffffff"
-                textAnchor="end"
-                dominantBaseline="middle"
-              >
-                {yOk ? `${fmt(heightM)}m` : "—m"}
-              </text>
-
-              {/* データ不足時の注記 */}
-              {(!xOk || !yOk) && (
+              ) : (
                 <text
                   x={viewW / 2}
                   y={viewH / 2}
                   dominantBaseline="middle"
                   textAnchor="middle"
-                  fontSize="12"
+                  fontSize="15"
                   fill="#ffffff"
                   opacity={0.9}
                 >
-                  x機体数 / y機体数 を入力してください
+                  x機体数 / y機体数 / 間隔 を入力してください
                 </text>
-              )}
-            </svg>
+              )}            </svg>
           </div>
         </div>
 
