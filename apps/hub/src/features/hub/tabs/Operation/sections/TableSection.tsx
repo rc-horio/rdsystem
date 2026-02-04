@@ -317,7 +317,7 @@ export function TableSection({
       {/* 保存ボタン */}
       <div className="mb-2 flex justify-end">
         <ButtonRed onClick={handleSave} disabled={isSaving}>
-          {isSaving ? "保存中..." : "保存"}
+          {isSaving ? "保存中..." : "配置図を保存"}
         </ButtonRed>
       </div>
 
