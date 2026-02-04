@@ -1,3 +1,5 @@
+// src/features/hub/tabs/Operation/sections/TableSection.tsx
+
 import { ButtonRed, SectionTitle } from "@/components";
 import React, { useEffect, useRef, useState } from "react";
 
@@ -88,8 +90,8 @@ const TICK_Y = 8; // 上下方向（X軸の目盛り線の長さ）
 const LABEL_Y = 14; // Xラベルの高さ
 
 // 余白（外周ルーラー分）
-const PAD_LEFT = TICK_X + LABEL_X + 6;
-const PAD_RIGHT = TICK_X + LABEL_X + 6;
+const PAD_LEFT = TICK_X + LABEL_X + 10;
+const PAD_RIGHT = TICK_X + LABEL_X + 10;
 const PAD_TOP = TICK_Y + LABEL_Y + 4;
 const PAD_BOTTOM = TICK_Y + LABEL_Y + 4;
 
@@ -227,7 +229,7 @@ function RulerY({
             className="absolute"
             style={{
               top: y + Y_LABEL_OFFSET_PX,
-              left: isLeft ? -5 : tickW,
+              left: isLeft ? -1 : tickW,
               transform: "translateY(-50%)",
               minWidth: isLeft ? labelW : 0,
               lineHeight: "12px",
@@ -274,9 +276,50 @@ export function TableSection({
   const wrapperW = PAD_LEFT + tablePixelW + PAD_RIGHT;
   const wrapperH = PAD_TOP + tablePixelH + PAD_BOTTOM;
 
+  // 画像化対象（ルーラー＋テーブルを含む“実寸の板”）
+  const captureRef = useRef<HTMLDivElement>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    const node = captureRef.current;
+    if (!node) return;
+
+    try {
+      setIsSaving(true);
+
+      // SSR回避したい場合は dynamic import 推奨
+      const htmlToImage = await import("html-to-image");
+
+      const dataUrl = await htmlToImage.toPng(node, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: "#ffffff",
+        skipFonts: true,
+        style: {
+          color: "#000000",
+          fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif",
+        },
+      });
+
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `table_${countX}x${countY}.png`;
+      a.click();
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <section>
       <SectionTitle title="機体の配列" />
+
+      {/* 保存ボタン */}
+      <div className="mb-2 flex justify-end">
+        <ButtonRed onClick={handleSave} disabled={isSaving}>
+          {isSaving ? "保存中..." : "保存"}
+        </ButtonRed>
+      </div>
 
       {!hideScrollHint && (
         <div
@@ -313,7 +356,11 @@ export function TableSection({
         style={{ WebkitOverflowScrolling: "touch" as any }}
       >
         {/* 実寸の板（relative） */}
-        <div className="relative" style={{ width: wrapperW, height: wrapperH }}>
+        <div
+          ref={captureRef}
+          className="relative"
+          style={{ width: wrapperW, height: wrapperH }}
+        >
           {/* テーブル層：左ルーラーをこの層の中に入れるのがポイント */}
           <div
             className="absolute"
@@ -344,19 +391,21 @@ export function TableSection({
                       const isBlue = blueSet.has(num);
                       const bg =
                         isRed && isBlue
-                          ? "bg-fuchsia-500 text-white"
+                          ? "bg-fuchsia-500"
                           : isRed
-                            ? "bg-red-500 text-white"
+                            ? "bg-red-500"
                             : isBlue
-                              ? "bg-blue-500 text-white"
+                              ? "bg-blue-500"
                               : "";
+
+                      const text = isSaving ? "text-black" : (isRed || isBlue ? "text-white" : "");
 
                       return (
                         <td
                           key={c}
                           className={
                             "w-12 h-7 px-1 text-center border border-slate-600 select-none " +
-                            bg
+                            bg + " " + text
                           }
                         >
                           {num}
