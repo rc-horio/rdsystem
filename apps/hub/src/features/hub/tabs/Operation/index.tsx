@@ -1,3 +1,4 @@
+// src/features/hub/tabs/Operation/index.tsx
 import { useEffect, useRef, useState } from "react";
 import { DesktopPanel, MobilePanel } from "./sections";
 import { useGrid } from "./hooks/useGrid";

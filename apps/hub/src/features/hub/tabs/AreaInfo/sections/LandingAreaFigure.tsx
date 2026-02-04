@@ -13,10 +13,91 @@ type Props = {
   onPatchArea: (patch: any) => void;
 };
 
+// Operation/TableSection と同じ思想のフォーマッタ
+const fmt = (n: number) =>
+  Math.abs(n - Math.round(n)) < 1e-6 ? String(Math.round(n)) : n.toFixed(1);
+
+// CSV文字列を数値配列に（空/不正は除外）
+const parseSeq = (v: unknown): number[] => {
+  if (typeof v !== "string") return [];
+  return v
+    .split(",")
+    .map((s) => Number(s.trim()))
+    .filter((n) => Number.isFinite(n) && n > 0);
+};
+
+// 可変間隔の累積距離：seq を繰り返しながら i ステップ分の合計を返す
+const cumDist = (i: number, seq: number[], fallback = 1): number => {
+  if (!seq || seq.length === 0) return i * fallback;
+  const L = seq.length;
+  if (L === 1) return i * seq[0];
+  let sum = 0;
+  for (let k = 0; k < i; k++) sum += seq[k % L];
+  return sum;
+};
+
 export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
+  // 既存：距離入力（テーブルと同じルール）
+  // x軸 spacingSeqX = vertical、y軸 spacingSeqY = horizontal
   const horizontal = area?.spacing_between_drones_m?.horizontal ?? "";
   const vertical = area?.spacing_between_drones_m?.vertical ?? "";
 
+  const seqX = parseSeq(vertical);
+  const seqY = parseSeq(horizontal);
+  const fallback = 1;
+
+  const countX = Number(area?.drone_count?.x_count);
+  const countY = Number(area?.drone_count?.y_count);
+  const xOk = Number.isFinite(countX) && countX > 0;
+  const yOk = Number.isFinite(countY) && countY > 0;
+
+  // 幅/高さ(m)：テーブルのルーラーと同一計算
+  // 「点(機体)の最小〜最大」の長さ = (count-1)ステップ分の累積
+  const widthM =
+    xOk && countX >= 2 ? cumDist(countX - 1, seqX, fallback) : 0;
+  const heightM =
+    yOk && countY >= 2 ? cumDist(countY - 1, seqY, fallback) : 0;
+
+  // 四隅の数字：テーブルの num 計算と一致させる
+  // num = (countY - 1 - r) * countX + c
+  const corner = (() => {
+    if (!xOk || !yOk) return null;
+    const bl = 0;
+    const br = countX - 1;
+    const tl = (countY - 1) * countX;
+    const tr = countX * countY - 1;
+    return { tl, tr, bl, br };
+  })();
+
+  // SVGスケール：実寸(m)を一定の見た目に収める（m→px）
+  const viewW = 460;
+  const viewH = 220;
+  const margin = 36;
+  const usableW = viewW - margin * 2;
+  const usableH = viewH - margin * 2;
+
+  const safeW = Math.max(widthM, 1);
+  const safeH = Math.max(heightM, 1);
+
+  // 長辺に合わせて縮尺を決める（見た目が破綻しない範囲で単純化）
+  const scale = Math.min(usableW / safeW, usableH / safeH);
+  const rectW = safeW * scale;
+  const rectH = safeH * scale;
+
+  // 矩形を右に寄せる量（px）
+  const offsetX = 15;
+
+  // 矩形の左上角の座標
+  const rx = (viewW - rectW) / 2 + offsetX;
+  const ry = (viewH - rectH) / 2;
+
+  // 寸法線（矢印）
+  const arrow = {
+    markerId: "arrow",
+    markerSize: 6,
+  };
+
+  // 機体向きUI
   const rotation =
     typeof area?.drone_orientation_deg === "number" &&
       Number.isFinite(area.drone_orientation_deg)
@@ -77,53 +158,158 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
     <div className="p-0">
       <SectionTitle title="離発着エリア" />
 
-      {/* 左右並び：左=離発着エリア図、右=アイコン1&2セット */}
       <div className="my-4 flex flex-col lg:flex-row gap-4">
         {/* 左: 離発着エリア図 */}
         <div className="flex-1 lg:basis-6/12">
           <div className="h-120 w-full border border-slate-600">
             <svg
-              viewBox="0 0 400 200"
+              viewBox={`0 0 ${viewW} ${viewH}`}
               className="w-full h-full"
               xmlns="http://www.w3.org/2000/svg"
             >
-              {/* 横長矩形（離発着エリア） */}
+              <defs>
+                <marker
+                  id={arrow.markerId}
+                  markerWidth={arrow.markerSize}
+                  markerHeight={arrow.markerSize}
+                  refX="5"
+                  refY="3"
+                  orient="auto"
+                >
+                  <path d="M0,0 L6,3 L0,6 Z" fill="#ffffff" />
+                </marker>
+              </defs>
+
+              {/* 本体矩形 */}
               <rect
-                x={40}
-                y={70}
-                width={320}
-                height={60}
+                x={rx}
+                y={ry}
+                width={rectW}
+                height={rectH}
                 stroke="#ed1b24"
                 strokeWidth={2}
                 strokeOpacity={0.9}
                 fill="#ed1b24"
-                fillOpacity={0.4}
+                fillOpacity={0.35}
               />
+              
 
-              {/* ラベル */}
+              {/* 四隅の機体ID */}
+              {corner && (
+                <>
+                  {/* TL */}
+                  <text
+                    x={rx}
+                    y={ry - 8}
+                    fontSize="12"
+                    fill="#ffffff"
+                    textAnchor="start"
+                  >
+                    {corner.tl}
+                  </text>
+                  {/* TR */}
+                  <text
+                    x={rx + rectW}
+                    y={ry - 8}
+                    fontSize="12"
+                    fill="#ffffff"
+                    textAnchor="end"
+                  >
+                    {corner.tr}
+                  </text>
+                  {/* BL */}
+                  <text
+                    x={rx}
+                    y={ry + rectH + 16}
+                    fontSize="12"
+                    fill="#ffffff"
+                    textAnchor="start"
+                  >
+                    {corner.bl}
+                  </text>
+                  {/* BR */}
+                  <text
+                    x={rx + rectW}
+                    y={ry + rectH + 16}
+                    fontSize="12"
+                    fill="#ffffff"
+                    textAnchor="end"
+                  >
+                    {corner.br}
+                  </text>
+                </>
+              )}
+
+              {/* 横幅寸法線 */}
+              <line
+                x1={rx}
+                y1={ry + rectH + 26}
+                x2={rx + rectW}
+                y2={ry + rectH + 26}
+                stroke="#ffffff"
+                strokeWidth={1}
+                markerStart={`url(#${arrow.markerId})`}
+                markerEnd={`url(#${arrow.markerId})`}
+                opacity={0.9}
+              />
               <text
-                x="50%"
-                y="50%"
-                dominantBaseline="middle"
-                textAnchor="middle"
-                fontSize="14"
+                x={rx + rectW / 2}
+                y={ry + rectH + 42}
+                fontSize="12"
                 fill="#ffffff"
+                textAnchor="middle"
               >
-                離発着エリア(開発中)
+                {xOk ? `${fmt(widthM)}m` : "—m"}
               </text>
+
+              {/* 縦幅寸法線 */}
+              <line
+                x1={rx - 15}
+                y1={ry}
+                x2={rx - 15}
+                y2={ry + rectH}
+                stroke="#ffffff"
+                strokeWidth={1}
+                markerStart={`url(#${arrow.markerId})`}
+                markerEnd={`url(#${arrow.markerId})`}
+                opacity={0.9}
+              />
+              <text
+                x={rx - 20}
+                y={ry + rectH / 2}
+                fontSize="12"
+                fill="#ffffff"
+                textAnchor="end"
+                dominantBaseline="middle"
+              >
+                {yOk ? `${fmt(heightM)}m` : "—m"}
+              </text>
+
+              {/* データ不足時の注記 */}
+              {(!xOk || !yOk) && (
+                <text
+                  x={viewW / 2}
+                  y={viewH / 2}
+                  dominantBaseline="middle"
+                  textAnchor="middle"
+                  fontSize="12"
+                  fill="#ffffff"
+                  opacity={0.9}
+                >
+                  x機体数 / y機体数 を入力してください
+                </text>
+              )}
             </svg>
           </div>
         </div>
 
-        {/* 右: 機体の向き 図（アイコン1セット & アイコン2セット） */}
+        {/* 右: 機体の向き 図（既存） */}
         <div className="flex-1 lg:basis-4/12">
           <div className="h-120 w-full relative flex flex-col items-center justify-center border border-slate-600">
-            {/* ラベル */}
             <span className="absolute top-2 left-3 text-white text-sm font-semibold">
               機体の向き
             </span>
 
-            {/* ===== アイコン1セット ===== */}
             <div className="relative flex flex-col items-center justify-center">
               <div className="flex flex-col items-center gap-1">
                 <Drone1Icon
@@ -131,7 +317,6 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
                   rotationDeg={rotation}
                 />
 
-                {/* 回転ボタン */}
                 <div className="mt-12 flex items-center gap-3">
                   <button
                     type="button"
@@ -155,7 +340,6 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
                   </button>
                 </div>
 
-                {/* Antenna */}
                 <div
                   className="absolute"
                   style={{
@@ -166,7 +350,6 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
                   <span className="text-sm text-red-500">Antenna</span>
                 </div>
 
-                {/* Battery */}
                 <div
                   className="absolute"
                   style={{
@@ -179,12 +362,9 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
               </div>
             </div>
 
-            {/* セット間の余白 */}
             <div className="h-10" />
 
-            {/* ===== アイコン2セット ===== */}
             <div className="relative flex flex-col items-center justify-center">
-              {/* 中央距離（horizontal） */}
               <div className="absolute left-[-100px] flex items-center gap-2">
                 <DisplayOrInput
                   edit={edit}
@@ -195,12 +375,10 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
                 <span className="text-slate-100 text-sm">m</span>
               </div>
 
-              {/* アイコン2 */}
               <div>
                 <Drone2Icon className="w-20 h-20 drone2-img" />
               </div>
 
-              {/* 下部距離（vertical） */}
               <div className="absolute top-[100px] left-[-5px] flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <DisplayOrInput
@@ -213,7 +391,6 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
                 </div>
               </div>
 
-              {/* 注釈：枠の左右中央に固定 */}
               <span className="absolute top-[150px] left-1/2 -translate-x-1/2 text-[12px] leading-tight text-slate-300 whitespace-nowrap">
                 ※複数値をカンマ区切りで指定
               </span>
