@@ -1005,16 +1005,6 @@ export default function MapView({ onLoaded }: Props) {
           return normDeg(Math.atan2(v.x, v.y) * (180 / Math.PI));
         };
 
-        // heading=h のとき、点Xが「辺(P->Q)の上側」に見えるか（画面の上=+y）
-        const yScreenAfterHeading = (P: LngLat, X: LngLat, h: number) => {
-          const pr = toXY(P, X);
-          const a = (-h * Math.PI) / 180; // screen rotation = -heading
-          const cos = Math.cos(a);
-          const sin = Math.sin(a);
-          // 基準点が左下になるように "y" 軸の上方向判定
-          return -pr.x * sin + pr.y * cos; // y axis = up for left-bottom base
-        };
-
         // Pを左下にするheadingを計算
         const computeEmbedHeading = () => {
           const rect = parseRect(rectStr);
@@ -1092,19 +1082,21 @@ export default function MapView({ onLoaded }: Props) {
       const map = new gmaps.Map(mapDivRef.current as HTMLDivElement, {
         center: { lat: 35.0, lng: 137.0 },
         zoom: 6,
-        mapTypeControl: true,
-        mapTypeControlOptions: {
-          style: gmaps.MapTypeControlStyle.HORIZONTAL_BAR,
-          position: gmaps.ControlPosition.TOP_CENTER,
-        },
-        zoomControl: true,
+
+        // ストリートビュー、地図/航空写真の切替、ズームイン/アウトボタン非表示
+        streetViewControl: false,
+        mapTypeControl: false,
 
         // 航空写真モードを選択
         mapTypeId: gmaps.MapTypeId.SATELLITE,
 
         // 初期傾きを 0°（真上からの俯瞰）に固定
         tilt: 0,
+
+        // 角度を指定
         heading: desiredHeadingRef.current,
+
+        // 地図IDを指定
         mapId: import.meta.env.VITE_GMAPS_MAP_ID || undefined,
       });
 
