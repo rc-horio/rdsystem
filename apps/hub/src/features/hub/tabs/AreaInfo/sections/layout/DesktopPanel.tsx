@@ -12,6 +12,7 @@ type Props = {
   areaName: string | null;
   projectUuid?: string | null;
   scheduleUuid?: string | null;
+  geometry?: any | null;
 };
 
 export default function DesktopPanel({
@@ -23,6 +24,7 @@ export default function DesktopPanel({
   areaName,
   projectUuid,
   scheduleUuid,
+  geometry,
 }: Props) {
   return (
     // 左(=Map+Figure) と 右(=RightPanel) の2カラム
@@ -62,6 +64,7 @@ export default function DesktopPanel({
             areaName={areaName}
             projectUuid={projectUuid ?? undefined}
             scheduleUuid={scheduleUuid ?? undefined}
+            geometry={(area as any)?.geometry ?? null}
           />
           <LandingAreaFigure edit={edit} area={area} onPatchArea={onPatchArea} />
         </div>

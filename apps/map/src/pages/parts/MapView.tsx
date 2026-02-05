@@ -63,6 +63,7 @@ export default function MapView({ onLoaded }: Props) {
   const markersRef = useRef<google.maps.Marker[]>([]);
   const infoRef = useRef<google.maps.InfoWindow | null>(null);
   const zoomListenerRef = useRef<google.maps.MapsEventListener | null>(null);
+  const desiredHeadingRef = useRef(0);
 
   const currentAreaUuidRef = useRef<string | undefined>(undefined);
   const currentProjectUuidRef = useRef<string | undefined>(undefined);
@@ -204,13 +205,14 @@ export default function MapView({ onLoaded }: Props) {
   } | null>(null);
   const selectByKeyRef = useRef<
     (keys: { areaUuid?: string; areaName?: string }) => void
-  >(() => {});
+  >(() => { });
   const currentPointRef = useRef<Point | null>(null);
 
   // 初期コンテキスト（URLパラメータ）からの自動選択
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
 
+    // モードと初期傾きを取得
     const areaUuidFromUrl = params.get("areaUuid") || undefined;
     const projectUuidFromUrl = params.get("projectUuid") || undefined;
     const scheduleUuidFromUrl = params.get("scheduleUuid") || undefined;
@@ -663,8 +665,8 @@ export default function MapView({ onLoaded }: Props) {
               typeof a?.areaUuid === "string"
                 ? a.areaUuid
                 : typeof a?.uuid === "string"
-                ? a.uuid
-                : undefined,
+                  ? a.uuid
+                  : undefined,
           } as Point;
         })
         .filter((p): p is Point => !!p);
@@ -867,7 +869,32 @@ export default function MapView({ onLoaded }: Props) {
       });
     });
 
-    if (!bounds.isEmpty()) map.fitBounds(bounds);
+    // 地図の初期方位を適用
+    if (!bounds.isEmpty()) {
+      if (desiredHeadingRef.current !== 0) {
+        const h = desiredHeadingRef.current;
+        const start = performance.now();
+        const maxDurationMs = 1500;
+
+        const enforceHeading = () => {
+          if (map.getHeading() !== h) {
+            map.moveCamera({ heading: h, tilt: 0 });
+          }
+          if (performance.now() - start > maxDurationMs) {
+            idleListener.remove();
+            headingListener.remove();
+          }
+        };
+
+        const idleListener = map.addListener("idle", enforceHeading);
+        const headingListener = map.addListener("heading_changed", enforceHeading);
+        window.setTimeout(() => {
+          idleListener.remove();
+          headingListener.remove();
+        }, maxDurationMs + 200);
+      }
+      map.fitBounds(bounds);
+    }
 
     // サイドバーからのフォーカス要求に対応
     selectByKeyRef.current = ({ areaUuid, areaName }) => {
@@ -885,9 +912,11 @@ export default function MapView({ onLoaded }: Props) {
         return;
       }
 
+      // マーカーに対応するポイントを取得
       const p = pointByMarkerRef.current.get(marker);
 
       if (p) {
+        // マーカーが選択されている場合は、選択されているマーカーを解除
         if (selectedMarkerRef.current && selectedMarkerRef.current !== marker) {
           applySelection(selectedMarkerRef.current, false);
         }
@@ -929,6 +958,136 @@ export default function MapView({ onLoaded }: Props) {
       await loader.load();
       if (cancelled) return;
 
+      // 地図の初期方位を決定（矩形の基準点が必ず矩形の左下に来るように回転）
+      const params = new URLSearchParams(window.location.search);
+      let desiredHeading = 0; // デフォルトは北上固定
+
+      if (window !== window.top) {
+        const rectStr = params.get("takeoffRect") || "";
+        const refRaw = params.get("takeoffRef");
+        const refIndex = Number(refRaw ?? 0);
+
+        type LngLat = [number, number]; // [lng, lat]
+        const normDeg = (d: number) => ((d % 360) + 360) % 360;
+
+        const parseRect = (s: string): LngLat[] | null => {
+          const parts = s
+            .split(";")
+            .map((t) => t.trim())
+            .filter(Boolean);
+          if (parts.length !== 4) return null;
+
+          const pts: LngLat[] = [];
+          for (const part of parts) {
+            const [lngS, latS] = part.split(",").map((x) => x.trim());
+            const lng = Number(lngS);
+            const lat = Number(latS);
+            if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
+            pts.push([lng, lat]);
+          }
+          return pts;
+        };
+
+        // 緯度経度をローカルXYに変換（m近似）
+        const toXY = (origin: LngLat, pt: LngLat) => {
+          const R = 6378137; // WGS84
+          const [lng0, lat0] = origin;
+          const [lng, lat] = pt;
+          const rad = Math.PI / 180;
+          const x = (lng - lng0) * rad * R * Math.cos(lat0 * rad);
+          const y = (lat - lat0) * rad * R;
+          return { x, y };
+        };
+
+        // 北からの方位角（0=北, 90=東）
+        const bearingDeg = (p: LngLat, q: LngLat) => {
+          const v = toXY(p, q);
+          return normDeg(Math.atan2(v.x, v.y) * (180 / Math.PI));
+        };
+
+        // heading=h のとき、点Xが「辺(P->Q)の上側」に見えるか（画面の上=+y）
+        const yScreenAfterHeading = (P: LngLat, X: LngLat, h: number) => {
+          const pr = toXY(P, X);
+          const a = (-h * Math.PI) / 180; // screen rotation = -heading
+          const cos = Math.cos(a);
+          const sin = Math.sin(a);
+          // 基準点が左下になるように "y" 軸の上方向判定
+          return -pr.x * sin + pr.y * cos; // y axis = up for left-bottom base
+        };
+
+        // Pを左下にするheadingを計算
+        const computeEmbedHeading = () => {
+          const rect = parseRect(rectStr);
+          if (!rect) return 0;
+          if (!Number.isFinite(refIndex)) return 0;
+
+          const i0 = ((refIndex % 4) + 4) % 4; // 基準点
+          const i1 = (i0 + 1) % 4;            // “次の要素”
+          const P = rect[i0];
+          const Q = rect[i1];
+
+          const b = bearingDeg(P, Q);
+          const h0 = normDeg(b - 90);        // P->Q を右向きにする候補
+          const h1 = normDeg(h0 + 180);      // 反対向き候補
+
+          // heading を適用した「画面座標(x=右, y=上)」を返す（Pを原点）
+          // heading を適用した「画面座標(x=右, y=上)」を返す（Pを原点）
+          const toScreenXY = (base: LngLat, pt: LngLat, heading: number) => {
+            const pr = toXY(base, pt);               // pr.x=東, pr.y=北
+
+            // heading を適用した「画面座標(x=右, y=上)」を返す（Pを原点）
+            const a = (heading * Math.PI) / 180;
+
+            const cos = Math.cos(a);
+            const sin = Math.sin(a);
+            return {
+              x: pr.x * cos - pr.y * sin,
+              y: pr.x * sin + pr.y * cos,
+            };
+          };
+
+          const score = (h: number) => {
+            const EPS = 1e-6;
+
+            const q = toScreenXY(P, Q, h);
+            const others = [0, 1, 2, 3].filter((i) => i !== i0);
+
+            // 「基準点Pが左下」＝他3点が x>=0 かつ y>=0
+            const allInFirstQuadrant = others.every((i) => {
+              const v = toScreenXY(P, rect[i], h);
+              return v.x >= -EPS && v.y >= -EPS;
+            });
+
+            // さらに「底辺」っぽさを強化：Qが右、かつほぼ水平
+            const qRight = q.x > 0;
+            const qFlat = Math.abs(q.y) < 5e-3; // 多少ゆるめ（距離による誤差吸収）
+
+            // ok を最優先、ダメでもより近い方を選ぶ
+            const ok = allInFirstQuadrant && qRight;
+            const s =
+              (ok ? 1000 : 0) +
+              (allInFirstQuadrant ? 100 : 0) +
+              (qRight ? 10 : 0) +
+              (qFlat ? 1 : 0);
+
+            return { ok, s };
+          };
+
+          const s0 = score(h0);
+          const s1 = score(h1);
+
+          if (s0.ok && !s1.ok) return h0;
+          if (!s0.ok && s1.ok) return h1;
+          return s0.s >= s1.s ? h0 : h1;
+        };
+
+        desiredHeading = computeEmbedHeading();
+      }
+
+      desiredHeadingRef.current = desiredHeading;
+      // 地図の初期方位を保持
+      desiredHeadingRef.current = desiredHeading;
+      // Google Maps API を使用して地図を初期化
       const gmaps = getGMaps();
       const map = new gmaps.Map(mapDivRef.current as HTMLDivElement, {
         center: { lat: 35.0, lng: 137.0 },
@@ -945,6 +1104,8 @@ export default function MapView({ onLoaded }: Props) {
 
         // 初期傾きを 0°（真上からの俯瞰）に固定
         tilt: 0,
+        heading: desiredHeadingRef.current,
+        mapId: import.meta.env.VITE_GMAPS_MAP_ID || undefined,
       });
 
       // Geometry controller

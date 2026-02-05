@@ -12,6 +12,7 @@ type Props = {
   areaName: string | null;
   projectUuid?: string | null;
   scheduleUuid?: string | null;
+  geometry?: any | null;
 };
 
 export default function MobilePanel({
@@ -23,6 +24,7 @@ export default function MobilePanel({
   areaName,
   projectUuid,
   scheduleUuid,
+  geometry,
 }: Props) {
   return (
     <div className="space-y-6 overflow-x-hidden">
@@ -57,6 +59,7 @@ export default function MobilePanel({
         areaName={areaName}
         projectUuid={projectUuid ?? undefined}
         scheduleUuid={scheduleUuid ?? undefined}
+        geometry={(area as any)?.geometry ?? null}
       />
       <LandingAreaFigure edit={edit} area={area} onPatchArea={onPatchArea} />
 

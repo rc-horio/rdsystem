@@ -28,9 +28,17 @@ type Props = {
   areaName?: string | null;
   projectUuid?: string | null;
   scheduleUuid?: string | null;
+  geometry?: any | null;
 };
 
-export function MapCard({ areaName, projectUuid, scheduleUuid }: Props) {
+// 離発着エリアの矩形をパラメータに変換
+const toTakeoffRectParam = (coords?: [number, number][]) => {
+  if (!Array.isArray(coords) || coords.length !== 4) return "";
+  // coords は [lng,lat] の順。Map 側もその前提で parse しているのでそのまま
+  return coords.map(([lng, lat]) => `${lng},${lat}`).join(";");
+};
+
+export function MapCard({ areaName, projectUuid, scheduleUuid, geometry }: Props) {
   const fromEnv = import.meta.env.VITE_MAP_BASE_URL as string | undefined;
   const [areaUuid, setAreaUuid] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -55,24 +63,22 @@ export function MapCard({ areaName, projectUuid, scheduleUuid }: Props) {
 
       // 埋め込みモードは常に指定
       u.searchParams.set("mode", "embed");
+      if (areaName) u.searchParams.set("areaName", areaName);
+      if (projectUuid) u.searchParams.set("projectUuid", projectUuid);
+      if (scheduleUuid) u.searchParams.set("scheduleUuid", scheduleUuid);
 
-      if (areaName) {
-        u.searchParams.set("areaName", areaName);
-      }
+      const takeoffCoords = geometry?.takeoffArea?.coordinates as [number, number][] | undefined;
+      const takeoffRef = geometry?.takeoffArea?.referencePointIndex;
 
-      // ★ 案件・スケジュールもクエリに載せる
-      if (projectUuid) {
-        u.searchParams.set("projectUuid", projectUuid);
-      }
-      if (scheduleUuid) {
-        u.searchParams.set("scheduleUuid", scheduleUuid);
-      }
+      const rectStr = toTakeoffRectParam(takeoffCoords);
+      if (rectStr) u.searchParams.set("takeoffRect", rectStr);
+      if (Number.isFinite(takeoffRef)) u.searchParams.set("takeoffRef", String(takeoffRef));
 
       return u.toString();
     } catch {
       return base;
     }
-  }, [base, areaName, projectUuid, scheduleUuid]);
+  }, [base, areaName, projectUuid, scheduleUuid, geometry]);
 
   // areas.json から area_uuid を取得
   useEffect(() => {
