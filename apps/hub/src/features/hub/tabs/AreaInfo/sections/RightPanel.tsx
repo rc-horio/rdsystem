@@ -362,11 +362,11 @@ export function RightPanel({
       <div className="mt-5">
         <SectionTitle title="最低・最高高度" />
         <div className={rowCls}>
-          <span className="w-24 text-sm">最低高度</span>
+          <span className="w-24 text-sm">最高高度</span>
           <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
           <DisplayOrInput
             edit={false}
-            value={(geo.flightAltitude_min_m ?? "").toString()}
+            value={(geo.flightAltitude_Max_m ?? "").toString()}
             inputMode="numeric"
             type="number"
             className={numericInputW}
@@ -374,11 +374,11 @@ export function RightPanel({
           <span className="w-6 ml-1">m</span>
         </div>
         <div className={rowCls}>
-          <span className="w-24 text-sm">最高高度</span>
+          <span className="w-24 text-sm">最低高度</span>
           <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
           <DisplayOrInput
             edit={false}
-            value={(geo.flightAltitude_Max_m ?? "").toString()}
+            value={(geo.flightAltitude_min_m ?? "").toString()}
             inputMode="numeric"
             type="number"
             className={numericInputW}

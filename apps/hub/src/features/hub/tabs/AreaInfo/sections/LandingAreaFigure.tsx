@@ -219,9 +219,10 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
           </div>
         </div>
 
-        {/* 右: 機体の向き 図（既存） */}
+        {/* 右: 機体の向き図 */}
         <div className="flex-1 lg:basis-4/12">
-          <div className="h-120 w-full relative flex flex-col items-center justify-center border border-slate-600">
+          <div data-export-orientation-figure
+            className="h-120 w-full relative flex flex-col items-center justify-center border border-slate-600">
             <span className="absolute top-2 left-3 text-white text-sm font-semibold">
               機体の向き
             </span>

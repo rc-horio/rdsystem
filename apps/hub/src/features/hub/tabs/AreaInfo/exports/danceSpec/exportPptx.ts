@@ -5,27 +5,127 @@ import { loadDanceSpecHtml } from "./template";
 import { canvasToDataUri, captureElement } from "./capture";
 import PptxGenJS from "pptxgenjs";
 import { buildFileBaseName, formatTurnText, getSpacingBetweenDronesText } from "./texts";
-import { captureLandingFigure } from "./captureLandingFigure";
 import { buildLandingFigureSvg } from "@/features/hub/tabs/AreaInfo/figure/buildLandingFigureSvg";
 
 /**
- * PPTXを出力
+ * PPTXのスライドサイズ
  */
-export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
-    // ==== 1) 表示テキスト決定 ====
+const SLIDE_W = 13.333;
+const SLIDE_H = 7.5;
+
+const PAGE_PX_W = 1920;
+const PAGE_PX_H = 1080;
+
+// page2-grid のレイアウト（CSSと一致させる）
+const GRID_LEFT_PX = 36;
+const GRID_TOP_PX = 120; // --top-offset
+const GRID_BOTTOM_PX = 36; // --bottom-offset
+const LEFT_PANE_W_PX = 740; // --left-w
+
+function pickProjectAndSchedule(opts?: ExportOpts) {
     let project = (opts?.projectName ?? "").trim();
     let schedule = (opts?.scheduleLabel ?? "").trim();
 
     if (!project || !schedule) {
-        const h1 = document.querySelector('h1[aria-label]') as HTMLHeadingElement | null;
+        const h1 = document.querySelector("h1[aria-label]") as HTMLHeadingElement | null;
         const raw = h1?.getAttribute("aria-label") || h1?.getAttribute("title") || "";
         if (raw) {
-            const parts = raw.split("　").map((s) => s.trim()).filter(Boolean);
+            const parts = raw
+                .split("　")
+                .map((s) => s.trim())
+                .filter(Boolean);
             if (!project && parts[0]) project = parts[0];
             if (!schedule && parts[1]) schedule = parts[1];
         }
     }
+
     if (!project) project = "案件名";
+    return { project, schedule };
+}
+
+// テキストを設定
+function setText(root: ParentNode, selector: string, value: string) {
+    const el = root.querySelector(selector) as HTMLElement | null;
+    if (el) el.textContent = value;
+}
+
+// 整数をフォーマット
+function fmtInt(n: any) {
+    const v = Number(n);
+    return Number.isFinite(v) ? v.toLocaleString("ja-JP") : "";
+}
+
+// テキストを取得
+function textOr(v: any, fallback = "—") {
+    return v === 0 || (typeof v === "string" && v.trim()) || Number.isFinite(v) ? String(v) : fallback;
+}
+
+// LandingAreaFigureのスロットを確保
+function ensureLandingFigureSlot(p2clone: HTMLElement) {
+    let slot = p2clone.querySelector("#landing-figure-slot") as HTMLElement | null;
+    if (slot) return slot;
+
+    const paneLeft = p2clone.querySelector(".pane-left") as HTMLElement | null;
+    if (!paneLeft) throw new Error(".pane-left がテンプレにありません");
+
+    slot = document.createElement("div");
+    slot.id = "landing-figure-slot";
+    slot.style.width = "100%";
+    slot.style.height = "100%";
+
+    const frameLeft = paneLeft.querySelector(".frame-left") as HTMLElement | null;
+    (frameLeft ?? paneLeft).appendChild(slot);
+
+    return slot;
+}
+
+// スライドを追加
+function addFullSlide(pptx: PptxGenJS, canvas: HTMLCanvasElement) {
+    const slide = pptx.addSlide();
+    const data = canvasToDataUri(canvas, true);
+    slide.addImage({ data, x: 0, y: 0, w: SLIDE_W, h: SLIDE_H });
+}
+
+// 左ペインの枠を取得
+function leftPaneBoxInInches() {
+    const leftXpx = GRID_LEFT_PX;
+    const leftYpx = GRID_TOP_PX;
+    const leftWpx = LEFT_PANE_W_PX;
+    const leftHpx = PAGE_PX_H - GRID_TOP_PX - GRID_BOTTOM_PX;
+
+    const pxToInX = SLIDE_W / PAGE_PX_W;
+    const pxToInY = SLIDE_H / PAGE_PX_H;
+
+    return {
+        x: leftXpx * pxToInX,
+        y: leftYpx * pxToInY,
+        w: leftWpx * pxToInX,
+        h: leftHpx * pxToInY,
+    };
+}
+
+// 画像を左下に配置
+function placeImageContainBottomLeft(
+    slide: ReturnType<PptxGenJS["addSlide"]>,
+    data: string,
+    imgPxW: number,
+    imgPxH: number,
+    box: { x: number; y: number; w: number; h: number }
+) {
+    const scale = Math.min(box.w / imgPxW, box.h / imgPxH);
+    const drawW = imgPxW * scale;
+    const drawH = imgPxH * scale;
+
+    const x = box.x;
+    const y = box.y + (box.h - drawH); // bottom align
+
+    slide.addImage({ data, x, y, w: drawW, h: drawH });
+}
+
+// PPTXを出力
+export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
+    // ==== 1) 表示テキスト決定 ====
+    const { project, schedule } = pickProjectAndSchedule(opts);
 
     const company = (opts?.companyName ?? "株式会社レッドクリフ").trim();
     const page2Header = (opts?.page2HeaderText ?? "離発着情報").trim();
@@ -34,29 +134,25 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
 
     // ==== 2) テンプレ読み込み & 値注入 ====
     const { doc } = await loadDanceSpecHtml();
-    const styleNodes = Array.from(
-        doc.head.querySelectorAll("style, link[rel='stylesheet']")
-    ) as (HTMLStyleElement | HTMLLinkElement)[];
+    const styleNodes = Array.from(doc.head.querySelectorAll("style, link[rel='stylesheet']")) as (
+        | HTMLStyleElement
+        | HTMLLinkElement
+    )[];
 
+    // テンプレのページ1とページ2をクローン
     const p1 = doc.getElementById("page1") as HTMLElement | null;
     const p2 = doc.getElementById("page2") as HTMLElement | null;
     if (!p1 || !p2) throw new Error("テンプレの #page1 / #page2 が見つかりません");
 
+    // テンプレのページ1とページ2をクローン
     const p1clone = p1.cloneNode(true) as HTMLElement;
     const p2clone = p2.cloneNode(true) as HTMLElement;
 
-    // 1ページ目
-    const titleEl = p1clone.querySelector("#title") as HTMLElement | null;
-    if (titleEl) titleEl.textContent = `${project}　${schedule}　ダンスファイル指示書`;
+    setText(p1clone, "#title", `${project}　${schedule}　ダンスファイル指示書`);
+    setText(p1clone, "#company", company);
+    setText(p2clone, "#page2-header", page2Header);
 
-    const companyEl = p1clone.querySelector("#company") as HTMLElement | null;
-    if (companyEl) companyEl.textContent = company;
-
-    // 2ページ目
-    const headerEl = p2clone.querySelector("#page2-header") as HTMLElement | null;
-    if (headerEl) headerEl.textContent = page2Header;
-
-    // ===== 右サイド値の注入 =====
+    // エリア情報を取得
     const area = opts?.area ?? {};
     const drone = area?.drone_count ?? {};
     const model = (drone?.model ?? "").trim();
@@ -64,117 +160,89 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
     const lights = area?.lights ?? {};
     const { horizontal, vertical } = getSpacingBetweenDronesText(area);
 
-    const text = (v: any, fallback = "—") =>
-        (v === 0 || (typeof v === "string" && v.trim()) || Number.isFinite(v))
-            ? String(v)
-            : fallback;
-
-    const fmtInt = (n: any) => {
-        const v = Number(n);
-        return Number.isFinite(v) ? v.toLocaleString("ja-JP") : "";
-    };
-
-    const setTxt = (sel: string, val: string) => {
-        const el = p2clone.querySelector(sel) as HTMLElement | null;
-        if (el) el.textContent = val;
-    };
-
     // ■機体数
     let aircraftVal =
-        fmtInt(drone?.count)
+        fmtInt(drone?.count) !== ""
             ? `${fmtInt(drone.count)}機`
-            : (fmtInt(drone?.x_count) && fmtInt(drone?.y_count))
+            : fmtInt(drone?.x_count) !== "" && fmtInt(drone?.y_count) !== ""
                 ? `${fmtInt(drone.x_count)} × ${fmtInt(drone.y_count)} 機`
                 : "—";
-
-    if (aircraftVal !== "—" && model) {
-        aircraftVal = `${model}：${aircraftVal}`;
-    }
-    setTxt("#v-aircraft", aircraftVal);
+    if (aircraftVal !== "—" && model) aircraftVal = `${model}：${aircraftVal}`;
+    setText(p2clone, "#v-aircraft", aircraftVal);
 
     // ■最低、最高高度
-    setTxt(
+    setText(
+        p2clone,
         "#v-altitude",
-        `最高高度: ${text(area?.geometry?.flightAltitude_Max_m, "—")} m\n` +
-        `最低高度: ${text(area?.geometry?.flightAltitude_min_m, "—")} m`
+        `最高高度: ${textOr(area?.geometry?.flightAltitude_Max_m, "—")} m\n` +
+        `最低高度: ${textOr(area?.geometry?.flightAltitude_min_m, "—")} m`
     );
 
     // ■移動
-    setTxt("#v-move", text(actions?.liftoff, "—"));
+    setText(p2clone, "#v-move", textOr(actions?.liftoff, "—"));
 
     // ■旋回
-    setTxt("#v-turn", formatTurnText(area?.geometry?.turn));
+    setText(p2clone, "#v-turn", formatTurnText(area?.geometry?.turn));
 
     // ■障害物情報
-    setTxt("#v-obstacles", text(area?.obstacle_note, "なし"));
+    setText(p2clone, "#v-obstacles", textOr(area?.obstacle_note, "なし"));
 
     // ■離発着演出
-    const takeoff = text(lights?.takeoff, "—");
-    const landing = text(lights?.landing, "—");
-    const note = text(area?.return_note, "—");
-    setTxt(
-        "#v-show",
-        `離陸: ${takeoff}\n着陸: ${landing}\n ${note}`
-    );
+    const takeoff = textOr(lights?.takeoff, "—");
+    const landing = textOr(lights?.landing, "—");
+    const note = textOr(area?.return_note, "—");
+    setText(p2clone, "#v-show", `離陸: ${takeoff}\n着陸: ${landing}\n ${note}`);
 
     // ■アニメーションサイズ
-    const w = text(area?.geometry?.flightArea.radiusX_m * 2, "");
-    const d = text(area?.geometry?.flightArea.radiusY_m * 2, "");
-    setTxt("#v-anim", (w && d) ? `W${w}m × L${d}m` : (w ? `W${w}m` : (d ? `L${d}m` : "—")));
+    const ww = textOr(area?.geometry?.flightArea?.radiusX_m * 2, "");
+    const dd = textOr(area?.geometry?.flightArea?.radiusY_m * 2, "");
+    setText(
+        p2clone,
+        "#v-anim",
+        ww && dd ? `W${ww}m × L${dd}m` : ww ? `W${ww}m` : dd ? `L${dd}m` : "—"
+    );
 
-    // ■並べる間隔（左）
-    setTxt(".spacing-label--left", horizontal);
+    // ■並べる間隔
+    setText(p2clone, ".spacing-label--left", horizontal);
+    setText(p2clone, ".spacing-label--bottom", vertical);
 
-    // ■並べる間隔（下）
-    setTxt(".spacing-label--bottom", vertical);
-    // ===== 左ペイン：LandingAreaFigure をテンプレへ注入 =====
-    {
-        const slot = p2clone.querySelector("#landing-figure-slot") as HTMLElement | null;
-        if (slot) {
-            slot.innerHTML = buildLandingFigureSvg(area, { theme: "export" });
-        }
-    }
+    // 左ペイン：LandingAreaFigure 注入（slot 無ければ作る）
+    const slot = ensureLandingFigureSlot(p2clone);
+    slot.innerHTML = buildLandingFigureSvg(area, { theme: "export" });
+
     // ==== 3) キャプチャ ====
+    // キャプチャする要素とCSS変数を設定
     const cssVars = { "--grad-from": gradFrom, "--grad-to": gradTo };
-
-    const slotEl = p2clone.querySelector("#landing-figure-slot") as HTMLElement | null;
-    if (!slotEl) throw new Error("#landing-figure-slot がテンプレにありません");
-
     const [c1, c2, figCanvas] = await Promise.all([
         captureElement(p1clone, "#000", styleNodes, cssVars),
         captureElement(p2clone, "#fff", styleNodes, cssVars),
-        captureElement(slotEl, "#fff", styleNodes, cssVars), // 図だけ
+        captureElement(slot, "#fff", styleNodes, cssVars), // 図だけ
     ]);
 
-    // ==== 4) PPTX生成（ここが追加） ====
+    // ==== 4) PPTX生成 ====
+    // PPTXオブジェクトを作成
     const pptx = new PptxGenJS();
-    pptx.layout = "LAYOUT_WIDE"; // 13.333in x 7.5in（16:9）
+    pptx.layout = "LAYOUT_WIDE";
 
-    // 全面貼り付け（単位は inch）
-    const SLIDE_W = 13.333;
-    const SLIDE_H = 7.5;
+    // 1枚目：背景を追加
+    addFullSlide(pptx, c1);
 
-    const addFull = (canvas: HTMLCanvasElement) => {
-        const slide = pptx.addSlide();
-        // JPEGでもPNGでもOK。線や文字が細いならPNG推奨（重くなる）
-        const data = canvasToDataUri(canvas, true);
-        slide.addImage({ data, x: 0, y: 0, w: SLIDE_W, h: SLIDE_H });
-    };
-
-    // 1枚目は背景(c1)
-    addFull(c1);
-
-    // 2枚目は背景(c2) + 図(landingFigure) を別画像で貼る
+    // 2枚目：背景 + 図（左ペイン左下、アスペクト維持）
     {
+        // 2枚目：背景を追加
         const slide = pptx.addSlide();
         const bg = canvasToDataUri(c2, true);
         slide.addImage({ data: bg, x: 0, y: 0, w: SLIDE_W, h: SLIDE_H });
 
-        const fig = canvasToDataUri(figCanvas, true);
-        slide.addImage({ data: fig, x: 0.8, y: 1.4, w: 5.8, h: 2.8 });
+        // 図を左下に配置
+        const figData = canvasToDataUri(figCanvas, true);
+        const box = leftPaneBoxInInches();
+
+        placeImageContainBottomLeft(slide, figData, figCanvas.width, figCanvas.height, box);
     }
 
+    // ファイル名を作成
     const baseName = buildFileBaseName(project, schedule);
+    // PPTXファイルを出力
     await pptx.writeFile({ fileName: `${baseName}.pptx` });
 }
-

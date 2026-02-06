@@ -186,6 +186,8 @@ export function MapCard({ areaName, projectUuid, scheduleUuid, geometry }: Props
           style={{ border: "none" }}
           title="離発着エリア地図"
           loading="lazy"
+          allow="fullscreen"
+          allowFullScreen
         />
       </div>
     </div>

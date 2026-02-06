@@ -180,29 +180,49 @@ body {
 }
 
 /* 中央・下段枠の中身を「縦積み」にする */
-.midbottom-stack{
+.midbottom-stack {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
   width: 100%;
-  gap: 60px; 
+  gap: 60px;
+}
+
+/* LandingAreaFigure（#landing-figure-slot）を左下基準で配置 */
+#page2 #landing-figure-slot {
+  display: flex;
+  justify-content: flex-start; /* 左寄せ */
+  align-items: flex-end; /* 下寄せ */
+  width: 100%;
+  height: 100%;
+  /* 端にピタ付けが嫌なら余白だけここで調整 */
+  padding: 0; /* 例: 12px にすると左下から少し浮く */
+}
+
+/* slot に挿入された SVG を枠内に収める（縦横比維持） */
+#page2 #landing-figure-slot > svg {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  height: auto;
+  width: auto;
 }
 
 /* Antenna */
 .drone-label--antenna {
-  top: -35px;     
+  top: -35px;
   color: #e00022;
 }
 
 /* Battery */
 .drone-label--battery {
   bottom: -23px;
-  color: #000;   
+  color: #000;
 }
 
 /* 画像行 */
-.midbottom-figRow{
+.midbottom-figRow {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -210,7 +230,7 @@ body {
 }
 
 /* 2つのアイコンサイズ */
-.midbottom-figRow img{
+.midbottom-figRow img {
   object-fit: contain;
 }
 
@@ -236,12 +256,12 @@ body {
 }
 
 /* アイコン2 + 距離表示のコンテナ */
-.midbottom-figRow--spacing{
+.midbottom-figRow--spacing {
   position: relative;
 }
 
 /* アイコン2のラベル */
-.spacing-label{
+.spacing-label {
   position: absolute;
   font-size: 18px;
   font-weight: 600;
@@ -251,17 +271,24 @@ body {
 }
 
 /* アイコン2のラベルの位置（左） */
-.spacing-label--left{
+.spacing-label--left {
   left: 25px;
   top: 50%;
   transform: translateY(-50%);
 }
 
 /* アイコン2のラベルの位置（下） */
-.spacing-label--bottom{
+.spacing-label--bottom {
   top: calc(100% + 12px);
   left: 50%;
   transform: translateX(-50%);
+}
+
+/* 左ペイン と 中央上段の枠線だけ消す */
+#page2 .frame-left,
+#page2 .frame-mid-top {
+  border: none;
+  padding: 3px;
 }
 
 /* ───────────────────────── 右サイドバー ───────────────────────── */
