@@ -5,6 +5,7 @@ import { loadDanceSpecHtml } from "./template";
 import { captureElement } from "./capture";
 import { jsPDF } from "jspdf";
 import { sanitize, formatTurnText, getSpacingBetweenDronesText } from "./texts";
+import { buildLandingFigureSvg } from "@/features/hub/tabs/AreaInfo/figure/buildLandingFigureSvg";
 
 /**
  * PDFを出力
@@ -54,8 +55,18 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
     const headerEl = p2clone.querySelector("#page2-header") as HTMLElement | null;
     if (headerEl) headerEl.textContent = page2Header;
 
-    // ===== 右サイド値の注入 =====
+    // 離発着情報
     const area = opts?.area ?? {};
+
+    // ===== 左ペイン：LandingAreaFigure を注入 =====
+    {
+        const slot = p2clone.querySelector("#landing-figure-slot") as HTMLElement | null;
+        if (slot) {
+            slot.innerHTML = buildLandingFigureSvg(area, { theme: "export" });
+        }
+    }
+
+    // ===== 右サイド値の注入 =====
     const drone = area?.drone_count ?? {};
     const model = (drone?.model ?? "").trim();
     const actions = area?.actions ?? {};
@@ -93,8 +104,8 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
     // ■最低、最高高度
     setTxt(
         "#v-altitude",
-        `最低高度: ${text(area?.geometry?.flightAltitude_Max_m, "—")} m\n` +
-        `最高高度: ${text(area?.geometry?.flightAltitude_min_m, "—")} m`
+        `最高高度: ${text(area?.geometry?.flightAltitude_Max_m, "—")} m\n` +
+        `最低高度: ${text(area?.geometry?.flightAltitude_min_m, "—")} m`
     );
 
     // ■移動

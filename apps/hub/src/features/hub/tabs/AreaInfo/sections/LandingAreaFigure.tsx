@@ -24,12 +24,6 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
   const horizontal = area?.spacing_between_drones_m?.horizontal ?? "";
   const vertical = area?.spacing_between_drones_m?.vertical ?? "";
 
-  // 寸法線（矢印）
-  const arrow = {
-    markerId: "arrow",
-    markerSize: 6,
-  };
-
   // 機体向きUI
   const rotation =
     typeof area?.drone_orientation_deg === "number" &&
@@ -105,18 +99,7 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
               className="w-full h-full"
               xmlns="http://www.w3.org/2000/svg"
             >
-              <defs>
-                <marker
-                  id={arrow.markerId}
-                  markerWidth={arrow.markerSize}
-                  markerHeight={arrow.markerSize}
-                  refX="5"
-                  refY="3"
-                  orient="auto"
-                >
-                  <path d="M0,0 L6,3 L0,6 Z" fill="#ffffff" />
-                </marker>
-              </defs>
+
               {m.canRenderFigure ? (
                 <>
                   {/* 本体矩形 */}
@@ -187,8 +170,6 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
                     y2={m.ry + m.rectH + 26}
                     stroke="#ffffff"
                     strokeWidth={1}
-                    markerStart={`url(#${arrow.markerId})`}
-                    markerEnd={`url(#${arrow.markerId})`}
                     opacity={0.9}
                   />
                   <text
@@ -209,8 +190,6 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
                     y2={m.ry + m.rectH}
                     stroke="#ffffff"
                     strokeWidth={1}
-                    markerStart={`url(#${arrow.markerId})`}
-                    markerEnd={`url(#${arrow.markerId})`}
                     opacity={0.9}
                   />
                   <text

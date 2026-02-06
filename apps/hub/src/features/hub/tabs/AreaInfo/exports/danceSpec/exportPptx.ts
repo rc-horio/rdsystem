@@ -5,6 +5,8 @@ import { loadDanceSpecHtml } from "./template";
 import { canvasToDataUri, captureElement } from "./capture";
 import PptxGenJS from "pptxgenjs";
 import { buildFileBaseName, formatTurnText, getSpacingBetweenDronesText } from "./texts";
+import { captureLandingFigure } from "./captureLandingFigure";
+import { buildLandingFigureSvg } from "@/features/hub/tabs/AreaInfo/figure/buildLandingFigureSvg";
 
 /**
  * PPTXを出力
@@ -93,8 +95,8 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
     // ■最低、最高高度
     setTxt(
         "#v-altitude",
-        `最低高度: ${text(area?.geometry?.flightAltitude_Max_m, "—")} m\n` +
-        `最高高度: ${text(area?.geometry?.flightAltitude_min_m, "—")} m`
+        `最高高度: ${text(area?.geometry?.flightAltitude_Max_m, "—")} m\n` +
+        `最低高度: ${text(area?.geometry?.flightAltitude_min_m, "—")} m`
     );
 
     // ■移動
@@ -125,12 +127,23 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
 
     // ■並べる間隔（下）
     setTxt(".spacing-label--bottom", vertical);
-
+    // ===== 左ペイン：LandingAreaFigure をテンプレへ注入 =====
+    {
+        const slot = p2clone.querySelector("#landing-figure-slot") as HTMLElement | null;
+        if (slot) {
+            slot.innerHTML = buildLandingFigureSvg(area, { theme: "export" });
+        }
+    }
     // ==== 3) キャプチャ ====
     const cssVars = { "--grad-from": gradFrom, "--grad-to": gradTo };
-    const [c1, c2] = await Promise.all([
+
+    const slotEl = p2clone.querySelector("#landing-figure-slot") as HTMLElement | null;
+    if (!slotEl) throw new Error("#landing-figure-slot がテンプレにありません");
+
+    const [c1, c2, figCanvas] = await Promise.all([
         captureElement(p1clone, "#000", styleNodes, cssVars),
         captureElement(p2clone, "#fff", styleNodes, cssVars),
+        captureElement(slotEl, "#fff", styleNodes, cssVars), // 図だけ
     ]);
 
     // ==== 4) PPTX生成（ここが追加） ====
@@ -148,8 +161,18 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
         slide.addImage({ data, x: 0, y: 0, w: SLIDE_W, h: SLIDE_H });
     };
 
+    // 1枚目は背景(c1)
     addFull(c1);
-    addFull(c2);
+
+    // 2枚目は背景(c2) + 図(landingFigure) を別画像で貼る
+    {
+        const slide = pptx.addSlide();
+        const bg = canvasToDataUri(c2, true);
+        slide.addImage({ data: bg, x: 0, y: 0, w: SLIDE_W, h: SLIDE_H });
+
+        const fig = canvasToDataUri(figCanvas, true);
+        slide.addImage({ data: fig, x: 0.8, y: 1.4, w: 5.8, h: 2.8 });
+    }
 
     const baseName = buildFileBaseName(project, schedule);
     await pptx.writeFile({ fileName: `${baseName}.pptx` });

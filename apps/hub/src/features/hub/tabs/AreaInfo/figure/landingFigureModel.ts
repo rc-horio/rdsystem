@@ -26,6 +26,7 @@ export type LandingFigureModel = {
     // 表示計算（SVG）
     viewW: number;
     viewH: number;
+    pad: { top: number; right: number; bottom: number; left: number };
     margin: number;
     scale: number;
     rectW: number;
@@ -44,13 +45,22 @@ export function buildLandingFigureModel(
         margin?: number;
         offsetX?: number;
         fallback?: number;
+        pad?: Partial<{ top: number; right: number; bottom: number; left: number }>;
     }
 ): LandingFigureModel {
     const viewW = opts?.viewW ?? 460;
     const viewH = opts?.viewH ?? 220;
     const margin = opts?.margin ?? 36;
-    const offsetX = opts?.offsetX ?? 15;
+    const offsetX = opts?.offsetX ?? 0;
     const fallback = opts?.fallback ?? 1;
+
+    // 余白（外周ルーラー分）
+    const pad = {
+        top: opts?.pad?.top ?? 20,       // 上の角ID用
+        right: opts?.pad?.right ?? 18,   // 右上ID用
+        bottom: opts?.pad?.bottom ?? 54, // 横寸法線+ラベル用
+        left: opts?.pad?.left ?? 46,     // 縦寸法線+ラベル用
+    };
 
     // x軸 spacingSeqX = vertical、y軸 spacingSeqY = horizontal（既存仕様）
     const horizontal = area?.spacing_between_drones_m?.horizontal ?? "";
@@ -84,9 +94,9 @@ export function buildLandingFigureModel(
         return { tl, tr, bl, br };
     })();
 
-    // 表示計算（SVG）
-    const usableW = viewW - margin * 2;
-    const usableH = viewH - margin * 2;
+    // usableW/H を pad で確保
+    const usableW = viewW - pad.left - pad.right;
+    const usableH = viewH - pad.top - pad.bottom;
 
     // 安全な幅と高さ
     const safeW = Math.max(widthM, 1);
@@ -97,9 +107,9 @@ export function buildLandingFigureModel(
     const rectW = safeW * scale;
     const rectH = safeH * scale;
 
-    // 矩形の位置
-    const rx = (viewW - rectW) / 2 + offsetX;
-    const ry = (viewH - rectH) / 2;
+    // rx/ry を pad 内に収める
+    const rx = pad.left + (usableW - rectW) / 2 + offsetX;
+    const ry = pad.top + (usableH - rectH) / 2;
 
     // 表示計算（SVG）
     return {
@@ -117,6 +127,7 @@ export function buildLandingFigureModel(
         corner,
         viewW,
         viewH,
+        pad,
         margin,
         scale,
         rectW,
