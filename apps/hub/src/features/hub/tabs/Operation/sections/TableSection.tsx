@@ -2,6 +2,7 @@
 
 import { ButtonRed, SectionTitle } from "@/components";
 import React, { useEffect, useRef, useState } from "react";
+import { cumDist, fmtMeters } from "@/features/hub/utils/spacing";
 
 type Props = {
   countX: number;
@@ -100,21 +101,7 @@ const X_LABEL_OFFSET_PX = 24;
 const Y_LABEL_OFFSET_PX = 14;
 
 /* ---------------- Rulers ---------------- */
-
-// 表示用フォーマッタ：整数ならそのまま、小数は小数1桁（必要に応じて調整）
-const fmt = (n: number) =>
-  Math.abs(n - Math.round(n)) < 1e-6 ? String(Math.round(n)) : n.toFixed(1);
-
-// 可変間隔の累積距離：seq を繰り返しながら i ステップ分の合計を返す
-const cumDist = (i: number, seq: number[], fallback = 1): number => {
-  if (!seq || seq.length === 0) return i * fallback;
-  const L = seq.length;
-  if (L === 1) return i * seq[0];
-  let sum = 0;
-  for (let k = 0; k < i; k++) sum += seq[k % L];
-  return sum;
-};
-
+// X軸ラベル
 function RulerX({
   count,
   width,
@@ -168,13 +155,14 @@ function RulerX({
             lineHeight: "12px",
           }}
         >
-          {fmt(cumDist(i, seq, fallback))}
+          {fmtMeters(cumDist(i, seq, fallback))}
         </div>
       ))}
     </div>
   );
 }
 
+// Y軸ラベル
 function RulerY({
   count,
   height,
@@ -237,7 +225,7 @@ function RulerY({
               zIndex: 1,
             }}
           >
-            {fmt(label)}
+            {fmtMeters(label)}
           </div>
         );
       })}

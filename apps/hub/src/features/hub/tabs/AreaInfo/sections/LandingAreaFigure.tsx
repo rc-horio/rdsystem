@@ -1,5 +1,7 @@
 // src/features/hub/tabs/AreaInfo/sections/LandingAreaFigure.tsx
 
+import { fmtMeters } from "@/features/hub/utils/spacing";
+import { buildLandingFigureModel } from "@/features/hub/tabs/AreaInfo/figure/landingFigureModel";
 import {
   SectionTitle,
   Drone1Icon,
@@ -13,89 +15,14 @@ type Props = {
   onPatchArea: (patch: any) => void;
 };
 
-// Operation/TableSection と同じ思想のフォーマッタ
-const fmt = (n: number) =>
-  Math.abs(n - Math.round(n)) < 1e-6 ? String(Math.round(n)) : n.toFixed(1);
-
-// CSV文字列を数値配列に（空/不正は除外）
-const parseSeq = (v: unknown): number[] => {
-  if (typeof v !== "string") return [];
-  return v
-    .split(",")
-    .map((s) => Number(s.trim()))
-    .filter((n) => Number.isFinite(n) && n > 0);
-};
-
-// 可変間隔の累積距離：seq を繰り返しながら i ステップ分の合計を返す
-const cumDist = (i: number, seq: number[], fallback = 1): number => {
-  if (!seq || seq.length === 0) return i * fallback;
-  const L = seq.length;
-  if (L === 1) return i * seq[0];
-  let sum = 0;
-  for (let k = 0; k < i; k++) sum += seq[k % L];
-  return sum;
-};
-
 export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
-  // 既存：距離入力（テーブルと同じルール）
-  // x軸 spacingSeqX = vertical、y軸 spacingSeqY = horizontal
+
+  // 表示計算（SVG）
+  const m = buildLandingFigureModel(area);
+
+  // 間隔入力（オペレーションタブのテーブルと同じ仕様）
   const horizontal = area?.spacing_between_drones_m?.horizontal ?? "";
   const vertical = area?.spacing_between_drones_m?.vertical ?? "";
-
-  const seqX = parseSeq(vertical);
-  const seqY = parseSeq(horizontal);
-  const fallback = 1;
-
-  const countX = Number(area?.drone_count?.x_count);
-  const countY = Number(area?.drone_count?.y_count);
-  const xOk = Number.isFinite(countX) && countX > 0;
-  const yOk = Number.isFinite(countY) && countY > 0;
-
-  // 間隔の入力有無（要件通り「間隔も」必須にする）
-  const spacingOk = seqX.length > 0 && seqY.length > 0;
-
-  // 左図を描画してよい条件
-  const canRenderFigure = xOk && yOk && spacingOk;
-
-  // 幅/高さ(m)：テーブルのルーラーと同一計算
-  // 「点(機体)の最小〜最大」の長さ = (count-1)ステップ分の累積
-  const widthM =
-    xOk && countX >= 2 ? cumDist(countX - 1, seqX, fallback) : 0;
-  const heightM =
-    yOk && countY >= 2 ? cumDist(countY - 1, seqY, fallback) : 0;
-
-  // 四隅の数字：テーブルの num 計算と一致させる
-  // num = (countY - 1 - r) * countX + c
-  const corner = (() => {
-    if (!xOk || !yOk) return null;
-    const bl = 0;
-    const br = countX - 1;
-    const tl = (countY - 1) * countX;
-    const tr = countX * countY - 1;
-    return { tl, tr, bl, br };
-  })();
-
-  // SVGスケール：実寸(m)を一定の見た目に収める（m→px）
-  const viewW = 460;
-  const viewH = 220;
-  const margin = 36;
-  const usableW = viewW - margin * 2;
-  const usableH = viewH - margin * 2;
-
-  const safeW = Math.max(widthM, 1);
-  const safeH = Math.max(heightM, 1);
-
-  // 長辺に合わせて縮尺を決める（見た目が破綻しない範囲で単純化）
-  const scale = Math.min(usableW / safeW, usableH / safeH);
-  const rectW = safeW * scale;
-  const rectH = safeH * scale;
-
-  // 矩形を右に寄せる量（px）
-  const offsetX = 15;
-
-  // 矩形の左上角の座標
-  const rx = (viewW - rectW) / 2 + offsetX;
-  const ry = (viewH - rectH) / 2;
 
   // 寸法線（矢印）
   const arrow = {
@@ -110,6 +37,7 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
       ? (area.drone_orientation_deg as number)
       : 0;
 
+  // 間隔入力
   const setHorizontal = (v: string) => {
     const next = {
       ...(area ?? {}),
@@ -121,6 +49,7 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
     onPatchArea(next);
   };
 
+  // 間隔入力
   const setVertical = (v: string) => {
     const next = {
       ...(area ?? {}),
@@ -132,6 +61,7 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
     onPatchArea(next);
   };
 
+  // 機体向き
   const rotateBy = (delta: number) => {
     const current =
       typeof rotation === "number" && Number.isFinite(rotation) ? rotation : 0;
@@ -140,6 +70,7 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
     onPatchArea(patched);
   };
 
+  // アンテナ位置
   const antennaPosition = () => {
     const radius = 75;
     const angleInRadians = ((rotation + 90) % 360) * (Math.PI / 180);
@@ -150,6 +81,7 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
   };
   const { x, y } = antennaPosition();
 
+  // バッテリー位置
   const batteryPosition = () => {
     const radius = 75;
     const angleInRadians = ((rotation + 270) % 360) * (Math.PI / 180);
@@ -169,7 +101,7 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
         <div className="flex-1 lg:basis-6/12">
           <div className="h-120 w-full border border-slate-600">
             <svg
-              viewBox={`0 0 ${viewW} ${viewH}`}
+              viewBox={`0 0 ${m.viewW} ${m.viewH}`}
               className="w-full h-full"
               xmlns="http://www.w3.org/2000/svg"
             >
@@ -185,14 +117,14 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
                   <path d="M0,0 L6,3 L0,6 Z" fill="#ffffff" />
                 </marker>
               </defs>
-              {canRenderFigure ? (
+              {m.canRenderFigure ? (
                 <>
                   {/* 本体矩形 */}
                   <rect
-                    x={rx}
-                    y={ry}
-                    width={rectW}
-                    height={rectH}
+                    x={m.rx}
+                    y={m.ry}
+                    width={m.rectW}
+                    height={m.rectH}
                     stroke="#ed1b24"
                     strokeWidth={2}
                     strokeOpacity={0.9}
@@ -202,57 +134,57 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
 
 
                   {/* 四隅の機体ID */}
-                  {corner && (
+                  {m.corner && (
                     <>
                       {/* TL */}
                       <text
-                        x={rx}
-                        y={ry - 8}
+                        x={m.rx}
+                        y={m.ry - 8}
                         fontSize="12"
                         fill="#ffffff"
                         textAnchor="start"
                       >
-                        {corner.tl}
+                        {m.corner.tl}
                       </text>
                       {/* TR */}
                       <text
-                        x={rx + rectW}
-                        y={ry - 8}
+                        x={m.rx + m.rectW}
+                        y={m.ry - 8}
                         fontSize="12"
                         fill="#ffffff"
                         textAnchor="end"
                       >
-                        {corner.tr}
+                        {m.corner.tr}
                       </text>
                       {/* BL */}
                       <text
-                        x={rx}
-                        y={ry + rectH + 16}
+                        x={m.rx}
+                        y={m.ry + m.rectH + 16}
                         fontSize="12"
                         fill="#ffffff"
                         textAnchor="start"
                       >
-                        {corner.bl}
+                        {m.corner.bl}
                       </text>
                       {/* BR */}
                       <text
-                        x={rx + rectW}
-                        y={ry + rectH + 16}
+                        x={m.rx + m.rectW}
+                        y={m.ry + m.rectH + 16}
                         fontSize="12"
                         fill="#ffffff"
                         textAnchor="end"
                       >
-                        {corner.br}
+                        {m.corner.br}
                       </text>
                     </>
                   )}
 
                   {/* 横幅寸法線 */}
                   <line
-                    x1={rx}
-                    y1={ry + rectH + 26}
-                    x2={rx + rectW}
-                    y2={ry + rectH + 26}
+                    x1={m.rx}
+                    y1={m.ry + m.rectH + 26}
+                    x2={m.rx + m.rectW}
+                    y2={m.ry + m.rectH + 26}
                     stroke="#ffffff"
                     strokeWidth={1}
                     markerStart={`url(#${arrow.markerId})`}
@@ -260,21 +192,21 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
                     opacity={0.9}
                   />
                   <text
-                    x={rx + rectW / 2}
-                    y={ry + rectH + 42}
+                    x={m.rx + m.rectW / 2}
+                    y={m.ry + m.rectH + 42}
                     fontSize="12"
                     fill="#ffffff"
                     textAnchor="middle"
                   >
-                    {xOk ? `${fmt(widthM)}m` : "—m"}
+                    {m.xOk ? `${fmtMeters(m.widthM)}m` : "—m"}
                   </text>
 
                   {/* 縦幅寸法線 */}
                   <line
-                    x1={rx - 15}
-                    y1={ry}
-                    x2={rx - 15}
-                    y2={ry + rectH}
+                    x1={m.rx - 15}
+                    y1={m.ry}
+                    x2={m.rx - 15}
+                    y2={m.ry + m.rectH}
                     stroke="#ffffff"
                     strokeWidth={1}
                     markerStart={`url(#${arrow.markerId})`}
@@ -282,20 +214,20 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
                     opacity={0.9}
                   />
                   <text
-                    x={rx - 20}
-                    y={ry + rectH / 2}
+                    x={m.rx - 20}
+                    y={m.ry + m.rectH / 2}
                     fontSize="12"
                     fill="#ffffff"
                     textAnchor="end"
                     dominantBaseline="middle"
                   >
-                    {yOk ? `${fmt(heightM)}m` : "—m"}
+                    {m.yOk ? `${fmtMeters(m.heightM)}m` : "—m"}
                   </text>
                 </>
               ) : (
                 <text
-                  x={viewW / 2}
-                  y={viewH / 2}
+                  x={m.viewW / 2}
+                  y={m.viewH / 2}
                   dominantBaseline="middle"
                   textAnchor="middle"
                   fontSize="15"
