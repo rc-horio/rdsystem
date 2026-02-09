@@ -255,13 +255,13 @@ export function MapCard({ areaName, projectUuid, scheduleUuid, geometry }: Props
       <div className="flex items-center justify-between">
         <SectionTitle title="飛行エリア" />
         <div className="flex items-center gap-2">
-          {/* <ButtonRed
+          <ButtonRed
             type="button"
             onClick={handleScreenshot}
             disabled={loading || isCapturing}
           >
             {isCapturing ? "撮影中..." : "スクリーンショット保存"}
-          </ButtonRed> */}
+          </ButtonRed>
           <ButtonRed type="button" onClick={handleOpenMap} disabled={loading}>
             {loading ? "読込中..." : "RD Mapで確認"}
           </ButtonRed>

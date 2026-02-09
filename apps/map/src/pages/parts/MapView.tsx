@@ -1,5 +1,5 @@
 // src/pages/parts/MapView.tsx
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import html2canvas from "html2canvas";
 import { Loader } from "@googlemaps/js-api-loader";
 import {
@@ -65,6 +65,7 @@ export default function MapView({ onLoaded }: Props) {
   const infoRef = useRef<google.maps.InfoWindow | null>(null);
   const zoomListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const desiredHeadingRef = useRef(0);
+  const tileSessionRef = useRef<TileSession | null>(null);
 
   const currentAreaUuidRef = useRef<string | undefined>(undefined);
   const currentProjectUuidRef = useRef<string | undefined>(undefined);
@@ -162,7 +163,26 @@ export default function MapView({ onLoaded }: Props) {
         heading: number;
       };
       staticMap: { url: string; params: StaticMapResult["params"] } | null;
+      tileMeta: {
+        devicePixelRatio: number;
+        output: { widthPx: number; heightPx: number };
+        baseCoveragePx: number;
+        tileWidth: number | null;
+        tileHeight: number | null;
+        zoom: number;
+        baseZoom: number;
+        zoomScale: number;
+        css: { width: number; height: number };
+      } | null;
     };
+  };
+
+  type TileSession = {
+    session: string;
+    expiry: number;
+    tileWidth: number;
+    tileHeight: number;
+    imageFormat: string;
   };
 
   const loadImageFromBlob = (blob: Blob) =>
@@ -179,6 +199,219 @@ export default function MapView({ onLoaded }: Props) {
       };
       img.src = url;
     });
+
+  const buildTileMapImage = async (
+    cssWidth: number,
+    cssHeight: number,
+    widthPx: number,
+    heightPx: number,
+    heading: number,
+    sessionRef: MutableRefObject<TileSession | null>
+  ): Promise<StaticMapResult> => {
+    const map = mapRef.current;
+    if (!map) throw new Error("map not ready");
+
+    const apiKey = import.meta.env.VITE_GMAPS_API_KEY;
+    if (!apiKey) throw new Error("VITE_GMAPS_API_KEY is missing");
+
+    const tileBase =
+      import.meta.env.VITE_TILE_API_BASE_URL || "/__gtile";
+
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (!sessionRef.current || sessionRef.current.expiry - nowSec < 60) {
+      const res = await fetch(
+        `${tileBase}/v1/createSession?key=${encodeURIComponent(apiKey)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mapType: "satellite",
+            language: "ja",
+            region: "JP",
+          }),
+        }
+      );
+      if (!res.ok) {
+        throw new Error("tile session create failed");
+      }
+      const data = (await res.json()) as TileSession;
+      sessionRef.current = {
+        session: data.session,
+        expiry: Number(data.expiry),
+        tileWidth: data.tileWidth,
+        tileHeight: data.tileHeight,
+        imageFormat: data.imageFormat,
+      };
+    }
+
+    const session = sessionRef.current!;
+    const tileSize = session.tileWidth || 256;
+
+    const center = map.getCenter();
+    const zoom = map.getZoom();
+    if (!center || zoom == null) throw new Error("map view not ready");
+
+    const baseZoom = Math.max(0, Math.min(22, Math.floor(zoom)));
+    const zoomFraction = zoom - baseZoom;
+    const zoomScale =
+      zoomFraction > 0 ? Math.pow(2, zoomFraction) : 1;
+
+    const diagCss = Math.ceil(Math.sqrt(cssWidth ** 2 + cssHeight ** 2));
+    const baseCoverageCss = Math.ceil(diagCss / zoomScale);
+
+    const lat = center.lat();
+    const lng = center.lng();
+
+    const siny = Math.min(
+      Math.max(Math.sin((lat * Math.PI) / 180), -0.9999),
+      0.9999
+    );
+    const worldX = tileSize * (lng / 360 + 0.5);
+    const worldY =
+      tileSize *
+      (0.5 - Math.log((1 + siny) / (1 - siny)) / (4 * Math.PI));
+    const scale = Math.pow(2, baseZoom);
+    const centerPx = { x: worldX * scale, y: worldY * scale };
+
+    const topLeft = {
+      x: centerPx.x - baseCoverageCss / 2,
+      y: centerPx.y - baseCoverageCss / 2,
+    };
+    const bottomRight = {
+      x: centerPx.x + baseCoverageCss / 2,
+      y: centerPx.y + baseCoverageCss / 2,
+    };
+
+    const maxTile = Math.pow(2, baseZoom);
+    const xStart = Math.floor(topLeft.x / tileSize);
+    const yStart = Math.floor(topLeft.y / tileSize);
+    const xEnd = Math.floor((bottomRight.x - 1) / tileSize);
+    const yEnd = Math.floor((bottomRight.y - 1) / tileSize);
+
+    const mosaic = document.createElement("canvas");
+    mosaic.width = baseCoverageCss;
+    mosaic.height = baseCoverageCss;
+    const mctx = mosaic.getContext("2d");
+    if (!mctx) throw new Error("tile mosaic context failed");
+    mctx.imageSmoothingEnabled = false;
+
+    const tasks: Array<Promise<void>> = [];
+    for (let ty = yStart; ty <= yEnd; ty += 1) {
+      if (ty < 0 || ty >= maxTile) continue;
+      for (let tx = xStart; tx <= xEnd; tx += 1) {
+        const wrappedX = ((tx % maxTile) + maxTile) % maxTile;
+        const url = `${tileBase}/v1/2dtiles/${baseZoom}/${wrappedX}/${ty}?session=${encodeURIComponent(
+          session.session
+        )}&key=${encodeURIComponent(apiKey)}`;
+        const dx = Math.round(tx * tileSize - topLeft.x);
+        const dy = Math.round(ty * tileSize - topLeft.y);
+        tasks.push(
+          (async () => {
+            const res = await fetch(url);
+            if (!res.ok) return;
+            const img = await loadImageFromBlob(await res.blob());
+            // 1px オーバーラップでタイルの継ぎ目を消す
+            mctx.drawImage(img, dx, dy, tileSize + 1, tileSize + 1);
+          })()
+        );
+      }
+    }
+    await Promise.all(tasks);
+
+    let img: HTMLImageElement = await loadImageFromBlob(
+      await new Promise<Blob>((resolve, reject) =>
+        mosaic.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error("tile mosaic failed"))),
+          "image/png"
+        )
+      )
+    );
+
+    if (zoomScale !== 1) {
+      const scaled = document.createElement("canvas");
+      scaled.width = Math.max(1, Math.round(img.width * zoomScale));
+      scaled.height = Math.max(1, Math.round(img.height * zoomScale));
+      const sctx = scaled.getContext("2d");
+      if (sctx) {
+        sctx.drawImage(img, 0, 0, scaled.width, scaled.height);
+        img = await loadImageFromBlob(
+          await new Promise<Blob>((resolve, reject) =>
+            scaled.toBlob(
+              (b) => (b ? resolve(b) : reject(new Error("tile scale failed"))),
+              "image/png"
+            )
+          )
+        );
+      }
+    }
+
+    const dpr = window.devicePixelRatio || 1;
+    if (dpr !== 1) {
+      const scaled = document.createElement("canvas");
+      scaled.width = Math.max(1, Math.round(img.width * dpr));
+      scaled.height = Math.max(1, Math.round(img.height * dpr));
+      const sctx = scaled.getContext("2d");
+      if (sctx) {
+        sctx.drawImage(img, 0, 0, scaled.width, scaled.height);
+        img = await loadImageFromBlob(
+          await new Promise<Blob>((resolve, reject) =>
+            scaled.toBlob(
+              (b) => (b ? resolve(b) : reject(new Error("tile dpr scale failed"))),
+              "image/png"
+            )
+          )
+        );
+      }
+    }
+
+    const rad = (-heading * Math.PI) / 180;
+    const baseW = img.width;
+    const baseH = img.height;
+    const tempDiag = Math.ceil(Math.sqrt(baseW ** 2 + baseH ** 2));
+    const temp = document.createElement("canvas");
+    temp.width = tempDiag;
+    temp.height = tempDiag;
+    const tctx = temp.getContext("2d");
+    if (!tctx) throw new Error("tile rotate context failed");
+    tctx.translate(tempDiag / 2, tempDiag / 2);
+    tctx.rotate(rad);
+    tctx.drawImage(img, -baseW / 2, -baseH / 2, baseW, baseH);
+
+    const out = document.createElement("canvas");
+    out.width = widthPx;
+    out.height = heightPx;
+    const octx = out.getContext("2d");
+    if (!octx) throw new Error("tile crop context failed");
+    const sx = Math.max(0, Math.round((tempDiag - widthPx) / 2));
+    const sy = Math.max(0, Math.round((tempDiag - heightPx) / 2));
+    octx.drawImage(temp, sx, sy, widthPx, heightPx, 0, 0, widthPx, heightPx);
+
+    const rotatedImg = await loadImageFromBlob(
+      await new Promise<Blob>((resolve, reject) =>
+        out.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error("tile crop failed"))),
+          "image/png"
+        )
+      )
+    );
+
+    return {
+      img: rotatedImg,
+      url: `tiles://${baseZoom}/${xStart}-${xEnd}/${yStart}-${yEnd}`,
+      params: {
+        center: { lat, lng },
+        zoom,
+        baseZoom,
+        zoomFraction,
+        zoomScale,
+        safeZoom: baseZoom,
+        safeCenter: { lat: Number(lat.toFixed(6)), lng: Number(lng.toFixed(6)) },
+        size: { width: baseCoverageCss, height: baseCoverageCss },
+        scale: 1,
+        heading,
+      },
+    };
+  };
 
   const buildStaticMapImage = async (
     widthPx: number,
@@ -412,8 +645,10 @@ export default function MapView({ onLoaded }: Props) {
 
     const rect = target.getBoundingClientRect();
     const scale = window.devicePixelRatio || 1;
-    const widthPx = Math.round(rect.width * scale);
-    const heightPx = Math.round(rect.height * scale);
+    const cssWidth = rect.width;
+    const cssHeight = rect.height;
+    const widthPx = Math.round(cssWidth * scale);
+    const heightPx = Math.round(cssHeight * scale);
 
     let overlayCanvas: HTMLCanvasElement;
     const labelNodes = Array.from(
@@ -529,11 +764,34 @@ export default function MapView({ onLoaded }: Props) {
     let staticDebug: { url: string; params: StaticMapResult["params"] } | null =
       null;
     try {
-      const result = await buildStaticMapImage(widthPx, heightPx, heading);
+      const result = await buildTileMapImage(
+        cssWidth,
+        cssHeight,
+        widthPx,
+        heightPx,
+        heading,
+        tileSessionRef
+      );
       backgroundImg = result.img;
       staticDebug = { url: result.url, params: result.params };
     } catch (e) {
-      console.warn("[map] static map fallback failed:", e);
+      console.warn("[map] tiles map failed, fallback to static:", e);
+      try {
+        const staticBase =
+          import.meta.env.VITE_STATIC_MAP_BASE_URL ||
+          (import.meta.env.DEV ? "/__gstatic/maps/api/staticmap" : "");
+        if (staticBase) {
+          const fallback = await buildStaticMapImage(
+            widthPx,
+            heightPx,
+            heading
+          );
+          backgroundImg = fallback.img;
+          staticDebug = { url: fallback.url, params: fallback.params };
+        }
+      } catch (err) {
+        console.warn("[map] static map fallback failed:", err);
+      }
     }
     if (!backgroundImg) {
       throw new Error(
@@ -605,6 +863,19 @@ export default function MapView({ onLoaded }: Props) {
         captureView,
         originalView,
         staticMap: staticDebug,
+        tileMeta: staticDebug
+          ? {
+              devicePixelRatio: window.devicePixelRatio || 1,
+              output: { widthPx, heightPx },
+              baseCoveragePx: staticDebug.params.size.width,
+              tileWidth: tileSessionRef.current?.tileWidth ?? null,
+              tileHeight: tileSessionRef.current?.tileHeight ?? null,
+              zoom: staticDebug.params.zoom,
+              baseZoom: staticDebug.params.baseZoom,
+              zoomScale: staticDebug.params.zoomScale,
+              css: { width: cssWidth, height: cssHeight },
+            }
+          : null,
       },
     };
     return result;
