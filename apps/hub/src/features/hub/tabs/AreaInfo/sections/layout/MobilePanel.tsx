@@ -1,5 +1,7 @@
 // features/hub/tabs/AreaInfo/sections/layout/MobilePanel.tsx
+import type { RefObject } from "react";
 import { MapCard, LandingAreaFigure, RightPanel } from "..";
+import type { MapCardHandle } from "../MapCard";
 import type { AreaInfo } from "../..";
 
 type Props = {
@@ -13,6 +15,8 @@ type Props = {
   projectUuid?: string | null;
   scheduleUuid?: string | null;
   geometry?: any | null;
+  onScreenshotCaptured?: (dataUrl: string) => void;
+  mapCardRef?: RefObject<MapCardHandle>;
 };
 
 export default function MobilePanel({
@@ -25,13 +29,15 @@ export default function MobilePanel({
   projectUuid,
   scheduleUuid,
   geometry,
+  onScreenshotCaptured,
+  mapCardRef,
 }: Props) {
   return (
     <div className="space-y-6 overflow-x-hidden">
       {/* 出力 */}
       <div className="flex justify-end">
         <div className="flex items-center gap-3">
-          <span className="text-xs text-slate-200">
+          <span className="text-sm text-slate-200">
             ダンスファイル指示書出力
           </span>
 
@@ -39,7 +45,7 @@ export default function MobilePanel({
             <button
               type="button"
               onClick={onExportPdf}
-              className="px-3 py-1 text-xs hover:bg-slate-700"
+              className="px-3 py-1 text-sm hover:bg-slate-700"
             >
               PDF
             </button>
@@ -47,7 +53,7 @@ export default function MobilePanel({
             <button
               type="button"
               onClick={onExportPptx}
-              className="px-3 py-1 text-xs hover:bg-slate-700"
+              className="px-3 py-1 text-sm hover:bg-slate-700"
             >
               PPTX
             </button>
@@ -56,10 +62,12 @@ export default function MobilePanel({
       </div>
       <RightPanel edit={edit} area={area} onPatchArea={onPatchArea} />
       <MapCard
+        ref={mapCardRef}
         areaName={areaName}
         projectUuid={projectUuid ?? undefined}
         scheduleUuid={scheduleUuid ?? undefined}
         geometry={(area as any)?.geometry ?? null}
+        onScreenshotCaptured={onScreenshotCaptured}
       />
       <LandingAreaFigure edit={edit} area={area} onPatchArea={onPatchArea} />
 

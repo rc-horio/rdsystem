@@ -137,6 +137,20 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
     // ■並べる間隔（下）
     setTxt(".spacing-label--bottom", vertical);
 
+    // スクリーンショット（マップ）を差し込む
+    {
+        const mapImg = p2clone.querySelector("#map-screenshot") as HTMLImageElement | null;
+        const mapDataUrl = (opts?.mapScreenshotDataUrl ?? "").trim();
+        if (mapImg) {
+            if (mapDataUrl) {
+                mapImg.src = mapDataUrl;
+                mapImg.style.display = "block";
+            } else {
+                mapImg.style.display = "none";
+            }
+        }
+    }
+
     // ==== 3) キャプチャ ====
     const cssVars = { "--grad-from": gradFrom, "--grad-to": gradTo };
     const [c1, c2] = await Promise.all([

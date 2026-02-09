@@ -1,6 +1,13 @@
 // features/hub/tabs/AreaInfo/sections/MapCard.tsx
 import { SectionTitle } from "@/components";
-import { useEffect, useState, useMemo, useRef } from "react";
+import {
+  useEffect,
+  useState,
+  useMemo,
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import { ButtonRed } from "@/components/atoms/buttons/RedButton";
 import clsx from "clsx";
 
@@ -29,6 +36,7 @@ type Props = {
   projectUuid?: string | null;
   scheduleUuid?: string | null;
   geometry?: any | null;
+  onScreenshotCaptured?: (dataUrl: string) => void;
 };
 
 // 離発着エリアの矩形をパラメータに変換
@@ -38,7 +46,14 @@ const toTakeoffRectParam = (coords?: [number, number][]) => {
   return coords.map(([lng, lat]) => `${lng},${lat}`).join(";");
 };
 
-export function MapCard({ areaName, projectUuid, scheduleUuid, geometry }: Props) {
+export type MapCardHandle = {
+  requestScreenshot: () => Promise<string>;
+};
+
+export const MapCard = forwardRef<MapCardHandle, Props>(function MapCard(
+  { areaName, projectUuid, scheduleUuid, geometry, onScreenshotCaptured }: Props,
+  ref
+) {
   const fromEnv = import.meta.env.VITE_MAP_BASE_URL as string | undefined;
   const [areaUuid, setAreaUuid] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -179,74 +194,93 @@ export function MapCard({ areaName, projectUuid, scheduleUuid, geometry }: Props
   const sanitizeFilename = (name: string) =>
     name.replace(/[\\/:*?"<>|]/g, "_").trim() || "rd-map";
 
-  const handleScreenshot = () => {
-    if (isCapturing) return;
-    const targetWindow = iframeRef.current?.contentWindow;
-    if (!targetWindow) {
-      window.alert("マップの読み込みが完了していません。");
-      return;
-    }
-
-    const requestId =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : String(Date.now());
-
-    setIsCapturing(true);
-
-    let settled = false;
-    const cleanup = () => {
-      if (settled) return;
-      settled = true;
-      window.clearTimeout(timeoutId);
-      window.removeEventListener("message", onMessage);
-      setIsCapturing(false);
-    };
-
-    const onMessage = (event: MessageEvent) => {
-      if (event.source !== targetWindow) return;
-      const data = event.data as
-        | {
-            type?: string;
-            requestId?: string;
-            ok?: boolean;
-            dataUrl?: string;
-            error?: string;
-            debug?: any;
-          }
-        | undefined;
-      if (!data || data.type !== "RDHUB_SCREENSHOT_RESULT") return;
-      if (data.requestId !== requestId) return;
-
-      cleanup();
-      if (!data.ok || !data.dataUrl) {
-        window.alert(
-          data.error || "スクリーンショットの作成に失敗しました。"
-        );
+  const requestScreenshot = () =>
+    new Promise<string>((resolve, reject) => {
+      if (isCapturing) {
+        reject(new Error("スクリーンショットの作成中です。"));
         return;
       }
-      if (data.debug) {
-        console.info("[hub] screenshot debug", data.debug);
+      const targetWindow = iframeRef.current?.contentWindow;
+      if (!targetWindow) {
+        reject(new Error("マップの読み込みが完了していません。"));
+        return;
       }
 
+      const requestId =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : String(Date.now());
+
+      setIsCapturing(true);
+
+      let settled = false;
+      const cleanup = () => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeoutId);
+        window.removeEventListener("message", onMessage);
+        setIsCapturing(false);
+      };
+
+      const onMessage = (event: MessageEvent) => {
+        if (event.source !== targetWindow) return;
+        const data = event.data as
+          | {
+              type?: string;
+              requestId?: string;
+              ok?: boolean;
+              dataUrl?: string;
+              error?: string;
+              debug?: any;
+            }
+          | undefined;
+        if (!data || data.type !== "RDHUB_SCREENSHOT_RESULT") return;
+        if (data.requestId !== requestId) return;
+
+        cleanup();
+        if (!data.ok || !data.dataUrl) {
+          reject(new Error(data.error || "スクリーンショットの作成に失敗しました。"));
+          return;
+        }
+        if (data.debug) {
+          console.info("[hub] screenshot debug", data.debug);
+        }
+
+        if (onScreenshotCaptured) {
+          onScreenshotCaptured(data.dataUrl);
+        }
+        resolve(data.dataUrl);
+      };
+
+      const timeoutId = window.setTimeout(() => {
+        cleanup();
+        reject(new Error("スクリーンショットの取得がタイムアウトしました。"));
+      }, 15000);
+
+      window.addEventListener("message", onMessage);
+      targetWindow.postMessage(
+        { type: "RDHUB_REQUEST_SCREENSHOT", requestId },
+        mapOrigin
+      );
+    });
+
+  useImperativeHandle(ref, () => ({
+    requestScreenshot,
+  }));
+
+  const handleScreenshot = async () => {
+    try {
+      const dataUrl = await requestScreenshot();
       const safeName = sanitizeFilename(areaName?.toString() || "rd-map");
       const dateTag = new Date().toISOString().slice(0, 10);
       const link = document.createElement("a");
-      link.href = data.dataUrl;
+      link.href = dataUrl;
       link.download = `${safeName}-${dateTag}.png`;
       link.click();
-    };
-
-    const timeoutId = window.setTimeout(() => {
-      cleanup();
-      window.alert("スクリーンショットの取得がタイムアウトしました。");
-    }, 15000);
-
-    window.addEventListener("message", onMessage);
-    targetWindow.postMessage(
-      { type: "RDHUB_REQUEST_SCREENSHOT", requestId },
-      mapOrigin
-    );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "スクリーンショットの作成に失敗しました。";
+      window.alert(msg);
+    }
   };
 
   return (
@@ -284,4 +318,4 @@ export function MapCard({ areaName, projectUuid, scheduleUuid, geometry }: Props
       </div>
     </div>
   );
-}
+});

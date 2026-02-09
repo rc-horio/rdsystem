@@ -21,6 +21,11 @@ const GRID_LEFT_PX = 36;
 const GRID_TOP_PX = 120; // --top-offset
 const GRID_BOTTOM_PX = 36; // --bottom-offset
 const LEFT_PANE_W_PX = 740; // --left-w
+const RIGHT_PANE_W_PX = 380; // --right-w
+const GRID_GUTTER_X = 36; // --gutter-x
+const GRID_ROW_GAP = 28;
+const MID_TOP_FR = 2;
+const MID_BOTTOM_FR = 1;
 
 function pickProjectAndSchedule(opts?: ExportOpts) {
     let project = (opts?.projectName ?? "").trim();
@@ -104,6 +109,29 @@ function leftPaneBoxInInches() {
     };
 }
 
+// 左+中央の上段ボックス
+function mapSpanTopBoxInInches() {
+    const gridLeftPx = GRID_LEFT_PX;
+    const gridTopPx = GRID_TOP_PX;
+    const gridWpx = PAGE_PX_W - GRID_LEFT_PX * 2;
+    const midWpx = gridWpx - LEFT_PANE_W_PX - RIGHT_PANE_W_PX - GRID_GUTTER_X * 2;
+    const spanWpx = LEFT_PANE_W_PX + GRID_GUTTER_X + midWpx;
+
+    const gridHpx = PAGE_PX_H - GRID_TOP_PX - GRID_BOTTOM_PX;
+    const usableHpx = gridHpx - GRID_ROW_GAP;
+    const row1Hpx = (usableHpx * MID_TOP_FR) / (MID_TOP_FR + MID_BOTTOM_FR);
+
+    const pxToInX = SLIDE_W / PAGE_PX_W;
+    const pxToInY = SLIDE_H / PAGE_PX_H;
+
+    return {
+        x: gridLeftPx * pxToInX,
+        y: gridTopPx * pxToInY,
+        w: spanWpx * pxToInX,
+        h: row1Hpx * pxToInY,
+    };
+}
+
 // 画像を左下に配置
 function placeImageContainBottomLeft(
     slide: ReturnType<PptxGenJS["addSlide"]>,
@@ -120,6 +148,34 @@ function placeImageContainBottomLeft(
     const y = box.y + (box.h - drawH); // bottom align
 
     slide.addImage({ data, x, y, w: drawW, h: drawH });
+}
+
+// 画像を中央配置（アスペクト維持）
+function placeImageContainCenter(
+    slide: ReturnType<PptxGenJS["addSlide"]>,
+    data: string,
+    imgPxW: number,
+    imgPxH: number,
+    box: { x: number; y: number; w: number; h: number }
+) {
+    const scale = Math.min(box.w / imgPxW, box.h / imgPxH);
+    const drawW = imgPxW * scale;
+    const drawH = imgPxH * scale;
+
+    const x = box.x + (box.w - drawW) / 2;
+    const y = box.y + (box.h - drawH) / 2;
+
+    slide.addImage({ data, x, y, w: drawW, h: drawH });
+}
+
+// dataUrl から画像サイズを取得
+function loadImageSize(dataUrl: string) {
+    return new Promise<{ w: number; h: number }>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve({ w: img.naturalWidth || img.width, h: img.naturalHeight || img.height });
+        img.onerror = () => reject(new Error("スクリーンショットの読み込みに失敗しました。"));
+        img.src = dataUrl;
+    });
 }
 
 // PPTXを出力
@@ -227,12 +283,20 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
     // 1枚目：背景を追加
     addFullSlide(pptx, c1);
 
-    // 2枚目：背景 + 図（左ペイン左下、アスペクト維持）
+    // 2枚目：背景 + 図 + マップ（個別画像）
     {
         // 2枚目：背景を追加
         const slide = pptx.addSlide();
         const bg = canvasToDataUri(c2, true);
         slide.addImage({ data: bg, x: 0, y: 0, w: SLIDE_W, h: SLIDE_H });
+
+        // マップ画像（左上〜中央上に横断、アスペクト維持）
+        const mapDataUrl = (opts?.mapScreenshotDataUrl ?? "").trim();
+        if (mapDataUrl) {
+            const { w: imgPxW, h: imgPxH } = await loadImageSize(mapDataUrl);
+            const box = mapSpanTopBoxInInches();
+            placeImageContainCenter(slide, mapDataUrl, imgPxW, imgPxH, box);
+        }
 
         // 図を左下に配置
         const figData = canvasToDataUri(figCanvas, true);

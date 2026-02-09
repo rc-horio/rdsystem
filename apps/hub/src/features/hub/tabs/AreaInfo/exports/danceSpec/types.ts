@@ -9,5 +9,6 @@ export type ExportOpts = {
     page2HeaderText?: string;
     gradFrom?: string;
     gradTo?: string;
+    mapScreenshotDataUrl?: string | null;
     area?: any;
 };
