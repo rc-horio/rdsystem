@@ -102,55 +102,55 @@ export default function AreaInfoTab({
                   patternUnits="userSpaceOnUse"
                 >
                   <circle cx="1" cy="1" r="0.8" fill="#ff3b3b" filter="url(#rd-led-glow)">
-                    <animate attributeName="opacity" values="0.05;0.9;0.2;1;0.1;0.8;0.05" keyTimes="0;0.14;0.33;0.47;0.68;0.86;1" dur="2.3s" begin="-0.23s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.35;0.7;0.4;0.65;0.38;0.7;0.35" keyTimes="0;0.14;0.33;0.47;0.68;0.86;1" dur="4.3s" begin="-0.23s" repeatCount="indefinite" />
                   </circle>
                   <circle cx="3" cy="1" r="0.8" fill="#ff3b3b" filter="url(#rd-led-glow)">
-                    <animate attributeName="opacity" values="0.08;1;0.15;0.85;0.2;1;0.07" keyTimes="0;0.21;0.38;0.5;0.71;0.86;1" dur="3.1s" begin="-1.41s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.35;0.7;0.4;0.65;0.38;0.7;0.35" keyTimes="0;0.21;0.38;0.5;0.71;0.86;1" dur="5.1s" begin="-1.41s" repeatCount="indefinite" />
                   </circle>
                   <circle cx="5" cy="1" r="0.8" fill="#ff3b3b" filter="url(#rd-led-glow)">
-                    <animate attributeName="opacity" values="0.1;0.7;0.2;1;0.12;0.9;0.06" keyTimes="0;0.12;0.28;0.45;0.66;0.82;1" dur="1.7s" begin="-0.77s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.35;0.7;0.4;0.65;0.38;0.7;0.35" keyTimes="0;0.12;0.28;0.45;0.66;0.82;1" dur="3.7s" begin="-0.77s" repeatCount="indefinite" />
                   </circle>
                   <circle cx="7" cy="1" r="0.8" fill="#ff3b3b" filter="url(#rd-led-glow)">
-                    <animate attributeName="opacity" values="0.06;0.95;0.14;0.8;0.2;1;0.05" keyTimes="0;0.18;0.31;0.49;0.7;0.88;1" dur="3.6s" begin="-2.02s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.35;0.7;0.4;0.65;0.38;0.7;0.35" keyTimes="0;0.18;0.31;0.49;0.7;0.88;1" dur="5.6s" begin="-2.02s" repeatCount="indefinite" />
                   </circle>
 
                   <circle cx="1" cy="3" r="0.8" fill="#ff3b3b" filter="url(#rd-led-glow)">
-                    <animate attributeName="opacity" values="0.04;0.85;0.16;1;0.1;0.7;0.05" keyTimes="0;0.17;0.29;0.44;0.63;0.81;1" dur="2.8s" begin="-0.63s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.35;0.7;0.4;0.65;0.38;0.7;0.35" keyTimes="0;0.17;0.29;0.44;0.63;0.81;1" dur="4.8s" begin="-0.63s" repeatCount="indefinite" />
                   </circle>
                   <circle cx="3" cy="3" r="0.8" fill="#ff3b3b" filter="url(#rd-led-glow)">
-                    <animate attributeName="opacity" values="0.12;1;0.22;0.9;0.15;1;0.08" keyTimes="0;0.2;0.37;0.52;0.7;0.88;1" dur="1.9s" begin="-1.17s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.35;0.7;0.4;0.65;0.38;0.7;0.35" keyTimes="0;0.2;0.37;0.52;0.7;0.88;1" dur="3.9s" begin="-1.17s" repeatCount="indefinite" />
                   </circle>
                   <circle cx="5" cy="3" r="0.8" fill="#ff3b3b" filter="url(#rd-led-glow)">
-                    <animate attributeName="opacity" values="0.09;0.8;0.2;1;0.1;0.85;0.06" keyTimes="0;0.13;0.33;0.5;0.69;0.84;1" dur="3.4s" begin="-2.35s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.35;0.7;0.4;0.65;0.38;0.7;0.35" keyTimes="0;0.13;0.33;0.5;0.69;0.84;1" dur="5.4s" begin="-2.35s" repeatCount="indefinite" />
                   </circle>
                   <circle cx="7" cy="3" r="0.8" fill="#ff3b3b" filter="url(#rd-led-glow)">
-                    <animate attributeName="opacity" values="0.07;1;0.18;0.75;0.2;1;0.05" keyTimes="0;0.22;0.4;0.55;0.73;0.9;1" dur="2.1s" begin="-0.95s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.35;0.7;0.4;0.65;0.38;0.7;0.35" keyTimes="0;0.22;0.4;0.55;0.73;0.9;1" dur="4.1s" begin="-0.95s" repeatCount="indefinite" />
                   </circle>
 
                   <circle cx="1" cy="5" r="0.8" fill="#ff3b3b" filter="url(#rd-led-glow)">
-                    <animate attributeName="opacity" values="0.05;0.92;0.14;1;0.1;0.8;0.06" keyTimes="0;0.16;0.31;0.46;0.65;0.82;1" dur="3.9s" begin="-1.81s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.35;0.7;0.4;0.65;0.38;0.7;0.35" keyTimes="0;0.16;0.31;0.46;0.65;0.82;1" dur="5.9s" begin="-1.81s" repeatCount="indefinite" />
                   </circle>
                   <circle cx="3" cy="5" r="0.8" fill="#ff3b3b" filter="url(#rd-led-glow)">
-                    <animate attributeName="opacity" values="0.11;1;0.23;0.88;0.18;1;0.09" keyTimes="0;0.19;0.36;0.51;0.72;0.89;1" dur="1.6s" begin="-0.39s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.35;0.7;0.4;0.65;0.38;0.7;0.35" keyTimes="0;0.19;0.36;0.51;0.72;0.89;1" dur="3.6s" begin="-0.39s" repeatCount="indefinite" />
                   </circle>
                   <circle cx="5" cy="5" r="0.8" fill="#ff3b3b" filter="url(#rd-led-glow)">
-                    <animate attributeName="opacity" values="0.06;0.9;0.16;1;0.12;0.82;0.05" keyTimes="0;0.15;0.3;0.48;0.67;0.83;1" dur="2.7s" begin="-1.56s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.35;0.7;0.4;0.65;0.38;0.7;0.35" keyTimes="0;0.15;0.3;0.48;0.67;0.83;1" dur="4.7s" begin="-1.56s" repeatCount="indefinite" />
                   </circle>
                   <circle cx="7" cy="5" r="0.8" fill="#ff3b3b" filter="url(#rd-led-glow)">
-                    <animate attributeName="opacity" values="0.1;1;0.2;0.78;0.22;1;0.08" keyTimes="0;0.2;0.37;0.54;0.74;0.9;1" dur="2.2s" begin="-2.11s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.35;0.7;0.4;0.65;0.38;0.7;0.35" keyTimes="0;0.2;0.37;0.54;0.74;0.9;1" dur="4.2s" begin="-2.11s" repeatCount="indefinite" />
                   </circle>
 
                   <circle cx="1" cy="7" r="0.8" fill="#ff3b3b" filter="url(#rd-led-glow)">
-                    <animate attributeName="opacity" values="0.08;0.9;0.19;1;0.12;0.8;0.06" keyTimes="0;0.18;0.34;0.5;0.69;0.86;1" dur="2.5s" begin="-0.71s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.35;0.7;0.4;0.65;0.38;0.7;0.35" keyTimes="0;0.18;0.34;0.5;0.69;0.86;1" dur="4.5s" begin="-0.71s" repeatCount="indefinite" />
                   </circle>
                   <circle cx="3" cy="7" r="0.8" fill="#ff3b3b" filter="url(#rd-led-glow)">
-                    <animate attributeName="opacity" values="0.04;1;0.15;0.78;0.2;0.95;0.05" keyTimes="0;0.21;0.39;0.56;0.73;0.9;1" dur="3.2s" begin="-1.93s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.35;0.7;0.4;0.65;0.38;0.7;0.35" keyTimes="0;0.21;0.39;0.56;0.73;0.9;1" dur="5.2s" begin="-1.93s" repeatCount="indefinite" />
                   </circle>
                   <circle cx="5" cy="7" r="0.8" fill="#ff3b3b" filter="url(#rd-led-glow)">
-                    <animate attributeName="opacity" values="0.12;0.85;0.24;1;0.18;0.9;0.07" keyTimes="0;0.14;0.32;0.49;0.68;0.84;1" dur="1.9s" begin="-0.57s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.35;0.7;0.4;0.65;0.38;0.7;0.35" keyTimes="0;0.14;0.32;0.49;0.68;0.84;1" dur="3.9s" begin="-0.57s" repeatCount="indefinite" />
                   </circle>
                   <circle cx="7" cy="7" r="0.8" fill="#ff3b3b" filter="url(#rd-led-glow)">
-                    <animate attributeName="opacity" values="0.07;1;0.17;0.82;0.2;1;0.06" keyTimes="0;0.2;0.38;0.55;0.72;0.88;1" dur="3.6s" begin="-2.48s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.35;0.7;0.4;0.65;0.38;0.7;0.35" keyTimes="0;0.2;0.38;0.55;0.72;0.88;1" dur="5.6s" begin="-2.48s" repeatCount="indefinite" />
                   </circle>
                 </pattern>
                 <filter id="rd-led-glow" filterUnits="userSpaceOnUse" x="-6" y="-6" width="16" height="16">
@@ -161,7 +161,7 @@ export default function AreaInfoTab({
                     values="1 0 0 0 0
                             0 1 0 0 0
                             0 0 1 0 0
-                            0 0 0 1.4 0"
+                            0 0 0 0.9 0"
                     result="glowWhite"
                   />
                   <feGaussianBlur in="SourceGraphic" stdDeviation="3.4" result="blurRed" />
@@ -171,7 +171,7 @@ export default function AreaInfoTab({
                     values="1 0 0 0 0
                             0 0 0 0 0
                             0 0 0 0 0
-                            0 0 0 1.0 0"
+                            0 0 0 0.7 0"
                     result="glowRed"
                   />
                   <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blurRedFar" />
@@ -181,7 +181,7 @@ export default function AreaInfoTab({
                     values="1 0 0 0 0
                             0 0 0 0 0
                             0 0 0 0 0
-                            0 0 0 0.6 0"
+                            0 0 0 0.35 0"
                     result="glowRedFar"
                   />
                   <feMerge>
@@ -221,12 +221,19 @@ export default function AreaInfoTab({
                     <path d="M178 72 C176 72 175 74 175 78 C175 84 177 88 178 96 C179 88 181 84 181 78 C181 74 180 72 178 72 Z" />
                   </g>
                 </mask>
+                <clipPath id="rd-logo-wipe">
+                  <rect x="0" y="180" width="240" height="0">
+                    <animate attributeName="y" from="180" to="0" dur="1.8s" repeatCount="indefinite" />
+                    <animate attributeName="height" from="0" to="180" dur="1.8s" repeatCount="indefinite" />
+                  </rect>
+                </clipPath>
               </defs>
                 <rect
                   width="240"
                   height="180"
                   fill="url(#rd-led-dots)"
                   mask="url(#rd-logo-mask)"
+                  clipPath="url(#rd-logo-wipe)"
                 />
               </svg>
             </div>
