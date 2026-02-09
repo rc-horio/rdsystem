@@ -42,13 +42,18 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5175,
 
-    // proxy: {
-    //   "/s3": {
-    //     target: "https://rc-rdsystem-dev-catalog.s3.ap-northeast-1.amazonaws.com",
-    //     changeOrigin: true,
-    //     rewrite: (path) => path.replace(/^\/s3/, ""),
-    //   },
-    // },
+    proxy: {
+      "/__gstatic": {
+        target: "https://maps.googleapis.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/__gstatic/, ""),
+      },
+      "/__gtile": {
+        target: "https://tile.googleapis.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/__gtile/, ""),
+      },
+    },
 
     // ファイルを監視して保存されたら自動でブラウザをリロード/差し替え（HMR）
     watch: {
