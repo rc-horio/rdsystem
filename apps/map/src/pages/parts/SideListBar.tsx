@@ -111,6 +111,42 @@ function SideListBarBase({
   >(null);
   // 検索クエリ state
   const [searchQuery, setSearchQuery] = useState("");
+  // 都道府県情報のキャッシュ（areaUuid -> prefecture）
+  const [prefectureCache, setPrefectureCache] = useState<Record<string, string>>({});
+  
+  // エリア一覧が変更されたときに都道府県情報を取得してキャッシュ
+  useEffect(() => {
+    const loadPrefectures = async () => {
+      const cache: Record<string, string> = {};
+      const uniqueAreaUuids = new Set(
+        points.map((p) => p.areaUuid).filter((uuid): uuid is string => !!uuid)
+      );
+      
+      // 並列で都道府県情報を取得
+      await Promise.all(
+        Array.from(uniqueAreaUuids).map(async (areaUuid) => {
+          try {
+            const raw = await fetchRawAreaInfo(areaUuid);
+            const prefecture = typeof raw?.overview?.prefecture === "string" 
+              ? raw.overview.prefecture 
+              : "";
+            if (prefecture) {
+              cache[areaUuid] = prefecture;
+            }
+          } catch (e) {
+            // エラーは無視（都道府県情報がないエリアもある）
+          }
+        })
+      );
+      
+      setPrefectureCache(cache);
+    };
+    
+    if (points.length > 0) {
+      loadPrefectures();
+    }
+  }, [points]);
+  
   // エリア追加モード時の検索を送信
   const submitAddAreaSearch = () => {
     const q = addAreaSearchQuery.trim();
@@ -1137,12 +1173,25 @@ function SideListBarBase({
     const q = searchQuery.trim().toLowerCase();
     if (!q) return areaGroups;
 
-    return areaGroups.filter(({ area }) => {
+    return areaGroups.filter(({ area, indices }) => {
       // 表示名（上書きがあればそれを検索対象に含める）
       const label = (areaLabelOverrides[area] ?? area).toLowerCase();
-      return label.includes(q);
+      if (label.includes(q)) return true;
+      
+      // 都道府県名でも検索
+      // このエリアグループに属する最初のポイントの areaUuid を取得
+      const firstIdx = indices[0];
+      const firstPoint = points[firstIdx];
+      if (firstPoint?.areaUuid) {
+        const prefecture = prefectureCache[firstPoint.areaUuid];
+        if (prefecture && prefecture.toLowerCase().includes(q)) {
+          return true;
+        }
+      }
+      
+      return false;
     });
-  }, [areaGroups, searchQuery, areaLabelOverrides]);
+  }, [areaGroups, searchQuery, areaLabelOverrides, points, prefectureCache]);
 
   return (
     <div id="sidebar" ref={rootRef} role="complementary" aria-label="Sidebar">
@@ -1330,7 +1379,7 @@ function SideListBarBase({
             <input
               id="searchBox"
               type="text"
-              placeholder="エリア名を検索"
+              placeholder="エリア名・都道府県名で検索"
               autoComplete="off"
               inputMode="search"
               aria-describedby="searchHint"
