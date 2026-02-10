@@ -1,5 +1,5 @@
 // apps/map/src/pages/parts/SideListBar.tsx
-import { memo, useEffect, useRef, useState, useMemo } from "react";
+import React, { memo, useEffect, useRef, useState, useMemo } from "react";
 import {
   FilterButton,
   ONButton,
@@ -31,6 +31,7 @@ import {
   upsertScheduleAreaRef,
   clearScheduleAreaRef,
 } from "./areasApi";
+import { PREFECTURES } from "./constants/events";
 import type {
   ScheduleLite,
   Point,
@@ -111,18 +112,23 @@ function SideListBarBase({
   >(null);
   // 検索クエリ state
   const [searchQuery, setSearchQuery] = useState("");
+  // ソート種類 state
+  const [sortType, setSortType] = useState<"name" | "prefecture" | "updated">("prefecture");
   // 都道府県情報のキャッシュ（areaUuid -> prefecture）
   const [prefectureCache, setPrefectureCache] = useState<Record<string, string>>({});
+  // 更新日情報のキャッシュ（areaUuid -> updated_at）
+  const [updatedAtCache, setUpdatedAtCache] = useState<Record<string, string>>({});
   
-  // エリア一覧が変更されたときに都道府県情報を取得してキャッシュ
+  // エリア一覧が変更されたときに都道府県情報と更新日情報を取得してキャッシュ
   useEffect(() => {
-    const loadPrefectures = async () => {
-      const cache: Record<string, string> = {};
+    const loadAreaMetadata = async () => {
+      const prefectureCache: Record<string, string> = {};
+      const updatedAtCache: Record<string, string> = {};
       const uniqueAreaUuids = new Set(
         points.map((p) => p.areaUuid).filter((uuid): uuid is string => !!uuid)
       );
       
-      // 並列で都道府県情報を取得
+      // 並列で都道府県情報と更新日情報を取得
       await Promise.all(
         Array.from(uniqueAreaUuids).map(async (areaUuid) => {
           try {
@@ -131,19 +137,26 @@ function SideListBarBase({
               ? raw.overview.prefecture 
               : "";
             if (prefecture) {
-              cache[areaUuid] = prefecture;
+              prefectureCache[areaUuid] = prefecture;
+            }
+            const updatedAt = typeof raw?.updated_at === "string" 
+              ? raw.updated_at 
+              : "";
+            if (updatedAt) {
+              updatedAtCache[areaUuid] = updatedAt;
             }
           } catch (e) {
-            // エラーは無視（都道府県情報がないエリアもある）
+            // エラーは無視（都道府県情報や更新日情報がないエリアもある）
           }
         })
       );
       
-      setPrefectureCache(cache);
+      setPrefectureCache(prefectureCache);
+      setUpdatedAtCache(updatedAtCache);
     };
     
     if (points.length > 0) {
-      loadPrefectures();
+      loadAreaMetadata();
     }
   }, [points]);
   
@@ -1168,30 +1181,357 @@ function SideListBarBase({
       );
   }, []);
 
-  // 表示する areaGroups をフィルタする
+  // 表示する areaGroups をフィルタ・ソートする
   const visibleAreaGroups = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return areaGroups;
-
-    return areaGroups.filter(({ area, indices }) => {
-      // 表示名（上書きがあればそれを検索対象に含める）
-      const label = (areaLabelOverrides[area] ?? area).toLowerCase();
-      if (label.includes(q)) return true;
-      
-      // 都道府県名でも検索
-      // このエリアグループに属する最初のポイントの areaUuid を取得
-      const firstIdx = indices[0];
-      const firstPoint = points[firstIdx];
-      if (firstPoint?.areaUuid) {
-        const prefecture = prefectureCache[firstPoint.areaUuid];
-        if (prefecture && prefecture.toLowerCase().includes(q)) {
-          return true;
+    let filtered = areaGroups;
+    
+    // 検索フィルタリング
+    if (q) {
+      filtered = areaGroups.filter(({ area, indices }) => {
+        // 表示名（上書きがあればそれを検索対象に含める）
+        const label = (areaLabelOverrides[area] ?? area).toLowerCase();
+        if (label.includes(q)) return true;
+        
+        // 都道府県名でも検索
+        // このエリアグループに属する最初のポイントの areaUuid を取得
+        const firstIdx = indices[0];
+        const firstPoint = points[firstIdx];
+        if (firstPoint?.areaUuid) {
+          const prefecture = prefectureCache[firstPoint.areaUuid];
+          if (prefecture && prefecture.toLowerCase().includes(q)) {
+            return true;
+          }
         }
-      }
+        
+        return false;
+      });
+    }
+    
+    // ソート
+    if (sortType === "name") {
+      // エリア名順（あいうえお順）
+      filtered = [...filtered].sort((a, b) => {
+        const nameA = (areaLabelOverrides[a.area] ?? a.area).localeCompare(
+          areaLabelOverrides[b.area] ?? b.area,
+          "ja"
+        );
+        return nameA;
+      });
+    } else if (sortType === "updated") {
+      // 更新日順（最新が上）
+      filtered = [...filtered].sort((a, b) => {
+        const firstIdxA = a.indices[0];
+        const firstIdxB = b.indices[0];
+        const pointA = points[firstIdxA];
+        const pointB = points[firstIdxB];
+        
+        const updatedAtA = pointA?.areaUuid ? updatedAtCache[pointA.areaUuid] || "" : "";
+        const updatedAtB = pointB?.areaUuid ? updatedAtCache[pointB.areaUuid] || "" : "";
+        
+        // 更新日が新しい順（降順）
+        if (!updatedAtA && !updatedAtB) return 0;
+        if (!updatedAtA) return 1; // 更新日がないものは下
+        if (!updatedAtB) return -1; // 更新日がないものは下
+        
+        // ISO 8601形式の日付文字列を比較（新しいものが上）
+        return updatedAtB.localeCompare(updatedAtA);
+      });
+    } else if (sortType === "prefecture") {
+      // 都道府県順（北海道が上、沖縄が下、未選択は一番下）
+      // 都道府県の順序を取得するヘルパー関数
+      const getPrefectureOrder = (prefecture: string): number => {
+        if (!prefecture || prefecture.trim() === "" || prefecture === "未選択") {
+          // 未選択や空文字は最後（大きな値）
+          return 9999;
+        }
+        const index = PREFECTURES.indexOf(prefecture);
+        if (index === -1) {
+          // リストにない都道府県は最後（未選択よりは上）
+          return 9998;
+        }
+        // PREFECTURESのインデックスを返す（「未選択」はインデックス0だが、上で除外済み）
+        // インデックス1が「北海道」、最後が「沖縄県」
+        return index;
+      };
       
-      return false;
+      filtered = [...filtered].sort((a, b) => {
+        const firstIdxA = a.indices[0];
+        const firstIdxB = b.indices[0];
+        const pointA = points[firstIdxA];
+        const pointB = points[firstIdxB];
+        
+        const prefectureA = pointA?.areaUuid ? prefectureCache[pointA.areaUuid] || "" : "";
+        const prefectureB = pointB?.areaUuid ? prefectureCache[pointB.areaUuid] || "" : "";
+        
+        // 都道府県の順序で比較
+        const orderA = getPrefectureOrder(prefectureA);
+        const orderB = getPrefectureOrder(prefectureB);
+        
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+        
+        // 都道府県が同じ場合はエリア名で比較
+        const nameA = (areaLabelOverrides[a.area] ?? a.area).localeCompare(
+          areaLabelOverrides[b.area] ?? b.area,
+          "ja"
+        );
+        return nameA;
+      });
+    }
+    
+    return filtered;
+  }, [areaGroups, searchQuery, areaLabelOverrides, points, prefectureCache, updatedAtCache, sortType]);
+
+  // 更新日をグループ化するためのヘルパー関数
+  const getUpdatedAtGroup = (updatedAt: string): string => {
+    if (!updatedAt) return "Unknown";
+    
+    try {
+      const updatedDate = new Date(updatedAt);
+      const now = new Date();
+      const diffMs = now.getTime() - updatedDate.getTime();
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      
+      if (diffDays < 0) return "Future"; // 未来の日付（エラーケース）
+      if (diffDays === 0) return "Today";
+      if (diffDays === 1) return "1 day ago";
+      if (diffDays <= 7) return `${diffDays} days ago`;
+      if (diffDays <= 30) {
+        const weeks = Math.floor(diffDays / 7);
+        return weeks === 1 ? "1 week ago" : `${weeks} weeks ago`;
+      }
+      // 1ヶ月以上は全て「Months ago」にまとめる
+      return "Months ago";
+    } catch (e) {
+      return "Unknown";
+    }
+  };
+
+  // 更新日グループの順序を取得する関数
+  const getUpdatedAtGroupOrder = (group: string): number => {
+    if (group === "Today") return 0;
+    if (group === "1 day ago") return 1;
+    // days ago（2 days ago〜7 days ago）
+    if (/^\d+ days ago$/.test(group)) {
+      const days = parseInt(group.replace(" days ago", ""));
+      return days; // 2 days ago=2, 3 days ago=3, ...
+    }
+    // weeks ago
+    if (/^\d+ weeks? ago$/.test(group)) {
+      const weeks = parseInt(group.replace(/ weeks? ago/, ""));
+      return 10 + weeks; // 1 week ago=11, 2 weeks ago=12, ...
+    }
+    // Months ago（1ヶ月以上は全てまとめる）
+    if (group === "Months ago") return 20;
+    if (group === "Unknown") return 999;
+    if (group === "Future") return -1;
+    return 998;
+  };
+
+  // 都道府県順ソート時にグループ化する
+  const groupedByPrefecture = useMemo(() => {
+    if (sortType !== "prefecture") {
+      return null; // 都道府県順以外はグループ化しない
+    }
+
+    const groups: Array<{ prefecture: string; areas: typeof visibleAreaGroups }> = [];
+    const unselectedAreas: typeof visibleAreaGroups = [];
+
+    visibleAreaGroups.forEach((areaGroup) => {
+      const firstIdx = areaGroup.indices[0];
+      const firstPoint = points[firstIdx];
+      const prefecture = firstPoint?.areaUuid
+        ? prefectureCache[firstPoint.areaUuid] || ""
+        : "";
+
+      // PREFECTURESリストに完全一致する場合のみ都道府県グループに入れる
+      // 単位なし（「鹿児島」など）や空文字、「未選択」は未選択グループに入れる
+      if (
+        !prefecture ||
+        prefecture.trim() === "" ||
+        prefecture === "未選択" ||
+        !PREFECTURES.includes(prefecture)
+      ) {
+        unselectedAreas.push(areaGroup);
+      } else {
+        let group = groups.find((g) => g.prefecture === prefecture);
+        if (!group) {
+          group = { prefecture, areas: [] };
+          groups.push(group);
+        }
+        group.areas.push(areaGroup);
+      }
     });
-  }, [areaGroups, searchQuery, areaLabelOverrides, points, prefectureCache]);
+
+    // 都道府県の順序でソート
+    groups.sort((a, b) => {
+      const indexA = PREFECTURES.indexOf(a.prefecture);
+      const indexB = PREFECTURES.indexOf(b.prefecture);
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      return indexA - indexB;
+    });
+
+    // 未選択グループを最後に追加
+    if (unselectedAreas.length > 0) {
+      groups.push({ prefecture: "未選択", areas: unselectedAreas });
+    }
+
+    return groups;
+  }, [visibleAreaGroups, sortType, points, prefectureCache]);
+
+  // 更新日順ソート時にグループ化する
+  const groupedByUpdatedAt = useMemo(() => {
+    if (sortType !== "updated") {
+      return null; // 更新日順以外はグループ化しない
+    }
+
+    const groups: Array<{ groupLabel: string; areas: typeof visibleAreaGroups }> = [];
+
+    visibleAreaGroups.forEach((areaGroup) => {
+      const firstIdx = areaGroup.indices[0];
+      const firstPoint = points[firstIdx];
+      const updatedAt = firstPoint?.areaUuid
+        ? updatedAtCache[firstPoint.areaUuid] || ""
+        : "";
+
+      const groupLabel = getUpdatedAtGroup(updatedAt);
+      let group = groups.find((g) => g.groupLabel === groupLabel);
+      if (!group) {
+        group = { groupLabel, areas: [] };
+        groups.push(group);
+      }
+      group.areas.push(areaGroup);
+    });
+
+    // 更新日グループの順序でソート（新しいものが上）
+    groups.sort((a, b) => {
+      const orderA = getUpdatedAtGroupOrder(a.groupLabel);
+      const orderB = getUpdatedAtGroupOrder(b.groupLabel);
+      return orderA - orderB;
+    });
+
+    return groups;
+  }, [visibleAreaGroups, sortType, points, updatedAtCache]);
+
+  // エリアアイテムのコンテンツをレンダリングする関数（グループ化時と通常時で共通）
+  const renderAreaItemContent = (area: string, indices: number[]) => {
+    const displayLabel = areaLabelOverrides[area] ?? area;
+
+    if (editingAreaKey === area) {
+      return (
+        <input
+          ref={editingInputRef}
+          type="text"
+          value={editingTempName}
+          onChange={(e) => setEditingTempName(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
+          onDoubleClick={(e) => e.stopPropagation()}
+          onBlur={commitEditAreaName}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              commitEditAreaName();
+            } else if (e.key === "Escape") {
+              e.preventDefault();
+              cancelEditAreaName();
+            }
+          }}
+        />
+      );
+    }
+
+    return (
+      <>
+        <span className="location-label">
+          {displayLabel}
+          {indices.length > 1 ? `（${indices.length}）` : null}
+        </span>
+
+        {isOn && (
+          <span
+            className="location-delete"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <DeleteIconButton
+              title="このエリアを削除"
+              tabIndex={0}
+              onClick={() => {
+                const ok = window.confirm(
+                  `エリア「${displayLabel}」を削除してもよろしいですか？`
+                );
+                if (!ok) return;
+
+                const areaUuid = getAreaUuidByAreaName(area);
+
+                setDeletedAreas((prev) => {
+                  const next = new Set(prev);
+                  next.add(area);
+                  return next;
+                });
+
+                if (activeKey === area) {
+                  setActiveKey(null);
+                  closeDetailBar();
+                }
+
+                window.dispatchEvent(
+                  new CustomEvent("sidebar:delete-area", {
+                    detail: { areaName: area, areaUuid },
+                  })
+                );
+
+                window.alert(
+                  "エリアを削除しました。\nこの変更は「保存」ボタンを押すまで S3 には反映されません。"
+                );
+              }}
+            />
+          </span>
+        )}
+      </>
+    );
+  };
+
+  // エリアアイテムをレンダリングする関数
+  const renderAreaItem = (area: string, indices: number[]) => {
+    const isActive = activeKey === area;
+
+    return (
+      <li
+        key={area}
+        data-indices={indices.join(",")}
+        data-area={area}
+        className={isActive ? "active" : undefined}
+        onClick={(e) => {
+          if (editingAreaKey === area) return;
+          if (isOn && e.detail === 2) {
+            e.preventDefault();
+            e.stopPropagation();
+            beginEditAreaName(area);
+            return;
+          }
+          activateArea(area);
+        }}
+        onKeyDown={(e) => {
+          if (editingAreaKey === area) {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              cancelEditAreaName();
+            }
+            return;
+          }
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            activateArea(area);
+          }
+        }}
+      >
+        {renderAreaItemContent(area, indices)}
+      </li>
+    );
+  };
 
   return (
     <div id="sidebar" ref={rootRef} role="complementary" aria-label="Sidebar">
@@ -1388,126 +1728,156 @@ function SideListBarBase({
             />
           </div>
           <div id="searchHint" aria-live="polite" />
+          {/* ソート選択 */}
+          <div className="search-sort-wrapper" style={{ marginTop: "8px" }}>
+            <label htmlFor="sortSelect" className="search-sort-label">
+              <span className="search-sort-icon" aria-hidden="true">⇅</span>
+              ソート
+            </label>
+            <select
+              id="sortSelect"
+              value={sortType}
+              onChange={(e) => setSortType(e.target.value as "name" | "prefecture" | "updated")}
+              className="search-sort-select"
+              aria-label="ソート順を選択"
+            >
+              <option value="prefecture">都道府県</option>
+              <option value="updated">更新日</option>
+              <option value="name">エリア名</option>
+            </select>
+          </div>
         </div>
       )}
 
       {/* エリア一覧（エリア追加モードでは非表示） */}
       {!isAddAreaMode && (
         <ul id="locationList" className="no-caret">
-          {visibleAreaGroups.filter(({ area }) => !deletedAreas.has(area))
-            .length === 0 ? (
-            <li className="location-empty" aria-live="polite">
-              該当するエリアはありません
-            </li>
-          ) : (
-            visibleAreaGroups
-              .filter(({ area }) => !deletedAreas.has(area))
-              .map(({ area, indices }) => {
-                const isActive = activeKey === area;
-                const displayLabel = areaLabelOverrides[area] ?? area;
+          {(() => {
+            const filteredGroups = visibleAreaGroups.filter(
+              ({ area }) => !deletedAreas.has(area)
+            );
+
+            if (filteredGroups.length === 0) {
+              return (
+                <li className="location-empty" aria-live="polite">
+                  該当するエリアはありません
+                </li>
+              );
+            }
+
+            // 都道府県順ソート時はグループ化して表示
+            if (groupedByPrefecture) {
+              return groupedByPrefecture.map((group) => {
+                const filteredAreas = group.areas.filter(
+                  ({ area }) => !deletedAreas.has(area)
+                );
+                if (filteredAreas.length === 0) return null;
 
                 return (
-                  <li
-                    key={area}
-                    data-indices={indices.join(",")}
-                    data-area={area}
-                    className={isActive ? "active" : undefined}
-                    onClick={(e) => {
-                      if (editingAreaKey === area) return;
-                      if (isOn && e.detail === 2) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        beginEditAreaName(area);
-                        return;
-                      }
-                      activateArea(area);
-                    }}
-                    onKeyDown={(e) => {
-                      if (editingAreaKey === area) {
-                        if (e.key === "Escape") {
-                          e.preventDefault();
-                          cancelEditAreaName();
-                        }
-                        return;
-                      }
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        activateArea(area);
-                      }
-                    }}
-                  >
-                    {editingAreaKey === area ? (
-                      <input
-                        ref={editingInputRef}
-                        type="text"
-                        value={editingTempName}
-                        onChange={(e) => setEditingTempName(e.target.value)}
-                        onClick={(e) => e.stopPropagation()}
-                        onDoubleClick={(e) => e.stopPropagation()}
-                        onBlur={commitEditAreaName}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            commitEditAreaName();
-                          } else if (e.key === "Escape") {
-                            e.preventDefault();
-                            cancelEditAreaName();
-                          }
-                        }}
-                      />
-                    ) : (
-                      <>
-                        <span className="location-label">
-                          {displayLabel}
-                          {indices.length > 1 ? `（${indices.length}）` : null}
-                        </span>
-
-                        {isOn && (
-                          <span
-                            className="location-delete"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <DeleteIconButton
-                              title="このエリアを削除"
-                              tabIndex={0}
-                              onClick={() => {
-                                const ok = window.confirm(
-                                  `エリア「${displayLabel}」を削除してもよろしいですか？`
-                                );
-                                if (!ok) return;
-
-                                const areaUuid = getAreaUuidByAreaName(area);
-
-                                setDeletedAreas((prev) => {
-                                  const next = new Set(prev);
-                                  next.add(area);
-                                  return next;
-                                });
-
-                                if (activeKey === area) {
-                                  setActiveKey(null);
-                                  closeDetailBar();
-                                }
-
-                                window.dispatchEvent(
-                                  new CustomEvent("sidebar:delete-area", {
-                                    detail: { areaName: area, areaUuid },
-                                  })
-                                );
-
-                                window.alert(
-                                  "エリアを削除しました。\nこの変更は「保存」ボタンを押すまで S3 には反映されません。"
-                                );
-                              }}
-                            />
-                          </span>
-                        )}
-                      </>
-                    )}
-                  </li>
+                  <React.Fragment key={group.prefecture}>
+                    <li className="location-prefecture-header" aria-label={group.prefecture}>
+                      - {group.prefecture}
+                    </li>
+                    {filteredAreas.map(({ area, indices }) => {
+                      const isActive = activeKey === area;
+                      return (
+                        <li
+                          key={area}
+                          data-indices={indices.join(",")}
+                          data-area={area}
+                          className={isActive ? "active location-item-grouped" : "location-item-grouped"}
+                          onClick={(e) => {
+                            if (editingAreaKey === area) return;
+                            if (isOn && e.detail === 2) {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              beginEditAreaName(area);
+                              return;
+                            }
+                            activateArea(area);
+                          }}
+                          onKeyDown={(e) => {
+                            if (editingAreaKey === area) {
+                              if (e.key === "Escape") {
+                                e.preventDefault();
+                                cancelEditAreaName();
+                              }
+                              return;
+                            }
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              activateArea(area);
+                            }
+                          }}
+                        >
+                          {renderAreaItemContent(area, indices)}
+                        </li>
+                      );
+                    })}
+                  </React.Fragment>
                 );
-              })
-          )}
+              });
+            }
+
+            // 更新日順ソート時はグループ化して表示
+            if (groupedByUpdatedAt) {
+              return groupedByUpdatedAt.map((group) => {
+                const filteredAreas = group.areas.filter(
+                  ({ area }) => !deletedAreas.has(area)
+                );
+                if (filteredAreas.length === 0) return null;
+
+                return (
+                  <React.Fragment key={group.groupLabel}>
+                    <li className="location-prefecture-header" aria-label={group.groupLabel}>
+                      -  {group.groupLabel}
+                    </li>
+                    {filteredAreas.map(({ area, indices }) => {
+                      const isActive = activeKey === area;
+                      return (
+                        <li
+                          key={area}
+                          data-indices={indices.join(",")}
+                          data-area={area}
+                          className={isActive ? "active location-item-grouped" : "location-item-grouped"}
+                          onClick={(e) => {
+                            if (editingAreaKey === area) return;
+                            if (isOn && e.detail === 2) {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              beginEditAreaName(area);
+                              return;
+                            }
+                            activateArea(area);
+                          }}
+                          onKeyDown={(e) => {
+                            if (editingAreaKey === area) {
+                              if (e.key === "Escape") {
+                                e.preventDefault();
+                                cancelEditAreaName();
+                              }
+                              return;
+                            }
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              activateArea(area);
+                            }
+                          }}
+                        >
+                          {renderAreaItemContent(area, indices)}
+                        </li>
+                      );
+                    })}
+                  </React.Fragment>
+                );
+              });
+            }
+
+            // それ以外は通常通り表示
+            return filteredGroups.map(({ area, indices }) => {
+              return renderAreaItem(area, indices);
+            });
+          })()}
         </ul>
       )}
     </div>
