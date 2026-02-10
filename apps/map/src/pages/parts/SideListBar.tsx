@@ -1776,7 +1776,7 @@ function SideListBarBase({
                 return (
                   <React.Fragment key={group.prefecture}>
                     <li className="location-prefecture-header" aria-label={group.prefecture}>
-                      - {group.prefecture}
+                      ー{group.prefecture.replace(/[県府都]$/, "")}({filteredAreas.length})
                     </li>
                     {filteredAreas.map(({ area, indices }) => {
                       const isActive = activeKey === area;
