@@ -6,6 +6,7 @@ import { captureElement } from "./capture";
 import { jsPDF } from "jspdf";
 import { sanitize, formatTurnText, getSpacingBetweenDronesText } from "./texts";
 import { buildLandingFigureSvg } from "@/features/hub/tabs/AreaInfo/figure/buildLandingFigureSvg";
+import { applyDroneOrientationToPage2 } from "./applyDroneOrientation";
 
 /**
  * PDFを出力
@@ -136,6 +137,9 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
 
     // ■並べる間隔（下）
     setTxt(".spacing-label--bottom", vertical);
+
+    // ■機体の向き（Drone1Icon）の回転と Antenna/Battery ラベル位置を反映
+    applyDroneOrientationToPage2(p2clone, area);
 
     // スクリーンショット（マップ）を差し込む
     {

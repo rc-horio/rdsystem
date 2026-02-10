@@ -29,7 +29,7 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
     typeof area?.drone_orientation_deg === "number" &&
       Number.isFinite(area.drone_orientation_deg)
       ? (area.drone_orientation_deg as number)
-      : 0;
+      : 180;
 
   // 間隔入力
   const setHorizontal = (v: string) => {

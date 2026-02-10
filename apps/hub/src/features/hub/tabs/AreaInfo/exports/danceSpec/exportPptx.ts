@@ -6,6 +6,7 @@ import { canvasToDataUri, captureElement } from "./capture";
 import PptxGenJS from "pptxgenjs";
 import { buildFileBaseName, formatTurnText, getSpacingBetweenDronesText } from "./texts";
 import { buildLandingFigureSvg } from "@/features/hub/tabs/AreaInfo/figure/buildLandingFigureSvg";
+import { applyDroneOrientationToPage2 } from "./applyDroneOrientation";
 
 /**
  * PPTXのスライドサイズ
@@ -265,6 +266,9 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
     // 左ペイン：LandingAreaFigure 注入（slot 無ければ作る）
     const slot = ensureLandingFigureSlot(p2clone);
     slot.innerHTML = buildLandingFigureSvg(area, { theme: "export" });
+
+    // ■機体の向き（Drone1Icon）の回転と Antenna/Battery ラベル位置を反映
+    applyDroneOrientationToPage2(p2clone, area);
 
     // ==== 3) キャプチャ ====
     // キャプチャする要素とCSS変数を設定
