@@ -31,6 +31,9 @@ type PanelMetrics = GeometryMetrics & {
   safetyDistanceNew_m?: number;
   safetyDistanceOld_m?: number;
   safetyCustom_m?: number; // カスタム値
+
+  // 飛行エリア中心から観客エリア中心までの距離
+  flightToAudienceDistance_m?: number;
 };
 
 export default function GeomMetricsPanel() {
@@ -600,6 +603,19 @@ export default function GeomMetricsPanel() {
                 }}
                 disabled={!editable}
                 aria-label="観客エリア 奥行(m)"
+              />
+              <span className="u">m</span>
+            </div>
+            <div className="geom-row">
+              <span className="k">距離</span>
+              <input
+                className="v geom-input"
+                type="text"
+                placeholder="-"
+                value={toInput(m.flightToAudienceDistance_m)}
+                readOnly
+                disabled
+                aria-label="飛行エリア中心から観客エリア中心までの距離(m)"
               />
               <span className="u">m</span>
             </div>

@@ -176,7 +176,7 @@ export class EllipseEditor {
     }
 
     /** 外部（パネル入力など）から楕円表示を更新したいときに呼ぶ */
-    updateOverlays(center: LngLat, radiusX_m: number, radiusY_m: number, rotation_deg: number) {
+    updateOverlays(center: LngLat, radiusX_m: number, radiusY_m: number, rotation_deg: number, opts?: { skipMetrics?: boolean }) {
         if (!this.poly) return;
 
         const centerLL = this.opts.latLng(center[1], center[0]);
@@ -230,12 +230,17 @@ export class EllipseEditor {
             if (this.rotateMarker) this.rotateMarker.setPosition(this.opts.latLng(rotP[1], rotP[0]));
         }
 
-        // メトリクス更新（幅/奥行き/角度）
-        this.opts.onMetrics({
-            flightWidth_m: Math.round(Math.max(0, radiusX_m) * 100) / 100 * 2,
-            flightDepth_m: Math.round(Math.max(0, radiusY_m) * 100) / 100 * 2,
-            flightRotation_deg: Math.round(rotation_deg),
-        });
+        // メトリクス更新（幅/奥行き/角度）- パネルからの更新時はスキップ
+        if (!opts?.skipMetrics) {
+            // drag中はcurrentGeomRefが更新されていない可能性があるため、
+            // 現在の中心位置を明示的に渡す
+            this.opts.onMetrics({
+                flightWidth_m: Math.round(Math.max(0, radiusX_m) * 100) / 100 * 2,
+                flightDepth_m: Math.round(Math.max(0, radiusY_m) * 100) / 100 * 2,
+                flightRotation_deg: Math.round(rotation_deg),
+                flightCenterOverride: center, // drag中の現在位置を渡す
+            } as any);
+        }
 
         // width 方向の直径も追従
         this.drawWidthDiameter(center, radiusX_m, rotation_deg);

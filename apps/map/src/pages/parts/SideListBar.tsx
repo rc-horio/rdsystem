@@ -1,7 +1,6 @@
 // apps/map/src/pages/parts/SideListBar.tsx
 import React, { memo, useEffect, useRef, useState, useMemo } from "react";
 import {
-  FilterButton,
   ONButton,
   OFFButton,
   SaveButton,

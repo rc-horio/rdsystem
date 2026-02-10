@@ -131,12 +131,14 @@ export class AudienceEditor {
         };
         const coords = this.rectCornersFromParams(next);
 
-        this.updateOverlays(coords);
+        // パネルからの更新時はメトリクス更新をスキップ（applyPanelAudienceMetricsで明示的に呼ぶため）
+        this.updateOverlays(coords, { skipMetrics: true });
         this.opts.setCurrentGeom({
             ...(this.opts.getCurrentGeom() ?? {}),
             audienceArea: { ...a, coordinates: coords },
         } as Geometry);
 
+        // パネルからの更新時は明示的にメトリクスを送信（値が確定した後）
         this.opts.onMetrics({
             spectatorWidth_m: Math.round(next.w),
             spectatorDepth_m: Math.round(next.h),
@@ -398,7 +400,7 @@ export class AudienceEditor {
     }
 
     /** オーバーレイを更新 */
-    private updateOverlays(coords: Array<LngLat>) {
+    private updateOverlays(coords: Array<LngLat>, opts?: { skipMetrics?: boolean }) {
         if (!this.poly || !this.cornerMarkers || this.cornerMarkers.length < 4) return;
 
         const path = coords.map(([lng, lat]) => this.opts.latLng(lat, lng));
@@ -422,13 +424,18 @@ export class AudienceEditor {
             }
         }
 
-        // メトリクス送信
-        const r = this.rectParamsFromCoords(coords);
-        if (r) {
-            this.opts.onMetrics({
-                spectatorWidth_m: Math.round(r.w),
-                spectatorDepth_m: Math.round(r.h),
-            });
+        // メトリクス送信 - パネルからの更新時はスキップ（applyPanelAudienceMetricsで明示的に呼ぶため）
+        if (!opts?.skipMetrics) {
+            const r = this.rectParamsFromCoords(coords);
+            if (r) {
+                // drag中はcurrentGeomRefが更新されていない可能性があるため、
+                // 現在の観客エリアの座標を明示的に渡す
+                this.opts.onMetrics({
+                    spectatorWidth_m: Math.round(r.w),
+                    spectatorDepth_m: Math.round(r.h),
+                    audienceCoordsOverride: coords, // drag中の現在座標を渡す
+                } as any);
+            }
         }
     }
 

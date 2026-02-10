@@ -42,6 +42,7 @@ export type Geometry = {
     safetyArea?: SafetyGeom;
     audienceArea?: RectangleGeom;
     turn?: TurnGeom;
+    distance_from_viewers_m?: number; // 飛行エリア中心から観客エリア中心までの距離(m)
 };
 
 export type Props = {
@@ -81,6 +82,7 @@ export type GeometryMetrics = {
     safetyDistanceNew_m?: number; // 保安エリアの距離(新式)
     safetyDistanceOld_m?: number; // 保安エリアの距離(旧式)
     buffer_m?: number;          // 保安エリアの距離(保存用)
+    flightToAudienceDistance_m?: number; // 飛行エリア中心から観客エリア中心までの距離
 };
 
 // スケジュール情報

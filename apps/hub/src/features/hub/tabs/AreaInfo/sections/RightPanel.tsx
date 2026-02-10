@@ -349,7 +349,7 @@ export function RightPanel({
           <span className="w-33 text-sm text-right">約</span>
           <DisplayOrInput
             edit={false}
-            value={(A.distance_from_viewers_m ?? "").toString()}
+            value={(geo.distance_from_viewers_m ?? "").toString()}
             inputMode="numeric"
             type="number"
             className={numericInputW}

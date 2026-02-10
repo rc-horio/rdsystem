@@ -163,11 +163,30 @@ export class MapGeometry {
             },
             getSafetyBuffer: () => Number(this.currentGeomRef?.safetyArea?.buffer_m) || 0,
             pushOverlay: (ov) => this.overlaysRef.push(ov),
-            onMetrics: (m) => setDetailBarMetrics(m),
+            onMetrics: (m) => {
+                // 距離も計算してメトリクスに追加
+                // drag中はcurrentGeomRefが更新されていない可能性があるため、
+                // 最新の図形状態を取得して距離を計算
+                const geom = this.currentGeomRef;
+                const flightCenter = (m as any).flightCenterOverride ?? 
+                    (geom?.flightArea?.type === "ellipse" && Array.isArray(geom.flightArea.center)
+                        ? (geom.flightArea.center as LngLat)
+                        : undefined);
+                const distance = this.calculateFlightToAudienceDistance(flightCenter);
+                setDetailBarMetrics({
+                    ...m,
+                    flightToAudienceDistance_m: distance,
+                });
+            },
             onCenterChanged: (center) => {
                 const from = this.pickReferenceCorner(this.currentGeomRef?.takeoffArea);
                 this.updateArrowPath(from, center);
                 this.updateRightAngleArrowPaths(from, center);
+                // 中心が変更されたときも距離を再計算
+                const distance = this.calculateFlightToAudienceDistance(center);
+                setDetailBarMetrics({
+                    flightToAudienceDistance_m: distance,
+                });
             },
         });
 
@@ -210,7 +229,22 @@ export class MapGeometry {
             getCurrentGeom: () => this.currentGeomRef,
             setCurrentGeom: (g) => { this.currentGeomRef = g; },
             pushOverlay: (ov) => this.overlaysRef.push(ov),
-            onMetrics: (m) => setDetailBarMetrics(m),
+            onMetrics: (m) => {
+                // 距離も計算してメトリクスに追加
+                // drag中はcurrentGeomRefが更新されていない可能性があるため、
+                // 最新の図形状態を取得して距離を計算
+                const audienceCoords = (m as any).audienceCoordsOverride ??
+                    (this.currentGeomRef?.audienceArea?.type === "rectangle" &&
+                    Array.isArray(this.currentGeomRef.audienceArea.coordinates) &&
+                    this.currentGeomRef.audienceArea.coordinates.length >= 4
+                        ? this.currentGeomRef.audienceArea.coordinates
+                        : undefined);
+                const distance = this.calculateFlightToAudienceDistance(undefined, audienceCoords);
+                setDetailBarMetrics({
+                    ...m,
+                    flightToAudienceDistance_m: distance,
+                });
+            },
         });
 
         // 編集状態の監視
@@ -228,10 +262,22 @@ export class MapGeometry {
         window.addEventListener(
             EV_GEOMETRY_REQUEST_DATA,
             () => {
+                // 距離を計算してgeometryに含める
+                const geom = this.currentGeomRef;
+                let geometryWithDistance: Geometry | null = null;
+                
+                if (geom) {
+                    const distance = this.calculateFlightToAudienceDistance();
+                    geometryWithDistance = {
+                        ...geom,
+                        ...(distance !== undefined ? { distance_from_viewers_m: distance } : {}),
+                    };
+                }
+                
                 const detail = {
                     projectUuid: this.currentScheduleRef?.projectUuid,
                     scheduleUuid: this.currentScheduleRef?.scheduleUuid,
-                    geometry: this.currentGeomRef ?? null,
+                    geometry: geometryWithDistance,
                     deleted: this.deletedRef,
                 };
                 console.log("[MapGeometry] respond geometry:", detail);
@@ -376,6 +422,35 @@ export class MapGeometry {
                     : undefined;
         }
 
+        // --- 飛行エリア中心から観客エリア中心までの距離計算 ---
+        const flightCenter =
+            geom.flightArea?.type === "ellipse" && Array.isArray(geom.flightArea.center)
+                ? (geom.flightArea.center as LngLat)
+                : undefined;
+        const audienceCoords =
+            geom.audienceArea?.type === "rectangle" &&
+            Array.isArray(geom.audienceArea.coordinates) &&
+            geom.audienceArea.coordinates.length >= 4
+                ? geom.audienceArea.coordinates
+                : undefined;
+        
+        if (flightCenter && audienceCoords) {
+            // 観客エリアの中心を計算（p0とp2の中点）
+            const p0 = audienceCoords[0];
+            const p2 = audienceCoords[2];
+            const audienceCenter: LngLat = [
+                (p0[0] + p2[0]) / 2,
+                (p0[1] + p2[1]) / 2,
+            ];
+
+            // 距離を計算
+            const flightCenterLL = new gmaps.LatLng(flightCenter[1], flightCenter[0]);
+            const audienceCenterLL = new gmaps.LatLng(audienceCenter[1], audienceCenter[0]);
+            const distance = gmaps.geometry.spherical.computeDistanceBetween(flightCenterLL, audienceCenterLL);
+            
+            metrics.flightToAudienceDistance_m = Math.round(distance);
+        }
+
         // --- 離発着エリア（rectEditor.render が返すならここも） ---
         if (hasRect && rectMetrics) {
             metrics.rectWidth_m =
@@ -495,6 +570,46 @@ export class MapGeometry {
     }
 
     /** =========================
+     *  飛行エリア中心から観客エリア中心までの距離を計算
+     *  ========================= */
+    private calculateFlightToAudienceDistance(
+        flightCenterOverride?: LngLat,
+        audienceCoordsOverride?: Array<LngLat>
+    ): number | undefined {
+        const geom = this.currentGeomRef;
+        
+        // オーバーライドが指定されていればそれを使用、なければcurrentGeomRefから取得
+        const flightCenter = flightCenterOverride ??
+            (geom?.flightArea?.type === "ellipse" && Array.isArray(geom.flightArea.center)
+                ? (geom.flightArea.center as LngLat)
+                : undefined);
+        const audienceCoords = audienceCoordsOverride ??
+            (geom?.audienceArea?.type === "rectangle" &&
+            Array.isArray(geom.audienceArea.coordinates) &&
+            geom.audienceArea.coordinates.length >= 4
+                ? geom.audienceArea.coordinates
+                : undefined);
+
+        if (!flightCenter || !audienceCoords) return undefined;
+
+        // 観客エリアの中心を計算（p0とp2の中点）
+        const p0 = audienceCoords[0];
+        const p2 = audienceCoords[2];
+        const audienceCenter: LngLat = [
+            (p0[0] + p2[0]) / 2,
+            (p0[1] + p2[1]) / 2,
+        ];
+
+        // 距離を計算
+        const gmaps = this.getGMaps();
+        const flightCenterLL = new gmaps.LatLng(flightCenter[1], flightCenter[0]);
+        const audienceCenterLL = new gmaps.LatLng(audienceCenter[1], audienceCenter[0]);
+        const distance = gmaps.geometry.spherical.computeDistanceBetween(flightCenterLL, audienceCenterLL);
+
+        return Math.round(distance);
+    }
+
+    /** =========================
      *  パネル入力 → 図形へ反映（編集ON時のみ）
      *  ========================= */
     private handleApplyMetrics = (e: Event) => {
@@ -542,7 +657,8 @@ export class MapGeometry {
             ry = quantizeHalf(ry);
 
             if (rx !== f.radiusX_m || ry !== f.radiusY_m || rotation !== (f.rotation_deg || 0)) {
-                this.ellipseEditor.updateOverlays(f.center, rx, ry, rotation);
+                // パネルからの更新時はメトリクス更新をスキップ（無限ループ防止）
+                this.ellipseEditor.updateOverlays(f.center, rx, ry, rotation, { skipMetrics: true });
                 this.currentGeomRef = {
                     ...(this.currentGeomRef ?? {}),
                     flightArea: { ...f, radiusX_m: rx, radiusY_m: ry, rotation_deg: rotation },
@@ -673,11 +789,13 @@ export class MapGeometry {
             // 楕円の保安距離を描き直し（buffer が変わる/ mode だけでも safetyArea は更新される）
             const fa = this.currentGeomRef?.flightArea;
             if (fa?.type === "ellipse" && Array.isArray(fa.center)) {
+                // パネルからの更新時はメトリクス更新をスキップ（無限ループ防止）
                 this.ellipseEditor.updateOverlays(
                     fa.center as LngLat,
                     fa.radiusX_m,
                     fa.radiusY_m,
-                    fa.rotation_deg || 0
+                    fa.rotation_deg || 0,
+                    { skipMetrics: true }
                 );
             }
 

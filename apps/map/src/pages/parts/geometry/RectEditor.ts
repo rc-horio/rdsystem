@@ -187,7 +187,8 @@ export class RectEditor {
         };
         const coords = this.rectCornersFromParams(next);
 
-        this.updateTakeoffOverlays(coords);
+        // パネルからの更新時はメトリクス更新をスキップ（無限ループ防止）
+        this.updateTakeoffOverlays(coords, { skipMetrics: true });
         this.opts.setCurrentGeom({
             ...(this.opts.getCurrentGeom() ?? {}),
             takeoffArea: { ...t, coordinates: coords },
@@ -538,7 +539,7 @@ export class RectEditor {
     }
 
     /** オーバーレイを更新 */
-    private updateTakeoffOverlays(coords: Array<LngLat>) {
+    private updateTakeoffOverlays(coords: Array<LngLat>, opts?: { skipMetrics?: boolean }) {
         const edit = this.takeoffEditRef;
         if (!edit?.poly || !edit.cornerMarkers || edit.cornerMarkers.length < 4) return;
 
@@ -581,15 +582,17 @@ export class RectEditor {
             }
         }
 
-        // 構文エラーを解消し、右=幅w / 左=奥行d / 角度 を送る
-        const mRL = this.computeRightLeftLengths(coords, edit.refIndex);
-        const rectParams = this.rectParamsFromCoords(coords);
-        if (mRL) {
-            this.opts.onMetrics({
-                rectWidth_m: mRL.right_m,
-                rectDepth_m: mRL.left_m,
-                rectRotation_deg: rectParams ? Math.round(rectParams.rotation_deg) : undefined,
-            });
+        // 構文エラーを解消し、右=幅w / 左=奥行d / 角度 を送る - パネルからの更新時はスキップ
+        if (!opts?.skipMetrics) {
+            const mRL = this.computeRightLeftLengths(coords, edit.refIndex);
+            const rectParams = this.rectParamsFromCoords(coords);
+            if (mRL) {
+                this.opts.onMetrics({
+                    rectWidth_m: mRL.right_m,
+                    rectDepth_m: mRL.left_m,
+                    rectRotation_deg: rectParams ? Math.round(rectParams.rotation_deg) : undefined,
+                });
+            }
         }
     }
 
