@@ -127,6 +127,15 @@ export default function GeomMetricsPanel() {
     );
   };
 
+  // 飛行エリアが開いているかどうかを判定（flightWidth_m または flightDepth_m が存在する場合）
+  const isFlightAreaOpen =
+    typeof m.flightWidth_m === "number" || typeof m.flightDepth_m === "number";
+
+  // 飛行エリアが開いていない場合はパネルを表示しない
+  if (!isFlightAreaOpen) {
+    return null;
+  }
+
   return (
     <aside
       id="geomMetricsPanel"
@@ -294,6 +303,27 @@ export default function GeomMetricsPanel() {
               />
               <span className="u">m</span>
             </div>
+            <div className="geom-row">
+              <span className="k">r</span>
+              <input
+                className="v geom-input"
+                type="number"
+                inputMode="numeric"
+                step={1}
+                placeholder="-"
+                value={toInput(m.flightRotation_deg)}
+                onChange={(e) => {
+                  const n = parseIntMeters(e);
+                  // 角度を0-360度の範囲に正規化
+                  const normalized = n !== undefined ? ((n % 360) + 360) % 360 : undefined;
+                  setM((p) => ({ ...p, flightRotation_deg: normalized }));
+                  if (normalized !== undefined) send({ flightRotation_deg: normalized });
+                }}
+                disabled={!editable}
+                aria-label="飛行エリア 角度(度)"
+              />
+              <span className="u">度</span>
+            </div>
           </div>
         </section>
 
@@ -340,6 +370,27 @@ export default function GeomMetricsPanel() {
                 aria-label="離発着エリア 奥行(m)"
               />
               <span className="u">m</span>
+            </div>
+            <div className="geom-row">
+              <span className="k">r</span>
+              <input
+                className="v geom-input"
+                type="number"
+                inputMode="numeric"
+                step={1}
+                placeholder="-"
+                value={toInput(m.rectRotation_deg)}
+                onChange={(e) => {
+                  const n = parseIntMeters(e);
+                  // 角度を0-360度の範囲に正規化
+                  const normalized = n !== undefined ? ((n % 360) + 360) % 360 : undefined;
+                  setM((p) => ({ ...p, rectRotation_deg: normalized }));
+                  if (normalized !== undefined) send({ rectRotation_deg: normalized });
+                }}
+                disabled={!editable}
+                aria-label="離発着エリア 角度(度)"
+              />
+              <span className="u">度</span>
             </div>
           </div>
         </section>
@@ -413,7 +464,7 @@ export default function GeomMetricsPanel() {
               <span className="k" />
               <span className="v geom-turn-text">
                 {typeof m.turnAngle_deg === "number"
-                  ? `${Number(m.turnAngle_deg.toFixed(1))}度回転`
+                  ? `${Math.round(m.turnAngle_deg)}度回転`
                   : "—"}
               </span>
               <span className="u" />

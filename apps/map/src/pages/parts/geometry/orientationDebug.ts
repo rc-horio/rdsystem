@@ -17,13 +17,13 @@ export type TurnMetricsDetail = {
     rawDiff_deg?: number;         // デバッグ用に生の差分も入れておく（任意）
 };
 
-/** 楕円側から方位角（北=0°, 時計回り, 5°刻み）を更新 */
+/** 楕円側から方位角（北=0°, 時計回り, 1°刻み）を更新 */
 export function setEllipseBearingDeg(bearingDeg: number) {
     lastEllipseBearingDeg = normalize0to360(bearingDeg);
     logBoth();
 }
 
-/** 矩形側から方位角（北=0°, 時計回り, 5°刻み）を更新 */
+/** 矩形側から方位角（北=0°, 時計回り, 1°刻み）を更新 */
 export function setRectBearingDeg(bearingDeg: number) {
     lastRectBearingDeg = normalize0to360(bearingDeg);
     logBoth();

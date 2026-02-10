@@ -335,6 +335,9 @@ export class MapGeometry {
         if (hasRect && rectMetrics) {
             metrics.rectWidth_m = rectMetrics.rectWidth_m;
             metrics.rectDepth_m = rectMetrics.rectDepth_m;
+            if (typeof rectMetrics.rectRotation_deg === "number") {
+                metrics.rectRotation_deg = rectMetrics.rectRotation_deg;
+            }
         }
 
         // --- 楕円（飛行）＋ 保安 ---
@@ -350,6 +353,12 @@ export class MapGeometry {
                 typeof flightMetrics.flightDepth_m === "number" && Number.isFinite(flightMetrics.flightDepth_m)
                     ? Math.round(flightMetrics.flightDepth_m)
                     : undefined;
+
+            // 角度をメトリクスに含める
+            const flight = geom.flightArea?.type === "ellipse" ? geom.flightArea : undefined;
+            if (flight && typeof flight.rotation_deg === "number" && Number.isFinite(flight.rotation_deg)) {
+                metrics.flightRotation_deg = Math.round(flight.rotation_deg);
+            }
         }
 
         // --- 観客エリア（矩形） ---
@@ -477,8 +486,10 @@ export class MapGeometry {
             Partial<{
                 flightWidth_m: number;
                 flightDepth_m: number;
+                flightRotation_deg: number;
                 rectWidth_m: number;
                 rectDepth_m: number;
+                rectRotation_deg: number;
                 spectatorWidth_m: number;
                 spectatorDepth_m: number;
                 flightAltitude_min_m: number;
@@ -490,32 +501,38 @@ export class MapGeometry {
         // 半径を四捨五入
         const quantizeHalf = (r: number) => Math.round(r * 2) / 2;
 
-        // ---- 飛行エリア（楕円）: w/d => 半径X/Y ----
+        // ---- 飛行エリア（楕円）: w/d => 半径X/Y、角度 ----
         const f = this.currentGeomRef?.flightArea;
         if (f?.type === "ellipse" && Array.isArray(f.center)) {
             let rx = f.radiusX_m;
             let ry = f.radiusY_m;
+            let rotation = f.rotation_deg || 0;
+            
             if (typeof d.flightWidth_m === "number" && Number.isFinite(d.flightWidth_m)) {
                 rx = Math.max(0, d.flightWidth_m / 2);
             }
             if (typeof d.flightDepth_m === "number" && Number.isFinite(d.flightDepth_m)) {
                 ry = Math.max(0, d.flightDepth_m / 2);
             }
+            if (typeof d.flightRotation_deg === "number" && Number.isFinite(d.flightRotation_deg)) {
+                // 角度を0-360度の範囲に正規化
+                rotation = ((d.flightRotation_deg % 360) + 360) % 360;
+            }
 
             // 四捨五入して半径を整数化
             rx = quantizeHalf(rx);
-            ry = quantizeHalf(ry)
+            ry = quantizeHalf(ry);
 
-            if (rx !== f.radiusX_m || ry !== f.radiusY_m) {
-                this.ellipseEditor.updateOverlays(f.center, rx, ry, f.rotation_deg || 0);
+            if (rx !== f.radiusX_m || ry !== f.radiusY_m || rotation !== (f.rotation_deg || 0)) {
+                this.ellipseEditor.updateOverlays(f.center, rx, ry, rotation);
                 this.currentGeomRef = {
                     ...(this.currentGeomRef ?? {}),
-                    flightArea: { ...f, radiusX_m: rx, radiusY_m: ry },
+                    flightArea: { ...f, radiusX_m: rx, radiusY_m: ry, rotation_deg: rotation },
                 };
             }
         }
 
-        // ---- 離発着エリア（矩形）: w/d
+        // ---- 離発着エリア（矩形）: w/d/角度
         {
             const w =
                 typeof d.rectWidth_m === "number" && Number.isFinite(d.rectWidth_m)
@@ -527,7 +544,12 @@ export class MapGeometry {
                     ? Math.max(0, this.roundDec1(d.rectDepth_m))
                     : undefined;
 
-            this.rectEditor.applyPanelRectMetrics(w, dep);
+            const rot =
+                typeof d.rectRotation_deg === "number" && Number.isFinite(d.rectRotation_deg)
+                    ? Math.round(d.rectRotation_deg)
+                    : undefined;
+
+            this.rectEditor.applyPanelRectMetrics(w, dep, rot);
         }
 
         // ---- 観客エリア（矩形）: w/d

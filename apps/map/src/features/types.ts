@@ -70,8 +70,10 @@ export type HistoryItem = {
 export type GeometryMetrics = {
     flightWidth_m?: number; // 楕円：横幅(2*radiusX)
     flightDepth_m?: number; // 楕円：高さ(2*radiusY)
+    flightRotation_deg?: number; // 楕円：回転角度（度）
     rectWidth_m?: number; // 長方形：長辺
     rectDepth_m?: number; // 長方形：短辺
+    rectRotation_deg?: number; // 長方形：回転角度（度）
     spectatorWidth_m?: number; // 観客：幅
     spectatorDepth_m?: number; // 観客：奥行
     flightAltitude_min_m?: number; // 飛行高度

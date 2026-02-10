@@ -17,7 +17,7 @@ export type RectEditorOpts = {
 
     // Side-effects
     pushOverlay: (ov: google.maps.Polygon | google.maps.Marker | google.maps.Polyline | google.maps.Circle) => void;
-    onMetrics: (metrics: Partial<{ rectWidth_m: number; rectDepth_m: number }>) => void;
+    onMetrics: (metrics: Partial<{ rectWidth_m: number; rectDepth_m: number; rectRotation_deg?: number }>) => void;
 
     // ref 基準点が変更されたとき（クリック）
     onChangeReferenceIndex: (newIdx: number, coords: Array<LngLat>) => void;
@@ -87,7 +87,7 @@ export class RectEditor {
     /** ジオメトリから矩形を描画し、bounds を拡張。初期メトリクスを返す */
     render(geom: Geometry, bounds: google.maps.LatLngBounds): {
         hasRect: boolean;
-        metrics?: { rectWidth_m: number; rectDepth_m: number };
+        metrics?: { rectWidth_m: number; rectDepth_m: number; rectRotation_deg?: number };
     } {
         const takeoff =
             geom.takeoffArea?.type === "rectangle" &&
@@ -117,17 +117,24 @@ export class RectEditor {
         const cs = takeoff.coordinates;
         let rectWidth_m = 0;
         let rectDepth_m = 0;
+        let rectRotation_deg: number | undefined;
         const mRL = this.computeRightLeftLengths(cs, takeoff.referencePointIndex);
         if (mRL) {
             rectWidth_m = Math.round(mRL.right_m);
             rectDepth_m = Math.round(mRL.left_m);
         }
+        
+        // 角度を取得
+        const rectParams = this.rectParamsFromCoords(cs);
+        if (rectParams) {
+            rectRotation_deg = Math.round(rectParams.rotation_deg);
+        }
 
-        return { hasRect: true, metrics: { rectWidth_m, rectDepth_m } };
+        return { hasRect: true, metrics: { rectWidth_m, rectDepth_m, rectRotation_deg } };
     }
 
-    /** パネルからの寸法適用（幅/奥行き） */
-    applyPanelRectMetrics(rectWidth_m?: number, rectDepth_m?: number) {
+    /** パネルからの寸法適用（幅/奥行き/角度） */
+    applyPanelRectMetrics(rectWidth_m?: number, rectDepth_m?: number, rectRotation_deg?: number) {
         const t = this.opts.getCurrentGeom()?.takeoffArea;
         if (t?.type !== "rectangle" || !Array.isArray(t.coordinates) || t.coordinates.length < 4) return;
 
@@ -164,10 +171,17 @@ export class RectEditor {
             if (leftAxisIsU) W = dIn; else H = dIn;
         }
 
+        // 角度を処理（指定されていない場合は既存の角度を使用）
+        let rotation = base.rotation_deg;
+        if (typeof rectRotation_deg === "number" && Number.isFinite(rectRotation_deg)) {
+            // 角度を0-360度の範囲に正規化
+            rotation = ((rectRotation_deg % 360) + 360) % 360;
+        }
+
         // ※ もう「W>=H」への入れ替えはしない（右/左の意味を維持）
         const next: OrientedRect = {
             center: base.center,
-            rotation_deg: base.rotation_deg,
+            rotation_deg: rotation,
             w: W,
             h: H,
         };
@@ -338,10 +352,12 @@ export class RectEditor {
                 } as Geometry);
 
                 const mRL = this.computeRightLeftLengths(finalCoords, edit.refIndex);
+                const rectParams = this.rectParamsFromCoords(finalCoords);
                 if (mRL) {
                     this.opts.onMetrics({
                         rectWidth_m: mRL.right_m,
                         rectDepth_m: mRL.left_m,
+                        rectRotation_deg: rectParams ? Math.round(rectParams.rotation_deg) : undefined,
                     });
                 }
             });
@@ -470,17 +486,40 @@ export class RectEditor {
             if (!this.opts.isEditingOn() || !base) return;
             const edit = this.takeoffEditRef;
             if (!edit?.cornerMarkers || edit.cornerMarkers.length < 4) return;
-            const finalCoords: Array<LngLat> = edit.cornerMarkers.map((mk) => {
-                const p = mk.getPosition()!;
-                return [p.lng(), p.lat()];
-            });
-
-            const prev = this.opts.getCurrentGeom();
-            if (!prev?.takeoffArea) return;
-            this.opts.setCurrentGeom({
-                ...prev,
-                takeoffArea: { ...prev.takeoffArea, coordinates: finalCoords },
-            } as Geometry);
+            
+            // 回転ハンドルから角度を取得
+            const pos = marker.getPosition();
+            if (pos) {
+                const p: LngLat = [pos.lng(), pos.lat()];
+                const v = toLocalXY(base.center, p);
+                const angle = Math.atan2(v.y, v.x);
+                const newRot = normalizeAngleDeg(toDeg(angle) - 90);
+                
+                // 角度を反映した座標を計算
+                const nextRect: OrientedRect = {
+                    center: base.center,
+                    w: base.w,
+                    h: base.h,
+                    rotation_deg: newRot,
+                };
+                const rotatedCoords = this.rectCornersFromParams(nextRect);
+                
+                const prev = this.opts.getCurrentGeom();
+                if (!prev?.takeoffArea) return;
+                this.opts.setCurrentGeom({
+                    ...prev,
+                    takeoffArea: { ...prev.takeoffArea, coordinates: rotatedCoords },
+                } as Geometry);
+                
+                const mRL = this.computeRightLeftLengths(rotatedCoords, edit.refIndex);
+                if (mRL) {
+                    this.opts.onMetrics({
+                        rectWidth_m: mRL.right_m,
+                        rectDepth_m: mRL.left_m,
+                        rectRotation_deg: Math.round(newRot),
+                    });
+                }
+            }
         });
 
         this.opts.pushOverlay(marker);
@@ -542,12 +581,14 @@ export class RectEditor {
             }
         }
 
-        // 構文エラーを解消し、右=幅w / 左=奥行d を送る
+        // 構文エラーを解消し、右=幅w / 左=奥行d / 角度 を送る
         const mRL = this.computeRightLeftLengths(coords, edit.refIndex);
+        const rectParams = this.rectParamsFromCoords(coords);
         if (mRL) {
             this.opts.onMetrics({
                 rectWidth_m: mRL.right_m,
                 rectDepth_m: mRL.left_m,
+                rectRotation_deg: rectParams ? Math.round(rectParams.rotation_deg) : undefined,
             });
         }
     }
@@ -634,8 +675,8 @@ export class RectEditor {
         const angleDegMath = normalizeAngleDeg(toDeg(angleRad));          // 東=0°, 反時計回り
         const bearingDegRaw = normalizeAngleDeg(angleDegMath - 180);          // 北=0°, 反時計回り
 
-        // 5度刻みに丸め
-        const bearingDeg = normalizeAngleDeg(Math.round(bearingDegRaw / 5) * 5);
+        // 1度刻みに丸め
+        const bearingDeg = normalizeAngleDeg(Math.round(bearingDegRaw));
 
         // ここで共通ログユーティリティに矩形の角度を通知
         setRectBearingDeg(bearingDeg);

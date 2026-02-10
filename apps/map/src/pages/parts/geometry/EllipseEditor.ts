@@ -19,7 +19,7 @@ export type EllipseEditorOpts = {
 
     // Side-effects
     pushOverlay: (ov: google.maps.Polygon | google.maps.Marker | google.maps.Polyline | google.maps.Circle) => void;
-    onMetrics: (metrics: Partial<{ flightWidth_m: number; flightDepth_m: number }>) => void;
+    onMetrics: (metrics: Partial<{ flightWidth_m: number; flightDepth_m: number; flightRotation_deg?: number }>) => void;
     onCenterChanged?: (center: LngLat) => void; // 例: 矢印更新などに使用
 };
 
@@ -230,10 +230,11 @@ export class EllipseEditor {
             if (this.rotateMarker) this.rotateMarker.setPosition(this.opts.latLng(rotP[1], rotP[0]));
         }
 
-        // メトリクス更新（幅/奥行き）
+        // メトリクス更新（幅/奥行き/角度）
         this.opts.onMetrics({
             flightWidth_m: Math.round(Math.max(0, radiusX_m) * 100) / 100 * 2,
             flightDepth_m: Math.round(Math.max(0, radiusY_m) * 100) / 100 * 2,
+            flightRotation_deg: Math.round(rotation_deg),
         });
 
         // width 方向の直径も追従
@@ -542,6 +543,12 @@ export class EllipseEditor {
             const newRot = normalizeAngleDeg(toDeg(angle) - 90);
             const next = { ...(this.opts.getCurrentGeom() ?? {}), flightArea: { ...cur, rotation_deg: newRot } } as Geometry;
             this.opts.setCurrentGeom(next);
+            // メトリクスを更新（角度を含む）
+            this.opts.onMetrics({
+                flightWidth_m: Math.round(Math.max(0, base.radiusX_m) * 100) / 100 * 2,
+                flightDepth_m: Math.round(Math.max(0, base.radiusY_m) * 100) / 100 * 2,
+                flightRotation_deg: Math.round(newRot),
+            });
         });
 
         this.rotateMarker = marker;
@@ -631,9 +638,9 @@ export class EllipseEditor {
         const angleRad = Math.atan2(v.y, v.x);
         const angleDegMath = normalizeAngleDeg(toDeg(angleRad));
 
-        // 北=0°, 時計回りの方位角へ変換（5度刻みに丸め）
+        // 北=0°, 時計回りの方位角へ変換（1度刻みに丸め）
         const bearingDegRaw = normalizeAngleDeg(angleDegMath);
-        const bearingDeg = normalizeAngleDeg(Math.round(bearingDegRaw / 5) * 5);
+        const bearingDeg = normalizeAngleDeg(Math.round(bearingDegRaw));
 
         // ここで共通ログユーティリティに楕円の角度を通知
         setEllipseBearingDeg(bearingDeg);
