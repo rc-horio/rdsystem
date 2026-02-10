@@ -1546,8 +1546,6 @@ function SideListBarBase({
         onMouseDown={blurActiveInput}
       >
         <div className="toolbar-group">
-          <FilterButton onClick={() => {}} height={iconH} />
-
           <div className="spacer" />
           {isOn ? (
             <ONButton onClick={() => setIsOn(false)} height={iconH} />
