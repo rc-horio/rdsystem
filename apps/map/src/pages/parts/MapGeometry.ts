@@ -410,23 +410,40 @@ export class MapGeometry {
         }
 
         // safetyMode: geometry に保存されていればそれを優先、なければ "new"
-        const safetyMode: "new" | "old" =
-            (geom as any)?.safetyArea?.mode === "old" ? "old" : "new";
+        const safetyMode: "new" | "old" | "custom" =
+            (geom as any)?.safetyArea?.mode === "old" ? "old" :
+            (geom as any)?.safetyArea?.mode === "custom" ? "custom" : "new";
 
         (metrics as any).safetyMode = safetyMode;
 
-        // 最高高度が取れる場合は、新旧の保安距離も計算してパネルに渡す
+        // 最高高度が取れる場合は、新旧の保安距離も計算してパネルに渡す（カスタムモードでも計算）
         if (altForSafety != null) {
             const { dist_m: distNew } = this.safetyDistanceByTableNew(altForSafety);
             const { dist_m: distOld } = this.safetyDistanceByTableOld(altForSafety);
 
             (metrics as any).safetyDistanceNew_m = distNew;
             (metrics as any).safetyDistanceOld_m = distOld;
+        }
 
-            // 選択モードに応じて「表示用」の距離も埋める
-            const selected = safetyMode === "old" ? distOld : distNew;
+        // 選択モードに応じて「表示用」の距離も埋める
+        const safetyArea = (geom as any)?.safetyArea;
+        if (safetyMode === "custom" && safetyArea?.buffer_m != null) {
+            // カスタムモードの場合は保存されているbuffer_mを使用
+            (metrics as any).safetyDistance_m = safetyArea.buffer_m;
+            (metrics as any).buffer_m = safetyArea.buffer_m;
+            (metrics as any).safetyCustom_m = safetyArea.buffer_m;
+            // カスタムモードでも新式・旧式の値は計算済み（上記のif文で）
+        } else if (altForSafety != null) {
+            // 新式・旧式の場合は計算値を使用
+            const selected = safetyMode === "old" ? 
+                (metrics as any).safetyDistanceOld_m : 
+                (metrics as any).safetyDistanceNew_m;
             (metrics as any).safetyDistance_m = selected;
             (metrics as any).buffer_m = selected;
+        } else if (safetyArea?.buffer_m != null) {
+            // 高度が無い場合でもbuffer_mがあればそれを使用
+            (metrics as any).safetyDistance_m = safetyArea.buffer_m;
+            (metrics as any).buffer_m = safetyArea.buffer_m;
         }
 
         // --- Arrow（from: takeoff基準点 → to: flight.center） ---
@@ -494,7 +511,8 @@ export class MapGeometry {
                 spectatorDepth_m: number;
                 flightAltitude_min_m: number;
                 flightAltitude_Max_m: number;
-                safetyMode: "new" | "old";
+                safetyMode: "new" | "old" | "custom";
+                buffer_m?: number;
             }>
         >).detail || {};
 
@@ -577,8 +595,9 @@ export class MapGeometry {
             const prevMax = (prev as any).flightAltitude_Max_m;
 
             //  mode の取得先は safetyArea.mode に統一
-            const prevMode: "new" | "old" =
-                (prev as any)?.safetyArea?.mode === "old" ? "old" : "new";
+            const prevMode: "new" | "old" | "custom" =
+                (prev as any)?.safetyArea?.mode === "old" ? "old" :
+                (prev as any)?.safetyArea?.mode === "custom" ? "custom" : "new";
 
             const altMin =
                 typeof minSrc === "number" ? Math.max(0, Math.round(minSrc)) : prevMin;
@@ -587,17 +606,25 @@ export class MapGeometry {
                 typeof maxSrc === "number" ? Math.max(0, Math.round(maxSrc)) : prevMax;
 
             // UI から safetyMode が来たらそれを優先
-            const nextMode: "new" | "old" =
+            const nextMode: "new" | "old" | "custom" =
                 typeof (d as any).safetyMode === "string"
-                    ? ((d as any).safetyMode === "old" ? "old" : "new")
+                    ? ((d as any).safetyMode === "old" ? "old" :
+                       (d as any).safetyMode === "custom" ? "custom" : "new")
                     : prevMode;
+            
+            // カスタム値が指定されている場合はそれを使用
+            const customBuffer = typeof (d as any).buffer_m === "number" && Number.isFinite((d as any).buffer_m)
+                ? Math.max(0, (d as any).buffer_m)
+                : undefined;
 
             // altMin/altMax は prev からも引き継ぐので、これで「高度が既にある」ケースも true になる
             const hasAlt = altMin != null || altMax != null;
 
-            // 「高度もモードも変わらない」なら何もしない
-            if (!hasAlt && nextMode === prevMode) {
-                // ※高度無しで mode も同じなら no-op
+            // 「高度もモードも変わらない、かつカスタム値も変更されていない」なら何もしない
+            const modeChanged = nextMode !== prevMode;
+            const customChanged = customBuffer !== undefined && customBuffer !== Number((prev as any)?.safetyArea?.buffer_m || 0);
+            if (!hasAlt && !modeChanged && !customChanged) {
+                // ※高度無しで mode も同じでカスタム値も同じなら no-op
                 return;
             }
 
@@ -612,13 +639,21 @@ export class MapGeometry {
             let distOld: number | undefined;
             let buffer: number = Number(prevSafetyArea.buffer_m) || 0;
 
-            if (hasAlt) {
+            // カスタムモードの場合はカスタム値を使用
+            if (nextMode === "custom" && customBuffer !== undefined) {
+                buffer = customBuffer;
+            } else if (hasAlt) {
                 const altForSafety = altMax ?? altMin!;
                 const newRes = this.safetyDistanceByTableNew(altForSafety);
                 const oldRes = this.safetyDistanceByTableOld(altForSafety);
                 distNew = newRes.dist_m;
                 distOld = oldRes.dist_m;
-                buffer = nextMode === "old" ? distOld : distNew;
+                if (nextMode === "old") {
+                    buffer = distOld;
+                } else if (nextMode === "new") {
+                    buffer = distNew;
+                }
+                // custom の場合は既に上で設定済み
             }
 
             const nextGeom: any = {
@@ -655,9 +690,17 @@ export class MapGeometry {
                 safetyDistance_m: buffer,
             };
 
+            // 高度がある場合は新式・旧式の値を計算（カスタムモードでも計算）
             if (hasAlt) {
                 metrics.safetyDistanceNew_m = distNew;
                 metrics.safetyDistanceOld_m = distOld;
+            }
+            // 高度がない場合でも、カスタムモードの時は新式・旧式の値を保持するため
+            // （GeomMetricsPanelの状態管理で既存の値が保持される）
+
+            // カスタムモードの場合はカスタム値も含める
+            if (nextMode === "custom") {
+                metrics.safetyCustom_m = buffer;
             }
 
             setDetailBarMetrics(metrics);

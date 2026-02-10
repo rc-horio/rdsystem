@@ -25,7 +25,7 @@ export type OrientedRect = {
 export type SafetyGeom = {
     type: "ellipse";
     buffer_m: number;
-    mode?: "new" | "old";
+    mode?: "new" | "old" | "custom";
 };
 
 export type TurnGeom = {

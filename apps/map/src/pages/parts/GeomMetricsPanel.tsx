@@ -25,11 +25,12 @@ type PanelMetrics = GeometryMetrics & {
   flightAltitude_min_m?: number;
 
   // 保安距離の計算方式（ラジオボタン）
-  safetyMode?: "new" | "old"; // "new": 新式, "old": 旧式
+  safetyMode?: "new" | "old" | "custom"; // "new": 新式, "old": 旧式, "custom": カスタム
 
   // 新式 / 旧式それぞれの保安距離（表示用）
   safetyDistanceNew_m?: number;
   safetyDistanceOld_m?: number;
+  safetyCustom_m?: number; // カスタム値
 };
 
 export default function GeomMetricsPanel() {
@@ -38,6 +39,11 @@ export default function GeomMetricsPanel() {
   }
 
   const [m, setM] = useState<PanelMetrics>({});
+  
+  // 小数入力フィールドの入力中状態を保持
+  const [rectWidthInput, setRectWidthInput] = useState<string>("");
+  const [rectDepthInput, setRectDepthInput] = useState<string>("");
+  const [safetyCustomInput, setSafetyCustomInput] = useState<string>("");
 
   // 編集ONかどうか
   const getEditing = () =>
@@ -66,8 +72,54 @@ export default function GeomMetricsPanel() {
       // 空 {} が来たら明示的リセット。それ以外は部分更新をマージ。
       if (Object.keys(next).length === 0) {
         setM({});
+        setRectWidthInput("");
+        setRectDepthInput("");
+        setSafetyCustomInput("");
       } else {
-        setM((prev) => ({ ...prev, ...next }));
+        setM((prev) => {
+          // カスタムモードの時は新式・旧式の値を保持（高度がない場合でも表示するため）
+          const updated = { ...prev, ...next };
+          // 新式・旧式の値が来ていない場合は既存の値を保持
+          if (updated.safetyMode === "custom") {
+            if (next.safetyDistanceNew_m === undefined && prev.safetyDistanceNew_m !== undefined) {
+              updated.safetyDistanceNew_m = prev.safetyDistanceNew_m;
+            }
+            if (next.safetyDistanceOld_m === undefined && prev.safetyDistanceOld_m !== undefined) {
+              updated.safetyDistanceOld_m = prev.safetyDistanceOld_m;
+            }
+          }
+          
+          // 外部から値が設定された場合は入力状態も更新（フォーカス中でない場合のみ）
+          const activeLabel = document.activeElement?.getAttribute("aria-label");
+          if (typeof updated.rectWidth_m === "number" && activeLabel !== "離発着エリア 幅(m)") {
+            const formatted = typeof updated.rectWidth_m === "number" && Number.isFinite(updated.rectWidth_m)
+              ? (() => {
+                  const rounded = Math.round(updated.rectWidth_m * 10) / 10;
+                  return rounded % 1 === 0 ? String(Math.round(rounded)) : rounded.toFixed(1);
+                })()
+              : "";
+            setRectWidthInput(formatted);
+          }
+          if (typeof updated.rectDepth_m === "number" && activeLabel !== "離発着エリア 奥行(m)") {
+            const formatted = typeof updated.rectDepth_m === "number" && Number.isFinite(updated.rectDepth_m)
+              ? (() => {
+                  const rounded = Math.round(updated.rectDepth_m * 10) / 10;
+                  return rounded % 1 === 0 ? String(Math.round(rounded)) : rounded.toFixed(1);
+                })()
+              : "";
+            setRectDepthInput(formatted);
+          }
+          if (typeof updated.safetyCustom_m === "number" && activeLabel !== "保安距離(カスタム)") {
+            const formatted = typeof updated.safetyCustom_m === "number" && Number.isFinite(updated.safetyCustom_m)
+              ? (() => {
+                  const rounded = Math.round(updated.safetyCustom_m * 10) / 10;
+                  return rounded % 1 === 0 ? String(Math.round(rounded)) : rounded.toFixed(1);
+                })()
+              : "";
+            setSafetyCustomInput(formatted);
+          }
+          return updated;
+        });
       }
     };
     window.addEventListener(EV_DETAILBAR_SET_METRICS, onSet as EventListener);
@@ -104,9 +156,17 @@ export default function GeomMetricsPanel() {
   const toInput = (n?: number) =>
     typeof n === "number" && Number.isFinite(n) ? String(Math.round(n)) : "";
 
-  // 数値を表示用に（小数1桁固定）
-  const toInputDec1 = (n?: number) =>
-    typeof n === "number" && Number.isFinite(n) ? (Math.round(n * 10) / 10).toFixed(1) : "";
+  // 数値を表示用に（小数が必要な時だけ表示）
+  const toInputDec1 = (n?: number) => {
+    if (typeof n !== "number" || !Number.isFinite(n)) return "";
+    const rounded = Math.round(n * 10) / 10;
+    // 整数の場合は小数点以下を表示しない
+    if (rounded % 1 === 0) {
+      return String(Math.round(rounded));
+    }
+    // 小数がある場合は1桁まで表示
+    return rounded.toFixed(1);
+  };
 
   // 入力を整数[m]として取得（空は undefined）
   const parseIntMeters = (ev: ChangeEvent<HTMLInputElement>) => {
@@ -115,8 +175,9 @@ export default function GeomMetricsPanel() {
   };
 
   // 入力を小数1桁[m]として取得（空は undefined）
-  const parseDec1Meters = (ev: ChangeEvent<HTMLInputElement>) => {
-    const n = Number(ev.target.value);
+  const parseDec1Meters = (value: string) => {
+    if (value === "" || value === "-") return undefined;
+    const n = Number(value);
     return Number.isFinite(n) ? Math.max(0, Math.round(n * 10) / 10) : undefined;
   };
 
@@ -256,6 +317,67 @@ export default function GeomMetricsPanel() {
               />
               <span className="u">m</span>
             </div>
+
+            {/* カスタム */}
+            <div className="geom-row">
+              <span className="k radio-position">
+                <label
+                  className={`inline-flex items-center gap-1 ${!editable ? "radio-readonly" : ""
+                    }`}
+                >
+                  <input
+                    type="radio"
+                    name="safetyMode"
+                    value="custom"
+                    checked={m.safetyMode === "custom"}
+                    onChange={() => {
+                      if (!editable) return;
+                      setM((p) => ({ ...p, safetyMode: "custom" }));
+                      send({ safetyMode: "custom" } as any);
+                    }}
+                  />
+                  <span className="leading-none" style={{ whiteSpace: "nowrap" }}> 任</span>
+                </label>
+              </span>
+              <input
+                className="v geom-input"
+                type="text"
+                inputMode="decimal"
+                placeholder="-"
+                value={safetyCustomInput || toInputDec1(m.safetyCustom_m)}
+                onFocus={(e) => {
+                  setSafetyCustomInput(e.target.value || toInputDec1(m.safetyCustom_m));
+                }}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSafetyCustomInput(value);
+                  // 空文字列や"-"の場合はundefinedとして扱う
+                  if (value === "" || value === "-") {
+                    setM((p) => ({ ...p, safetyCustom_m: undefined }));
+                    return;
+                  }
+                  // 数値として有効な場合のみ送信
+                  const n = parseDec1Meters(value);
+                  if (n !== undefined) {
+                    setM((p) => ({ ...p, safetyCustom_m: n }));
+                    send({ safetyMode: "custom", buffer_m: n } as any);
+                  }
+                }}
+                onBlur={(e) => {
+                  const n = parseDec1Meters(e.target.value);
+                  if (n !== undefined) {
+                    setSafetyCustomInput(toInputDec1(n));
+                    setM((p) => ({ ...p, safetyCustom_m: n }));
+                    send({ safetyMode: "custom", buffer_m: n } as any);
+                  } else {
+                    setSafetyCustomInput("");
+                  }
+                }}
+                disabled={!editable || m.safetyMode !== "custom"}
+                aria-label="保安距離(カスタム)"
+              />
+              <span className="u">m</span>
+            </div>
           </div>
         </section>
 
@@ -335,16 +457,37 @@ export default function GeomMetricsPanel() {
               <span className="k">w</span>
               <input
                 className="v geom-input"
-                type="number"
+                type="text"
                 inputMode="decimal"
-                step={0.1}
-                min={0}
                 placeholder="-"
-                value={toInputDec1(m.rectWidth_m)}
+                value={rectWidthInput || toInputDec1(m.rectWidth_m)}
+                onFocus={(e) => {
+                  setRectWidthInput(e.target.value || toInputDec1(m.rectWidth_m));
+                }}
                 onChange={(e) => {
-                  const n = parseDec1Meters(e);
-                  setM((p) => ({ ...p, rectWidth_m: n }));
-                  if (n !== undefined) send({ rectWidth_m: n });
+                  const value = e.target.value;
+                  setRectWidthInput(value);
+                  // 空文字列や"-"の場合はundefinedとして扱う
+                  if (value === "" || value === "-") {
+                    setM((p) => ({ ...p, rectWidth_m: undefined }));
+                    return;
+                  }
+                  // 数値として有効な場合のみ送信
+                  const n = parseDec1Meters(value);
+                  if (n !== undefined) {
+                    setM((p) => ({ ...p, rectWidth_m: n }));
+                    send({ rectWidth_m: n });
+                  }
+                }}
+                onBlur={(e) => {
+                  const n = parseDec1Meters(e.target.value);
+                  if (n !== undefined) {
+                    setRectWidthInput(toInputDec1(n));
+                    setM((p) => ({ ...p, rectWidth_m: n }));
+                    send({ rectWidth_m: n });
+                  } else {
+                    setRectWidthInput("");
+                  }
                 }}
                 disabled={!editable}
                 aria-label="離発着エリア 幅(m)"
@@ -355,16 +498,37 @@ export default function GeomMetricsPanel() {
               <span className="k">d</span>
               <input
                 className="v geom-input"
-                type="number"
+                type="text"
                 inputMode="decimal"
-                step={0.1}
-                min={0}
                 placeholder="-"
-                value={toInputDec1(m.rectDepth_m)}
+                value={rectDepthInput || toInputDec1(m.rectDepth_m)}
+                onFocus={(e) => {
+                  setRectDepthInput(e.target.value || toInputDec1(m.rectDepth_m));
+                }}
                 onChange={(e) => {
-                  const n = parseDec1Meters(e);
-                  setM((p) => ({ ...p, rectDepth_m: n }));
-                  if (n !== undefined) send({ rectDepth_m: n });
+                  const value = e.target.value;
+                  setRectDepthInput(value);
+                  // 空文字列や"-"の場合はundefinedとして扱う
+                  if (value === "" || value === "-") {
+                    setM((p) => ({ ...p, rectDepth_m: undefined }));
+                    return;
+                  }
+                  // 数値として有効な場合のみ送信
+                  const n = parseDec1Meters(value);
+                  if (n !== undefined) {
+                    setM((p) => ({ ...p, rectDepth_m: n }));
+                    send({ rectDepth_m: n });
+                  }
+                }}
+                onBlur={(e) => {
+                  const n = parseDec1Meters(e.target.value);
+                  if (n !== undefined) {
+                    setRectDepthInput(toInputDec1(n));
+                    setM((p) => ({ ...p, rectDepth_m: n }));
+                    send({ rectDepth_m: n });
+                  } else {
+                    setRectDepthInput("");
+                  }
                 }}
                 disabled={!editable}
                 aria-label="離発着エリア 奥行(m)"
