@@ -162,6 +162,23 @@ html {
 }
 
 /* =========================
+   トーストアニメーション
+   ========================= */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-toast-in {
+  animation: toast-in 0.25s ease-out forwards;
+}
+
+/* =========================
    UI tokens
    ========================= */
 /* 入力系の共通スタイル定義 */

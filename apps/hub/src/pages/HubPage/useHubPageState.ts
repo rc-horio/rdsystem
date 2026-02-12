@@ -1,6 +1,7 @@
 // src/pages/HubPage/useHubPageState.ts
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
+import { useToast } from "@/components/Toast";
 import type { ScheduleDetail } from "@/features/hub/types/resource";
 import {
   buildIndexJsonFromState,
@@ -37,6 +38,7 @@ export function useDataSource(id?: string) {
 }
 
 export function useHubPageState() {
+  const toast = useToast();
   const [pendingDeletes, setPendingDeletes] = useState<string[]>([]);
 
   const { id } = useParams();
@@ -574,13 +576,13 @@ export function useHubPageState() {
           schedules: body.schedules,
         }));
 
-        // ✅ ローカル保存成功時のポップアップ
-        alert("保存しました。");
+        // ✅ ローカル保存成功時のトースト
+        toast.showToast("保存しました。");
 
         return;
       } catch (e) {
         console.error("local save error", e);
-        alert("保存に失敗しました。時間をおいて再実行してください。");
+        toast.showToast("保存に失敗しました。時間をおいて再実行してください。", "error");
         return;
       }
     }
@@ -701,18 +703,19 @@ export function useHubPageState() {
           setPendingDeletes([]); // 成功したのでクリア
         } catch (e) {
           console.error("Batch S3 delete failed", e);
-          alert(
-            "一部の画像が物理削除できませんでした。時間をおいて再実行してください。"
+          toast.showToast(
+            "一部の画像が物理削除できませんでした。時間をおいて再実行してください。",
+            "error"
           );
           // 予約は残す（次回SAVEで再トライ）
         }
       }
 
-      // ✅ S3 保存フローが最後まで成功した場合のポップアップ
-      alert("保存しました。");
+      // ✅ S3 保存フローが最後まで成功した場合のトースト
+      toast.showToast("保存しました。");
     } catch (e) {
       console.error(e);
-      alert("保存に失敗しました。時間をおいて再実行してください。");
+      toast.showToast("保存に失敗しました。時間をおいて再実行してください。", "error");
     } finally {
       setIsSaving(false);
     }

@@ -6,6 +6,7 @@ import App from "./App";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Amplify } from "aws-amplify";
 import { RequireAuth } from "./components/RequireAuth";
+import { ToastProvider } from "./components/Toast";
 
 const BASE = import.meta.env.BASE_URL; // '/hub/'
 const ORIGIN = window.location.origin;
@@ -52,7 +53,8 @@ const appElement = DISABLE_AUTH ? (
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter basename={BASE}>
-      <Routes>
+      <ToastProvider>
+        <Routes>
         {/* hub内の /callback は使わない。来たら hubのルートへ戻す */}
         <Route path="/callback" element={<Navigate to="/" replace />} />
 
@@ -61,6 +63,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           element={appElement}
         />
       </Routes>
+      </ToastProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

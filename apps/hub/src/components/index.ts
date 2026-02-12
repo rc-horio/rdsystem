@@ -39,6 +39,8 @@ export * from "./modal/FormModal";
 // interactive
 export * from "./interactive/SwipeableRow";
 export * from "./interactive/EditModeSwitch";
+// toast
+export { ToastProvider, useToast } from "./Toast";
 // hooks / utils
 export * from "./hooks/useBreakpoint";
 export * from "./hooks/useAddHandler";
