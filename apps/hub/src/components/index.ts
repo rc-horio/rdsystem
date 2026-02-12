@@ -25,6 +25,7 @@ export * from "./layout/ScheduleList";
 export * from "./layout/DividerRed";
 export * from "./layout/BrandHeader";
 export * from "./layout/AppShell";
+export * from "./layout/LodingLogo";
 // inputs
 export * from "./inputs/InputBox";
 export * from "./inputs/Textarea";

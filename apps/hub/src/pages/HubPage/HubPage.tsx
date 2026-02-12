@@ -3,7 +3,7 @@ import { useHubPageState } from "./useHubPageState";
 import DesktopLayout from "./DesktopLayout";
 import MobileLayout from "./MobileLayout";
 import { TopBar } from "./parts/TopBar";
-import { FormModal, ButtonRed, useBreakpointMd } from "@/components";
+import { FormModal, ButtonRed, useBreakpointMd, RdCompanyLogo } from "@/components";
 import { useLocation } from "react-router-dom";
 
 export default function HubPage() {
@@ -30,6 +30,13 @@ export default function HubPage() {
       className="min-h-screen bg-[#000A1B] text-white overflow-x-hidden"
       data-edit={state.edit ? "true" : "false"}
     >
+      {state.isSaving && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="relative flex items-center justify-center px-7 py-6 text-white">
+            <RdCompanyLogo />
+          </div>
+        </div>
+      )}
       <TopBar
         title={headerTitleForView}
         isPC={!isMobile}
