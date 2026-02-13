@@ -5,7 +5,7 @@ import { BrandHeader, validateProjectId } from "@/components";
 import { signOut } from "aws-amplify/auth";
 import { getAuditHeaders } from "@/lib/auditHeaders";
 import { v4 as uuidv4 } from "uuid";
-import Select from "react-select";
+import { FullHeightSelect } from "@/components";
 
 // 環境変数からHubとMapのベースURLを取得
 const HUB_BASE = String(import.meta.env.VITE_HUB_BASE_URL || "");
@@ -293,55 +293,12 @@ export default function SelectProject() {
                 <div className="w-full">
                   <div className="w-10/12 max-w-80 mx-auto mt-2">
                     <label className="block space-y-1">
-                      <Select
+                      <FullHeightSelect
                         options={projectOptions}
-                        value={
-                          projectOptions.find(
-                            (o) => o.value === selectedProject
-                          ) ?? null
-                        }
-                        onChange={(opt) => setSelectedProject(opt?.value ?? "")}
+                        value={selectedProject}
+                        onChange={setSelectedProject}
                         placeholder="-- Select a project --"
-                        isClearable
-                        isSearchable
-                        styles={{
-                          control: (base, state) => ({
-                            ...base,
-                            backgroundColor: "rgba(15,23,42,0.6)",
-                            borderColor: state.isFocused
-                              ? "#dc2626"
-                              : "#475569",
-                            boxShadow: state.isFocused
-                              ? "0 0 0 1px #dc2626"
-                              : "none",
-                            "&:hover": {
-                              borderColor: "#dc2626",
-                            },
-                          }),
-                          menu: (base) => ({
-                            ...base,
-                            backgroundColor: "#020617",
-                          }),
-                          option: (base, state) => ({
-                            ...base,
-                            backgroundColor: state.isFocused
-                              ? "#1e293b"
-                              : "transparent",
-                            color: "#e5e7eb",
-                          }),
-                          singleValue: (base) => ({
-                            ...base,
-                            color: "#e5e7eb",
-                          }),
-                          placeholder: (base) => ({
-                            ...base,
-                            color: "#64748b",
-                          }),
-                          input: (base) => ({
-                            ...base,
-                            color: "#e5e7eb",
-                          }),
-                        }}
+                        fullHeight={false}
                       />
                     </label>
                   </div>
@@ -428,53 +385,11 @@ export default function SelectProject() {
               ) : mode === "Hub" ? (
                 <div className="w-full">
                   <label className="block space-y-1 mt-2">
-                    <Select
+                    <FullHeightSelect
                       options={projectOptions}
-                      value={
-                        projectOptions.find(
-                          (o) => o.value === selectedProject
-                        ) ?? null
-                      }
-                      onChange={(opt) => setSelectedProject(opt?.value ?? "")}
+                      value={selectedProject}
+                      onChange={setSelectedProject}
                       placeholder="-- Select a project --"
-                      isClearable
-                      isSearchable
-                      styles={{
-                        control: (base, state) => ({
-                          ...base,
-                          backgroundColor: "rgba(15,23,42,0.6)",
-                          borderColor: state.isFocused ? "#dc2626" : "#475569",
-                          boxShadow: state.isFocused
-                            ? "0 0 0 1px #dc2626"
-                            : "none",
-                          "&:hover": {
-                            borderColor: "#dc2626",
-                          },
-                        }),
-                        menu: (base) => ({
-                          ...base,
-                          backgroundColor: "#020617",
-                        }),
-                        option: (base, state) => ({
-                          ...base,
-                          backgroundColor: state.isFocused
-                            ? "#1e293b"
-                            : "transparent",
-                          color: "#e5e7eb",
-                        }),
-                        singleValue: (base) => ({
-                          ...base,
-                          color: "#e5e7eb",
-                        }),
-                        placeholder: (base) => ({
-                          ...base,
-                          color: "#64748b",
-                        }),
-                        input: (base) => ({
-                          ...base,
-                          color: "#e5e7eb",
-                        }),
-                      }}
                     />
                   </label>
                 </div>

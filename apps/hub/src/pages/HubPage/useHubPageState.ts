@@ -351,7 +351,7 @@ export function useHubPageState() {
             }
           }
 
-          // 複製元なし or 取得失敗 → 空で開始
+          // 複製元なし or 取得失敗 → 空で開始（デフォルトで1件スケジュールを自動作成・選択）
           const empty = {
             project: {
               uuid: id ?? "",
@@ -362,20 +362,13 @@ export function useHubPageState() {
             },
             schedules: [] as any[],
           };
-          // モーダルに日付があれば、その日付のスケジュールを1件作成して選択
-          if (initDate) {
-            const first = buildNewSchedule({
-              date: initDate,
-              label: initLabel || "",
-            });
-            setProjectData(empty);
-            setSchedules([first]);
-            setSelectedId(first.id);
-          } else {
-            setProjectData(empty);
-            setSchedules([]);
-            setSelectedId(null);
-          }
+          const first = buildNewSchedule({
+            date: initDate || "",
+            label: initLabel || "",
+          });
+          setProjectData(empty);
+          setSchedules([first]);
+          setSelectedId(first.id);
           setEdit(false);
           return;
         }
@@ -399,9 +392,13 @@ export function useHubPageState() {
             },
             schedules: [] as any[],
           };
+          const first = buildNewSchedule({
+            date: initDate || "",
+            label: initLabel || "",
+          });
           setProjectData(empty);
-          setSchedules([]);
-          setSelectedId(null);
+          setSchedules([first]);
+          setSelectedId(first.id);
           setEdit(false);
           return;
         }

@@ -195,6 +195,7 @@ export function RightPanel({
             className="max-w-[260px]"
             isLoading={isLoadingAreas}
             isDisabled={!!areasError}
+            menuMaxHeight={700}
           />
         </div>
       </div>

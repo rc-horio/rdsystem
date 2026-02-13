@@ -9,7 +9,7 @@ export type SelectOption = {
   label: string;
 };
 
-const SELECT_STYLES = {
+const createSelectStyles = (menuMaxHeight?: number | string) => ({
   control: (base: object, state: { isFocused?: boolean }) => ({
     ...base,
     minHeight: 36,
@@ -48,6 +48,10 @@ const SELECT_STYLES = {
     fontSize: "14px",
     lineHeight: 1,
   }),
+  menuList: (base: object) => ({
+    ...base,
+    ...(menuMaxHeight != null && { maxHeight: menuMaxHeight }),
+  }),
   option: (base: object, state: { isFocused?: boolean }) => ({
     ...base,
     backgroundColor: state.isFocused ? "#2a2424" : "transparent",
@@ -55,7 +59,7 @@ const SELECT_STYLES = {
     fontSize: "14px",
     lineHeight: 1,
   }),
-};
+});
 
 type Props = {
   edit: boolean;
@@ -68,6 +72,8 @@ type Props = {
   isDisabled?: boolean;
   /** 自由記入を許可（該当なしの場合は新規入力可能） */
   creatable?: boolean;
+  /** メニューリストの最大高さ（px または CSS値） */
+  menuMaxHeight?: number | string;
 };
 
 export const DisplayOrSelect: React.FC<Props> = ({
@@ -80,6 +86,7 @@ export const DisplayOrSelect: React.FC<Props> = ({
   isLoading,
   isDisabled,
   creatable = false,
+  menuMaxHeight,
 }) => {
   const selected = options.find((o) => o.value === value);
   const displayText = selected?.label || value || "";
@@ -136,7 +143,7 @@ export const DisplayOrSelect: React.FC<Props> = ({
     isSearchable: true,
     isLoading,
     isDisabled,
-    styles: SELECT_STYLES,
+    styles: createSelectStyles(menuMaxHeight),
   };
 
   if (creatable) {
