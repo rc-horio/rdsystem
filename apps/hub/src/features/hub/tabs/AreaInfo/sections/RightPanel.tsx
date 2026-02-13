@@ -299,25 +299,21 @@ export function RightPanel({
         <SectionTitle title="離発着演出" />
         <div className={rowCls}>
           <span className="w-7 text-sm shrink-0">離陸</span>
-          <div className="flex-1 flex">
-            <DisplayOrInput
-              edit={edit}
-              value={A?.lights?.takeoff ?? ""}
-              onChange={(e) => patch(["lights", "takeoff"], e.target.value)}
-              className="w-full"
-            />
-          </div>
+          <DisplayOrInput
+            edit={edit}
+            value={A?.lights?.takeoff ?? ""}
+            onChange={(e) => patch(["lights", "takeoff"], e.target.value)}
+            className="max-w-[260px]"
+          />
         </div>
         <div className={`${rowCls} mb-2`}>
           <span className="w-7 text-sm shrink-0">着陸</span>
-          <div className="flex-1 flex">
-            <DisplayOrInput
-              edit={edit}
-              value={A?.lights?.landing ?? ""}
-              onChange={(e) => patch(["lights", "landing"], e.target.value)}
-              className="w-full"
-            />
-          </div>
+          <DisplayOrInput
+            edit={edit}
+            value={A?.lights?.landing ?? ""}
+            onChange={(e) => patch(["lights", "landing"], e.target.value)}
+            className="max-w-[260px]"
+          />
         </div>
         <div className="pl-4 md:pl-6">
           <DisplayOrTextarea

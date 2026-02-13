@@ -234,7 +234,7 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
                   rotationDeg={rotation}
                 />
 
-                <div className="mt-12 flex items-center gap-3">
+                <div className="mt-10 flex items-center gap-3">
                   <button
                     type="button"
                     onClick={() => rotateBy(-90)}
