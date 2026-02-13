@@ -13,6 +13,11 @@ type ArrowKind = "main" | "depth" | "perp";
  *  Geometry Controller
  *  ========================= */
 export class MapGeometry {
+    /**
+     * 【矢印1の表示切り替え】矢印1（離発着基準点→飛行中心の直線）を表示する場合は、下の false を true に変更してください。
+     * この1箇所を変更するだけで、矢印の線とラベルが表示されます。
+     */
+    private static readonly SHOW_ARROW_1 = false;
     // 地図を取得
     private getMap: () => google.maps.Map | null;
     private deletedRef: boolean = false;
@@ -168,7 +173,7 @@ export class MapGeometry {
                 // drag中はcurrentGeomRefが更新されていない可能性があるため、
                 // 最新の図形状態を取得して距離を計算
                 const geom = this.currentGeomRef;
-                const flightCenter = (m as any).flightCenterOverride ?? 
+                const flightCenter = (m as any).flightCenterOverride ??
                     (geom?.flightArea?.type === "ellipse" && Array.isArray(geom.flightArea.center)
                         ? (geom.flightArea.center as LngLat)
                         : undefined);
@@ -235,8 +240,8 @@ export class MapGeometry {
                 // 最新の図形状態を取得して距離を計算
                 const audienceCoords = (m as any).audienceCoordsOverride ??
                     (this.currentGeomRef?.audienceArea?.type === "rectangle" &&
-                    Array.isArray(this.currentGeomRef.audienceArea.coordinates) &&
-                    this.currentGeomRef.audienceArea.coordinates.length >= 4
+                        Array.isArray(this.currentGeomRef.audienceArea.coordinates) &&
+                        this.currentGeomRef.audienceArea.coordinates.length >= 4
                         ? this.currentGeomRef.audienceArea.coordinates
                         : undefined);
                 const distance = this.calculateFlightToAudienceDistance(undefined, audienceCoords);
@@ -265,7 +270,7 @@ export class MapGeometry {
                 // 距離を計算してgeometryに含める
                 const geom = this.currentGeomRef;
                 let geometryWithDistance: Geometry | null = null;
-                
+
                 if (geom) {
                     const distance = this.calculateFlightToAudienceDistance();
                     geometryWithDistance = {
@@ -273,7 +278,7 @@ export class MapGeometry {
                         ...(distance !== undefined ? { distance_from_viewers_m: distance } : {}),
                     };
                 }
-                
+
                 const detail = {
                     projectUuid: this.currentScheduleRef?.projectUuid,
                     scheduleUuid: this.currentScheduleRef?.scheduleUuid,
@@ -429,11 +434,11 @@ export class MapGeometry {
                 : undefined;
         const audienceCoords =
             geom.audienceArea?.type === "rectangle" &&
-            Array.isArray(geom.audienceArea.coordinates) &&
-            geom.audienceArea.coordinates.length >= 4
+                Array.isArray(geom.audienceArea.coordinates) &&
+                geom.audienceArea.coordinates.length >= 4
                 ? geom.audienceArea.coordinates
                 : undefined;
-        
+
         if (flightCenter && audienceCoords) {
             // 観客エリアの中心を計算（p0とp2の中点）
             const p0 = audienceCoords[0];
@@ -447,7 +452,7 @@ export class MapGeometry {
             const flightCenterLL = new gmaps.LatLng(flightCenter[1], flightCenter[0]);
             const audienceCenterLL = new gmaps.LatLng(audienceCenter[1], audienceCenter[0]);
             const distance = gmaps.geometry.spherical.computeDistanceBetween(flightCenterLL, audienceCenterLL);
-            
+
             metrics.flightToAudienceDistance_m = Math.round(distance);
         }
 
@@ -487,7 +492,7 @@ export class MapGeometry {
         // safetyMode: geometry に保存されていればそれを優先、なければ "new"
         const safetyMode: "new" | "old" | "custom" =
             (geom as any)?.safetyArea?.mode === "old" ? "old" :
-            (geom as any)?.safetyArea?.mode === "custom" ? "custom" : "new";
+                (geom as any)?.safetyArea?.mode === "custom" ? "custom" : "new";
 
         (metrics as any).safetyMode = safetyMode;
 
@@ -510,8 +515,8 @@ export class MapGeometry {
             // カスタムモードでも新式・旧式の値は計算済み（上記のif文で）
         } else if (altForSafety != null) {
             // 新式・旧式の場合は計算値を使用
-            const selected = safetyMode === "old" ? 
-                (metrics as any).safetyDistanceOld_m : 
+            const selected = safetyMode === "old" ?
+                (metrics as any).safetyDistanceOld_m :
                 (metrics as any).safetyDistanceNew_m;
             (metrics as any).safetyDistance_m = selected;
             (metrics as any).buffer_m = selected;
@@ -529,8 +534,9 @@ export class MapGeometry {
         const from = this.pickReferenceCorner(geom.takeoffArea);
         const to = flight?.center as LngLat | undefined;
         if (from && to) {
-            const line = this.drawArrow(from, to); // ①
+            const line = this.drawArrow(from, to); // ① 
             this.arrowRef = line;
+            if (!MapGeometry.SHOW_ARROW_1) line.setMap(null); // 矢印1非表示（表示する場合は SHOW_ARROW_1 を true に）
             line.getPath().forEach((p: google.maps.LatLng) => bounds.extend(p));
 
             const fromLL = new gmaps.LatLng(from[1], from[0]);
@@ -577,7 +583,7 @@ export class MapGeometry {
         audienceCoordsOverride?: Array<LngLat>
     ): number | undefined {
         const geom = this.currentGeomRef;
-        
+
         // オーバーライドが指定されていればそれを使用、なければcurrentGeomRefから取得
         const flightCenter = flightCenterOverride ??
             (geom?.flightArea?.type === "ellipse" && Array.isArray(geom.flightArea.center)
@@ -585,8 +591,8 @@ export class MapGeometry {
                 : undefined);
         const audienceCoords = audienceCoordsOverride ??
             (geom?.audienceArea?.type === "rectangle" &&
-            Array.isArray(geom.audienceArea.coordinates) &&
-            geom.audienceArea.coordinates.length >= 4
+                Array.isArray(geom.audienceArea.coordinates) &&
+                geom.audienceArea.coordinates.length >= 4
                 ? geom.audienceArea.coordinates
                 : undefined);
 
@@ -640,7 +646,7 @@ export class MapGeometry {
             let rx = f.radiusX_m;
             let ry = f.radiusY_m;
             let rotation = f.rotation_deg || 0;
-            
+
             if (typeof d.flightWidth_m === "number" && Number.isFinite(d.flightWidth_m)) {
                 rx = Math.max(0, d.flightWidth_m / 2);
             }
@@ -713,7 +719,7 @@ export class MapGeometry {
             //  mode の取得先は safetyArea.mode に統一
             const prevMode: "new" | "old" | "custom" =
                 (prev as any)?.safetyArea?.mode === "old" ? "old" :
-                (prev as any)?.safetyArea?.mode === "custom" ? "custom" : "new";
+                    (prev as any)?.safetyArea?.mode === "custom" ? "custom" : "new";
 
             const altMin =
                 typeof minSrc === "number" ? Math.max(0, Math.round(minSrc)) : prevMin;
@@ -725,9 +731,9 @@ export class MapGeometry {
             const nextMode: "new" | "old" | "custom" =
                 typeof (d as any).safetyMode === "string"
                     ? ((d as any).safetyMode === "old" ? "old" :
-                       (d as any).safetyMode === "custom" ? "custom" : "new")
+                        (d as any).safetyMode === "custom" ? "custom" : "new")
                     : prevMode;
-            
+
             // カスタム値が指定されている場合はそれを使用
             const customBuffer = typeof (d as any).buffer_m === "number" && Number.isFinite((d as any).buffer_m)
                 ? Math.max(0, (d as any).buffer_m)
@@ -967,6 +973,8 @@ export class MapGeometry {
 
         if (kind === "main") {
             this.arrowLabel = ensureLabel(this.arrowLabel);
+            // 矢印1ラベル非表示（表示する場合は SHOW_ARROW_1 を true に）
+            if (!MapGeometry.SHOW_ARROW_1 && this.arrowLabel) this.arrowLabel.setMap(null);
         } else if (kind === "depth") {
             this.arrow2Label = ensureLabel(this.arrow2Label);
         } else {
