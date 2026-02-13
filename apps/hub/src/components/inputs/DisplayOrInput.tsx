@@ -3,6 +3,12 @@ import clsx from "clsx";
 import React from "react";
 import { InputBox } from "./InputBox";
 
+/** 全角数字を半角に変換（数値入力で即時変換） */
+const toHalfWidthNumbers = (str: string) =>
+  str.replace(/[０-９]/g, (c) =>
+    String.fromCharCode(c.charCodeAt(0) - 0xfee0)
+  );
+
 type DisplayOrInputProps = {
   edit: boolean;
   value: string;
@@ -26,12 +32,26 @@ export function DisplayOrInput({
   type = "text",
   tabIndex,
 }: DisplayOrInputProps) {
+  const isNumeric = inputMode === "numeric" || type === "number";
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isNumeric) {
+      const converted = toHalfWidthNumbers(e.target.value);
+      if (converted !== e.target.value) {
+        e = {
+          ...e,
+          target: { ...e.target, value: converted },
+        } as React.ChangeEvent<HTMLInputElement>;
+      }
+    }
+    onChange?.(e);
+  };
+
   if (edit) {
     return (
       <InputBox
         value={value}
         placeholder={placeholder}
-        onChange={onChange}
+        onChange={handleChange}
         onBlur={onBlur}
         inputMode={inputMode}
         type={type}

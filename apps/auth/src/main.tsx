@@ -7,20 +7,15 @@ import { BrowserRouter } from "react-router-dom";
 import { Amplify } from "aws-amplify";
 
 const ORIGIN = window.location.origin;
-// TODO: ローカルサーバー起動用と本番デプロイ用のコードを分ける
-// ★--------ローカルサーバー起動用-------------
 const BASEPATH = import.meta.env.BASE_URL; // 例: '/auth/'
-// const DEV_REDIRECT_SIGN_IN = `${ORIGIN}${BASEPATH}callback`;
-// const DEV_REDIRECT_SIGN_OUT = `${ORIGIN}${BASEPATH}`;
-const REDIRECT_SIGN_IN = `${ORIGIN}${BASEPATH}callback`;
-const REDIRECT_SIGN_OUT = `${ORIGIN}${BASEPATH}login`; 
-// ★--------ローカルサーバー起動用-------------
 
-// ★--------本番デプロイ用-------------
-// 本番用authアプリの戻り先はルート直下
-// const REDIRECT_SIGN_IN = `${ORIGIN}/callback`;
-// const REDIRECT_SIGN_OUT = `${ORIGIN}/login`;
-// ★--------本番デプロイ用-------------
+// サインインコールバック: 常に BASEPATH ベース
+const REDIRECT_SIGN_IN = `${ORIGIN}${BASEPATH}callback`;
+
+// サインアウト後: 本番・ステージングは VITE_SIGNOUT_REDIRECT=/login で統一、ローカルは BASEPATH+login
+const signOutPath =
+  import.meta.env.VITE_SIGNOUT_REDIRECT || `${BASEPATH}login`;
+const REDIRECT_SIGN_OUT = `${ORIGIN}${signOutPath.startsWith("/") ? signOutPath : "/" + signOutPath}`;
 
 Amplify.configure({
   Auth: {

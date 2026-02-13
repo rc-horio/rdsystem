@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { BrandHeader, validateProjectId } from "@/components";
 import { signOut } from "aws-amplify/auth";
+import { getAuditHeaders } from "@/lib/auditHeaders";
 import { v4 as uuidv4 } from "uuid";
 import Select from "react-select";
 
@@ -64,12 +65,13 @@ async function upsertProjectList(row: ListRow): Promise<ListRow[]> {
   const next = list.filter((x) => x.uuid !== row.uuid);
   next.push(row);
   next.sort((a, b) =>
-    (a.projectName || "").localeCompare(b.projectName || "", "ja")
+    (b.projectId || "").localeCompare(a.projectId || "")
   );
 
+  const auditHeaders = await getAuditHeaders();
   const res = await fetch(LAMBDA_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...auditHeaders },
     body: JSON.stringify({
       key: `catalog/v1/projects.json`,
       body: next,
@@ -122,7 +124,9 @@ export default function SelectProject() {
         const res = await fetch(LIST_URL, { cache: "no-cache" });
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
         const json: ProjectMeta[] = await res.json();
-        json.sort((a, b) => a.projectName.localeCompare(b.projectName, "ja"));
+        json.sort((a, b) =>
+          (b.projectId || "").localeCompare(a.projectId || "")
+        );
         setProjects(json);
       } catch (e) {
         console.error("[SelectProject] projects.json fetch error", e);
@@ -217,9 +221,10 @@ export default function SelectProject() {
           schedules: [],
         };
 
+        const auditHeaders = await getAuditHeaders();
         await fetch(LAMBDA_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...auditHeaders },
           body: JSON.stringify({
             key: `catalog/v1/projects/${newUuid}/index.json`,
             body: emptyProjectData,

@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { useToast } from "@/components/Toast";
+import { getAuditHeaders } from "@/lib/auditHeaders";
 import type { ScheduleDetail } from "@/features/hub/types/resource";
 import {
   buildIndexJsonFromState,
@@ -128,11 +129,12 @@ export function useHubPageState() {
 
   // 既存の「JSON保存用 Lambda」を使って任意のJSONを書き込むヘルパー
   const putJsonViaLambda = async (params: { key: string; body: any }) => {
+    const auditHeaders = await getAuditHeaders();
     const res = await fetch(
       CATALOG_WRITE_URL,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...auditHeaders },
         body: JSON.stringify({
           key: params.key,
           body: params.body,
@@ -602,11 +604,12 @@ export function useHubPageState() {
       );
 
       // ③ 既存の JSON 保存 Lambda を叩く
+      const auditHeaders = await getAuditHeaders();
       const res = await fetch(
         CATALOG_WRITE_URL,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...auditHeaders },
           body: JSON.stringify({
             key: `catalog/v1/projects/${currentUuid}/index.json`,
             body,
@@ -647,11 +650,12 @@ export function useHubPageState() {
         );
 
         // Lambda 経由で上書き保存
+        const updateAuditHeaders = await getAuditHeaders();
         const updateRes = await fetch(
           CATALOG_WRITE_URL,
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", ...updateAuditHeaders },
             body: JSON.stringify({
               key: `catalog/v1/projects.json`,
               body: list,
@@ -748,9 +752,10 @@ export function useHubPageState() {
     filename: string;
     contentType: string;
   }): Promise<{ key: string; uploadUrl: string; publicUrl: string }> => {
+    const auditHeaders = await getAuditHeaders();
     const r = await fetch(PRESIGN_API, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...auditHeaders },
       body: JSON.stringify(params),
     });
     if (!r.ok) throw new Error(await r.text());
@@ -775,9 +780,10 @@ export function useHubPageState() {
 
   const deleteManyFromS3 = async (keys: string[]) => {
     if (!keys.length) return;
+    const auditHeaders = await getAuditHeaders();
     const r = await fetch(DELETE_API, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...auditHeaders },
       body: JSON.stringify({ keys }),
     });
     const data = await r.json().catch(() => ({} as any));

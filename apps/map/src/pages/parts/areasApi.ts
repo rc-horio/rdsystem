@@ -1,5 +1,6 @@
 // src/pages/parts/areasApi.ts
 import type { HistoryLite, DetailMeta, Candidate } from "@/features/types";
+import { getAuditHeaders } from "@/lib/auditHeaders";
 import { getCurrentTurnMetrics } from "./geometry/orientationDebug";
 
 const CATALOG =
@@ -14,9 +15,10 @@ async function writeJsonToCatalog(key: string, body: any): Promise<boolean> {
         console.error("VITE_CATALOG_WRITE_URL is not set");
         return false;
     }
+    const auditHeaders = await getAuditHeaders();
     const res = await fetch(WRITE_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...auditHeaders },
         body: JSON.stringify({
             key,
             body,

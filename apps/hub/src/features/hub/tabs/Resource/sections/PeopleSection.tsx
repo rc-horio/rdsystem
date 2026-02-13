@@ -300,6 +300,7 @@ export function PeopleSection({
               )
             }
             options={NAME_OPTIONS}
+            creatable
             className={`${FLEX_CLASS[NAME_FLEX]} min-w-0`}
             placeholder="氏名"
           />
@@ -316,6 +317,7 @@ export function PeopleSection({
               )
             }
             options={getRoleOptions(g.group)}
+            creatable
             className={`${FLEX_CLASS[ROLE_FLEX]} min-w-0`}
             placeholder="役割"
           />
