@@ -27,6 +27,9 @@ export const EV_ADD_AREA_RESULT_COORDS = "map:add-area-result-coords";
 
 export const ROTATE_HANDLE_GAP_M = 5;
 
+/** 回転ハンドル（黄色丸）の外側に「Front」ラベルを表示するオフセット[m] */
+export const FRONT_LABEL_OFFSET_M = 14;
+
 export const SELECT_ZOOM_DESKTOP = 17;
 export const SELECT_ZOOM_MOBILE = 13;
 

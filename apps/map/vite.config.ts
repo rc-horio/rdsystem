@@ -53,11 +53,12 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/__gtile/, ""),
       },
-      // "/s3": {
-      //   target: "https://rc-rdsystem-dev-catalog.s3.ap-northeast-1.amazonaws.com",
-      //   changeOrigin: true,
-      //   rewrite: (path) => path.replace(/^\/s3/, ""),
-      // },
+      // 開発時のみ: Lambda への CORS 回避用プロキシ
+      "/__catalog-write": {
+        target: "https://u64h3yye227qjsnem7yyydakpu0vpkxn.lambda-url.ap-northeast-1.on.aws",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/__catalog-write/, ""),
+      },
     },
 
     // ファイルを監視して保存されたら自動でブラウザをリロード/差し替え（HMR）

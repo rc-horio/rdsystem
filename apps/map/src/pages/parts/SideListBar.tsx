@@ -779,7 +779,7 @@ function SideListBarBase({
       const okInfo = await saveAreaInfo(areaUuid!, infoToSave);
       if (!okInfo) {
         window.alert(
-          "保存に失敗しました（index.json）。S3 の CORS/権限設定をご確認ください。"
+          "保存に失敗しました（index.json）。ブラウザの開発者ツール（F12）のコンソールでエラー内容を確認してください。"
         );
         return;
       }
@@ -880,7 +880,7 @@ function SideListBarBase({
 
       if (!okAreas) {
         window.alert(
-          "保存に失敗しました（areas.json）。S3 の CORS/権限設定をご確認ください。"
+          "保存に失敗しました（areas.json）。ブラウザの開発者ツール（F12）のコンソールでエラー内容を確認してください。"
         );
         // areas/<areaUuid>/index.json は保存済みなので続行可能
       } else {
@@ -943,8 +943,10 @@ function SideListBarBase({
       // （5）従来メッセージを維持（UIのデグレ回避）
       window.alert(okAreas ? "保存しました" : "保存に失敗しました。");
     } catch (e) {
-      console.error(e);
-      window.alert("保存処理中にエラーが発生しました。");
+      console.error("[save] 保存処理中にエラー:", e);
+      window.alert(
+        "保存処理中にエラーが発生しました。ブラウザの開発者ツール（F12）のコンソールで詳細を確認してください。"
+      );
     }
   };
 

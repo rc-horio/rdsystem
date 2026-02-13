@@ -6,8 +6,11 @@ import { getCurrentTurnMetrics } from "./geometry/orientationDebug";
 const CATALOG =
     String(import.meta.env.VITE_CATALOG_BASE_URL || "").replace(/\/+$/, "") + "/";
 
-// 本番用のCatalogの書き込みURL
-const WRITE_URL = String(import.meta.env.VITE_CATALOG_WRITE_URL || "");
+// 本番用のCatalogの書き込みURL（開発時は Vite プロキシ経由で CORS 回避）
+const WRITE_URL =
+    import.meta.env.DEV
+        ? "/__catalog-write"
+        : String(import.meta.env.VITE_CATALOG_WRITE_URL || "");
 
 //　CatalogにJSONを書き込む
 async function writeJsonToCatalog(key: string, body: any): Promise<boolean> {
@@ -15,24 +18,42 @@ async function writeJsonToCatalog(key: string, body: any): Promise<boolean> {
         console.error("VITE_CATALOG_WRITE_URL is not set");
         return false;
     }
-    const auditHeaders = await getAuditHeaders();
-    const res = await fetch(WRITE_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...auditHeaders },
-        body: JSON.stringify({
-            key,
-            body,
-            contentType: "application/json; charset=utf-8",
-        }),
-    });
+    try {
+        const auditHeaders = await getAuditHeaders();
+        const res = await fetch(WRITE_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...auditHeaders },
+            body: JSON.stringify({
+                key,
+                body,
+                contentType: "application/json; charset=utf-8",
+            }),
+        });
 
-    const raw = await res.text();
-    const data = raw ? JSON.parse(raw) : null;
-    if (!res.ok || data?.error) {
-        console.error("writeJsonToCatalog failed:", data?.error ?? raw);
+        const raw = await res.text();
+        let data: { error?: string } | null = null;
+        try {
+            data = raw ? JSON.parse(raw) : null;
+        } catch {
+            console.error("writeJsonToCatalog: レスポンスがJSONではありません", {
+                status: res.status,
+                raw: raw.slice(0, 200),
+            });
+            return false;
+        }
+        if (!res.ok || data?.error) {
+            console.error("writeJsonToCatalog failed:", {
+                status: res.status,
+                error: data?.error ?? raw,
+                key,
+            });
+            return false;
+        }
+        return true;
+    } catch (e) {
+        console.error("writeJsonToCatalog: ネットワーク/CORS等のエラー", { key, error: e });
         return false;
     }
-    return true;
 }
 
 // ========= Internals =========

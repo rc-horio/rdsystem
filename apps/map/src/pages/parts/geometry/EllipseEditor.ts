@@ -1,7 +1,7 @@
 // src/pages/parts/geometry/EllipseEditor.ts
 import { toRad, toDeg, normalizeAngleDeg, fromLocalXY, toLocalXY } from "./math";
 import type { Geometry, EllipseGeom, LngLat } from "@/features/types";
-import { markerBase, ROTATE_HANDLE_GAP_M, Z } from "../constants/events";
+import { markerBase, ROTATE_HANDLE_GAP_M, FRONT_LABEL_OFFSET_M, Z } from "../constants/events";
 import { setEllipseBearingDeg } from "./orientationDebug";
 
 // 楕円編集用オプション
@@ -21,6 +21,10 @@ export type EllipseEditorOpts = {
     pushOverlay: (ov: google.maps.Polygon | google.maps.Marker | google.maps.Polyline | google.maps.Circle) => void;
     onMetrics: (metrics: Partial<{ flightWidth_m: number; flightDepth_m: number; flightRotation_deg?: number }>) => void;
     onCenterChanged?: (center: LngLat) => void; // 例: 矢印更新などに使用
+
+    // Shift+ドラッグ時: 飛行中心の移動を制約（動いていない方の矢印を固定）
+    constrainFlightCenterForShiftDrag?: (oldTo: LngLat, newTo: LngLat, from: LngLat) => LngLat | null;
+    getShiftKey?: () => boolean;
 };
 
 // 楕円編集クラス
@@ -34,12 +38,16 @@ export class EllipseEditor {
     private rxMarker?: google.maps.Marker | null;
     private ryMarker?: google.maps.Marker | null;
     private rotateMarker?: google.maps.Marker | null;
+    private frontLabelMarker?: google.maps.Marker | null;
 
     // width 方向の直径ライン
     private widthDiameterLine?: google.maps.Polyline;
 
     // setPaths の競合抑制
     private suppressEllipseUpdateRef = false;
+
+    // Shift+ドラッグ制約用（再入防止）
+    private isProcessingFlightDragRef = false;
 
     constructor(opts: EllipseEditorOpts) {
         this.opts = opts;
@@ -53,6 +61,7 @@ export class EllipseEditor {
         this.rxMarker = undefined;
         this.ryMarker = undefined;
         this.rotateMarker = undefined;
+        this.frontLabelMarker = undefined;
         if (this.widthDiameterLine) {
             this.widthDiameterLine.setMap(null);
             this.widthDiameterLine = undefined;
@@ -95,6 +104,9 @@ export class EllipseEditor {
                 cursor: isEdit ? "grab" : "default",
                 title: isEdit ? "ドラッグで回転" : "編集ONで回転できます",
             });
+        }
+        if (this.frontLabelMarker) {
+            this.frontLabelMarker.setVisible(isEdit);
         }
         if (this.poly) this.poly.setDraggable(isEdit);
         // safetyPoly は常に非ドラッグ
@@ -216,7 +228,7 @@ export class EllipseEditor {
 
         // ハンドル位置の同期
         if (this.centerMarker) this.centerMarker.setPosition(centerLL);
-        if (this.rxMarker || this.ryMarker || this.rotateMarker) {
+        if (this.rxMarker || this.ryMarker || this.rotateMarker || this.frontLabelMarker) {
             const phi = toRad(rotation_deg || 0);
             const ux = Math.cos(phi), uy = Math.sin(phi);
             const vx = -Math.sin(phi), vy = Math.cos(phi);
@@ -224,10 +236,12 @@ export class EllipseEditor {
             const rxP = fromLocalXY(center, ux * radiusX_m, uy * radiusX_m);
             const ryP = fromLocalXY(center, vx * radiusY_m, vy * radiusY_m);
             const rotP = fromLocalXY(center, vx * (radiusY_m + ROTATE_HANDLE_GAP_M), vy * (radiusY_m + ROTATE_HANDLE_GAP_M));
+            const frontLabelP = fromLocalXY(center, vx * (radiusY_m + FRONT_LABEL_OFFSET_M), vy * (radiusY_m + FRONT_LABEL_OFFSET_M));
 
             if (this.rxMarker) this.rxMarker.setPosition(this.opts.latLng(rxP[1], rxP[0]));
             if (this.ryMarker) this.ryMarker.setPosition(this.opts.latLng(ryP[1], ryP[0]));
             if (this.rotateMarker) this.rotateMarker.setPosition(this.opts.latLng(rotP[1], rotP[0]));
+            if (this.frontLabelMarker) this.frontLabelMarker.setPosition(this.opts.latLng(frontLabelP[1], frontLabelP[0]));
         }
 
         // メトリクス更新（幅/奥行き/角度）- パネルからの更新時はスキップ
@@ -321,7 +335,9 @@ export class EllipseEditor {
             position: this.opts.latLng(lat0, lng0),
             draggable: this.opts.isEditingOn(),
             visible: this.opts.isEditingOn(),
-            title: this.opts.isEditingOn() ? "ドラッグで中心を移動" : "編集ONで中心を移動できます",
+            title: this.opts.isEditingOn()
+                ? "ドラッグで中心を移動。Shift+ドラッグで動いていない方の矢印を固定"
+                : "編集ONで中心を移動できます",
             cursor: this.opts.isEditingOn() ? "grab" : "default",
             zIndex: baseZ + Z.MARKER_OFFSET.CENTER,
             icon: {
@@ -335,16 +351,36 @@ export class EllipseEditor {
             map,
         });
 
+        let centerDragStart: LngLat | null = null;
+
+        marker.addListener("dragstart", () => {
+            if (!this.opts.isEditingOn()) return;
+            const cur = this.opts.getCurrentGeom()?.flightArea as EllipseGeom | undefined;
+            if (!cur) return;
+            centerDragStart = cur.center;
+        });
+
         marker.addListener("drag", () => {
             if (!this.opts.isEditingOn()) return;
             const pos = marker.getPosition();
             const cur = this.opts.getCurrentGeom()?.flightArea as EllipseGeom | undefined;
             if (!pos || !cur) return;
-            const nextCenter: LngLat = [pos.lng(), pos.lat()];
+            let nextCenter: LngLat = [pos.lng(), pos.lat()];
+            const constrain = this.opts.constrainFlightCenterForShiftDrag;
+            const getShiftKey = this.opts.getShiftKey;
+            const from = this.pickTakeoffRef();
+            if (getShiftKey?.() && constrain && from && centerDragStart) {
+                const constrained = constrain(centerDragStart, nextCenter, from);
+                if (constrained) {
+                    nextCenter = constrained;
+                    marker.setPosition(this.opts.latLng(nextCenter[1], nextCenter[0]));
+                }
+            }
             this.updateOverlays(nextCenter, cur.radiusX_m, cur.radiusY_m, cur.rotation_deg || 0);
         });
 
         marker.addListener("dragend", () => {
+            centerDragStart = null;
             if (!this.opts.isEditingOn()) return;
             const pos = marker.getPosition();
             const cur = this.opts.getCurrentGeom()?.flightArea as EllipseGeom | undefined;
@@ -558,6 +594,56 @@ export class EllipseEditor {
 
         this.rotateMarker = marker;
         this.opts.pushOverlay(marker);
+
+        // 「Front」ラベル（黄色丸の外側、前面であることを示す）
+        const frontLabelW = 75;
+        const frontLabelH = 28;
+        const frontLabelSvg =
+            '<svg xmlns="http://www.w3.org/2000/svg" width="' +
+            frontLabelW +
+            '" height="' +
+            frontLabelH +
+            '" viewBox="0 0 ' +
+            frontLabelW +
+            " " +
+            frontLabelH +
+            '">' +
+            '<text x="' +
+            frontLabelW / 2 +
+            '" y="20" text-anchor="middle" font-size="18" fill="white">Front</text>' +
+            "</svg>";
+        const frontLabelUrl = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(frontLabelSvg);
+        const frontLabelPos = fromLocalXY(
+            f.center,
+            vx * (f.radiusY_m + FRONT_LABEL_OFFSET_M),
+            vy * (f.radiusY_m + FRONT_LABEL_OFFSET_M)
+        );
+        const frontLabelMarker = new gmaps.Marker({
+            position: this.opts.latLng(frontLabelPos[1], frontLabelPos[0]),
+            draggable: false,
+            clickable: false,
+            visible: this.opts.isEditingOn(),
+            zIndex: baseZ + Z.MARKER_OFFSET.ROTATE + 1,
+            icon: {
+                url: frontLabelUrl,
+                scaledSize: new gmaps.Size(frontLabelW, frontLabelH),
+                anchor: new gmaps.Point(frontLabelW / 2, frontLabelH / 2),
+            },
+            map,
+        });
+        this.frontLabelMarker = frontLabelMarker;
+        this.opts.pushOverlay(frontLabelMarker);
+    }
+
+    private clampIndex(len: number, idx?: number) {
+        return Number.isInteger(idx) ? Math.max(0, Math.min(len - 1, idx as number)) : 0;
+    }
+
+    private pickTakeoffRef(): LngLat | undefined {
+        const t = this.opts.getCurrentGeom()?.takeoffArea;
+        if (t?.type !== "rectangle" || !Array.isArray(t.coordinates) || t.coordinates.length === 0) return undefined;
+        const idx = this.clampIndex(t.coordinates.length, t.referencePointIndex);
+        return t.coordinates[idx] as LngLat;
     }
 
     /** 飛行エリアのドラッグを配線 */
@@ -581,8 +667,11 @@ export class EllipseEditor {
         });
 
         poly.addListener("drag", () => {
+            if (this.isProcessingFlightDragRef) return;
             if (!this.opts.isEditingOn() || !base || !baseP0) return;
 
+            this.isProcessingFlightDragRef = true;
+            try {
             // すでに平行移動後のポリゴンから移動量を推定
             const p0 = poly.getPath().getAt(0);
             const now: LngLat = [p0.lng(), p0.lat()];
@@ -591,12 +680,35 @@ export class EllipseEditor {
             const dx = vNow.x - vBase.x;
             const dy = vNow.y - vBase.y;
 
-            dragCenter = fromLocalXY(base.center, dx, dy);
+            let center = fromLocalXY(base.center, dx, dy);
+
+            // Shift+ドラッグ: 矢印を固定
+            const constrain = this.opts.constrainFlightCenterForShiftDrag;
+            const getShiftKey = this.opts.getShiftKey;
+            const from = this.pickTakeoffRef();
+            if (getShiftKey?.() && constrain && from) {
+                const constrained = constrain(base.center, center, from);
+                if (constrained) {
+                    center = constrained;
+                    const path = this.genEllipsePath(
+                        this.opts.latLng(center[1], center[0]),
+                        base.radiusX_m,
+                        base.radiusY_m,
+                        base.rotation_deg || 0
+                    );
+                    poly.setPaths(path);
+                }
+            }
+
+            dragCenter = center;
 
             // 本体 setPaths は抑制。ハンドル/保安のみ同期。
             this.suppressEllipseUpdateRef = true;
             this.updateOverlays(dragCenter, base.radiusX_m, base.radiusY_m, base.rotation_deg || 0);
             this.suppressEllipseUpdateRef = false;
+            } finally {
+                this.isProcessingFlightDragRef = false;
+            }
         });
 
         poly.addListener("dragend", () => {

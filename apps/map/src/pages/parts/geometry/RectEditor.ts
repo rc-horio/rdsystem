@@ -24,6 +24,14 @@ export type RectEditorOpts = {
 
     // 矩形が変更されたとき（ドラッグ）
     onReferencePointMoved?: (refPoint: LngLat) => void;
+
+    // Shift+ドラッグ時: 基準点を制約（depth矢印固定→perp方向にのみ移動）
+    constrainRefPointForShiftDrag?: (
+        oldRef: LngLat,
+        newRef: LngLat,
+        initialTakeoffCoords?: Array<LngLat>,
+        refIdx?: number
+    ) => LngLat | null;
 };
 
 export class RectEditor {
@@ -41,14 +49,40 @@ export class RectEditor {
     // ポリゴンの更新を抑制
     private suppressPolyUpdateRef = false;
 
+    // Shift+ドラッグ制約用
+    private shiftKeyRef = false;
+    private initialRefPointAtDragStart: LngLat | null = null;
+    private initialTakeoffCoordsAtDragStart: Array<LngLat> | null = null;
+    private isProcessingDragRef = false;
+    private keyListenerRefs: { keydown: () => void; keyup: () => void } | null = null;
+
     constructor(opts: RectEditorOpts) {
         this.opts = opts;
     }
 
     /** 呼び出し元の overlays を消した後に参照だけクリア */
     clear() {
+        if (this.keyListenerRefs) {
+            window.removeEventListener("keydown", this.keyListenerRefs.keydown);
+            window.removeEventListener("keyup", this.keyListenerRefs.keyup);
+            this.keyListenerRefs = null;
+        }
         this.takeoffEditRef = null;
         this.suppressPolyUpdateRef = false;
+    }
+
+    /** Shiftキーの監視を開始（Shift+ドラッグ制約用） */
+    private ensureShiftKeyListeners() {
+        if (this.keyListenerRefs) return;
+        const keydown = (e: KeyboardEvent) => {
+            if (e.key === "Shift") this.shiftKeyRef = true;
+        };
+        const keyup = (e: KeyboardEvent) => {
+            if (e.key === "Shift") this.shiftKeyRef = false;
+        };
+        window.addEventListener("keydown", keydown);
+        window.addEventListener("keyup", keyup);
+        this.keyListenerRefs = { keydown, keyup };
     }
 
     /** 編集ON/OFFの反映（ドラッグ可否やカーソル・タイトル） */
@@ -226,16 +260,61 @@ export class RectEditor {
 
         this.opts.pushOverlay(poly);
         this.takeoffEditRef = { ...(this.takeoffEditRef ?? {}), poly };
+        this.ensureShiftKeyListeners();
 
         // 本体ドラッグで同期
-        poly.addListener("drag", () => {
+        poly.addListener("dragstart", () => {
             const coords = this.getCoordsFromPolygon(poly);
-            this.suppressPolyUpdateRef = true;
-            this.updateTakeoffOverlays(coords);
-            this.suppressPolyUpdateRef = false;
+            const refIdx = this.clampIndex(
+                coords.length,
+                this.opts.getCurrentGeom()?.takeoffArea?.referencePointIndex
+            );
+            this.initialRefPointAtDragStart = coords[refIdx] ?? null;
+            this.initialTakeoffCoordsAtDragStart = [...coords];
+        });
+
+        poly.addListener("drag", () => {
+            if (this.isProcessingDragRef) return;
+            this.isProcessingDragRef = true;
+            try {
+                let coords = this.getCoordsFromPolygon(poly);
+                const refIdx = this.clampIndex(
+                    coords.length,
+                    this.opts.getCurrentGeom()?.takeoffArea?.referencePointIndex
+                );
+                const constrain = this.opts.constrainRefPointForShiftDrag;
+                if (
+                    this.shiftKeyRef &&
+                    constrain &&
+                    this.initialRefPointAtDragStart &&
+                    this.initialTakeoffCoordsAtDragStart &&
+                    Number.isInteger(refIdx)
+                ) {
+                    const newRef = coords[refIdx];
+                    const constrainedRef = constrain(
+                        this.initialRefPointAtDragStart,
+                        newRef,
+                        this.initialTakeoffCoordsAtDragStart,
+                        refIdx
+                    );
+                    if (constrainedRef) {
+                        const dLng = constrainedRef[0] - newRef[0];
+                        const dLat = constrainedRef[1] - newRef[1];
+                        coords = coords.map(([lng, lat]) => [lng + dLng, lat + dLat] as LngLat);
+                        poly.setPaths([coords.map(([lng, lat]) => this.opts.latLng(lat, lng))]);
+                    }
+                }
+                this.suppressPolyUpdateRef = true;
+                this.updateTakeoffOverlays(coords);
+                this.suppressPolyUpdateRef = false;
+            } finally {
+                this.isProcessingDragRef = false;
+            }
         });
 
         poly.addListener("dragend", () => {
+            this.initialRefPointAtDragStart = null;
+            this.initialTakeoffCoordsAtDragStart = null;
             const coords = this.getCoordsFromPolygon(poly);
             const prev = this.opts.getCurrentGeom();
             if (!prev?.takeoffArea) return;
@@ -258,6 +337,7 @@ export class RectEditor {
         const isEdit = this.opts.isEditingOn();
         const idxActive = this.clampIndex(coords.length, takeoffArea.referencePointIndex);
         const baseZ = markerBase(gmaps);
+        this.ensureShiftKeyListeners();
 
         const cornerMarkers: google.maps.Marker[] = [];
         coords.forEach(([lng, lat], i) => {
@@ -269,7 +349,9 @@ export class RectEditor {
                 draggable: isEdit,
                 visible: isEdit,
                 cursor: isEdit ? "grab" : "default",
-                title: isEdit ? "ドラッグで角を移動（直角を維持）" : "編集ONで角を移動できます",
+                title: isEdit
+                    ? "ドラッグで角を移動（直角を維持）。Shift+ドラッグで動いていない方の矢印を固定"
+                    : "編集ONで角を移動できます",
                 zIndex: baseZ + (isActive ? Z.MARKER_OFFSET.CORNER_ACTIVE : Z.MARKER_OFFSET.CORNER),
                 icon: {
                     path: gmaps.SymbolPath.CIRCLE,
@@ -302,7 +384,14 @@ export class RectEditor {
                 const dragged = marker.getPosition();
                 if (!dragged) return;
 
-                const newCorner: LngLat = [dragged.lng(), dragged.lat()];
+                let newCorner: LngLat = [dragged.lng(), dragged.lat()];
+                const constrain = this.opts.constrainRefPointForShiftDrag;
+                if (i === idxActive && this.shiftKeyRef && constrain) {
+                    const baseCoords = this.rectCornersFromParams(baseRect);
+                    const oldRef = baseCoords[idxActive];
+                    const constrainedRef = constrain(oldRef, newCorner, baseCoords, idxActive);
+                    if (constrainedRef) newCorner = constrainedRef;
+                }
                 const fixedOpp: LngLat =
                     (this.opts.getCurrentGeom()?.takeoffArea?.coordinates || coords)[oppIdx];
 

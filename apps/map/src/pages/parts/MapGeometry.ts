@@ -70,6 +70,10 @@ export class MapGeometry {
     // 観客エリア用のポリゴン参照
     private audienceEditor: AudienceEditor;
 
+    // Shift+ドラッグ制約用（EllipseEditor と共有）
+    private shiftKeyRef = false;
+    private keyListenerRefs: { keydown: (e: KeyboardEvent) => void; keyup: (e: KeyboardEvent) => void } | null = null;
+
     /** =========================
      *  保証表（10m刻み）: 高度 h[m] → 最大移動距離 d[m]
      *  ========================= */
@@ -155,6 +159,7 @@ export class MapGeometry {
      *  ========================= */
     constructor(getMap: () => google.maps.Map | null) {
         this.getMap = getMap;
+        this.ensureShiftKeyListeners();
 
         // EllipseEditor
         this.ellipseEditor = new EllipseEditor({
@@ -193,6 +198,9 @@ export class MapGeometry {
                     flightToAudienceDistance_m: distance,
                 });
             },
+            constrainFlightCenterForShiftDrag: (oldTo, newTo, from) =>
+                this.constrainFlightCenterForShiftDrag(oldTo, newTo, from),
+            getShiftKey: () => this.shiftKeyRef,
         });
 
         // RectEditor
@@ -223,6 +231,13 @@ export class MapGeometry {
                 // 矢印２と３の更新
                 this.updateRightAngleArrowPaths(refPoint, to);
             },
+            // Shift+ドラッグ時: depth矢印を固定し、perp矢印の長さだけ編集（基準点をperp方向にのみ移動）
+            constrainRefPointForShiftDrag: (
+                oldRef: LngLat,
+                newRef: LngLat,
+                initialTakeoffCoords?: Array<LngLat>,
+                refIdx?: number
+            ) => this.constrainRefPointForShiftDrag(oldRef, newRef, initialTakeoffCoords, refIdx),
         });
 
         // AudienceEditor（観客）
@@ -328,6 +343,19 @@ export class MapGeometry {
      *  ========================= */
     private isEditingOn() {
         return document.body.classList.contains("editing-on");
+    }
+
+    private ensureShiftKeyListeners() {
+        if (this.keyListenerRefs) return;
+        const keydown = (e: KeyboardEvent) => {
+            if (e.key === "Shift") this.shiftKeyRef = true;
+        };
+        const keyup = (e: KeyboardEvent) => {
+            if (e.key === "Shift") this.shiftKeyRef = false;
+        };
+        window.addEventListener("keydown", keydown);
+        window.addEventListener("keyup", keyup);
+        this.keyListenerRefs = { keydown, keyup };
     }
 
     /** =========================
@@ -1066,11 +1094,14 @@ export class MapGeometry {
     private computeDepthUnit(from: LngLat): { dx: number; dy: number } | null {
         const t = this.currentGeomRef?.takeoffArea;
         if (t?.type !== "rectangle" || !Array.isArray(t.coordinates) || t.coordinates.length < 4) return null;
+        return this.computeDepthUnitFromCoords(from, t.coordinates, this.clampIndex(t.coordinates.length, t.referencePointIndex));
+    }
 
-        const coords = t.coordinates;
-        const refIdx = this.clampIndex(coords.length, t.referencePointIndex);
-        const cur = coords[refIdx];
-        const next = coords[(refIdx + 1) % 4];
+    private computeDepthUnitFromCoords(from: LngLat, coords: Array<LngLat>, refIdx: number): { dx: number; dy: number } | null {
+        if (coords.length < 4) return null;
+        const idx = this.clampIndex(coords.length, refIdx);
+        const cur = coords[idx];
+        const next = coords[(idx + 1) % 4];
 
         // 中心（p0-p2 中点）
         const p0 = coords[0], p2 = coords[2];
@@ -1085,7 +1116,7 @@ export class MapGeometry {
         const rightIsNext = cross(f, eNext) < 0;
 
         // depthは「左」方向の辺
-        const leftIdx = rightIsNext ? (refIdx + 3) % 4 : (refIdx + 1) % 4;
+        const leftIdx = rightIsNext ? (idx + 3) % 4 : (idx + 1) % 4;
         const leftPt = coords[leftIdx];
 
         // from原点のローカルで depth ベクトル
@@ -1093,6 +1124,82 @@ export class MapGeometry {
         const len = Math.hypot(v.x, v.y);
         if (len < 1e-6) return null;
         return { dx: v.x / len, dy: v.y / len };
+    }
+
+    /**
+     * Shift+ドラッグ時: ドラッグ方向を判定し、動いていない方の矢印を固定する。
+     * - depth方向に多く動いている → perp矢印を固定し、depth矢印の長さだけ編集
+     * - perp方向に多く動いている → depth矢印を固定し、perp矢印の長さだけ編集
+     * @param initialTakeoffCoords 角ハンドルドラッグ時など、depth計算に使う座標（省略時はcurrentGeomRef）
+     * @returns 制約後の基準点。制約できない場合は null
+     */
+    constrainRefPointForShiftDrag(
+        oldRef: LngLat,
+        newRef: LngLat,
+        initialTakeoffCoords?: Array<LngLat>,
+        refIdx?: number
+    ): LngLat | null {
+        const d =
+            initialTakeoffCoords && typeof refIdx === "number"
+                ? this.computeDepthUnitFromCoords(oldRef, initialTakeoffCoords, refIdx)
+                : this.computeDepthUnit(oldRef);
+        if (!d) return null;
+
+        // perp単位ベクトル（depthに垂直）: depth=(dx,dy) → perp=(-dy,dx) を正規化
+        const len = Math.hypot(-d.dy, d.dx);
+        if (len < 1e-6) return null;
+        const perpDx = -d.dy / len;
+        const perpDy = d.dx / len;
+
+        // delta = newRef - oldRef をローカルXYで
+        const delta = toLocalXY(oldRef, newRef);
+        const projDepth = delta.x * d.dx + delta.y * d.dy;
+        const projPerp = delta.x * perpDx + delta.y * perpDy;
+
+        // ドラッグ方向を判定: 動いていない方の矢印を固定
+        // |projDepth| > |projPerp| → depth方向に多く動いている → perp矢印を固定 → depth方向にのみ移動
+        // それ以外 → perp方向に多く動いている → depth矢印を固定 → perp方向にのみ移動
+        const useDepthAxis = Math.abs(projDepth) > Math.abs(projPerp);
+        const constrainedXY = useDepthAxis
+            ? { x: d.dx * projDepth, y: d.dy * projDepth }
+            : { x: perpDx * projPerp, y: perpDy * projPerp };
+        return fromLocalXY(oldRef, constrainedXY.x, constrainedXY.y);
+    }
+
+    /**
+     * Shift+ドラッグ時（飛行エリア）: ドラッグ方向を判定し、動いていない方の矢印を固定する。
+     * 離発着基準点→飛行中心の矢印の制約。飛行中心の移動を depth/perp のいずれかに制限。
+     * @param oldTo ドラッグ開始時の飛行中心
+     * @param newTo 現在のドラッグ位置（飛行中心）
+     * @param from 離発着基準点（固定）
+     * @returns 制約後の飛行中心。制約できない場合は null
+     */
+    constrainFlightCenterForShiftDrag(
+        oldTo: LngLat,
+        newTo: LngLat,
+        from: LngLat
+    ): LngLat | null {
+        const t = this.currentGeomRef?.takeoffArea;
+        if (t?.type !== "rectangle" || !Array.isArray(t.coordinates) || t.coordinates.length < 4) return null;
+
+        const refIdx = this.clampIndex(t.coordinates.length, t.referencePointIndex);
+        const d = this.computeDepthUnitFromCoords(from, t.coordinates, refIdx);
+        if (!d) return null;
+
+        const len = Math.hypot(-d.dy, d.dx);
+        if (len < 1e-6) return null;
+        const perpDx = -d.dy / len;
+        const perpDy = d.dx / len;
+
+        const delta = toLocalXY(oldTo, newTo);
+        const projDepth = delta.x * d.dx + delta.y * d.dy;
+        const projPerp = delta.x * perpDx + delta.y * perpDy;
+
+        const useDepthAxis = Math.abs(projDepth) > Math.abs(projPerp);
+        const constrainedXY = useDepthAxis
+            ? { x: d.dx * projDepth, y: d.dy * projDepth }
+            : { x: perpDx * projPerp, y: perpDy * projPerp };
+        return fromLocalXY(oldTo, constrainedXY.x, constrainedXY.y);
     }
 
     // 直角の折れ点 corner を計算（②: depth平行, ③: depth垂直）
