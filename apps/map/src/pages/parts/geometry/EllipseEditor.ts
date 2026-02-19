@@ -46,12 +46,17 @@ export class EllipseEditor {
 
     // width 方向の直径ライン
     private widthDiameterLine?: google.maps.Polyline;
+    // depth 方向の直径ライン
+    private depthDiameterLine?: google.maps.Polyline;
 
     // setPaths の競合抑制
     private suppressEllipseUpdateRef = false;
 
     // Shift+ドラッグ制約用（再入防止）
     private isProcessingFlightDragRef = false;
+
+    // 画面端まで延長するため、bounds 変更時に直径線を再描画
+    private boundsListener: google.maps.MapsEventListener | null = null;
 
     constructor(opts: EllipseEditorOpts) {
         this.opts = opts;
@@ -71,6 +76,14 @@ export class EllipseEditor {
         if (this.widthDiameterLine) {
             this.widthDiameterLine.setMap(null);
             this.widthDiameterLine = undefined;
+        }
+        if (this.depthDiameterLine) {
+            this.depthDiameterLine.setMap(null);
+            this.depthDiameterLine = undefined;
+        }
+        if (this.boundsListener) {
+            google.maps.event.removeListener(this.boundsListener);
+            this.boundsListener = null;
         }
         this.suppressEllipseUpdateRef = false;
     }
@@ -214,6 +227,26 @@ export class EllipseEditor {
             Number(flight.radiusX_m) || 0,
             Number(flight.rotation_deg) || 0,
         );
+        // depth 方向の直径を描画
+        this.drawDepthDiameter(
+            [flight.center[0], flight.center[1]],
+            Number(flight.radiusY_m) || 0,
+            Number(flight.rotation_deg) || 0,
+        );
+
+        // パン・ズーム時に直径線を画面端まで再延長
+        if (this.boundsListener) {
+            google.maps.event.removeListener(this.boundsListener);
+        }
+        const map = this.opts.getMap();
+        if (map) {
+            this.boundsListener = google.maps.event.addListener(map, "bounds_changed", () => {
+                const cur = this.opts.getCurrentGeom()?.flightArea as EllipseGeom | undefined;
+                if (!cur || !this.poly) return;
+                this.drawWidthDiameter(cur.center, Number(cur.radiusX_m) || 0, Number(cur.rotation_deg) || 0);
+                this.drawDepthDiameter(cur.center, Number(cur.radiusY_m) || 0, Number(cur.rotation_deg) || 0);
+            });
+        }
 
         // 初期メトリクスは呼び出し元へ返す（以降のインタラクションは onMetrics で都度更新）
         const metrics = {
@@ -301,7 +334,8 @@ export class EllipseEditor {
 
         // width 方向の直径も追従
         this.drawWidthDiameter(center, radiusX_m, rotation_deg);
-
+        // depth 方向の直径も追従
+        this.drawDepthDiameter(center, radiusY_m, rotation_deg);
 
         // 中心変更の通知（例：矢印の追従に使用）
         this.opts.onCenterChanged?.(center);
@@ -965,6 +999,30 @@ export class EllipseEditor {
         });
     }
 
+    /** 楕円端から画面端（bounds）まで延長する距離[m]を算出。radius はその方向の半径 */
+    private getExtensionToBounds(center: LngLat, radiusFromCenter: number): number {
+        const map = this.opts.getMap();
+        const bounds = map?.getBounds();
+        if (!bounds) return 50000; // bounds が取れない場合は 50km 延長
+
+        const ne = bounds.getNorthEast();
+        const sw = bounds.getSouthWest();
+        const corners: LngLat[] = [
+            [ne.lng(), ne.lat()],
+            [ne.lng(), sw.lat()],
+            [sw.lng(), ne.lat()],
+            [sw.lng(), sw.lat()],
+        ];
+        let maxDist = 0;
+        for (const c of corners) {
+            const v = toLocalXY(center, c);
+            const len = Math.hypot(v.x, v.y);
+            if (len > maxDist) maxDist = len;
+        }
+        // 中心から bounds 角までの距離 - 半径 = 楕円端からの延長。マージン 10% 追加
+        return Math.max((maxDist - radiusFromCenter) * 1.1, 50);
+    }
+
     /** 楕円の width 方向（radiusX）の直径を描画 or 更新 */
     private drawWidthDiameter(center: LngLat, radiusX_m: number, rotation_deg: number) {
         const gmaps = this.opts.getGMaps();
@@ -981,10 +1039,11 @@ export class EllipseEditor {
         const phi = toRad(rotation_deg || 0);
         const ux = Math.cos(phi);
         const uy = Math.sin(phi);
+        const ext = this.getExtensionToBounds(center, radiusX_m);
 
-        // center ± (ux * rX, uy * rX)
-        const p1 = fromLocalXY(center, +ux * radiusX_m, +uy * radiusX_m);
-        const p2 = fromLocalXY(center, -ux * radiusX_m, -uy * radiusX_m);
+        // center ± (ux * (rX + ext), uy * (rX + ext)) で画面端まで延長
+        const p1 = fromLocalXY(center, +ux * (radiusX_m + ext), +uy * (radiusX_m + ext));
+        const p2 = fromLocalXY(center, -ux * (radiusX_m + ext), -uy * (radiusX_m + ext));
 
         const path = [
             this.opts.latLng(p1[1], p1[0]),
@@ -1022,5 +1081,50 @@ export class EllipseEditor {
             map,
         });
         this.opts.pushOverlay(this.widthDiameterLine);
+    }
+
+    /** 楕円の depth 方向（radiusY）の直径を描画 or 更新 */
+    private drawDepthDiameter(center: LngLat, radiusY_m: number, rotation_deg: number) {
+        const gmaps = this.opts.getGMaps();
+        const map = this.opts.getMap();
+        if (!map) return;
+        if (!Number.isFinite(radiusY_m) || radiusY_m <= 0) {
+            if (this.depthDiameterLine) {
+                this.depthDiameterLine.setMap(null);
+                this.depthDiameterLine = undefined;
+            }
+            return;
+        }
+
+        const phi = toRad(rotation_deg || 0);
+        const vx = -Math.sin(phi);
+        const vy = Math.cos(phi);
+        const ext = this.getExtensionToBounds(center, radiusY_m);
+
+        // center ± (vx * (rY + ext), vy * (rY + ext)) で画面端まで延長
+        const p1 = fromLocalXY(center, +vx * (radiusY_m + ext), +vy * (radiusY_m + ext));
+        const p2 = fromLocalXY(center, -vx * (radiusY_m + ext), -vy * (radiusY_m + ext));
+
+        const path = [
+            this.opts.latLng(p1[1], p1[0]),
+            this.opts.latLng(p2[1], p2[0]),
+        ];
+
+        if (this.depthDiameterLine) {
+            this.depthDiameterLine.setPath(path);
+            this.depthDiameterLine.setMap(map);
+            return;
+        }
+
+        this.depthDiameterLine = new gmaps.Polyline({
+            path,
+            strokeColor: "#00c853",
+            strokeOpacity: 1,
+            strokeWeight: 2,
+            clickable: false,
+            zIndex: Z.OVERLAY.FLIGHT + 1,
+            map,
+        });
+        this.opts.pushOverlay(this.depthDiameterLine);
     }
 }
