@@ -98,12 +98,12 @@ export class RectEditor {
         if (!t) return;
 
         if (isMeasurement) {
-            if (t.poly) t.poly.setOptions({ clickable: false, cursor: "crosshair" });
+            if (t.poly) t.poly.setOptions({ clickable: false, cursor: "crosshair" } as google.maps.PolygonOptions);
             return;
         }
 
         const isEdit = this.opts.isEditingOn();
-        if (t.poly) t.poly.setOptions({ clickable: true, cursor: isEdit ? "grab" : "default", draggable: isEdit });
+        if (t.poly) t.poly.setOptions({ clickable: true, cursor: isEdit ? "grab" : "default", draggable: isEdit } as google.maps.PolygonOptions);
         if (t.cornerMarkers) {
             t.cornerMarkers.forEach((mk) => {
                 mk.setDraggable(isEdit);

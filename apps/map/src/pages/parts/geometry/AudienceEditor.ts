@@ -48,12 +48,12 @@ export class AudienceEditor {
     syncEditingInteractivity() {
         const isMeasurement = this.opts.getMeasurementMode?.() ?? false;
         if (isMeasurement) {
-            if (this.poly) this.poly.setOptions({ clickable: false, cursor: "crosshair" });
+            if (this.poly) this.poly.setOptions({ clickable: false, cursor: "crosshair" } as google.maps.PolygonOptions);
             return;
         }
 
         const isEdit = this.opts.isEditingOn();
-        if (this.poly) this.poly.setOptions({ clickable: true, cursor: isEdit ? "grab" : "default", draggable: isEdit });
+        if (this.poly) this.poly.setOptions({ clickable: true, cursor: isEdit ? "grab" : "default", draggable: isEdit } as google.maps.PolygonOptions);
         if (this.cornerMarkers) {
             this.cornerMarkers.forEach((mk) => {
                 mk.setDraggable(isEdit);

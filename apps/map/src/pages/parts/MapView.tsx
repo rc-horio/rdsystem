@@ -2470,8 +2470,8 @@ export default function MapView({ onLoaded }: Props) {
             </button>
           )}
 
-        {/* 距離測定ボタン（常時表示） */}
-        {!measurementMode && (
+        {/* 距離測定ボタン（iframe埋め込み時は非表示） */}
+        {!measurementMode && window === window.top && (
           <button
             id="measure-distance-button"
             type="button"

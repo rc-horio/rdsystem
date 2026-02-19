@@ -96,8 +96,8 @@ export class EllipseEditor {
         const isMeasurement = this.opts.getMeasurementMode?.() ?? false;
         if (isMeasurement) {
             // 測定モード中: ポリゴンをクリック不可・十字カーソルにして地図クリックを通す
-            if (this.poly) this.poly.setOptions({ clickable: false, cursor: "crosshair" });
-            if (this.safetyPoly) this.safetyPoly.setOptions({ clickable: false, cursor: "crosshair" });
+            if (this.poly) this.poly.setOptions({ clickable: false, cursor: "crosshair" } as google.maps.PolygonOptions);
+            if (this.safetyPoly) this.safetyPoly.setOptions({ clickable: false, cursor: "crosshair" } as google.maps.PolygonOptions);
             return;
         }
 
@@ -138,7 +138,7 @@ export class EllipseEditor {
         if (this.frontLabelMarker) {
             this.frontLabelMarker.setVisible(isEdit);
         }
-        if (this.poly) this.poly.setOptions({ clickable: true, cursor: isEdit ? "grab" : "default", draggable: isEdit });
+        if (this.poly) this.poly.setOptions({ clickable: true, cursor: isEdit ? "grab" : "default", draggable: isEdit } as google.maps.PolygonOptions);
         // safetyPoly は常に非ドラッグ
 
         // 保安エリアハンドル: 編集ONかつ「新」「旧」「任」のいずれかのとき表示・ドラッグ可能
