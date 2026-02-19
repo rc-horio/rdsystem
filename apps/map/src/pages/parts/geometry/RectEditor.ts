@@ -54,7 +54,10 @@ export class RectEditor {
     private initialRefPointAtDragStart: LngLat | null = null;
     private initialTakeoffCoordsAtDragStart: Array<LngLat> | null = null;
     private isProcessingDragRef = false;
-    private keyListenerRefs: { keydown: () => void; keyup: () => void } | null = null;
+    private keyListenerRefs: {
+        keydown: (e: KeyboardEvent) => void;
+        keyup: (e: KeyboardEvent) => void;
+    } | null = null;
 
     constructor(opts: RectEditorOpts) {
         this.opts = opts;

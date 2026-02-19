@@ -67,7 +67,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     address: "",
     manager: "",
     prefecture: "",
-    droneRecord: "",
+    droneRecord: 0,
     aircraftCount: "",
     altitudeLimit: "",
     availability: "",
@@ -623,11 +623,18 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                   setMeta((p) => ({ ...p, prefecture: e.target.value }))
                 }
               />{" "}
-              <InputBox
+              <SelectBox
                 label="ドローン実績"
-                value={meta.droneRecord}
+                value={String(meta.droneRecord ?? 0)}
+                options={[
+                  { value: "0", label: "なし" },
+                  { value: "1", label: "あり" },
+                ]}
                 onChange={(e) =>
-                  setMeta((p) => ({ ...p, droneRecord: e.target.value }))
+                  setMeta((p) => ({
+                    ...p,
+                    droneRecord: Number(e.target.value),
+                  }))
                 }
               />
               <InputBox

@@ -93,7 +93,8 @@ export interface DetailMeta {
     address: string;
     manager: string;
     prefecture: string;
-    droneRecord: string;
+    /** 0=なし, 1=あり */
+    droneRecord: number;
     aircraftCount: string;
     altitudeLimit: string;
     availability: string;

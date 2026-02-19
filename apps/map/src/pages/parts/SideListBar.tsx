@@ -42,6 +42,7 @@ import {
   EV_DETAILBAR_SELECT_CANDIDATE,
   EV_GEOMETRY_REQUEST_DATA,
   EV_SIDEBAR_SET_ACTIVE,
+  EV_SIDEBAR_VISIBLE_AREAS,
   EV_DETAILBAR_RESPOND_DATA,
   EV_MAP_FOCUS_ONLY,
   EV_GEOMETRY_RESPOND_DATA,
@@ -113,21 +114,28 @@ function SideListBarBase({
   const [searchQuery, setSearchQuery] = useState("");
   // ソート種類 state
   const [sortType, setSortType] = useState<"name" | "prefecture" | "updated">("prefecture");
+  // フィルター条件 state
+  const [filterType, setFilterType] = useState<
+    "all" | "droneRecord" | "candidate"
+  >("all");
   // 都道府県情報のキャッシュ（areaUuid -> prefecture）
   const [prefectureCache, setPrefectureCache] = useState<Record<string, string>>({});
   // 更新日情報のキャッシュ（areaUuid -> updated_at）
   const [updatedAtCache, setUpdatedAtCache] = useState<Record<string, string>>({});
+  // ドローン実績のキャッシュ（areaUuid -> 0|1）
+  const [droneRecordCache, setDroneRecordCache] = useState<Record<string, number>>({});
   
-  // エリア一覧が変更されたときに都道府県情報と更新日情報を取得してキャッシュ
+  // エリア一覧が変更されたときに都道府県情報・更新日情報・ドローン実績を取得してキャッシュ
   useEffect(() => {
     const loadAreaMetadata = async () => {
       const prefectureCache: Record<string, string> = {};
       const updatedAtCache: Record<string, string> = {};
+      const droneRecordCache: Record<string, number> = {};
       const uniqueAreaUuids = new Set(
         points.map((p) => p.areaUuid).filter((uuid): uuid is string => !!uuid)
       );
       
-      // 並列で都道府県情報と更新日情報を取得
+      // 並列で都道府県情報・更新日情報・ドローン実績を取得
       await Promise.all(
         Array.from(uniqueAreaUuids).map(async (areaUuid) => {
           try {
@@ -144,6 +152,9 @@ function SideListBarBase({
             if (updatedAt) {
               updatedAtCache[areaUuid] = updatedAt;
             }
+            const v = raw?.overview?.droneRecord;
+            const droneRecord = v === 1 || v === "1" || v === "あり" ? 1 : 0;
+            droneRecordCache[areaUuid] = droneRecord;
           } catch (e) {
             // エラーは無視（都道府県情報や更新日情報がないエリアもある）
           }
@@ -152,6 +163,7 @@ function SideListBarBase({
       
       setPrefectureCache(prefectureCache);
       setUpdatedAtCache(updatedAtCache);
+      setDroneRecordCache(droneRecordCache);
     };
     
     if (points.length > 0) {
@@ -752,7 +764,7 @@ function SideListBarBase({
           address: data.meta.address ?? "",
           prefecture: data.meta.prefecture ?? "",
           manager: data.meta.manager ?? "",
-          droneRecord: data.meta.droneRecord ?? "",
+          droneRecord: data.meta.droneRecord ?? 0,
           droneCountEstimate: data.meta.aircraftCount ?? "",
           heightLimitM: data.meta.altitudeLimit ?? "",
           availability: data.meta.availability ?? "",
@@ -919,7 +931,7 @@ function SideListBarBase({
         address: infoToSave.overview?.address ?? "",
         manager: infoToSave.overview?.manager ?? "",
         prefecture: infoToSave.overview?.prefecture ?? "",
-        droneRecord: infoToSave.overview?.droneRecord ?? "",
+        droneRecord: Number(infoToSave.overview?.droneRecord ?? 0),
         aircraftCount: String(infoToSave.overview?.droneCountEstimate ?? ""),
         altitudeLimit: String(infoToSave.overview?.heightLimitM ?? ""),
         availability: infoToSave.overview?.availability ?? "",
@@ -1187,9 +1199,28 @@ function SideListBarBase({
     const q = searchQuery.trim().toLowerCase();
     let filtered = areaGroups;
     
+    // フィルター条件
+    if (filterType === "droneRecord") {
+      // ドローン実績あり
+      filtered = filtered.filter(({ indices }) => {
+        const firstIdx = indices[0];
+        const firstPoint = points[firstIdx];
+        if (!firstPoint?.areaUuid) return false;
+        return droneRecordCache[firstPoint.areaUuid] === 1;
+      });
+    } else if (filterType === "candidate") {
+      // 候補地（ドローン実績なし）
+      filtered = filtered.filter(({ indices }) => {
+        const firstIdx = indices[0];
+        const firstPoint = points[firstIdx];
+        if (!firstPoint?.areaUuid) return false;
+        return droneRecordCache[firstPoint.areaUuid] === 0;
+      });
+    }
+    
     // 検索フィルタリング
     if (q) {
-      filtered = areaGroups.filter(({ area, indices }) => {
+      filtered = filtered.filter(({ area, indices }) => {
         // 表示名（上書きがあればそれを検索対象に含める）
         const label = (areaLabelOverrides[area] ?? area).toLowerCase();
         if (label.includes(q)) return true;
@@ -1283,7 +1314,17 @@ function SideListBarBase({
     }
     
     return filtered;
-  }, [areaGroups, searchQuery, areaLabelOverrides, points, prefectureCache, updatedAtCache, sortType]);
+  }, [areaGroups, searchQuery, areaLabelOverrides, points, prefectureCache, updatedAtCache, droneRecordCache, sortType, filterType]);
+
+  // フィルタ結果を地図に通知（マーカーの表示/非表示を同期）
+  useEffect(() => {
+    const visibleAreaNames = visibleAreaGroups.map((g) => g.area);
+    window.dispatchEvent(
+      new CustomEvent(EV_SIDEBAR_VISIBLE_AREAS, {
+        detail: { visibleAreaNames },
+      })
+    );
+  }, [visibleAreaGroups]);
 
   // 更新日をグループ化するためのヘルパー関数
   const getUpdatedAtGroup = (updatedAt: string): string => {
@@ -1727,9 +1768,9 @@ function SideListBarBase({
             />
           </div>
           <div id="searchHint" aria-live="polite" />
-          {/* ソート選択 */}
-          <div className="search-sort-wrapper" style={{ marginTop: "8px" }}>
-            <label htmlFor="sortSelect" className="search-sort-label">
+          {/* ソート・フィルター（上下左右・幅を揃えて配置） */}
+          <div className="search-sort-filter-row" style={{ marginTop: "8px" }}>
+            <label htmlFor="sortSelect" className="search-sort-filter-label">
               <span className="search-sort-icon" aria-hidden="true">⇅</span>
               ソート
             </label>
@@ -1744,6 +1785,37 @@ function SideListBarBase({
               <option value="updated">更新日</option>
               <option value="name">エリア名</option>
             </select>
+            <label htmlFor="filterSelect" className="search-sort-filter-label">
+              <span className="search-sort-icon" aria-hidden="true">▾</span>
+              フィルター
+            </label>
+            <select
+              id="filterSelect"
+              value={filterType}
+              onChange={(e) =>
+                setFilterType(e.target.value as "all" | "droneRecord" | "candidate")
+              }
+              className="search-sort-select"
+              aria-label="フィルター条件を選択"
+            >
+              <option value="all">すべて</option>
+              <option value="droneRecord">実施済み</option>
+              <option value="candidate">候補地</option>
+            </select>
+          </div>
+          <div className="search-clear-wrapper">
+            <button
+              type="button"
+              className="search-clear-button"
+              onClick={() => {
+                setSearchQuery("");
+                setSortType("prefecture");
+                setFilterType("all");
+              }}
+              aria-label="検索・ソート・フィルターをクリア"
+            >
+              検索条件クリア
+            </button>
           </div>
         </div>
       )}

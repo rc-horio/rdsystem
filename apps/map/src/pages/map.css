@@ -194,13 +194,14 @@ body,
   border-color: rgba(255, 255, 255, 0.55);
 }
 
-.search-sort-wrapper {
-  display: flex;
-  align-items: center;
+.search-sort-filter-row {
+  display: grid;
+  grid-template-columns: 72px 130px;
   gap: 8px;
+  align-items: center;
 }
 
-.search-sort-label {
+.search-sort-filter-label {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.85);
   user-select: none;
@@ -208,7 +209,11 @@ body,
   align-items: center;
   gap: 4px;
   white-space: nowrap;
-  flex-shrink: 0;
+}
+
+.search-sort-filter-row .search-sort-select {
+  min-width: 0;
+  width: 100%;
 }
 
 .search-sort-icon {
@@ -250,6 +255,33 @@ body,
 .search-sort-select option {
   background: rgba(0, 0, 0, 0.95);
   color: #fff;
+}
+
+.search-clear-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.search-clear-button {
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.search-clear-button:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.15);
+}
+.search-clear-button:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
 }
 
 #searchHint {

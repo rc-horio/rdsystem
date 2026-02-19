@@ -341,7 +341,11 @@ function parseDetailMeta(info: any, fallbackAreaName?: string): DetailMeta {
         address: toStr(ov.address ?? ""),
         manager: toStr(ov.manager ?? ""),
         prefecture: toStr(ov.prefecture ?? fallbackAreaName ?? ""),
-        droneRecord: toStr(ov.droneRecord ?? ""),
+        droneRecord: (() => {
+          const v = ov.droneRecord;
+          if (v === 1 || v === "1" || v === "あり") return 1;
+          return 0;
+        })(),
         aircraftCount: toStr(ov.droneCountEstimate ?? ""),
         altitudeLimit: toStr(height),
         availability: toStr(ov.availability ?? ""),
@@ -649,7 +653,7 @@ export async function createNewArea(params: {
             address: params.address ?? "",
             prefecture: params.prefecture ?? "",
             manager: "",
-            droneRecord: "",
+            droneRecord: 0,
             droneCountEstimate: "",
             heightLimitM: "",
             availability: "",

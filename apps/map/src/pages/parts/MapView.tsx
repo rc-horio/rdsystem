@@ -33,6 +33,7 @@ import {
   EV_MAP_FOCUS_ONLY,
   EV_SIDEBAR_OPEN,
   EV_SIDEBAR_SET_ACTIVE,
+  EV_SIDEBAR_VISIBLE_AREAS,
   MARKERS_HIDE_ZOOM,
   DEFAULTS,
   EV_PROJECT_MODAL_OPEN,
@@ -1445,14 +1446,27 @@ export default function MapView({ onLoaded }: Props) {
     geomRef.current?.clearOverlays();
   };
 
-  /** ズームに応じてマーカーの可視状態を同期 */
+  /** フィルタで表示するエリア名（null = 全表示） */
+  const visibleAreaNamesRef = useRef<Set<string> | null>(null);
+
+  /** ズーム・フィルタに応じてマーカーの可視状態を同期 */
   const syncMarkersVisibilityForZoom = () => {
     const map = mapRef.current;
     if (!map) return;
     const z = map.getZoom() ?? 0;
-    const hide = z >= MARKERS_HIDE_ZOOM;
-    markersRef.current.forEach((m) => m.setVisible(!hide));
-    if (hide) {
+    const hideByZoom = z >= MARKERS_HIDE_ZOOM;
+    const visibleAreas = visibleAreaNamesRef.current;
+
+    markersRef.current.forEach((m) => {
+      const p = pointByMarkerRef.current.get(m);
+      const areaKey = p?.areaName?.trim() || AREA_NAME_NONE;
+      const visibleByFilter =
+        !visibleAreas || visibleAreas.has(areaKey);
+      const visible = !hideByZoom && visibleByFilter;
+      m.setVisible(visible);
+    });
+
+    if (hideByZoom) {
       // マーカーを隠すときは InfoWindow も閉じる
       infoRef.current?.close();
     }
@@ -2048,6 +2062,28 @@ export default function MapView({ onLoaded }: Props) {
       window.removeEventListener(
         EV_MAP_FOCUS_ONLY,
         onFocusOnly as EventListener
+      );
+  }, []);
+
+  // サイドバーのフィルタ結果：表示するエリアのマーカーのみ表示
+  useEffect(() => {
+    const onVisibleAreas = (e: Event) => {
+      const d = (e as CustomEvent<{ visibleAreaNames?: string[] }>).detail;
+      const names = d?.visibleAreaNames;
+      visibleAreaNamesRef.current = Array.isArray(names)
+        ? new Set(names)
+        : null;
+      syncMarkersVisibilityForZoom();
+    };
+
+    window.addEventListener(
+      EV_SIDEBAR_VISIBLE_AREAS,
+      onVisibleAreas as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        EV_SIDEBAR_VISIBLE_AREAS,
+        onVisibleAreas as EventListener
       );
   }, []);
 
