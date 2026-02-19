@@ -172,6 +172,10 @@ export class MapGeometry {
                 this.currentGeomRef = g;
             },
             getSafetyBuffer: () => Number(this.currentGeomRef?.safetyArea?.buffer_m) || 0,
+            getSafetyMode: () => {
+                const mode = (this.currentGeomRef as any)?.safetyArea?.mode;
+                return mode === "old" ? "old" : mode === "custom" ? "custom" : "new";
+            },
             pushOverlay: (ov) => this.overlaysRef.push(ov),
             onMetrics: (m) => {
                 // 距離も計算してメトリクスに追加
@@ -197,6 +201,14 @@ export class MapGeometry {
                 setDetailBarMetrics({
                     flightToAudienceDistance_m: distance,
                 });
+            },
+            onSafetyBufferChanged: (buffer_m) => {
+                setDetailBarMetrics({
+                    safetyMode: "custom",
+                    buffer_m,
+                    safetyDistance_m: buffer_m,
+                    safetyCustom_m: buffer_m,
+                } as any);
             },
             constrainFlightCenterForShiftDrag: (oldTo, newTo, from) =>
                 this.constrainFlightCenterForShiftDrag(oldTo, newTo, from),
@@ -856,6 +868,7 @@ export class MapGeometry {
             }
 
             setDetailBarMetrics(metrics);
+            this.syncEditingInteractivity();
         }
     };
 

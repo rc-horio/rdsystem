@@ -914,13 +914,31 @@ function SideListBarBase({
           await applyProjectGeometryFromPayload(geomPayload);
         } else if (geomPayload.geometry || geomPayload.deleted) {
           // （3-3）候補エリアの geometry を保存 or 削除
-          await applyCandidateGeometryFromPayload({
-            payload: geomPayload,
-            areaUuidToUse: currentAreaUuidRef.current ?? areaUuid,
-            candidateIndex: currentCandidateIndexRef.current,
-            candidateTitle: currentCandidateTitleRef.current,
-            activeAreaName: activeKey,
-          });
+          // 候補リストから削除済みの index に対してはスキップ（上書きで削除が復活するのを防ぐ）
+          const savedCandidateCount = Array.isArray(infoToSave.candidate)
+            ? infoToSave.candidate.length
+            : 0;
+          const candIdx = currentCandidateIndexRef.current;
+          if (
+            typeof candIdx === "number" &&
+            candIdx >= 0 &&
+            candIdx < savedCandidateCount
+          ) {
+            await applyCandidateGeometryFromPayload({
+              payload: geomPayload,
+              areaUuidToUse: currentAreaUuidRef.current ?? areaUuid,
+              candidateIndex: candIdx,
+              candidateTitle: currentCandidateTitleRef.current,
+              activeAreaName: activeKey,
+            });
+          } else if (import.meta.env.DEV && (geomPayload.geometry || geomPayload.deleted)) {
+            console.debug(
+              "[save] skip applyCandidateGeometryFromPayload: candidateIndex",
+              candIdx,
+              "out of range for saved list length",
+              savedCandidateCount
+            );
+          }
         }
       }
 

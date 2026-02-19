@@ -16,11 +16,13 @@ export type EllipseEditorOpts = {
     getCurrentGeom: () => Geometry | null;
     setCurrentGeom: (g: Geometry) => void;
     getSafetyBuffer: () => number;
+    getSafetyMode?: () => "new" | "old" | "custom";
 
     // Side-effects
     pushOverlay: (ov: google.maps.Polygon | google.maps.Marker | google.maps.Polyline | google.maps.Circle) => void;
     onMetrics: (metrics: Partial<{ flightWidth_m: number; flightDepth_m: number; flightRotation_deg?: number }>) => void;
     onCenterChanged?: (center: LngLat) => void; // 例: 矢印更新などに使用
+    onSafetyBufferChanged?: (buffer_m: number) => void; // 保安距離を図形編集で変更したとき
 
     // Shift+ドラッグ時: 飛行中心の移動を制約（動いていない方の矢印を固定）
     constrainFlightCenterForShiftDrag?: (oldTo: LngLat, newTo: LngLat, from: LngLat) => LngLat | null;
@@ -39,6 +41,8 @@ export class EllipseEditor {
     private ryMarker?: google.maps.Marker | null;
     private rotateMarker?: google.maps.Marker | null;
     private frontLabelMarker?: google.maps.Marker | null;
+    private safetyRxMarker?: google.maps.Marker | null;
+    private safetyRyMarker?: google.maps.Marker | null;
 
     // width 方向の直径ライン
     private widthDiameterLine?: google.maps.Polyline;
@@ -62,6 +66,8 @@ export class EllipseEditor {
         this.ryMarker = undefined;
         this.rotateMarker = undefined;
         this.frontLabelMarker = undefined;
+        this.safetyRxMarker = undefined;
+        this.safetyRyMarker = undefined;
         if (this.widthDiameterLine) {
             this.widthDiameterLine.setMap(null);
             this.widthDiameterLine = undefined;
@@ -110,6 +116,34 @@ export class EllipseEditor {
         }
         if (this.poly) this.poly.setDraggable(isEdit);
         // safetyPoly は常に非ドラッグ
+
+        // 保安エリアハンドル: 編集ONかつ「新」「旧」「任」のいずれかのとき表示・ドラッグ可能
+        const safetyMode = this.opts.getSafetyMode?.();
+        const showSafetyHandles = isEdit && (safetyMode === "custom" || safetyMode === "new" || safetyMode === "old");
+        if (this.safetyRxMarker) {
+            this.safetyRxMarker.setDraggable(showSafetyHandles);
+            this.safetyRxMarker.setVisible(showSafetyHandles);
+            const safetyTitle =
+                safetyMode === "custom" ? "ドラッグで保安距離を変更" :
+                safetyMode === "new" || safetyMode === "old" ? "ドラッグで飛行エリアを変更" :
+                "編集ONで変更できます";
+            this.safetyRxMarker.setOptions({
+                cursor: showSafetyHandles ? "ew-resize" : "default",
+                title: showSafetyHandles ? safetyTitle : "編集ONで変更できます",
+            });
+        }
+        if (this.safetyRyMarker) {
+            this.safetyRyMarker.setDraggable(showSafetyHandles);
+            this.safetyRyMarker.setVisible(showSafetyHandles);
+            const safetyTitle =
+                safetyMode === "custom" ? "ドラッグで保安距離を変更" :
+                safetyMode === "new" || safetyMode === "old" ? "ドラッグで飛行エリアを変更" :
+                "編集ONで変更できます";
+            this.safetyRyMarker.setOptions({
+                cursor: showSafetyHandles ? "ns-resize" : "default",
+                title: showSafetyHandles ? safetyTitle : "編集ONで変更できます",
+            });
+        }
     }
 
     /** ジオメトリから楕円を描画し、bounds を拡張。初期メトリクスを返す */
@@ -169,6 +203,9 @@ export class EllipseEditor {
             this.safetyPoly = safety;
             this.opts.pushOverlay(safety);
             safety.getPath().forEach((p) => bounds.extend(p));
+
+            // 保安エリアハンドル（「任」モード時のみ編集ONで表示）
+            this.drawSafetyBufferHandles(flight, buffer);
         }
 
         // width 方向の直径を描画
@@ -188,7 +225,7 @@ export class EllipseEditor {
     }
 
     /** 外部（パネル入力など）から楕円表示を更新したいときに呼ぶ */
-    updateOverlays(center: LngLat, radiusX_m: number, radiusY_m: number, rotation_deg: number, opts?: { skipMetrics?: boolean }) {
+    updateOverlays(center: LngLat, radiusX_m: number, radiusY_m: number, rotation_deg: number, opts?: { skipMetrics?: boolean; bufferOverride?: number }) {
         if (!this.poly) return;
 
         const centerLL = this.opts.latLng(center[1], center[0]);
@@ -196,7 +233,7 @@ export class EllipseEditor {
         if (!this.suppressEllipseUpdateRef) this.poly.setPaths(path);
 
         // === 保安エリア追従（buffer_m） ===
-        const buffer = Number(this.opts.getSafetyBuffer()) || 0;
+        const buffer = opts?.bufferOverride ?? (Number(this.opts.getSafetyBuffer()) || 0);
 
         // safetyPoly が未生成でも、Geometry が safetyArea=ellipse なら作る
         if (!this.safetyPoly && this.opts.getCurrentGeom()?.safetyArea?.type === "ellipse") {
@@ -242,6 +279,12 @@ export class EllipseEditor {
             if (this.ryMarker) this.ryMarker.setPosition(this.opts.latLng(ryP[1], ryP[0]));
             if (this.rotateMarker) this.rotateMarker.setPosition(this.opts.latLng(rotP[1], rotP[0]));
             if (this.frontLabelMarker) this.frontLabelMarker.setPosition(this.opts.latLng(frontLabelP[1], frontLabelP[0]));
+
+            // 保安エリアハンドル位置の同期（X/Y方向）
+            const safetyRxP = fromLocalXY(center, ux * (radiusX_m + buffer), uy * (radiusX_m + buffer));
+            const safetyRyP = fromLocalXY(center, vx * (radiusY_m + buffer), vy * (radiusY_m + buffer));
+            if (this.safetyRxMarker) this.safetyRxMarker.setPosition(this.opts.latLng(safetyRxP[1], safetyRxP[0]));
+            if (this.safetyRyMarker) this.safetyRyMarker.setPosition(this.opts.latLng(safetyRyP[1], safetyRyP[0]));
         }
 
         // メトリクス更新（幅/奥行き/角度）- パネルからの更新時はスキップ
@@ -633,6 +676,207 @@ export class EllipseEditor {
         });
         this.frontLabelMarker = frontLabelMarker;
         this.opts.pushOverlay(frontLabelMarker);
+    }
+
+    /** 保安エリアの編集ハンドルを描画（「新」「旧」「任」で表示。「任」はbuffer変更、「新」「旧」は飛行エリア変更。X/Y方向） */
+    private drawSafetyBufferHandles(f: EllipseGeom, buffer: number) {
+        const gmaps = this.opts.getGMaps();
+        const map = this.opts.getMap()!;
+        const phi = toRad(f.rotation_deg || 0);
+        const ux = Math.cos(phi), uy = Math.sin(phi);
+        const vx = -Math.sin(phi), vy = Math.cos(phi);
+
+        const place = (dx: number, dy: number) => {
+            const p = fromLocalXY(f.center, dx, dy);
+            return this.opts.latLng(p[1], p[0]);
+        };
+
+        const rx = Number(f.radiusX_m) || 0;
+        const ry = Number(f.radiusY_m) || 0;
+        const safetyRxPos = place(ux * (rx + buffer), uy * (rx + buffer));
+        const safetyRyPos = place(vx * (ry + buffer), vy * (ry + buffer));
+
+        const safetyMode = this.opts.getSafetyMode?.();
+        const showSafetyHandles = this.opts.isEditingOn() && (safetyMode === "custom" || safetyMode === "new" || safetyMode === "old");
+        const baseZ = markerBase(gmaps);
+
+        const safetyTitle =
+            safetyMode === "custom" ? "ドラッグで保安距離を変更" :
+            safetyMode === "new" || safetyMode === "old" ? "ドラッグで飛行エリアを変更" :
+            "編集ONで変更できます";
+        const safetyIcon = {
+            path: gmaps.SymbolPath.CIRCLE,
+            scale: 5,
+            fillColor: "#00c853",
+            fillOpacity: 1,
+            strokeColor: "#000000",
+            strokeWeight: 1.5,
+        } as google.maps.Symbol;
+
+        const safetyRxMarker = new gmaps.Marker({
+            position: safetyRxPos,
+            draggable: showSafetyHandles,
+            visible: showSafetyHandles,
+            title: showSafetyHandles ? safetyTitle : "編集ONで変更できます",
+            cursor: showSafetyHandles ? "ew-resize" : "default",
+            icon: safetyIcon,
+            zIndex: baseZ + Z.MARKER_OFFSET.RADIUS - 1,
+            map,
+        });
+
+        const safetyRyMarker = new gmaps.Marker({
+            position: safetyRyPos,
+            draggable: showSafetyHandles,
+            visible: showSafetyHandles,
+            title: showSafetyHandles ? safetyTitle : "編集ONで変更できます",
+            cursor: showSafetyHandles ? "ns-resize" : "default",
+            icon: safetyIcon,
+            zIndex: baseZ + Z.MARKER_OFFSET.RADIUS - 1,
+            map,
+        });
+
+        const dragSafetyRx = () => {
+            if (!this.opts.isEditingOn()) return;
+            const cur = this.opts.getCurrentGeom()?.flightArea as EllipseGeom | undefined;
+            if (!cur) return;
+            const pos = safetyRxMarker.getPosition();
+            if (!pos) return;
+            const v = toLocalXY(cur.center, [pos.lng(), pos.lat()]);
+            const u = { x: Math.cos(toRad(cur.rotation_deg || 0)), y: Math.sin(toRad(cur.rotation_deg || 0)) };
+            const proj = v.x * u.x + v.y * u.y;
+            const safetyRadiusX = Math.abs(proj);
+            const mode = this.opts.getSafetyMode?.();
+
+            if (mode === "custom") {
+                // 「任」: buffer_m を変更、飛行エリアは固定
+                const newBuffer = Math.max(0, safetyRadiusX - (Number(cur.radiusX_m) || 0));
+                this.updateOverlays(cur.center, cur.radiusX_m, cur.radiusY_m, cur.rotation_deg || 0, { skipMetrics: true, bufferOverride: newBuffer });
+                this.opts.onSafetyBufferChanged?.(newBuffer);
+            } else if (mode === "new" || mode === "old") {
+                // 「新」「旧」: buffer は定数、飛行エリアの radiusX を変更
+                const buffer = Number(this.opts.getSafetyBuffer()) || 0;
+                const newRadiusX = Math.max(0.1, safetyRadiusX - buffer);
+                this.updateOverlays(cur.center, newRadiusX, cur.radiusY_m, cur.rotation_deg || 0, { skipMetrics: true });
+                this.opts.onMetrics({
+                    flightWidth_m: newRadiusX * 2,
+                    flightDepth_m: (Number(cur.radiusY_m) || 0) * 2,
+                    flightRotation_deg: Math.round(cur.rotation_deg || 0),
+                });
+            }
+        };
+
+        const endSafetyRx = () => {
+            if (!this.opts.isEditingOn()) return;
+            const cur = this.opts.getCurrentGeom()?.flightArea as EllipseGeom | undefined;
+            const geom = this.opts.getCurrentGeom();
+            if (!cur || !geom?.safetyArea) return;
+            const pos = safetyRxMarker.getPosition();
+            if (!pos) return;
+            const v = toLocalXY(cur.center, [pos.lng(), pos.lat()]);
+            const u = { x: Math.cos(toRad(cur.rotation_deg || 0)), y: Math.sin(toRad(cur.rotation_deg || 0)) };
+            const proj = v.x * u.x + v.y * u.y;
+            const safetyRadiusX = Math.abs(proj);
+            const mode = this.opts.getSafetyMode?.();
+
+            if (mode === "custom") {
+                const newBuffer = Math.max(0, safetyRadiusX - (Number(cur.radiusX_m) || 0));
+                const next = {
+                    ...geom,
+                    safetyArea: { ...geom.safetyArea, type: "ellipse" as const, mode: "custom" as const, buffer_m: newBuffer },
+                } as Geometry;
+                this.opts.setCurrentGeom(next);
+                this.opts.onSafetyBufferChanged?.(newBuffer);
+            } else if (mode === "new" || mode === "old") {
+                const buffer = Number(this.opts.getSafetyBuffer()) || 0;
+                const newRadiusX = Math.max(0.1, safetyRadiusX - buffer);
+                const next = {
+                    ...geom,
+                    flightArea: { ...cur, radiusX_m: newRadiusX },
+                } as Geometry;
+                this.opts.setCurrentGeom(next);
+                this.opts.onMetrics({
+                    flightWidth_m: newRadiusX * 2,
+                    flightDepth_m: (Number(cur.radiusY_m) || 0) * 2,
+                    flightRotation_deg: Math.round(cur.rotation_deg || 0),
+                });
+            }
+        };
+
+        const dragSafetyRy = () => {
+            if (!this.opts.isEditingOn()) return;
+            const cur = this.opts.getCurrentGeom()?.flightArea as EllipseGeom | undefined;
+            if (!cur) return;
+            const pos = safetyRyMarker.getPosition();
+            if (!pos) return;
+            const v = toLocalXY(cur.center, [pos.lng(), pos.lat()]);
+            const w = { x: -Math.sin(toRad(cur.rotation_deg || 0)), y: Math.cos(toRad(cur.rotation_deg || 0)) };
+            const proj = v.x * w.x + v.y * w.y;
+            const safetyRadiusY = Math.abs(proj);
+            const mode = this.opts.getSafetyMode?.();
+
+            if (mode === "custom") {
+                const newBuffer = Math.max(0, safetyRadiusY - (Number(cur.radiusY_m) || 0));
+                this.updateOverlays(cur.center, cur.radiusX_m, cur.radiusY_m, cur.rotation_deg || 0, { skipMetrics: true, bufferOverride: newBuffer });
+                this.opts.onSafetyBufferChanged?.(newBuffer);
+            } else if (mode === "new" || mode === "old") {
+                const buf = Number(this.opts.getSafetyBuffer()) || 0;
+                const newRadiusY = Math.max(0.1, safetyRadiusY - buf);
+                this.updateOverlays(cur.center, cur.radiusX_m, newRadiusY, cur.rotation_deg || 0, { skipMetrics: true });
+                this.opts.onMetrics({
+                    flightWidth_m: (Number(cur.radiusX_m) || 0) * 2,
+                    flightDepth_m: newRadiusY * 2,
+                    flightRotation_deg: Math.round(cur.rotation_deg || 0),
+                });
+            }
+        };
+
+        const endSafetyRy = () => {
+            if (!this.opts.isEditingOn()) return;
+            const cur = this.opts.getCurrentGeom()?.flightArea as EllipseGeom | undefined;
+            const geom = this.opts.getCurrentGeom();
+            if (!cur || !geom?.safetyArea) return;
+            const pos = safetyRyMarker.getPosition();
+            if (!pos) return;
+            const v = toLocalXY(cur.center, [pos.lng(), pos.lat()]);
+            const w = { x: -Math.sin(toRad(cur.rotation_deg || 0)), y: Math.cos(toRad(cur.rotation_deg || 0)) };
+            const proj = v.x * w.x + v.y * w.y;
+            const safetyRadiusY = Math.abs(proj);
+            const mode = this.opts.getSafetyMode?.();
+
+            if (mode === "custom") {
+                const newBuffer = Math.max(0, safetyRadiusY - (Number(cur.radiusY_m) || 0));
+                const next = {
+                    ...geom,
+                    safetyArea: { ...geom.safetyArea, type: "ellipse" as const, mode: "custom" as const, buffer_m: newBuffer },
+                } as Geometry;
+                this.opts.setCurrentGeom(next);
+                this.opts.onSafetyBufferChanged?.(newBuffer);
+            } else if (mode === "new" || mode === "old") {
+                const buf = Number(this.opts.getSafetyBuffer()) || 0;
+                const newRadiusY = Math.max(0.1, safetyRadiusY - buf);
+                const next = {
+                    ...geom,
+                    flightArea: { ...cur, radiusY_m: newRadiusY },
+                } as Geometry;
+                this.opts.setCurrentGeom(next);
+                this.opts.onMetrics({
+                    flightWidth_m: (Number(cur.radiusX_m) || 0) * 2,
+                    flightDepth_m: newRadiusY * 2,
+                    flightRotation_deg: Math.round(cur.rotation_deg || 0),
+                });
+            }
+        };
+
+        safetyRxMarker.addListener("drag", dragSafetyRx);
+        safetyRxMarker.addListener("dragend", endSafetyRx);
+
+        safetyRyMarker.addListener("drag", dragSafetyRy);
+        safetyRyMarker.addListener("dragend", endSafetyRy);
+
+        this.safetyRxMarker = safetyRxMarker;
+        this.safetyRyMarker = safetyRyMarker;
+        this.opts.pushOverlay(safetyRxMarker);
+        this.opts.pushOverlay(safetyRyMarker);
     }
 
     private clampIndex(len: number, idx?: number) {
