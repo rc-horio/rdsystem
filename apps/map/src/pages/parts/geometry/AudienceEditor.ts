@@ -17,6 +17,9 @@ export type AudienceEditorOpts = {
     // Side-effects
     pushOverlay: (ov: google.maps.Polygon | google.maps.Marker | google.maps.Polyline | google.maps.Circle) => void;
     onMetrics: (metrics: Partial<{ spectatorWidth_m: number; spectatorDepth_m: number }>) => void;
+
+    // 距離測定モード中はオーバーレイをクリック不可・十字カーソルにする
+    getMeasurementMode?: () => boolean;
 };
 
 export class AudienceEditor {
@@ -43,8 +46,14 @@ export class AudienceEditor {
 
     /** 編集ON/OFFの反映（ドラッグ可否やカーソル・タイトル） */
     syncEditingInteractivity() {
+        const isMeasurement = this.opts.getMeasurementMode?.() ?? false;
+        if (isMeasurement) {
+            if (this.poly) this.poly.setOptions({ clickable: false, cursor: "crosshair" });
+            return;
+        }
+
         const isEdit = this.opts.isEditingOn();
-        if (this.poly) this.poly.setDraggable(isEdit);
+        if (this.poly) this.poly.setOptions({ clickable: true, cursor: isEdit ? "grab" : "default", draggable: isEdit });
         if (this.cornerMarkers) {
             this.cornerMarkers.forEach((mk) => {
                 mk.setDraggable(isEdit);

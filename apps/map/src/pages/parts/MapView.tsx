@@ -7,6 +7,7 @@ import {
   useDraggableMetricsPanel,
   useEditableBodyClass,
   useAddAreaMode,
+  useMeasurementMode,
   useScheduleSection,
   useCandidateSection,
 } from "@/components";
@@ -74,6 +75,7 @@ export default function MapView({ onLoaded }: Props) {
   const currentCandidateIndexRef = useRef<number | null>(null);
   const currentCandidateTitleRef = useRef<string | undefined>(undefined);
 
+  const [mapReady, setMapReady] = useState(false);
   const [showCreateGeomCta, setShowCreateGeomCta] = useState(false);
   const [isSelected, setIsSelected] = useState(false);
   // 「どのセクション由来の選択か」を保持（案件 or 候補）
@@ -938,11 +940,26 @@ export default function MapView({ onLoaded }: Props) {
     resetDraft,
   } = useAddAreaMode(mapRef);
 
+  const {
+    measurementMode,
+    points: measurementPoints,
+    totalDistance_m,
+    previewDistance_m,
+    cancelMeasurementMode,
+    clearPoints: clearMeasurementPoints,
+  } = useMeasurementMode(mapRef, mapReady);
+
   // エリア追加モードの現在値を参照するための ref
   const addingAreaModeRef = useRef(addingAreaMode);
   useEffect(() => {
     addingAreaModeRef.current = addingAreaMode;
   }, [addingAreaMode]);
+
+  // 測定モードの現在値を参照するための ref
+  const measurementModeRef = useRef(measurementMode);
+  useEffect(() => {
+    measurementModeRef.current = measurementMode;
+  }, [measurementMode]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -1708,6 +1725,11 @@ export default function MapView({ onLoaded }: Props) {
           return;
         }
 
+        // 測定モード中ならマーカー選択は行わない
+        if (measurementModeRef.current) {
+          return;
+        }
+
         // 通常モード時のみ、マーカー選択処理を実行
         selectMarker(marker, p);
       });
@@ -1946,6 +1968,7 @@ export default function MapView({ onLoaded }: Props) {
 
       // Geometry controller
       mapRef.current = map;
+      setMapReady(true);
       // デバッグ用に参照を公開（必要になったら削除）
       (window as any).__RD_MAP__ = map;
       infoRef.current = new gmaps.InfoWindow();
@@ -1969,7 +1992,9 @@ export default function MapView({ onLoaded }: Props) {
         infoRef.current?.close();
       });
 
-      geomRef.current = new MapGeometry(() => mapRef.current);
+      geomRef.current = new MapGeometry(() => mapRef.current, {
+        getMeasurementMode: () => measurementModeRef.current,
+      });
 
       // ズーム変更でマーカーの可視状態を更新
       zoomListenerRef.current = map.addListener("zoom_changed", () => {
@@ -2172,6 +2197,46 @@ export default function MapView({ onLoaded }: Props) {
     };
   }, [editable, addingAreaMode, cancelAddMode]);
 
+  // 測定モード中に、マップ・ヒント以外がクリックされたらモード解除
+  useEffect(() => {
+    const handleDocumentClickForMeasurement = (e: MouseEvent) => {
+      if (!measurementModeRef.current) return;
+
+      const target = e.target as Node | null;
+      const mapEl = mapDivRef.current;
+      const hintLayer = document.querySelector(".measurement-hint-layer");
+
+      const clickedInsideMap = !!(mapEl && target && mapEl.contains(target));
+      const clickedInsideHint = !!(
+        hintLayer &&
+        target &&
+        hintLayer.contains(target)
+      );
+
+      if (!clickedInsideMap && !clickedInsideHint) {
+        cancelMeasurementMode();
+      }
+    };
+
+    document.addEventListener(
+      "click",
+      handleDocumentClickForMeasurement,
+      true
+    );
+    return () => {
+      document.removeEventListener(
+        "click",
+        handleDocumentClickForMeasurement,
+        true
+      );
+    };
+  }, [measurementMode, cancelMeasurementMode]);
+
+  // 測定モード切替時にジオメトリオーバーレイのクリック可否・カーソルを更新
+  useEffect(() => {
+    geomRef.current?.syncInteractivity();
+  }, [measurementMode]);
+
   // 選択状態を表示
   useEffect(() => {
     if (isSelected) {
@@ -2325,6 +2390,50 @@ export default function MapView({ onLoaded }: Props) {
           </div>
         </div>
       )}
+
+      {/* 測定モード中のヒント */}
+      {measurementMode && (
+        <div className="measurement-hint-layer add-area-hint-layer">
+          <div className="add-area-hint measurement-hint" aria-live="polite">
+            <span className="add-area-hint__text">
+              計測モード
+              <br />
+              {(
+                (measurementPoints?.length >= 2 && Number.isFinite(totalDistance_m)) ||
+                (previewDistance_m ?? 0) > 0
+              ) ? (
+                <>
+                  合計: {Math.round(totalDistance_m ?? 0)}m
+                  {(previewDistance_m ?? 0) > 0 && (
+                    <>
+                      <br />
+                      (+ {previewDistance_m}m)
+                    </>
+                  )}
+                </>
+              ) : null}
+            </span>
+            <div className="measurement-hint__actions">
+              <button
+                type="button"
+                className="add-area-hint__cancel"
+                onClick={clearMeasurementPoints}
+                disabled={(measurementPoints?.length ?? 0) < 2}
+              >
+                クリア
+              </button>
+              <button
+                type="button"
+                className="add-area-hint__cancel measurement-hint__complete"
+                onClick={cancelMeasurementMode}
+              >
+                完了
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div id="controls" className="cta-overlay">
         {/* 案件情報セクションのときだけ CTA を表示 */}
         {editable &&
@@ -2360,6 +2469,21 @@ export default function MapView({ onLoaded }: Props) {
               エリア情報を削除する
             </button>
           )}
+
+        {/* 距離測定ボタン（常時表示） */}
+        {!measurementMode && (
+          <button
+            id="measure-distance-button"
+            type="button"
+            className="measure-distance-button"
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent("map:start-measurement"));
+            }}
+            aria-label="距離を測る"
+          >
+            距離を測る
+          </button>
+        )}
       </div>
       <AddAreaModal
         open={editable && !!newAreaDraft}

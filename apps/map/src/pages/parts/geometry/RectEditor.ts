@@ -32,6 +32,9 @@ export type RectEditorOpts = {
         initialTakeoffCoords?: Array<LngLat>,
         refIdx?: number
     ) => LngLat | null;
+
+    // 距離測定モード中はオーバーレイをクリック不可・十字カーソルにする
+    getMeasurementMode?: () => boolean;
 };
 
 export class RectEditor {
@@ -90,11 +93,17 @@ export class RectEditor {
 
     /** 編集ON/OFFの反映（ドラッグ可否やカーソル・タイトル） */
     syncEditingInteractivity() {
-        const isEdit = this.opts.isEditingOn();
+        const isMeasurement = this.opts.getMeasurementMode?.() ?? false;
         const t = this.takeoffEditRef;
         if (!t) return;
 
-        if (t.poly) t.poly.setDraggable(isEdit);
+        if (isMeasurement) {
+            if (t.poly) t.poly.setOptions({ clickable: false, cursor: "crosshair" });
+            return;
+        }
+
+        const isEdit = this.opts.isEditingOn();
+        if (t.poly) t.poly.setOptions({ clickable: true, cursor: isEdit ? "grab" : "default", draggable: isEdit });
         if (t.cornerMarkers) {
             t.cornerMarkers.forEach((mk) => {
                 mk.setDraggable(isEdit);

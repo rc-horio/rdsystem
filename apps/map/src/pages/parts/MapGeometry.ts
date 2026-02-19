@@ -157,9 +157,13 @@ export class MapGeometry {
     /** =========================
      *  コンストラクタ
      *  ========================= */
-    constructor(getMap: () => google.maps.Map | null) {
+    constructor(
+        getMap: () => google.maps.Map | null,
+        opts?: { getMeasurementMode?: () => boolean }
+    ) {
         this.getMap = getMap;
         this.ensureShiftKeyListeners();
+        const getMeasurementMode = opts?.getMeasurementMode;
 
         // EllipseEditor
         this.ellipseEditor = new EllipseEditor({
@@ -213,6 +217,7 @@ export class MapGeometry {
             constrainFlightCenterForShiftDrag: (oldTo, newTo, from) =>
                 this.constrainFlightCenterForShiftDrag(oldTo, newTo, from),
             getShiftKey: () => this.shiftKeyRef,
+            getMeasurementMode,
         });
 
         // RectEditor
@@ -250,6 +255,7 @@ export class MapGeometry {
                 initialTakeoffCoords?: Array<LngLat>,
                 refIdx?: number
             ) => this.constrainRefPointForShiftDrag(oldRef, newRef, initialTakeoffCoords, refIdx),
+            getMeasurementMode,
         });
 
         // AudienceEditor（観客）
@@ -277,6 +283,7 @@ export class MapGeometry {
                     flightToAudienceDistance_m: distance,
                 });
             },
+            getMeasurementMode,
         });
 
         // 編集状態の監視
@@ -377,6 +384,11 @@ export class MapGeometry {
         this.rectEditor.syncEditingInteractivity();
         this.ellipseEditor.syncEditingInteractivity();
         this.audienceEditor.syncEditingInteractivity();
+    }
+
+    /** 編集・測定モードの反映（外部から呼び出し可能） */
+    syncInteractivity() {
+        this.syncEditingInteractivity();
     }
 
     /** =========================

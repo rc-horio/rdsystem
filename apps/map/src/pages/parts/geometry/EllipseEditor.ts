@@ -27,6 +27,9 @@ export type EllipseEditorOpts = {
     // Shift+ドラッグ時: 飛行中心の移動を制約（動いていない方の矢印を固定）
     constrainFlightCenterForShiftDrag?: (oldTo: LngLat, newTo: LngLat, from: LngLat) => LngLat | null;
     getShiftKey?: () => boolean;
+
+    // 距離測定モード中はオーバーレイをクリック不可・十字カーソルにする
+    getMeasurementMode?: () => boolean;
 };
 
 // 楕円編集クラス
@@ -90,6 +93,14 @@ export class EllipseEditor {
 
     /** 編集ON/OFFの反映（ドラッグ可否やカーソル・タイトル） */
     syncEditingInteractivity() {
+        const isMeasurement = this.opts.getMeasurementMode?.() ?? false;
+        if (isMeasurement) {
+            // 測定モード中: ポリゴンをクリック不可・十字カーソルにして地図クリックを通す
+            if (this.poly) this.poly.setOptions({ clickable: false, cursor: "crosshair" });
+            if (this.safetyPoly) this.safetyPoly.setOptions({ clickable: false, cursor: "crosshair" });
+            return;
+        }
+
         const isEdit = this.opts.isEditingOn();
 
         if (this.centerMarker) {
@@ -127,7 +138,7 @@ export class EllipseEditor {
         if (this.frontLabelMarker) {
             this.frontLabelMarker.setVisible(isEdit);
         }
-        if (this.poly) this.poly.setDraggable(isEdit);
+        if (this.poly) this.poly.setOptions({ clickable: true, cursor: isEdit ? "grab" : "default", draggable: isEdit });
         // safetyPoly は常に非ドラッグ
 
         // 保安エリアハンドル: 編集ONかつ「新」「旧」「任」のいずれかのとき表示・ドラッグ可能
