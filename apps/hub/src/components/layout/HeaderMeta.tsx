@@ -7,7 +7,18 @@ type Props = {
   className?: string;
 };
 
+function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString("ja-JP", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function HeaderMetaBase({ updatedAt, updatedBy, className = "" }: Props) {
+  const dateStr = updatedAt ? formatDateTime(updatedAt) : "—";
   return (
     <div
       className={clsx(
@@ -16,9 +27,9 @@ function HeaderMetaBase({ updatedAt, updatedBy, className = "" }: Props) {
       )}
     >
       <span>
-        更新日時 {updatedAt ? new Date(updatedAt).toLocaleString() : "—"}
+        最終更新 {dateStr}
+        {updatedBy?.trim() ? ` ${updatedBy.trim()}` : ""}
       </span>
-      {updatedBy ? <span>{updatedBy}</span> : null}
     </div>
   );
 }

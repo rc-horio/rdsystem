@@ -1,32 +1,10 @@
 // src/pages/HubPage/parts/TopBar.tsx
 import type { ReactNode } from "react";
 import clsx from "clsx";
-import { EditModeSwitch, SaveButton } from "@/components";
+import { EditModeSwitch, SaveButton, HeaderMeta } from "@/components";
 import { LogoButton } from "@/components";
 
-export function HeaderMeta({
-  updatedAt,
-  updatedBy,
-  className = "",
-}: {
-  updatedAt?: string | null;
-  updatedBy?: string | null;
-  className?: string;
-}) {
-  return (
-    <div
-      className={clsx(
-        "flex items-center gap-2 text-[11px] md:text-xs opacity-80",
-        className
-      )}
-    >
-      <span>
-        更新日時 {updatedAt ? new Date(updatedAt).toLocaleString() : "—"}
-      </span>
-      {updatedBy ? <span>{updatedBy}</span> : null}
-    </div>
-  );
-}
+export { HeaderMeta } from "@/components";
 
 export function TopBar({
   title,

@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { useToast } from "@/components/Toast";
-import { getAuditHeaders } from "@/lib/auditHeaders";
+import { getAuditHeaders, getUserDisplayName } from "@/lib/auditHeaders";
 import type { ScheduleDetail } from "@/features/hub/types/resource";
 import {
   buildIndexJsonFromState,
@@ -558,10 +558,12 @@ export function useHubPageState() {
 
     const currentUuid = id || projectData?.project?.uuid || "";
     const currentProjectId = projectData?.project?.id || "";
+    const displayName = await getUserDisplayName();
     const body = buildIndexJsonFromState(
       projectData,
       normalizedSchedules,
-      currentProjectId
+      currentProjectId,
+      displayName
     );
 
     if (source === "local") {
@@ -622,7 +624,8 @@ export function useHubPageState() {
       const body = buildIndexJsonFromState(
         projectData,
         schedulesAfterUpload,
-        currentProjectId
+        currentProjectId,
+        displayName
       );
 
       // ③ 既存の JSON 保存 Lambda を叩く

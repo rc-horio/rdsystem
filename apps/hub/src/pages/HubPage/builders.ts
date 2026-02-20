@@ -145,7 +145,8 @@ export function buildSchedulesFromProjectData(pd: any): ScheduleDetail[] {
 export function buildIndexJsonFromState(
   prev: any,
   schedules: ScheduleDetail[],
-  projectId?: string
+  projectId?: string,
+  updatedBy?: string
 ) {
   const getGroup = (sch: ScheduleDetail, g: string): Person[] =>
     (sch.resource?.people?.groups ?? []).find((p: PeopleGroup) => p.group === g)
@@ -168,7 +169,7 @@ export function buildIndexJsonFromState(
     id: projectId ?? prev?.project?.id ?? "",
     name: prev?.project?.name ?? prev?.event?.name ?? "（名称未設定）",
     updated_at: new Date().toISOString(),
-    updated_by: prev?.project?.updated_by ?? "",
+    updated_by: updatedBy ?? prev?.project?.updated_by ?? "",
   };
 
   const nextSchedules = (schedules ?? []).map((s) => {
