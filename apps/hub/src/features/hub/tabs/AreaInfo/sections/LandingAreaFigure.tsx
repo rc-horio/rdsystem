@@ -102,18 +102,31 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
 
               {m.canRenderFigure ? (
                 <>
-                  {/* 本体矩形 */}
-                  <rect
-                    x={m.rx}
-                    y={m.ry}
-                    width={m.rectW}
-                    height={m.rectH}
-                    stroke="#ed1b24"
-                    strokeWidth={2}
-                    strokeOpacity={0.9}
-                    fill="#ed1b24"
-                    fillOpacity={0.35}
-                  />
+                  {/* 本体（矩形 or 六角形） */}
+                  {m.polygonPoints ? (
+                    <polygon
+                      points={m.polygonPoints
+                        .map(([x, y]) => `${x},${y}`)
+                        .join(" ")}
+                      stroke="#ed1b24"
+                      strokeWidth={2}
+                      strokeOpacity={0.9}
+                      fill="#ed1b24"
+                      fillOpacity={0.35}
+                    />
+                  ) : (
+                    <rect
+                      x={m.rx}
+                      y={m.ry}
+                      width={m.rectW}
+                      height={m.rectH}
+                      stroke="#ed1b24"
+                      strokeWidth={2}
+                      strokeOpacity={0.9}
+                      fill="#ed1b24"
+                      fillOpacity={0.35}
+                    />
+                  )}
 
 
                   {/* 四隅の機体ID */}
@@ -131,7 +144,7 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
                       </text>
                       {/* TR */}
                       <text
-                        x={m.rx + m.rectW}
+                        x={m.cornerTrX}
                         y={m.ry - 8}
                         fontSize="12"
                         fill="#ffffff"

@@ -48,7 +48,16 @@ export function buildLandingFigureSvg(area: any, opts?: { theme?: Theme }) {
 
         ${m.canRenderFigure
             ? `
-            <rect
+            ${m.polygonPoints
+                ? `<polygon
+            points="${m.polygonPoints.map(([x, y]) => `${x},${y}`).join(" ")}"
+            stroke="${rectStroke}"
+            stroke-width="2"
+            stroke-opacity="0.9"
+            fill="${rectFill}"
+            fill-opacity="0.35"
+            />`
+                : `<rect
             x="${m.rx}"
             y="${m.ry}"
             width="${m.rectW}"
@@ -58,12 +67,13 @@ export function buildLandingFigureSvg(area: any, opts?: { theme?: Theme }) {
             stroke-opacity="0.9"
             fill="${rectFill}"
             fill-opacity="0.35"
-            />
+            />`
+            }
 
             ${m.corner
                 ? `
             <text x="${m.rx}" y="${m.ry - 8}" font-size="12" fill="${labelColor}" text-anchor="start">${m.corner.tl}</text>
-            <text x="${m.rx + m.rectW}" y="${m.ry - 8}" font-size="12" fill="${labelColor}" text-anchor="end">${m.corner.tr}</text>
+            <text x="${m.cornerTrX}" y="${m.ry - 8}" font-size="12" fill="${labelColor}" text-anchor="end">${m.corner.tr}</text>
             <text x="${m.rx}" y="${m.ry + m.rectH + 16}" font-size="12" fill="${labelColor}" text-anchor="start">${m.corner.bl}</text>
             <text x="${m.rx + m.rectW}" y="${m.ry + m.rectH + 16}" font-size="12" fill="${labelColor}" text-anchor="end">${m.corner.br}</text>
             `
