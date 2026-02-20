@@ -950,9 +950,12 @@ export default function MapView({ onLoaded }: Props) {
 
   const {
     measurementMode,
+    measurementType,
+    switchMeasurementType,
     points: measurementPoints,
     totalDistance_m,
     previewDistance_m,
+    dragDistance_m,
     cancelMeasurementMode,
     clearPoints: clearMeasurementPoints,
   } = useMeasurementMode(mapRef, mapReady);
@@ -2403,23 +2406,57 @@ export default function MapView({ onLoaded }: Props) {
       {measurementMode && (
         <div className="measurement-hint-layer add-area-hint-layer">
           <div className="add-area-hint measurement-hint" aria-live="polite">
+            <div className="measurement-hint__type-switch">
+              <button
+                type="button"
+                className={`measurement-hint__type-btn ${measurementType === "path" ? "measurement-hint__type-btn--active" : ""}`}
+                onClick={() => switchMeasurementType("path")}
+              >
+                パス
+              </button>
+              <button
+                type="button"
+                className={`measurement-hint__type-btn ${measurementType === "line" ? "measurement-hint__type-btn--active" : ""}`}
+                onClick={() => switchMeasurementType("line")}
+              >
+                ライン
+              </button>
+            </div>
             <span className="add-area-hint__text">
               計測モード
               <br />
-              {(
-                (measurementPoints?.length >= 2 && Number.isFinite(totalDistance_m)) ||
-                (previewDistance_m ?? 0) > 0
-              ) ? (
-                <>
-                  合計: {Math.round(totalDistance_m ?? 0)}m
-                  {(previewDistance_m ?? 0) > 0 && (
-                    <>
-                      <br />
-                      (+ {previewDistance_m}m)
-                    </>
-                  )}
-                </>
-              ) : null}
+              {measurementType === "line" ? (
+                /* ライン: 1点時はプレビュー、2点時は確定距離、ドラッグ中は dragDistance_m */
+                ((measurementPoints?.length ?? 0) >= 1 &&
+                  (dragDistance_m != null ||
+                    ((measurementPoints?.length ?? 0) >= 2 && Number.isFinite(totalDistance_m)) ||
+                    ((measurementPoints?.length ?? 0) === 1 && (previewDistance_m ?? 0) > 0))) ? (
+                  <>
+                    距離:{" "}
+                    {Math.round(
+                      dragDistance_m ??
+                        ((measurementPoints?.length ?? 0) >= 2
+                          ? (totalDistance_m ?? 0)
+                          : (previewDistance_m ?? 0))
+                    )}
+                    m
+                  </>
+                ) : null
+              ) : (
+                /* パス: 従来どおり合計＋プレビュー */
+                ((measurementPoints?.length ?? 0) >= 2 && Number.isFinite(totalDistance_m)) ||
+                (previewDistance_m ?? 0) > 0 ? (
+                  <>
+                    合計: {Math.round(totalDistance_m ?? 0)}m
+                    {(previewDistance_m ?? 0) > 0 && (
+                      <>
+                        <br />
+                        (+ {previewDistance_m}m)
+                      </>
+                    )}
+                  </>
+                ) : null
+              )}
             </span>
             <div className="measurement-hint__actions">
               <button
