@@ -12,6 +12,12 @@ const WRITE_URL =
         ? "/__catalog-write"
         : String(import.meta.env.VITE_CATALOG_WRITE_URL || "");
 
+// カタログ削除URL（開発・本番とも直接 Lambda を呼ぶ。Lambda 側で CORS 対応済み）
+const DELETE_URL = String(import.meta.env.VITE_CATALOG_DELETE_URL || "").replace(
+    /\/+$/,
+    ""
+);
+
 //　CatalogにJSONを書き込む
 async function writeJsonToCatalog(key: string, body: any): Promise<boolean> {
     if (!WRITE_URL) {
@@ -52,6 +58,50 @@ async function writeJsonToCatalog(key: string, body: any): Promise<boolean> {
         return true;
     } catch (e) {
         console.error("writeJsonToCatalog: ネットワーク/CORS等のエラー", { key, error: e });
+        return false;
+    }
+}
+
+/** カタログの S3 オブジェクトを削除する。成功なら true */
+async function deleteFromCatalog(key: string): Promise<boolean> {
+    if (!DELETE_URL) {
+        console.error("VITE_CATALOG_DELETE_URL is not set");
+        return false;
+    }
+    if (!key.startsWith("catalog/v1/")) {
+        console.error("deleteFromCatalog: key must start with catalog/v1/", { key });
+        return false;
+    }
+    try {
+        const auditHeaders = await getAuditHeaders();
+        const res = await fetch(DELETE_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...auditHeaders },
+            body: JSON.stringify({ key }),
+        });
+
+        const raw = await res.text();
+        let data: { ok?: boolean; error?: string } | null = null;
+        try {
+            data = raw ? JSON.parse(raw) : null;
+        } catch {
+            console.error("deleteFromCatalog: レスポンスがJSONではありません", {
+                status: res.status,
+                raw: raw.slice(0, 200),
+            });
+            return false;
+        }
+        if (!res.ok || !data?.ok) {
+            console.error("deleteFromCatalog failed:", {
+                status: res.status,
+                error: data?.error ?? raw,
+                key,
+            });
+            return false;
+        }
+        return true;
+    } catch (e) {
+        console.error("deleteFromCatalog: ネットワーク/CORS等のエラー", { key, error: e });
         return false;
     }
 }
@@ -157,6 +207,22 @@ export async function upsertAreasListEntryFromInfo(params: {
     else list.push(next);
 
     return await saveAreasList(list);
+}
+
+/** areas.json から指定 uuid のエントリを削除して保存。成功なら true */
+export async function removeAreasListEntryByUuid(areaUuid: string): Promise<boolean> {
+    if (!areaUuid) return false;
+    const list = await fetchAreasList();
+    const next = list.filter((x: any) => x?.uuid !== areaUuid);
+    if (next.length === list.length) return true; // 既に存在しない
+    return await saveAreasList(next);
+}
+
+/** areas/<areaUuid>/index.json を S3 から削除する。成功なら true */
+export async function deleteAreaFromCatalog(areaUuid: string): Promise<boolean> {
+    if (!areaUuid) return false;
+    const key = `catalog/v1/areas/${areaUuid}/index.json`;
+    return await deleteFromCatalog(key);
 }
 
 /** areas/<areaUuid>/index.json を読み、エリア情報を返す。存在しない場合は空 */

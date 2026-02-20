@@ -2,6 +2,7 @@
 
 interface ImportMetaEnv {
     readonly VITE_CATALOG_BASE_URL?: string;
+    readonly VITE_CATALOG_DELETE_URL?: string;
     readonly VITE_GMAPS_API_KEY?: string;
     readonly VITE_HUB_BASE_URL?: string;
     readonly VITE_MAP_BASE_URL?: string;

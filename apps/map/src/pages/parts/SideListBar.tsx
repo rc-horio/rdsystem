@@ -26,6 +26,8 @@ import {
   clearScheduleGeometry,
   isAreaNameDuplicated,
   upsertAreasListEntryFromInfo,
+  removeAreasListEntryByUuid,
+  deleteAreaFromCatalog,
   fetchProjectIndex,
   upsertScheduleAreaRef,
   clearScheduleAreaRef,
@@ -92,6 +94,9 @@ function SideListBarBase({
   const [deletedAreas, setDeletedAreas] = useState<Set<string>>(
     () => new Set()
   );
+
+  // 保存処理中
+  const [isSaving, setIsSaving] = useState(false);
 
   // 現在の保存コンテキスト（エリア／候補）
   const currentAreaUuidRef = useRef<string | undefined>(undefined);
@@ -171,7 +176,26 @@ function SideListBarBase({
       loadAreaMetadata();
     }
   }, [points]);
-  
+
+  // points 更新時、deletedAreas から既に一覧に存在しないエリアを除去
+  // （削除保存後 areas:reload で points が更新されたときのクリーンアップ）
+  useEffect(() => {
+    const currentAreaNames = new Set(
+      points.map((p) => (p?.areaName?.trim() || AREA_NAME_NONE))
+    );
+    setDeletedAreas((prev) => {
+      const next = new Set(prev);
+      let changed = false;
+      prev.forEach((area) => {
+        if (!currentAreaNames.has(area)) {
+          next.delete(area);
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [points]);
+
   // エリア追加モード時の検索を送信
   const submitAddAreaSearch = () => {
     const q = addAreaSearchQuery.trim();
@@ -623,20 +647,67 @@ function SideListBarBase({
 
   // 保存
   const handleSave = async () => {
-    try {
-      const hasDeletedAreas = deletedAreas.size > 0;
+    const hasDeletedAreas = deletedAreas.size > 0;
 
-      // --- ① 編集対象も削除対象もない場合はエラー ---
-      if (!activeKey && !hasDeletedAreas) {
-        window.alert("保存対象のエリアを選択してください。");
-        return;
-      }
+    // --- ① 編集対象も削除対象もない場合はエラー ---
+    if (!activeKey && !hasDeletedAreas) {
+      window.alert("保存対象のエリアを選択してください。");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
 
       // --- ② 「削除だけ保存する」パス（どのエリアも選択していない）---
       if (!activeKey && hasDeletedAreas) {
-        window.alert(
-          "削除は画面上のみ反映されています。\nS3 への削除反映は今後の対応になります。"
-        );
+        const deletedAreaNames = Array.from(deletedAreas);
+        let allOk = true;
+        for (const areaName of deletedAreaNames) {
+          const areaUuid = getAreaUuidByAreaName(areaName);
+          if (!areaUuid) continue;
+
+          const raw = await fetchRawAreaInfo(areaUuid);
+          const historyPairs: Array<{ projectUuid: string; scheduleUuid: string }> =
+            Array.isArray(raw?.history)
+              ? raw.history.flatMap((h: any) => {
+                  const projectUuid =
+                    typeof h?.projectuuid === "string" ? h.projectuuid : null;
+                  const scheduleUuid =
+                    typeof h?.scheduleuuid === "string" ? h.scheduleuuid : null;
+                  return projectUuid && scheduleUuid
+                    ? [{ projectUuid, scheduleUuid }]
+                    : [];
+                })
+              : [];
+
+          for (const { projectUuid, scheduleUuid } of historyPairs) {
+            try {
+              await clearScheduleGeometry({ projectUuid, scheduleUuid });
+              await clearScheduleAreaRef({ projectUuid, scheduleUuid });
+            } catch (e) {
+              console.warn("[save] clear schedule for deleted area failed", e);
+              allOk = false;
+            }
+          }
+
+          const okDel = await deleteAreaFromCatalog(areaUuid);
+          if (!okDel) {
+            console.error("[save] deleteAreaFromCatalog failed", areaUuid);
+            allOk = false;
+            continue;
+          }
+
+          const okRemove = await removeAreasListEntryByUuid(areaUuid);
+          if (!okRemove) {
+            console.warn("[save] removeAreasListEntryByUuid failed", areaUuid);
+          }
+        }
+
+        // deletedAreas はクリアしない。areas:reload で points が更新されるまで
+        // 削除済みエリアを非表示に保つため。points 更新後に useEffect でクリーンアップ
+        window.dispatchEvent(new Event("areas:reload"));
+        window.dispatchEvent(new Event(EV_GEOMETRY_SAVE_COMPLETE));
+        window.alert(allOk ? "削除を保存しました" : "一部の削除に失敗しました。");
         return;
       }
 
@@ -984,6 +1055,8 @@ function SideListBarBase({
       window.alert(
         "保存処理中にエラーが発生しました。ブラウザの開発者ツール（F12）のコンソールで詳細を確認してください。"
       );
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -1525,13 +1598,31 @@ function SideListBarBase({
             <DeleteIconButton
               title="このエリアを削除"
               tabIndex={0}
-              onClick={() => {
-                const ok = window.confirm(
-                  `エリア「${displayLabel}」を削除してもよろしいですか？`
-                );
-                if (!ok) return;
-
+              onClick={async () => {
                 const areaUuid = getAreaUuidByAreaName(area);
+                let confirmMsg = `「${displayLabel}」を削除してもよろしいですか？`;
+
+                if (areaUuid) {
+                  try {
+                    const raw = await fetchRawAreaInfo(areaUuid);
+                    const hasHistory =
+                      Array.isArray(raw?.history) && raw.history.length > 0;
+                    const hasCandidates =
+                      Array.isArray(raw?.candidate) && raw.candidate.length > 0;
+                    if (hasHistory || hasCandidates) {
+                      confirmMsg =
+                        `このエリアには${hasHistory ? "案件" : ""}${hasHistory && hasCandidates ? "と" : ""}${hasCandidates ? "候補" : ""}が紐づいています。\n` +
+                        `削除すると紐づけが解除されます。続行しますか？`;
+                    } else {
+                      confirmMsg = `「${displayLabel}」を削除してもよろしいですか？`;
+                    }
+                  } catch {
+                    // 取得失敗時も確認は表示する（上記のデフォルトメッセージを使用）
+                  }
+                }
+
+                const ok = window.confirm(confirmMsg);
+                if (!ok) return;
 
                 setDeletedAreas((prev) => {
                   const next = new Set(prev);
@@ -1551,7 +1642,7 @@ function SideListBarBase({
                 );
 
                 window.alert(
-                  "エリアを削除しました。\nこの変更は「保存」ボタンを押すまで S3 には反映されません。"
+                  "エリアを削除しました。\nこの変「SAVE」ボタンを押すまで S3 には反映されません。"
                 );
               }}
             />
@@ -1619,7 +1710,15 @@ function SideListBarBase({
           ) : (
             <OFFButton onClick={() => setIsOn(true)} height={iconH} />
           )}
-          {isOn && <SaveButton onClick={handleSave} height={iconH} />}
+          {isOn && (
+              <SaveButton
+                onClick={handleSave}
+                height={iconH}
+                loading={isSaving}
+                title={isSaving ? "保存中…" : "保存"}
+                className="active:scale-95 transition-transform"
+              />
+            )}
         </div>
       </div>
 

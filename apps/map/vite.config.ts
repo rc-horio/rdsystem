@@ -59,6 +59,14 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/__catalog-write/, ""),
       },
+      // rdsystem-common-catalog-delete Lambda（デプロイ後に VITE_CATALOG_DELETE_URL を設定）
+      "/__catalog-delete": {
+        target:
+          process.env.VITE_CATALOG_DELETE_URL ||
+          "https://u64h3yye227qjsnem7yyydakpu0vpkxn.lambda-url.ap-northeast-1.on.aws",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/__catalog-delete/, ""),
+      },
     },
 
     // ファイルを監視して保存されたら自動でブラウザをリロード/差し替え（HMR）

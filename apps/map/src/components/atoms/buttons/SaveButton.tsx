@@ -59,28 +59,14 @@ export function SaveButton({
       }}
     >
       {loading ? (
-        <svg
-          viewBox="0 0 24 24"
+        <span
           role="img"
           aria-label="保存中"
-          style={{ height: "100%", width: "auto", display: "block" }}
-          className="animate-spin"
+          className="inline-flex items-center justify-center animate-pulse text-current"
+          style={{ height: "100%", fontSize: "1.2em", lineHeight: 1 }}
         >
-          <circle
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="4"
-            fill="none"
-            className="opacity-25"
-          />
-          <path
-            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-            fill="currentColor"
-            className="opacity-75"
-          />
-        </svg>
+          …
+        </span>
       ) : (
         <img
           src={iconSrc}
