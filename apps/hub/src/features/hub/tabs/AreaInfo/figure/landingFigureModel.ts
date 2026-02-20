@@ -8,6 +8,10 @@ export type LandingFigureModel = {
     yOk: boolean;
     spacingOk: boolean;
     canRenderFigure: boolean;
+    /** 描画不可時の理由（矛盾時は具体的なメッセージ） */
+    cannotRenderReason: null | "input_required" | "contradiction";
+    /** 矛盾時の説明（全機体数・XY機体数・間隔の不整合） */
+    contradictionMessage: null | string;
 
     // 入力（数値化済み）
     countX: number;
@@ -89,48 +93,65 @@ export function buildLandingFigureModel(
 
     // 間隔入力の妥当性
     const spacingOk = seqX.length > 0 && seqY.length > 0;
-    const canRenderFigure = xOk && yOk && spacingOk;
 
-    // 実寸計算（距離表示はフル矩形のまま）
-    const widthM = xOk && countX >= 2 ? cumDist(countX - 1, seqX, fallback) : 0;
-    const rawHeightM =
-        yOk && countY >= 2 ? cumDist(countY - 1, seqY, fallback) : 0;
-
-    // 全体機体数を優先：totalCount が設定されていればそこから有効な行数・端数を算出
+    // 全機体数を優先してレイアウトを決定。矛盾があれば描画しない
     const fullRectCount = countX * countY;
     const hasTotalCount = Number.isFinite(totalCount) && totalCount > 0;
-    const numFullRows = hasTotalCount ? Math.floor(totalCount / countX) : 0;
-    const derivedLastRowCount = hasTotalCount
-        ? totalCount - numFullRows * countX
+
+    // 矛盾チェック：全機体数 > X×Y は不可、必要な行数 > Y機体数 も不可
+    const actualRowCount = hasTotalCount
+        ? Math.ceil(totalCount / countX)
+        : countY;
+    const lastRowCount = hasTotalCount
+        ? totalCount - (actualRowCount - 1) * countX
         : countX;
-    const effectiveCountY =
-        hasTotalCount && totalCount < fullRectCount
-            ? derivedLastRowCount > 0
-                ? numFullRows + 1
-                : numFullRows
-            : countY;
-    const lastRowCount =
-        hasTotalCount && totalCount < fullRectCount && derivedLastRowCount > 0
-            ? derivedLastRowCount
-            : countX;
+    const countExceedsGrid = hasTotalCount && totalCount > fullRectCount;
+    const rowsExceedY = hasTotalCount && actualRowCount > countY;
+    // Y機体数が1行以上余分（必要な行数より多い）も矛盾とする
+    const rowsUnderY = hasTotalCount && actualRowCount < countY;
+
+    const hasContradiction =
+        countExceedsGrid || rowsExceedY || rowsUnderY;
+    const canRenderFigure =
+        xOk && yOk && spacingOk && !hasContradiction;
+    const cannotRenderReason =
+        hasContradiction
+            ? "contradiction"
+            : !xOk || !yOk || !spacingOk
+                ? "input_required"
+                : null;
+    // 具体的な数値で状況を示す忠告
+    const contradictionMessage =
+        rowsExceedY
+            ? `全機体数(${totalCount})がX機体数×Y機体数(${fullRectCount})を超えています。数値を見直してください。`
+            : rowsUnderY
+                ? `X機体数×Y機体数(${fullRectCount})が全機体数(${totalCount})を超えています。数値を見直してください。`
+                : null;
+
+    // 実寸計算（全機体数優先時は actualRowCount で高さを算出）
+    const widthM = xOk && countX >= 2 ? cumDist(countX - 1, seqX, fallback) : 0;
+    const heightM =
+        yOk && actualRowCount >= 2
+            ? cumDist(actualRowCount - 1, seqY, fallback)
+            : 0;
+
+    // 端数チェック：全機体数がフル矩形より少なく、最後の行が途中で切れる場合
     const isHexagon =
         hasTotalCount &&
         totalCount < fullRectCount &&
-        derivedLastRowCount > 0 &&
-        derivedLastRowCount < countX;
+        lastRowCount > 0 &&
+        lastRowCount < countX;
 
-    // 高さは有効行数で計算（totalCount 優先時は effectiveCountY を使用）
-    const heightM =
-        effectiveCountY >= 2
-            ? cumDist(effectiveCountY - 1, seqY, fallback)
-            : rawHeightM;
-
-    // 四隅ID計算（全体機体数優先で tr = totalCount-1）
+    // 四隅ID計算（全機体数優先で tr = totalCount-1、tl も actualRowCount ベース）
     const corner = (() => {
         if (!xOk || !yOk) return null;
         const bl = 0;
-        const br = countX - 1;
-        const tl = (effectiveCountY - 1) * countX;
+        // 1行の六角形では最後の行が端数なので br = totalCount-1
+        const br =
+            isHexagon && actualRowCount === 1
+                ? totalCount - 1
+                : countX - 1;
+        const tl = (actualRowCount - 1) * countX;
         const tr = hasTotalCount ? totalCount - 1 : fullRectCount - 1;
         return { tl, tr, bl, br };
     })();
@@ -157,14 +178,29 @@ export function buildLandingFigureModel(
     // 六角形の頂点計算（左下0→右下9→右上切れ→左上40 の六角形）
     let topRowWidthScaled = 0;
     const polygonPoints = (() => {
-        if (!isHexagon || !xOk || !yOk || effectiveCountY < 2) return null;
-        // effectiveCountY=2 のとき cumDist(0)=0 のため lastRowHeight が全体高さになってしまう。
+        if (!isHexagon || !xOk || !yOk) return null;
+        // Y=1 のときは1行のみ。端数があれば幅を lastRowCount に合わせた矩形
+        if (actualRowCount === 1) {
+            const topRowWidthM =
+                lastRowCount >= 1
+                    ? cumDist(lastRowCount - 1, seqX, fallback)
+                    : 0;
+            topRowWidthScaled = topRowWidthM * scale;
+            return [
+                [rx, ry + rectH] as [number, number],
+                [rx + topRowWidthScaled, ry + rectH] as [number, number],
+                [rx + topRowWidthScaled, ry] as [number, number],
+                [rx, ry] as [number, number],
+            ];
+        }
+        if (actualRowCount < 2) return null;
+        // actualRowCount=2 のとき cumDist(0)=0 のため lastRowHeight が全体高さになってしまう。
         // 2行の場合は上段の高さ = 全体の1/2 とする。
         const lastRowHeightM =
-            effectiveCountY === 2
+            actualRowCount === 2
                 ? heightM / 2
-                : cumDist(effectiveCountY - 1, seqY, fallback) -
-                  cumDist(effectiveCountY - 2, seqY, fallback);
+                : cumDist(actualRowCount - 1, seqY, fallback) -
+                  cumDist(actualRowCount - 2, seqY, fallback);
         const topRowWidthM =
             lastRowCount >= 2
                 ? cumDist(lastRowCount - 1, seqX, fallback)
@@ -208,6 +244,8 @@ export function buildLandingFigureModel(
         yOk,
         spacingOk,
         canRenderFigure,
+        cannotRenderReason,
+        contradictionMessage,
         countX: xOk ? countX : 0,
         countY: yOk ? countY : 0,
         totalCount: hasTotalCount ? totalCount : 0,

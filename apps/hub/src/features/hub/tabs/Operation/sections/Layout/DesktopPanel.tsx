@@ -106,6 +106,7 @@ export function DesktopPanel(props: {
         <TableSection
           countX={grid.countX}
           countY={grid.countY}
+          totalCount={counts?.total}
           module1Nums={appliedM1}
           module2Nums={appliedM2}
           spacingSeqX={spacingSeqX}

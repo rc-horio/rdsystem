@@ -220,13 +220,26 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
                 <text
                   x={m.viewW / 2}
                   y={m.viewH / 2}
-                  dominantBaseline="middle"
                   textAnchor="middle"
-                  fontSize="15"
+                  dominantBaseline="middle"
+                  fontSize="14"
                   fill="#ffffff"
                   opacity={0.9}
                 >
-                  x機体数 / y機体数 / 間隔 を入力してください
+                  {(m.cannotRenderReason === "contradiction" &&
+                    m.contradictionMessage
+                    ? m.contradictionMessage.split("。").filter(Boolean)
+                    : ["x機体数 / y機体数 / 間隔 を入力してください"]
+                  ).map((line, i, arr) => (
+                    <tspan
+                      key={i}
+                      x={m.viewW / 2}
+                      dy={i === 0 ? -(arr.length - 1) * 9 : 18}
+                    >
+                      {line}
+                      {i < arr.length - 1 ? "。" : ""}
+                    </tspan>
+                  ))}
                 </text>
               )}            </svg>
           </div>

@@ -108,21 +108,35 @@ export function RightPanel({
     return Number.isFinite(v) ? v : null;
   };
 
-  // x / y 機体数の更新
-  const setXCount = (v: string) => {
+  // 機体数は即時反映せずローカルで保持。ボタン押下で描画更新（誤入力時のフリーズ防止）
+  const [localCount, setLocalCount] = useState("");
+  const [localXCount, setLocalXCount] = useState("");
+  const [localYCount, setLocalYCount] = useState("");
+
+  useEffect(() => {
+    const dc = area?.drone_count ?? {};
+    setLocalCount((dc.count ?? "").toString());
+    setLocalXCount((dc.x_count ?? "").toString());
+    setLocalYCount((dc.y_count ?? "").toString());
+  }, [area?.drone_count?.count, area?.drone_count?.x_count, area?.drone_count?.y_count]);
+
+  const applyDroneCount = () => {
     const next = {
       ...(area ?? {}),
-      drone_count: { ...(area?.drone_count ?? {}), x_count: num(v) },
+      drone_count: {
+        ...(area?.drone_count ?? {}),
+        count: num(localCount),
+        x_count: num(localXCount),
+        y_count: num(localYCount),
+      },
     };
     onPatchArea(next);
   };
-  const setYCount = (v: string) => {
-    const next = {
-      ...(area ?? {}),
-      drone_count: { ...(area?.drone_count ?? {}), y_count: num(v) },
-    };
-    onPatchArea(next);
-  };
+
+  const hasDroneCountChange =
+    (droneCnt.count ?? "").toString() !== localCount ||
+    (droneCnt.x_count ?? "").toString() !== localXCount ||
+    (droneCnt.y_count ?? "").toString() !== localYCount;
 
   //
   useEffect(() => {
@@ -201,7 +215,7 @@ export function RightPanel({
       </div>
 
       {/* 機体配置 */}
-      <div className="mt-5">
+      <div className="mt-5 max-w-[260px]">
         <SectionTitle title="機体数" />
 
         {/* 機種 & 総機体数 */}
@@ -222,10 +236,8 @@ export function RightPanel({
           {/* 値列（数値入力） */}
           <DisplayOrInput
             edit={edit}
-            value={(droneCnt.count ?? "").toString()}
-            onChange={(e) =>
-              patch(["drone_count", "count"], num(e.target.value))
-            }
+            value={edit ? localCount : (droneCnt.count ?? "").toString()}
+            onChange={(e) => setLocalCount(e.target.value)}
             inputMode="numeric"
             type="number"
             className={numericInputW}
@@ -239,8 +251,8 @@ export function RightPanel({
           <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
           <DisplayOrInput
             edit={edit}
-            value={(area?.drone_count?.x_count ?? "").toString()}
-            onChange={(e) => setXCount(e.target.value)}
+            value={edit ? localXCount : (droneCnt.x_count ?? "").toString()}
+            onChange={(e) => setLocalXCount(e.target.value)}
             inputMode="numeric"
             type="number"
             className={numericInputW}
@@ -254,14 +266,27 @@ export function RightPanel({
           <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
           <DisplayOrInput
             edit={edit}
-            value={(area?.drone_count?.y_count ?? "").toString()}
-            onChange={(e) => setYCount(e.target.value)}
+            value={edit ? localYCount : (droneCnt.y_count ?? "").toString()}
+            onChange={(e) => setLocalYCount(e.target.value)}
             inputMode="numeric"
             type="number"
             className={numericInputW}
           />
           <span className="w-6 ml-1">機</span>
         </div>
+
+        {edit && (
+          <div className="mt-3 pl-4 md:pl-6 flex justify-end">
+            <button
+              type="button"
+              onClick={applyDroneCount}
+              disabled={!hasDroneCountChange}
+              className="px-3 py-1.5 rounded-md border border-slate-600 text-sm text-slate-100 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              図を更新
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 離陸アクション移動 */}

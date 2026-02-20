@@ -8,6 +8,8 @@ import { cumDist, fmtMeters } from "@/features/hub/utils/spacing";
 type Props = {
   countX: number;
   countY: number;
+  /** 全機体数。端数時は右上を切った図形で描画 */
+  totalCount?: number;
   module1Nums: number[]; // モジュール1 = 赤
   module2Nums: number[]; // モジュール2 = 青
   onOpenFull?: () => void;
@@ -243,6 +245,7 @@ function RulerY({
 export function TableSection({
   countX,
   countY,
+  totalCount,
   module1Nums,
   module2Nums,
   onOpenFull,
@@ -277,8 +280,26 @@ export function TableSection({
   const redSet = showModule1 ? new Set(module1Nums) : new Set<number>();
   const blueSet = showModule2 ? new Set(module2Nums) : new Set<number>();
 
+  // 端数時: 全機体数優先で actualRowCount、lastRowCount を算出
+  const fullRectCount = countX * countY;
+  const hasTotalCount =
+    typeof totalCount === "number" &&
+    Number.isFinite(totalCount) &&
+    totalCount > 0;
+  const actualRowCount = hasTotalCount
+    ? Math.ceil(totalCount / countX)
+    : countY;
+  const lastRowCount = hasTotalCount
+    ? totalCount - (actualRowCount - 1) * countX
+    : countX;
+  const usePartialLayout =
+    hasTotalCount &&
+    totalCount < fullRectCount &&
+    lastRowCount > 0 &&
+    lastRowCount < countX;
+
   const tablePixelW = countX * CELL_W_PX;
-  const tablePixelH = countY * CELL_H_PX;
+  const tablePixelH = actualRowCount * CELL_H_PX;
 
   // フォールバック間隔（1m 等間隔）
   const fallback = 1;
@@ -413,7 +434,7 @@ export function TableSection({
           >
             {/* ← ここに左ルーラーを“内側”に配置。テーブル左端から負方向に出す */}
             <RulerY
-              count={countY}
+              count={actualRowCount}
               height={tablePixelH}
               side="left"
               style={{ left: -(TICK_X + LABEL_X), top: 0 }}
@@ -423,37 +444,50 @@ export function TableSection({
 
             <table className="table-fixed border-collapse text-[10px] font-mono min-w-max">
               <tbody>
-                {Array.from({ length: countY }).map((_, r) => (
-                  <tr key={r}>
-                    {Array.from({ length: countX }).map((_, c) => {
-                      const num = (countY - 1 - r) * countX + c;
-                      const isRed = redSet.has(num);
-                      const isBlue = blueSet.has(num);
-                      const bg =
-                        isRed && isBlue
-                          ? "bg-fuchsia-500"
-                          : isRed
-                            ? "bg-red-500"
-                            : isBlue
-                              ? "bg-blue-500"
-                              : "";
+                {Array.from({ length: actualRowCount }).map((_, r) => {
+                  const colsInRow =
+                    usePartialLayout && r === 0 ? lastRowCount : countX;
+                  return (
+                    <tr key={r}>
+                      {Array.from({ length: colsInRow }).map((_, c) => {
+                        const num =
+                          (actualRowCount - 1 - r) * countX + c;
+                        const isRed = redSet.has(num);
+                        const isBlue = blueSet.has(num);
+                        const bg =
+                          isRed && isBlue
+                            ? "bg-fuchsia-500"
+                            : isRed
+                              ? "bg-red-500"
+                              : isBlue
+                                ? "bg-blue-500"
+                                : "";
 
-                      const text = isSaving ? "text-black" : (isRed || isBlue ? "text-white" : "");
+                        const text =
+                          isSaving ? "text-black" : (isRed || isBlue ? "text-white" : "");
 
-                      return (
+                        return (
+                          <td
+                            key={c}
+                            className={
+                              "w-8 h-5 p-0 text-center border border-slate-600 select-none " +
+                              bg + " " + text
+                            }
+                          >
+                            {num}
+                          </td>
+                        );
+                      })}
+                      {usePartialLayout && r === 0 && colsInRow < countX && (
                         <td
-                          key={c}
-                          className={
-                            "w-8 h-5 p-0 text-center border border-slate-600 select-none " +
-                            bg + " " + text
-                          }
-                        >
-                          {num}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
+                          colSpan={countX - colsInRow}
+                          className="w-8 h-5 p-0 border-0"
+                          aria-hidden
+                        />
+                      )}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -476,7 +510,7 @@ export function TableSection({
             fallback={fallback}
           />
           <RulerY
-            count={countY}
+            count={actualRowCount}
             height={tablePixelH}
             side="right"
             style={{ left: PAD_LEFT + tablePixelW, top: PAD_TOP }}

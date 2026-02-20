@@ -143,10 +143,10 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   const fmtDate = (isoLike: string) => {
     const d = new Date(isoLike);
     if (Number.isNaN(d.getTime())) return isoLike;
-    const y = d.getFullYear();
+    const yy = String(d.getFullYear()).slice(-2);
     const m = `${d.getMonth() + 1}`.padStart(2, "0");
     const da = `${d.getDate()}`.padStart(2, "0");
-    return `${y}/${m}/${da}`;
+    return `${yy}/${m}/${da}`;
   };
 
   // タイトル重複チェック用ヘルパ（空文字は対象外）
@@ -740,6 +740,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                         >
                           <DetailIconButton
                             title="RD Hubへ"
+                            height={18}
                             onClick={() => {
                               const url = buildHubUrl(
                                 item.projectUuid,
@@ -766,6 +767,9 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                         </span>
                         <span className="ds-record-name">
                           {item.projectName}
+                        </span>
+                        <span className="ds-record-schedule">
+                          {item.scheduleName}
                         </span>
 
                         {editable && (

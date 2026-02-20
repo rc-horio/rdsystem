@@ -24,7 +24,10 @@ export function buildLandingFigureSvg(area: any, opts?: { theme?: Theme }) {
     const rectFill = "#ed1b24";
 
     const markerId = `arrow-${uid()}`;
-    const msg = "x機体数 / y機体数 / 間隔 を入力してください";
+    const msg =
+        m.cannotRenderReason === "contradiction" && m.contradictionMessage
+            ? m.contradictionMessage
+            : "x機体数 / y機体数 / 間隔 を入力してください";
 
     return `
         <svg

@@ -1053,19 +1053,31 @@ body.detailbar-open #detailbar {
   flex: 0 0 auto;
 }
 
-/* 日付 */
+/* 日付（YY/MM/DD 形式） */
 .ds-record-date {
-  width: 60px; /* 桁ズレ防止 */
+  width: 48px; /* 桁ズレ防止 */
   font-size: var(--ds-date-fz);
   line-height: var(--ds-date-lh);
   color: var(--ds-date-color);
   letter-spacing: var(--ds-date-tracking);
 }
 
-/* イベント名（残り幅で省略） */
+/* 案件名（必要な幅のみ、長い場合は省略） */
 .ds-record-name {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0; /* flex 子要素の ellipsis に必須 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--ds-name-fz);
+  line-height: var(--ds-name-lh);
+  color: var(--ds-name-color);
+}
+
+/* スケジュール名（残り幅で省略） */
+.ds-record-schedule {
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
