@@ -760,6 +760,7 @@ function SideListBarBase({
       // （2-2）画面入力値からareas/<areaUuid>/index.json 形式
       const infoToSave = {
         ...(typeof raw === "object" && raw ? raw : {}),
+        areaName: newTitle, // エリア名を index.json にも反映（areas.json と同期）
         overview: {
           ...(raw?.overview ?? {}),
           address: data.meta.address ?? "",
