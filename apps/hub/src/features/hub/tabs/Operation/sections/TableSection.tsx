@@ -1,6 +1,7 @@
 // src/features/hub/tabs/Operation/sections/TableSection.tsx
 
 import { ButtonRed, SectionTitle } from "@/components";
+import { Eye, EyeOff } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { cumDist, fmtMeters } from "@/features/hub/utils/spacing";
 
@@ -12,8 +13,12 @@ type Props = {
   onOpenFull?: () => void;
   hideTitle?: boolean;
   hideScrollHint?: boolean;
+  /** フルスクリーン時など、凡例（モジュール名＋トグル）を非表示にする */
+  hideLegend?: boolean;
   showModule1?: boolean;
   showModule2?: boolean;
+  onToggleModule1?: () => void;
+  onToggleModule2?: () => void;
   spacingSeqX?: number[];
   spacingSeqY?: number[];
   /** フルスクリーン時など両軸スクロールを許可する */
@@ -242,12 +247,32 @@ export function TableSection({
   module2Nums,
   onOpenFull,
   hideScrollHint,
-  showModule1 = true,
-  showModule2 = true,
+  hideLegend = false,
+  showModule1: showModule1Prop = true,
+  showModule2: showModule2Prop = true,
+  onToggleModule1,
+  onToggleModule2,
   spacingSeqX,
   spacingSeqY,
   bothScroll = false,
 }: Props) {
+  const [showM1Local, setShowM1Local] = useState(true);
+  const [showM2Local, setShowM2Local] = useState(true);
+
+  const isControlledM1 = onToggleModule1 !== undefined;
+  const isControlledM2 = onToggleModule2 !== undefined;
+  const showModule1 = isControlledM1 ? showModule1Prop : showM1Local;
+  const showModule2 = isControlledM2 ? showModule2Prop : showM2Local;
+
+  const handleToggleM1 = () => {
+    if (onToggleModule1) onToggleModule1();
+    else setShowM1Local((v) => !v);
+  };
+  const handleToggleM2 = () => {
+    if (onToggleModule2) onToggleModule2();
+    else setShowM2Local((v) => !v);
+  };
+
   const scrollRef = useDragScroll<HTMLDivElement>();
   const redSet = showModule1 ? new Set(module1Nums) : new Set<number>();
   const blueSet = showModule2 ? new Set(module2Nums) : new Set<number>();
@@ -318,20 +343,47 @@ export function TableSection({
         </div>
       )}
 
-      {/* 凡例 */}
-      <div className="flex items-center gap-4 mb-2 text-xs">
-        <span className="inline-flex items-center gap-1">
-          <i className="inline-block w-3 h-3 rounded-sm bg-red-500" />{" "}
-          モジュール1
-        </span>
-        <span className="inline-flex items-center gap-1">
-          <i className="inline-block w-3 h-3 rounded-sm bg-blue-500" />{" "}
-          モジュール2
-        </span>
-        <span className="inline-flex items-center gap-1">
-          <i className="inline-block w-3 h-3 rounded-sm bg-fuchsia-500" /> 重複
-        </span>
-      </div>
+      {!hideLegend && (
+        <div className="flex items-center gap-4 mb-2 text-sm flex-wrap">
+          <button
+            type="button"
+            onClick={handleToggleM1}
+            className={`inline-flex items-center gap-1.5 rounded px-2 py-1 transition-opacity ${
+              showModule1 ? "opacity-100" : "opacity-50"
+            } hover:opacity-100`}
+            aria-pressed={showModule1}
+            aria-label="モジュール1のハイライト切替"
+          >
+            <i className="inline-block w-4 h-4 rounded-sm bg-red-500 shrink-0" />
+            <span>モジュール1</span>
+            {showModule1 ? (
+              <Eye className="w-6 h-6 shrink-0" aria-hidden />
+            ) : (
+              <EyeOff className="w-6 h-6 shrink-0" aria-hidden />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={handleToggleM2}
+            className={`inline-flex items-center gap-1.5 rounded px-2 py-1 transition-opacity ${
+              showModule2 ? "opacity-100" : "opacity-50"
+            } hover:opacity-100`}
+            aria-pressed={showModule2}
+            aria-label="モジュール2のハイライト切替"
+          >
+            <i className="inline-block w-4 h-4 rounded-sm bg-blue-500 shrink-0" />
+            <span>モジュール2</span>
+            {showModule2 ? (
+              <Eye className="w-6 h-6 shrink-0" aria-hidden />
+            ) : (
+              <EyeOff className="w-6 h-6 shrink-0" aria-hidden />
+            )}
+          </button>
+          <span className="inline-flex items-center gap-1 text-slate-500 text-sm">
+            <i className="inline-block w-4 h-4 rounded-sm bg-fuchsia-500" /> 重複
+          </span>
+        </div>
+      )}
 
       {/* スクロールコンテナ */}
       <div

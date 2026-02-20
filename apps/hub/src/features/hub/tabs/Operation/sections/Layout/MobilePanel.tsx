@@ -84,6 +84,8 @@ export function MobilePanel(props: {
           onOpenFull={() => setFull(true)}
           showModule1={showM1}
           showModule2={showM2}
+          onToggleModule1={() => setShowM1((v) => !v)}
+          onToggleModule2={() => setShowM2((v) => !v)}
           spacingSeqX={spacingSeqX}
           spacingSeqY={spacingSeqY}
         />
@@ -106,8 +108,11 @@ export function MobilePanel(props: {
           module2Nums={appliedM2}
           hideTitle
           hideScrollHint
+          hideLegend
           showModule1={showM1}
           showModule2={showM2}
+          onToggleModule1={() => setShowM1((v) => !v)}
+          onToggleModule2={() => setShowM2((v) => !v)}
           spacingSeqX={spacingSeqX}
           spacingSeqY={spacingSeqY}
         />
