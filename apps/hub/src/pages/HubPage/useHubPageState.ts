@@ -150,8 +150,15 @@ export function useHubPageState() {
       }
     );
     const raw = await res.text();
-    const data = raw ? JSON.parse(raw) : null;
-    if (!res.ok || data?.error) throw new Error(data?.error ?? raw);
+    let data: { error?: string } | null = null;
+    if (raw) {
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        if (!res.ok) throw new Error(raw || `Request failed: ${res.status}`);
+      }
+    }
+    if (!res.ok || data?.error) throw new Error(data?.error ?? raw ?? `Request failed: ${res.status}`);
   };
 
   type AreaIndexJson = {
@@ -633,8 +640,16 @@ export function useHubPageState() {
         }
       );
       const raw = await res.text();
-      const data = raw ? JSON.parse(raw) : null;
-      if (!res.ok || data?.error) throw new Error(data?.error ?? raw);
+      let data: { error?: string } | null = null;
+      if (raw) {
+        try {
+          data = JSON.parse(raw);
+        } catch {
+          // 404 等で HTML/プレーンテキストが返る場合
+          if (!res.ok) throw new Error(raw || `Request failed: ${res.status}`);
+        }
+      }
+      if (!res.ok || data?.error) throw new Error(data?.error ?? raw ?? `Request failed: ${res.status}`);
 
       // 🟢 projects.json も同期（projectId / projectName 変更時）
       try {

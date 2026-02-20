@@ -29,6 +29,22 @@ export default defineConfig({
         // ViteのWS(HMR)を通したい場合（Map側のHMRを使うなら）
         ws: true,
       },
+      // ローカル開発: Lambda への CORS 回避用プロキシ（.env.local の /api/* 用）
+      "/api/catalog-write": {
+        target: "https://u64h3yye227qjsnem7yyydakpu0vpkxn.lambda-url.ap-northeast-1.on.aws",
+        changeOrigin: true,
+        rewrite: () => "",
+      },
+      "/api/photo-presign": {
+        target: "https://k5nnpin5wvwzkcl6is5vbdzlb40mkpqk.lambda-url.ap-northeast-1.on.aws",
+        changeOrigin: true,
+        rewrite: () => "",
+      },
+      "/api/photo-delete": {
+        target: "https://wxhn4vu2b7nz2gvdkix7xj7k4u0bsydf.lambda-url.ap-northeast-1.on.aws",
+        changeOrigin: true,
+        rewrite: () => "",
+      },
       // 念のため /@vite /@react-refresh 等を Map 側に流したい場合は追加
       // ただし通常は iframe 内の Map が直接 5174 経由で配信されるので、上の /map だけで足ります
     },
