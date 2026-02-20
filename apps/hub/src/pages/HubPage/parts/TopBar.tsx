@@ -68,15 +68,25 @@ export function TopBar({
       >
         {/* Grid: 左=auto / 中央=1fr / 右=auto */}
         <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 md:gap-3 min-w-0">
-          {/* 左：ロゴ（固定幅） */}
-          <div className="shrink-0">
+          {/* 左：ロゴ → 編集 → SAVE（デスクトップ） or ロゴのみ（モバイル） */}
+          <div className="flex items-center gap-1 md:gap-2 shrink-0 md:mr-4">
             <LogoButton
               size={50}
-              className="mr-1 md:mr-3"
+              className="mr-1 md:mr-4"
             />
+            {isPC ? (
+              <div className="flex items-center gap-1 -my-1">
+                <EditModeSwitch edit={edit} setEdit={setEdit} isMobile={false} />
+                <SaveButton
+                  onClick={onSave}
+                  disabled={!edit || isSaving}
+                  isMobile={false}
+                />
+              </div>
+            ) : null}
           </div>
 
-          {/* 中央：タイトル（可変） */}
+          {/* 中央：タイトル（案件名 → スケジュール名） */}
           <h1
             className="min-w-0 text-xs md:text-sm truncate md:line-clamp-2 md:leading-snug break-keep"
             title={title}
@@ -85,24 +95,30 @@ export function TopBar({
             {title}
           </h1>
 
-          {/* 右：メタ & 操作（固定・折り返し禁止） */}
+          {/* 右：メタ & その他（デスクトップはメタのみ、モバイルは編集・SAVE・right） */}
           <div className="flex items-center gap-2 md:gap-3 -my-1 shrink-0 whitespace-nowrap">
             {isPC ? (
-              <HeaderMeta
-                updatedAt={updatedAt ?? null}
-                updatedBy={updatedBy ?? null}
-                className="hidden md:flex"
-              />
-            ) : null}
-            <div className="flex items-center gap-1 -my-1">
-              <EditModeSwitch edit={edit} setEdit={setEdit} isMobile={!isPC} />
-              <SaveButton
-                onClick={onSave}
-                disabled={!edit || isSaving}
-                isMobile={!isPC}
-              />
-            </div>
-            {right}
+              <>
+                <HeaderMeta
+                  updatedAt={updatedAt ?? null}
+                  updatedBy={updatedBy ?? null}
+                  className="hidden md:flex"
+                />
+                {right}
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-1 -my-1">
+                  <EditModeSwitch edit={edit} setEdit={setEdit} isMobile={true} />
+                  <SaveButton
+                    onClick={onSave}
+                    disabled={!edit || isSaving}
+                    isMobile={true}
+                  />
+                </div>
+                {right}
+              </>
+            )}
           </div>
         </div>
       </div>
