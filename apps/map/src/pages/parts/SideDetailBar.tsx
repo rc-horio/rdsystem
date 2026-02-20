@@ -113,8 +113,9 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
         : String(new Date().getFullYear());
 
     // ローカル開発の場合,ローカルのベースURLを返す
+    // RD Mapから遷移時は「エリア」タブを開く（tab=エリア）
     if (isLocalLike) {
-      return `${protocol}//${hostname}:5174/hub/${projectUuid}?source=s3&year=${yearFromDate}`;
+      return `${protocol}//${hostname}:5174/hub/${projectUuid}?source=s3&year=${yearFromDate}&tab=エリア`;
     }
 
     // 本番の場合,環境変数からベースURLを取得
@@ -126,7 +127,8 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     if (!base) return null;
 
     // ベースURLとプロジェクトUUIDを組み合わせてURLを生成
-    return `${base}/${projectUuid}?source=s3&year=${yearFromDate}`;
+    // RD Mapから遷移時は「エリア」タブを開く（tab=エリア）
+    return `${base}/${projectUuid}?source=s3&year=${yearFromDate}&tab=エリア`;
   };
 
   const fmtDate = (isoLike: string) => {

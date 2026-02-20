@@ -52,10 +52,16 @@ export function useHubPageState() {
   const initName = q.get("name") || "";
   const initDate = q.get("date") || "";
   const initLabel = q.get("label") || "";
+  const initTab = q.get("tab") || "";
 
+  const validTabs = ["リソース", "エリア", "オペレーション", "現場写真"] as const;
   const [activeTab, setActiveTab] = useState<
     "リソース" | "エリア" | "オペレーション" | "現場写真"
-  >("リソース");
+  >(
+    validTabs.includes(initTab as (typeof validTabs)[number])
+      ? (initTab as (typeof validTabs)[number])
+      : "リソース"
+  );
   const [edit, setEdit] = useState(false);
   const [projectData, setProjectData] = useState<any>(null);
   const [schedules, setSchedules] = useState<ScheduleDetail[]>([]);
