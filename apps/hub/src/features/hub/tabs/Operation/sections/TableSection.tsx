@@ -80,12 +80,12 @@ function useDragScroll<T extends HTMLElement>() {
   return ref;
 }
 
-// ====== 寸法（Tailwind: w-12=48px, h-7=28px に合わせる）======
-const CELL_W_PX = 48;
-const CELL_H_PX = 28;
+// ====== 寸法（Tailwind: w-8=32px, h-5=20px に合わせる）======
+const CELL_W_PX = 32;
+const CELL_H_PX = 20;
 
 // 目盛り・ラベルの寸法
-const TICK_X = 8; // 左右方向（Y軸の目盛り線の長さ）
+const TICK_X = 16; // 左右方向（Y軸の目盛り線の長さ）
 const LABEL_X = 7; // Yラベルの幅
 const TICK_Y = 8; // 上下方向（X軸の目盛り線の長さ）
 const LABEL_Y = 14; // Xラベルの高さ
@@ -97,7 +97,7 @@ const PAD_TOP = TICK_Y + LABEL_Y + 4;
 const PAD_BOTTOM = TICK_Y + LABEL_Y + 4;
 
 // X軸ラベルの右オフセット(px)
-const X_LABEL_OFFSET_PX = 24;
+const X_LABEL_OFFSET_PX = 18;
 const Y_LABEL_OFFSET_PX = 14;
 
 /* ---------------- Rulers ---------------- */
@@ -369,7 +369,7 @@ export function TableSection({
               fallback={fallback}
             />
 
-            <table className="table-fixed border-collapse text-[11px] font-mono min-w-max">
+            <table className="table-fixed border-collapse text-[10px] font-mono min-w-max">
               <tbody>
                 {Array.from({ length: countY }).map((_, r) => (
                   <tr key={r}>
@@ -392,7 +392,7 @@ export function TableSection({
                         <td
                           key={c}
                           className={
-                            "w-12 h-7 px-1 text-center border border-slate-600 select-none " +
+                            "w-8 h-5 p-0 text-center border border-slate-600 select-none " +
                             bg + " " + text
                           }
                         >
