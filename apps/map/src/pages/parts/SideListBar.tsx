@@ -52,6 +52,7 @@ import {
   ADD_AREA_ERROR_MESSAGE,
   EV_ADD_AREA_SELECT_RESULT,
   EV_ADD_AREA_RESULT_COORDS,
+  EV_GEOMETRY_SAVE_COMPLETE,
 } from "./constants/events";
 
 type AddAreaSearchStatus = "idle" | "ok" | "empty" | "error";
@@ -969,6 +970,11 @@ function SideListBarBase({
 
       // この保存で消化したので保留リンクはクリア
       pendingProjectLinkRef.current = null;
+
+      // Undo/Redo 履歴をクリア
+      if (okAreas) {
+        window.dispatchEvent(new Event(EV_GEOMETRY_SAVE_COMPLETE));
+      }
 
       // （5）従来メッセージを維持（UIのデグレ回避）
       window.alert(okAreas ? "保存しました" : "保存に失敗しました。");

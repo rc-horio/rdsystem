@@ -1,7 +1,7 @@
 // src/pages/parts/MapGeometry.ts
 import { setDetailBarMetrics } from "./SideDetailBar";
 import type { Geometry, GeometryMetrics, LngLat, RectangleGeom } from "@/features/types";
-import { EV_DETAILBAR_APPLY_METRICS, EV_TAKEOFF_REF_CHANGED, EV_GEOMETRY_RESPOND_DATA, Z, EV_GEOMETRY_REQUEST_DATA } from "./constants/events";
+import { EV_DETAILBAR_APPLY_METRICS, EV_TAKEOFF_REF_CHANGED, EV_GEOMETRY_RESPOND_DATA, Z, EV_GEOMETRY_REQUEST_DATA, EV_GEOMETRY_SAVE_COMPLETE } from "./constants/events";
 import { EllipseEditor } from "./geometry/EllipseEditor";
 import { RectEditor } from "./geometry/RectEditor";
 import { AudienceEditor } from "./geometry/AudienceEditor";
@@ -73,6 +73,12 @@ export class MapGeometry {
     // Shift+ドラッグ制約用（EllipseEditor と共有）
     private shiftKeyRef = false;
     private keyListenerRefs: { keydown: (e: KeyboardEvent) => void; keyup: (e: KeyboardEvent) => void } | null = null;
+
+    /** Undo/Redo 履歴（最大50ステップ） */
+    private static readonly MAX_UNDO_STEPS = 50;
+    private undoStack: Array<{ geom: Geometry | null; deleted: boolean }> = [];
+    private redoStack: Array<{ geom: Geometry | null; deleted: boolean }> = [];
+    private undoRedoKeyListener: ((e: KeyboardEvent) => void) | null = null;
 
     /** =========================
      *  保証表（10m刻み）: 高度 h[m] → 最大移動距離 d[m]
@@ -218,6 +224,7 @@ export class MapGeometry {
                 this.constrainFlightCenterForShiftDrag(oldTo, newTo, from),
             getShiftKey: () => this.shiftKeyRef,
             getMeasurementMode,
+            onBeforeGeometryChange: () => this.pushUndoSnapshot(),
         });
 
         // RectEditor
@@ -256,6 +263,7 @@ export class MapGeometry {
                 refIdx?: number
             ) => this.constrainRefPointForShiftDrag(oldRef, newRef, initialTakeoffCoords, refIdx),
             getMeasurementMode,
+            onBeforeGeometryChange: () => this.pushUndoSnapshot(),
         });
 
         // AudienceEditor（観客）
@@ -284,6 +292,7 @@ export class MapGeometry {
                 });
             },
             getMeasurementMode,
+            onBeforeGeometryChange: () => this.pushUndoSnapshot(),
         });
 
         // 編集状態の監視
@@ -296,6 +305,8 @@ export class MapGeometry {
         });
         this.editObserver.observe(document.body, { attributes: true, attributeFilter: ["class"] });
         window.addEventListener(EV_DETAILBAR_APPLY_METRICS, this.handleApplyMetrics as EventListener);
+        this.ensureUndoRedoKeyListener();
+        window.addEventListener(EV_GEOMETRY_SAVE_COMPLETE, this.handleSaveComplete as EventListener);
 
         // === 現在のスケジュールUUIDとGeometryを問い合わせるブリッジ ===
         window.addEventListener(
@@ -377,6 +388,91 @@ export class MapGeometry {
         this.keyListenerRefs = { keydown, keyup };
     }
 
+    /** Undo/Redo: 現在の状態を履歴に push（ドラッグ開始時・パネル適用前などに呼ぶ） */
+    private pushUndoSnapshot() {
+        if (!this.isEditingOn()) return;
+        const geom = this.currentGeomRef;
+        const deleted = this.deletedRef;
+        this.undoStack.push({
+            geom: geom ? this.deepCloneGeometry(geom) : null,
+            deleted,
+        });
+        if (this.undoStack.length > MapGeometry.MAX_UNDO_STEPS) {
+            this.undoStack.shift();
+        }
+        this.redoStack = [];
+    }
+
+    private deepCloneGeometry(g: Geometry): Geometry {
+        return JSON.parse(JSON.stringify(g));
+    }
+
+    /** Undo/Redo 履歴をクリア（保存完了時・スケジュール切替時）。外部からも呼び出し可。 */
+    clearUndoHistory() {
+        this.undoStack = [];
+        this.redoStack = [];
+    }
+
+    /** Undo/Redo キーボードショートカット（Ctrl+Z, Ctrl+Y, Cmd+Z, Cmd+Shift+Z） */
+    private ensureUndoRedoKeyListener() {
+        if (this.undoRedoKeyListener) return;
+        const handler = (e: KeyboardEvent) => {
+            const target = e.target as HTMLElement | null;
+            const tag = target?.tagName?.toLowerCase();
+            if (tag === "input" || tag === "textarea" || (target?.isContentEditable)) {
+                return;
+            }
+            const isMac = navigator.platform?.toUpperCase().includes("MAC");
+            const mod = isMac ? e.metaKey : e.ctrlKey;
+            if (!mod) return;
+            if (e.key === "z" || e.key === "y") {
+                e.preventDefault();
+                if (e.key === "z" && !e.shiftKey) {
+                    this.undo();
+                } else if (e.key === "y" || (e.key === "z" && e.shiftKey)) {
+                    this.redo();
+                }
+            }
+        };
+        window.addEventListener("keydown", handler);
+        this.undoRedoKeyListener = handler;
+    }
+
+    private undo() {
+        if (!this.isEditingOn() || this.undoStack.length === 0) return;
+        const prev = this.undoStack.pop()!;
+        this.redoStack.push({
+            geom: this.currentGeomRef ? this.deepCloneGeometry(this.currentGeomRef) : null,
+            deleted: this.deletedRef,
+        });
+        this.applyUndoRedoState(prev);
+    }
+
+    private redo() {
+        if (!this.isEditingOn() || this.redoStack.length === 0) return;
+        const next = this.redoStack.pop()!;
+        this.undoStack.push({
+            geom: this.currentGeomRef ? this.deepCloneGeometry(this.currentGeomRef) : null,
+            deleted: this.deletedRef,
+        });
+        this.applyUndoRedoState(next);
+    }
+
+    private applyUndoRedoState(state: { geom: Geometry | null; deleted: boolean }) {
+        this.currentGeomRef = state.geom;
+        this.deletedRef = state.deleted;
+        if (state.deleted || !state.geom) {
+            this.clearOverlays();
+            setDetailBarMetrics({});
+        } else {
+            this.renderGeometry(state.geom!, { fit: false, clearUndoHistory: false });
+        }
+    }
+
+    private handleSaveComplete = () => {
+        this.clearUndoHistory();
+    };
+
     /** =========================
      *  編集状態の反映
      *  ========================= */
@@ -416,7 +512,7 @@ export class MapGeometry {
     /** =========================
      *  ジオメトリを描画
      *  ========================= */
-    renderGeometry(geomLike: unknown, opts?: { fit?: boolean }) {
+    renderGeometry(geomLike: unknown, opts?: { fit?: boolean; clearUndoHistory?: boolean }) {
         const gmaps = this.getGMaps();
         const map = this.getMap();
         if (!map) return;
@@ -427,6 +523,9 @@ export class MapGeometry {
         }
 
         const geom = geomLike as Geometry;
+        if (opts?.clearUndoHistory !== false) {
+            this.clearUndoHistory();
+        }
         this.clearOverlays();
         this.currentGeomRef = geom;
         this.deletedRef = false;
@@ -672,6 +771,7 @@ export class MapGeometry {
      *  ========================= */
     private handleApplyMetrics = (e: Event) => {
         if (!this.isEditingOn()) return;
+        this.pushUndoSnapshot();
         const d = (e as CustomEvent<
             Partial<{
                 flightWidth_m: number;
@@ -906,6 +1006,7 @@ export class MapGeometry {
      *  ========================= */
     private setReferenceCornerIndex(newIdx: number, coords: Array<LngLat>) {
         if (!this.isEditingOn()) return;
+        this.pushUndoSnapshot();
         const prev = this.currentGeomRef;
         if (!prev?.takeoffArea) return;
 
@@ -1313,6 +1414,7 @@ export class MapGeometry {
 
     // ジオメトリを削除
     deleteCurrentGeometry() {
+        this.pushUndoSnapshot();
         // 表示物を全削除
         this.clearOverlays();
         // 内部状態：未設定

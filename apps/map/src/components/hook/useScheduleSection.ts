@@ -67,6 +67,7 @@ export function useScheduleSection({
                 if (!projectUuid || !scheduleUuid) {
                     if (import.meta.env.DEV)
                         console.warn("[map] missing uuids in select-history");
+                    geomRef.current?.clearUndoHistory();
                     clearGeometryOverlays();
                     setDetailBarMetrics({});
                     return;
@@ -84,6 +85,7 @@ export function useScheduleSection({
                     console.info(
                         `[map] geometry: UNKNOWN (schedule not found) project=${projectUuid}, schedule=${scheduleUuid}`
                     );
+                    geomRef.current?.clearUndoHistory();
                     clearGeometryOverlays();
                     setDetailBarMetrics({});
                     return;
@@ -123,6 +125,7 @@ export function useScheduleSection({
                         `[map] geometry: ABSENT for "${label}" (id=${sch?.id}) on ${sch?.date ?? "N/A"
                         }`
                     );
+                    geomRef.current?.clearUndoHistory();
                     clearGeometryOverlays();
                     setDetailBarMetrics({});
                 }
@@ -130,6 +133,7 @@ export function useScheduleSection({
                 // エラー時は CTA を隠し、図形とメトリクスをクリア
                 setShowCreateGeomCta(false);
                 console.error("[map] render geometry error", err);
+                geomRef.current?.clearUndoHistory();
                 clearGeometryOverlays();
                 setDetailBarMetrics({});
             }

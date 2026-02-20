@@ -10,6 +10,8 @@ export const EV_TAKEOFF_REF_CHANGED = "geometry:takeoff-ref-changed";
 
 export const EV_GEOMETRY_RESPOND_DATA = "geometry:respond-data";
 export const EV_GEOMETRY_REQUEST_DATA = "geometry:request-data";
+/** 保存完了時に Undo/Redo 履歴をクリアするためのイベント */
+export const EV_GEOMETRY_SAVE_COMPLETE = "geometry:save-complete";
 
 export const EV_DETAILBAR_RESPOND_DATA = "detailbar:respond-data";
 export const EV_DETAILBAR_SELECT_HISTORY = "detailbar:select-history";

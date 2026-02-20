@@ -30,6 +30,9 @@ export type EllipseEditorOpts = {
 
     // 距離測定モード中はオーバーレイをクリック不可・十字カーソルにする
     getMeasurementMode?: () => boolean;
+
+    // Undo 履歴用: ドラッグ開始時に呼ぶ
+    onBeforeGeometryChange?: () => void;
 };
 
 // 楕円編集クラス
@@ -443,6 +446,7 @@ export class EllipseEditor {
 
         marker.addListener("dragstart", () => {
             if (!this.opts.isEditingOn()) return;
+            this.opts.onBeforeGeometryChange?.();
             const cur = this.opts.getCurrentGeom()?.flightArea as EllipseGeom | undefined;
             if (!cur) return;
             centerDragStart = cur.center;
@@ -541,6 +545,7 @@ export class EllipseEditor {
 
         const onDragStart = () => {
             if (!this.opts.isEditingOn()) return;
+            this.opts.onBeforeGeometryChange?.();
             const cur = this.opts.getCurrentGeom()?.flightArea as EllipseGeom | undefined;
             if (!cur) return;
             base = { ...cur };
@@ -647,6 +652,7 @@ export class EllipseEditor {
 
         marker.addListener("dragstart", () => {
             if (!this.opts.isEditingOn()) return;
+            this.opts.onBeforeGeometryChange?.();
             const cur = this.opts.getCurrentGeom()?.flightArea as EllipseGeom | undefined;
             if (!cur) return;
             base = { ...cur };
@@ -912,9 +918,14 @@ export class EllipseEditor {
             }
         };
 
+        const onSafetyDragStart = () => {
+            if (this.opts.isEditingOn()) this.opts.onBeforeGeometryChange?.();
+        };
+        safetyRxMarker.addListener("dragstart", onSafetyDragStart);
         safetyRxMarker.addListener("drag", dragSafetyRx);
         safetyRxMarker.addListener("dragend", endSafetyRx);
 
+        safetyRyMarker.addListener("dragstart", onSafetyDragStart);
         safetyRyMarker.addListener("drag", dragSafetyRy);
         safetyRyMarker.addListener("dragend", endSafetyRy);
 
@@ -948,6 +959,7 @@ export class EllipseEditor {
 
         poly.addListener("dragstart", () => {
             if (!this.opts.isEditingOn()) return;
+            this.opts.onBeforeGeometryChange?.();
             const cur = this.opts.getCurrentGeom()?.flightArea as EllipseGeom | undefined;
             if (!cur) return;
             base = { ...cur };

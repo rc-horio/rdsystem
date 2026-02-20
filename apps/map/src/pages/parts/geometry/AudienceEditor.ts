@@ -20,6 +20,9 @@ export type AudienceEditorOpts = {
 
     // 距離測定モード中はオーバーレイをクリック不可・十字カーソルにする
     getMeasurementMode?: () => boolean;
+
+    // Undo 履歴用: ドラッグ開始時に呼ぶ
+    onBeforeGeometryChange?: () => void;
 };
 
 export class AudienceEditor {
@@ -184,6 +187,9 @@ export class AudienceEditor {
         });
 
         // 本体ドラッグで同期
+        poly.addListener("dragstart", () => {
+            if (this.opts.isEditingOn()) this.opts.onBeforeGeometryChange?.();
+        });
         poly.addListener("drag", () => {
             const coords = this.getCoordsFromPolygon(poly);
             this.suppressPolyUpdateRef = true;
@@ -243,6 +249,7 @@ export class AudienceEditor {
 
             marker.addListener("dragstart", () => {
                 if (!this.opts.isEditingOn()) return;
+                this.opts.onBeforeGeometryChange?.();
                 baseRect = this.rectParamsFromCoords(
                     (this.opts.getCurrentGeom()?.audienceArea?.coordinates || coords)
                 );
@@ -352,6 +359,7 @@ export class AudienceEditor {
 
         marker.addListener("dragstart", () => {
             if (!this.opts.isEditingOn()) return;
+            this.opts.onBeforeGeometryChange?.();
             base = this.rectParamsFromCoords(
                 this.opts.getCurrentGeom()?.audienceArea?.coordinates || coords
             );

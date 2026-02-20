@@ -35,6 +35,9 @@ export type RectEditorOpts = {
 
     // 距離測定モード中はオーバーレイをクリック不可・十字カーソルにする
     getMeasurementMode?: () => boolean;
+
+    // Undo 履歴用: ドラッグ開始時に呼ぶ
+    onBeforeGeometryChange?: () => void;
 };
 
 export class RectEditor {
@@ -276,6 +279,7 @@ export class RectEditor {
 
         // 本体ドラッグで同期
         poly.addListener("dragstart", () => {
+            this.opts.onBeforeGeometryChange?.();
             const coords = this.getCoordsFromPolygon(poly);
             const refIdx = this.clampIndex(
                 coords.length,
@@ -386,6 +390,7 @@ export class RectEditor {
 
             marker.addListener("dragstart", () => {
                 if (!this.opts.isEditingOn()) return;
+                this.opts.onBeforeGeometryChange?.();
                 baseRect = this.rectParamsFromCoords(
                     this.opts.getCurrentGeom()?.takeoffArea?.coordinates || coords
                 );
@@ -559,6 +564,7 @@ export class RectEditor {
 
         marker.addListener("dragstart", () => {
             if (!this.opts.isEditingOn()) return;
+            this.opts.onBeforeGeometryChange?.();
             base = this.rectParamsFromCoords(
                 this.opts.getCurrentGeom()?.takeoffArea?.coordinates || coords
             );
