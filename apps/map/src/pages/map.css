@@ -1566,137 +1566,240 @@ select.rc-inp-input optgroup {
 }
 
 /* =========================================
-   11) Create Geometry CTA Overlay（中央ボタン）
+   10.5) Map Tools Panel（表示切り替え＋操作ボタン統合）
    ========================================= */
 
-/* 既存の #controls { display:none } を上書きして中央に配置 */
-#controls.cta-overlay {
+.map-tools-panel {
   position: absolute;
-  top: 18%;
-  right: 16px; /* 画面右から 16px に固定 */
-  left: auto; /* left は使わない */
-  transform: translateY(-50%); /* 縦方向だけ中央寄せ */
-  z-index: 24; /* map(0) < sidebar(10) < detailbar(20) < panel(22) < これ(24) < toggle(30) */
-  display: flex !important;
+  bottom: 12px;
+  right: 12px;
+  z-index: 22;
+  padding: 10px 12px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.7);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  backdrop-filter: blur(12px) saturate(120%);
+  border: 1px solid rgba(29, 29, 29, 0.3);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  cursor: move;
+  min-width: 140px;
+}
+
+.map-tools-panel.dragging {
+  opacity: 0.9;
+}
+
+.map-tools-panel__section {
+  margin-bottom: 6px;
+}
+
+.map-tools-panel__section:last-child {
+  margin-bottom: 0;
+}
+
+.map-tools-panel__title {
+  font-size: 11px;
+  margin-bottom: 6px;
+  opacity: 0.85;
+}
+
+.map-tools-panel__checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.map-tools-panel__checkbox {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-
-  /* 横方向にはみ出さないように最大幅を制限 */
-  max-width: calc(100vw - 32px); /* 両端 16px ずつ余白を確保 */
-
-  /* 中央の空エリアでマップ操作を邪魔しない */
-  pointer-events: none;
-}
-#controls.cta-overlay > * {
-  pointer-events: auto; /* 子（ボタン）はクリック可能に戻す */
+  gap: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  user-select: none;
 }
 
-/* ボタン本体：赤系テーマ（エリア情報作成） */
-.create-geom-button {
-  appearance: none;
-  padding: 10px 16px;
+.map-tools-panel__checkbox:has(input:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.map-tools-panel__checkbox input[type="checkbox"] {
+  width: 12px;
+  height: 12px;
+  min-width: 12px;
+  min-height: 12px;
+  margin: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: rgba(255, 255, 255, 0.8);
+}
+
+.map-tools-panel__checkbox input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+}
+
+.map-tools-panel__colors {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.map-tools-panel__color-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  user-select: none;
+}
+
+.map-tools-panel__color-cell {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  position: relative;
+}
+
+.map-tools-panel__color-label {
+  min-width: 2.2em;
+}
+
+.map-tools-panel__color-swatch {
+  width: 14px;
+  height: 12px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.map-tools-panel__color-swatch:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* 視覚選択のみのカラーピッカー（RGB/HSL/HEX入力なし） */
+.color-picker-popover {
+  position: fixed;
+  width: 220px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 10px;
-  border: 1px solid rgba(255, 0, 0, 0.35); /* 赤ボーダー */
-  background: rgba(255, 0, 0, 0.75); /* 赤バックグラウンド */
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  overflow: hidden;
+}
 
-  color: #fff;
-  font-size: 14px;
+.color-picker-popover .react-colorful {
+  width: 200px;
+  height: 140px;
+}
+
+.color-picker-popover .react-colorful__saturation {
+  border-radius: 6px 6px 0 0;
+}
+
+.color-picker-popover .react-colorful__hue {
+  height: 12px;
+  border-radius: 0 0 6px 6px;
+}
+
+/* カラー選択の丸マークを小さく */
+.color-picker-popover .react-colorful__pointer {
+  width: 16px;
+  height: 16px;
+  border-width: 1.5px;
+}
+
+.color-picker-popover__opacity {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.color-picker-popover__opacity-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+}
+
+.color-picker-popover__opacity-label span {
+  min-width: 3em;
+}
+
+.color-picker-popover__opacity-slider {
+  flex: 1;
+  min-width: 80px;
+  height: 6px;
+}
+
+.map-tools-panel__divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.2);
+  margin: 6px 0;
+}
+
+.map-tools-panel__button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.map-tools-panel__btn {
+  appearance: none;
+  padding: 6px 10px;
+  border-radius: 5px;
+  font-size: 12px;
   letter-spacing: 0.02em;
   line-height: 1;
-  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
-  transition: background 0.15s ease, border-color 0.15s ease,
-    transform 0.06s ease, box-shadow 0.15s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.06s ease;
   cursor: pointer;
   white-space: nowrap;
+  border: 1px solid transparent;
+  color: #fff;
 }
 
-.create-geom-button:hover {
-  background: rgba(255, 0, 0, 0.82); /* 赤バックグラウンド（ホバー時） */
-  border-color: rgba(255, 255, 255, 0.24); /* ホバー時ボーダー */
+.map-tools-panel__btn--create {
+  background: rgba(180, 60, 60, 0.6);
+  border-color: rgba(180, 60, 60, 0.4);
 }
 
-.create-geom-button:active {
+.map-tools-panel__btn--create:hover {
+  background: rgba(180, 60, 60, 0.75);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.map-tools-panel__btn--delete {
+  background: rgba(70, 70, 80, 0.7);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.map-tools-panel__btn--delete:hover {
+  background: rgba(90, 90, 100, 0.8);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.map-tools-panel__btn--measure {
+  background: rgba(50, 120, 180, 0.7);
+  border-color: rgba(100, 160, 220, 0.5);
+  font-weight: 600;
+}
+
+.map-tools-panel__btn--measure:hover {
+  background: rgba(60, 140, 210, 0.85);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.map-tools-panel__btn:active {
   transform: translateY(1px);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
 }
 
-.create-geom-button:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.25);
-  outline-offset: 2px;
-}
-
-/* コントラスト強化時の微調整 */
-@media (prefers-contrast: more) {
-  .create-geom-button {
-    border-color: rgba(255, 255, 255, 0.55);
-  }
-}
-
-/* ボタン本体：黒系テーマ（エリア情報削除） */
-.delete-geom-button {
-  appearance: none;
-  padding: 10px 16px;
-  border-radius: 10px;
-  border: 1px solid rgba(29, 29, 29, 0.35); /* 黒ボーダー */
-  background: rgba(0, 0, 0, 0.75); /* 黒バックグラウンド */
-
-  color: #fff;
-  font-size: 14px;
-  letter-spacing: 0.02em;
-  line-height: 1;
-  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
-  transition: background 0.15s ease, border-color 0.15s ease,
-    transform 0.06s ease, box-shadow 0.15s ease;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.delete-geom-button:hover {
-  background: rgba(0, 0, 0, 0.82); /* 黒バックグラウンド（ホバー時） */
-  border-color: rgba(255, 255, 255, 0.24); /* ホバー時ボーダー */
-}
-
-.delete-geom-button:active {
-  transform: translateY(1px);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
-}
-
-.delete-geom-button:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.25);
-  outline-offset: 2px;
-}
-
-/* コントラスト強化時の微調整 */
-@media (prefers-contrast: more) {
-  .delete-geom-button {
-    border-color: rgba(255, 255, 255, 0.55);
-  }
-}
-
-/* ボタン本体：青系テーマ（距離測定） */
-.measure-distance-button {
-  appearance: none;
-  padding: 10px 16px;
-  border-radius: 10px;
-  border: 1px solid rgba(33, 150, 243, 0.5);
-  background: rgba(33, 150, 243, 0.75);
-  color: #fff;
-  font-size: 14px;
-  letter-spacing: 0.02em;
-  line-height: 1;
-  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
-  transition: background 0.15s ease, border-color 0.15s ease;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.measure-distance-button:hover {
-  background: rgba(33, 150, 243, 0.88);
-  border-color: rgba(255, 255, 255, 0.24);
-}
-
-.measure-distance-button:focus-visible {
+.map-tools-panel__btn:focus-visible {
   outline: 2px solid rgba(255, 255, 255, 0.25);
   outline-offset: 2px;
 }

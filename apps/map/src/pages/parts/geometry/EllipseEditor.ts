@@ -1,6 +1,7 @@
 // src/pages/parts/geometry/EllipseEditor.ts
 import { toRad, toDeg, normalizeAngleDeg, fromLocalXY, toLocalXY } from "./math";
 import type { Geometry, EllipseGeom, LngLat } from "@/features/types";
+import { getAreaColor, getAreaFillOpacity } from "../geometryColors";
 import { markerBase, ROTATE_HANDLE_GAP_M, FRONT_LABEL_OFFSET_M, Z } from "../constants/events";
 import { setEllipseBearingDeg } from "./orientationDebug";
 
@@ -66,6 +67,27 @@ export class EllipseEditor {
 
     constructor(opts: EllipseEditorOpts) {
         this.opts = opts;
+    }
+
+    /** 飛行・保安・直径線の表示切り替え */
+    setOverlayVisibility(opts: { flight: boolean; safety: boolean; diameterLines: boolean }) {
+        const map = this.opts.getMap();
+        const flightMap = opts.flight && map ? map : null;
+        const safetyMap = opts.safety && map ? map : null;
+        const diamMap = opts.diameterLines && map ? map : null;
+
+        if (this.poly) this.poly.setMap(flightMap);
+        if (this.centerMarker) this.centerMarker.setMap(flightMap);
+        if (this.rxMarker) this.rxMarker.setMap(flightMap);
+        if (this.ryMarker) this.ryMarker.setMap(flightMap);
+        if (this.rotateMarker) this.rotateMarker.setMap(flightMap);
+        if (this.frontLabelMarker) this.frontLabelMarker.setMap(flightMap);
+        if (this.widthDiameterLine) this.widthDiameterLine.setMap(diamMap);
+        if (this.depthDiameterLine) this.depthDiameterLine.setMap(diamMap);
+
+        if (this.safetyPoly) this.safetyPoly.setMap(safetyMap);
+        if (this.safetyRxMarker) this.safetyRxMarker.setMap(safetyMap);
+        if (this.safetyRyMarker) this.safetyRyMarker.setMap(safetyMap);
     }
 
     /** 呼び出し元（MapGeometry）で overlays を消した後に参照だけクリア */
@@ -185,6 +207,11 @@ export class EllipseEditor {
 
         if (!flight) return { hasFlight: false };
 
+        const flightColor = getAreaColor(geom, "flightArea");
+        const flightOpacity = getAreaFillOpacity(geom, "flightArea");
+        const safetyColor = getAreaColor(geom, "safetyArea");
+        const safetyOpacity = getAreaFillOpacity(geom, "safetyArea");
+
         // 飛行エリア本体
         const { poly } = this.drawEllipse(
             [flight.center[0], flight.center[1]],
@@ -192,8 +219,9 @@ export class EllipseEditor {
             Number(flight.radiusY_m) || 0,
             Number(flight.rotation_deg) || 0,
             {
-                strokeColor: "#00c853",
-                fillColor: "#00c853",
+                strokeColor: flightColor,
+                fillColor: flightColor,
+                fillOpacity: flightOpacity,
                 zIndex: 20,
                 draggable: this.opts.isEditingOn(),
                 clickable: true,
@@ -220,8 +248,9 @@ export class EllipseEditor {
                 (Number(flight.radiusY_m) || 0) + buffer,
                 Number(flight.rotation_deg) || 0,
                 {
-                    strokeColor: "#ffd54f",
-                    fillColor: "#ffd54f",
+                    strokeColor: safetyColor,
+                    fillColor: safetyColor,
+                    fillOpacity: safetyOpacity,
                     zIndex: Z.OVERLAY.SAFETY,
                     clickable: false,
                     draggable: false,
@@ -240,12 +269,14 @@ export class EllipseEditor {
             [flight.center[0], flight.center[1]],
             Number(flight.radiusX_m) || 0,
             Number(flight.rotation_deg) || 0,
+            flightColor,
         );
         // depth 方向の直径を描画
         this.drawDepthDiameter(
             [flight.center[0], flight.center[1]],
             Number(flight.radiusY_m) || 0,
             Number(flight.rotation_deg) || 0,
+            flightColor,
         );
 
         // パン・ズーム時に直径線を画面端まで再延長
@@ -255,10 +286,12 @@ export class EllipseEditor {
         const map = this.opts.getMap();
         if (map) {
             this.boundsListener = google.maps.event.addListener(map, "bounds_changed", () => {
-                const cur = this.opts.getCurrentGeom()?.flightArea as EllipseGeom | undefined;
+                const geom = this.opts.getCurrentGeom();
+                const cur = geom?.flightArea as EllipseGeom | undefined;
                 if (!cur || !this.poly) return;
-                this.drawWidthDiameter(cur.center, Number(cur.radiusX_m) || 0, Number(cur.rotation_deg) || 0);
-                this.drawDepthDiameter(cur.center, Number(cur.radiusY_m) || 0, Number(cur.rotation_deg) || 0);
+                const fc = getAreaColor(geom, "flightArea");
+                this.drawWidthDiameter(cur.center, Number(cur.radiusX_m) || 0, Number(cur.rotation_deg) || 0, fc);
+                this.drawDepthDiameter(cur.center, Number(cur.radiusY_m) || 0, Number(cur.rotation_deg) || 0, fc);
             });
         }
 
@@ -284,14 +317,18 @@ export class EllipseEditor {
 
         // safetyPoly が未生成でも、Geometry が safetyArea=ellipse なら作る
         if (!this.safetyPoly && this.opts.getCurrentGeom()?.safetyArea?.type === "ellipse") {
+            const geom = this.opts.getCurrentGeom();
+            const sc = getAreaColor(geom, "safetyArea");
+            const so = getAreaFillOpacity(geom, "safetyArea");
             const { poly: safety } = this.drawEllipse(
                 [center[0], center[1]],
                 Math.max(0, radiusX_m + buffer),
                 Math.max(0, radiusY_m + buffer),
                 rotation_deg,
                 {
-                    strokeColor: "#ffd54f",
-                    fillColor: "#ffd54f",
+                    strokeColor: sc,
+                    fillColor: sc,
+                    fillOpacity: so,
                     zIndex: Z.OVERLAY.SAFETY,
                     clickable: false,
                     draggable: false,
@@ -346,10 +383,11 @@ export class EllipseEditor {
             } as any);
         }
 
+        const fc = getAreaColor(this.opts.getCurrentGeom(), "flightArea");
         // width 方向の直径も追従
-        this.drawWidthDiameter(center, radiusX_m, rotation_deg);
+        this.drawWidthDiameter(center, radiusX_m, rotation_deg, fc);
         // depth 方向の直径も追従
-        this.drawDepthDiameter(center, radiusY_m, rotation_deg);
+        this.drawDepthDiameter(center, radiusY_m, rotation_deg, fc);
 
         // 中心変更の通知（例：矢印の追従に使用）
         this.opts.onCenterChanged?.(center);
@@ -1047,7 +1085,7 @@ export class EllipseEditor {
     }
 
     /** 楕円の width 方向（radiusX）の直径を描画 or 更新 */
-    private drawWidthDiameter(center: LngLat, radiusX_m: number, rotation_deg: number) {
+    private drawWidthDiameter(center: LngLat, radiusX_m: number, rotation_deg: number, strokeColor = "#00c853") {
         const gmaps = this.opts.getGMaps();
         const map = this.opts.getMap();
         if (!map) return;
@@ -1090,13 +1128,14 @@ export class EllipseEditor {
 
         if (this.widthDiameterLine) {
             this.widthDiameterLine.setPath(path);
+            this.widthDiameterLine.setOptions({ strokeColor });
             this.widthDiameterLine.setMap(map);
             return;
         }
 
         this.widthDiameterLine = new gmaps.Polyline({
             path,
-            strokeColor: "#00c853",
+            strokeColor,
             strokeOpacity: 1,
             strokeWeight: 2,
             clickable: false,
@@ -1107,7 +1146,7 @@ export class EllipseEditor {
     }
 
     /** 楕円の depth 方向（radiusY）の直径を描画 or 更新 */
-    private drawDepthDiameter(center: LngLat, radiusY_m: number, rotation_deg: number) {
+    private drawDepthDiameter(center: LngLat, radiusY_m: number, rotation_deg: number, strokeColor = "#00c853") {
         const gmaps = this.opts.getGMaps();
         const map = this.opts.getMap();
         if (!map) return;
@@ -1135,13 +1174,14 @@ export class EllipseEditor {
 
         if (this.depthDiameterLine) {
             this.depthDiameterLine.setPath(path);
+            this.depthDiameterLine.setOptions({ strokeColor });
             this.depthDiameterLine.setMap(map);
             return;
         }
 
         this.depthDiameterLine = new gmaps.Polyline({
             path,
-            strokeColor: "#00c853",
+            strokeColor,
             strokeOpacity: 1,
             strokeWeight: 2,
             clickable: false,

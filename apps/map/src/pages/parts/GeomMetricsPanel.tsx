@@ -1,5 +1,6 @@
 // src/pages/parts/GeomMetricsPanel.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useDraggablePanel } from "./useDraggablePanel";
 import type { ChangeEvent } from "react";
 import type { GeometryMetrics } from "@/features/types";
 import {
@@ -53,6 +54,7 @@ export default function GeomMetricsPanel() {
     typeof document !== "undefined" &&
     document.body.classList.contains("editing-on");
   const [editable, setEditable] = useState<boolean>(getEditing());
+  const panelRef = useRef<HTMLElement | null>(null);
 
   // body.class の変化を監視して editable を同期
   useEffect(() => {
@@ -195,6 +197,8 @@ export default function GeomMetricsPanel() {
   const isFlightAreaOpen =
     typeof m.flightWidth_m === "number" || typeof m.flightDepth_m === "number";
 
+  useDraggablePanel(panelRef, { enabled: isFlightAreaOpen });
+
   // 飛行エリアが開いていない場合はパネルを表示しない
   if (!isFlightAreaOpen) {
     return null;
@@ -202,6 +206,7 @@ export default function GeomMetricsPanel() {
 
   return (
     <aside
+      ref={panelRef}
       id="geomMetricsPanel"
       className="geom-metrics-panel"
       aria-label="エリア寸法"

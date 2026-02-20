@@ -5,6 +5,10 @@ export type RectangleGeom = {
     type: "rectangle";
     coordinates: Array<LngLat>;
     referencePointIndex?: number;
+    /** 図形の色（#rrggbb）。未指定時はデフォルト色 */
+    color?: string;
+    /** 塗りつぶしの透明度（0〜1）。未指定時はデフォルト */
+    fillOpacity?: number;
 };
 
 export type EllipseGeom = {
@@ -13,6 +17,10 @@ export type EllipseGeom = {
     radiusX_m: number;
     radiusY_m: number;
     rotation_deg?: number;
+    /** 図形の色（#rrggbb）。未指定時はデフォルト色 */
+    color?: string;
+    /** 塗りつぶしの透明度（0〜1）。未指定時はデフォルト */
+    fillOpacity?: number;
 };
 
 export type OrientedRect = {
@@ -26,6 +34,10 @@ export type SafetyGeom = {
     type: "ellipse";
     buffer_m: number;
     mode?: "new" | "old" | "custom";
+    /** 図形の色（#rrggbb）。未指定時はデフォルト色 */
+    color?: string;
+    /** 塗りつぶしの透明度（0〜1）。未指定時はデフォルト */
+    fillOpacity?: number;
 };
 
 export type TurnGeom = {

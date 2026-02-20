@@ -2,6 +2,8 @@
 import { setDetailBarMetrics } from "./SideDetailBar";
 import type { Geometry, GeometryMetrics, LngLat, RectangleGeom } from "@/features/types";
 import { EV_DETAILBAR_APPLY_METRICS, EV_TAKEOFF_REF_CHANGED, EV_GEOMETRY_RESPOND_DATA, Z, EV_GEOMETRY_REQUEST_DATA, EV_GEOMETRY_SAVE_COMPLETE } from "./constants/events";
+import type { OverlayVisibility } from "./overlayVisibility";
+import { DEFAULT_OVERLAY_VISIBILITY } from "./overlayVisibility";
 import { EllipseEditor } from "./geometry/EllipseEditor";
 import { RectEditor } from "./geometry/RectEditor";
 import { AudienceEditor } from "./geometry/AudienceEditor";
@@ -79,6 +81,9 @@ export class MapGeometry {
     private undoStack: Array<{ geom: Geometry | null; deleted: boolean }> = [];
     private redoStack: Array<{ geom: Geometry | null; deleted: boolean }> = [];
     private undoRedoKeyListener: ((e: KeyboardEvent) => void) | null = null;
+
+    /** オーバーレイ表示切り替え（セッション中のみ保持） */
+    private overlayVisibilityRef: OverlayVisibility = { ...DEFAULT_OVERLAY_VISIBILITY };
 
     /** =========================
      *  保証表（10m刻み）: 高度 h[m] → 最大移動距離 d[m]
@@ -724,6 +729,43 @@ export class MapGeometry {
         setDetailBarMetrics(metrics);
         this.syncEditingInteractivity();
         this.currentGeomRef = geom;
+        this.applyOverlayVisibility();
+    }
+
+    /** オーバーレイ表示切り替えを適用 */
+    applyOverlayVisibility(visibility?: OverlayVisibility) {
+        if (visibility) this.overlayVisibilityRef = { ...visibility };
+        const v = this.overlayVisibilityRef;
+        const map = this.getMap();
+
+        // 保安は飛行表示時のみ有効
+        const effectiveSafety = v.flight && v.safety;
+
+        this.rectEditor.setOverlayVisibility(v.takeoff);
+        this.ellipseEditor.setOverlayVisibility({
+            flight: v.flight,
+            safety: effectiveSafety,
+            diameterLines: v.flight && v.diameterLines,
+        });
+        this.audienceEditor.setOverlayVisibility(v.audience);
+
+        if (this.arrowRef) this.arrowRef.setMap(v.arrows && map ? map : null);
+        if (this.arrow2Ref) this.arrow2Ref.setMap(v.arrows && map ? map : null);
+        if (this.arrow3Ref) this.arrow3Ref.setMap(v.arrows && map ? map : null);
+
+        if (this.arrowLabel) this.arrowLabel.setMap(v.labels && v.arrows && map ? map : null);
+        if (this.arrow2Label) this.arrow2Label.setMap(v.labels && v.arrows && map ? map : null);
+        if (this.arrow3Label) this.arrow3Label.setMap(v.labels && v.arrows && map ? map : null);
+    }
+
+    /** オーバーレイ表示状態を取得・設定 */
+    getOverlayVisibility(): OverlayVisibility {
+        return { ...this.overlayVisibilityRef };
+    }
+
+    setOverlayVisibility(visibility: Partial<OverlayVisibility>) {
+        this.overlayVisibilityRef = { ...this.overlayVisibilityRef, ...visibility };
+        this.applyOverlayVisibility();
     }
 
     /** =========================

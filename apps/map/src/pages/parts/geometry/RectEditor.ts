@@ -1,6 +1,7 @@
 // src/pages/parts/geometry/RectEditor.ts
 import { toRad, toDeg, normalizeAngleDeg, fromLocalXY, toLocalXY } from "./math";
 import type { Geometry, LngLat, RectangleGeom, OrientedRect } from "@/features/types";
+import { getAreaColor, getAreaFillOpacity } from "../geometryColors";
 import { markerBase, ROTATE_HANDLE_GAP_M, Z } from "../constants/events";
 import { setRectBearingDeg } from "./orientationDebug";
 
@@ -67,6 +68,17 @@ export class RectEditor {
 
     constructor(opts: RectEditorOpts) {
         this.opts = opts;
+    }
+
+    /** 離発着エリアの表示切り替え */
+    setOverlayVisibility(visible: boolean) {
+        const map = visible ? this.opts.getMap() : null;
+        const t = this.takeoffEditRef;
+        if (!t) return;
+        if (t.poly) t.poly.setMap(map);
+        t.cornerMarkers?.forEach((mk) => mk.setMap(map));
+        if (t.rotateMarker) t.rotateMarker.setMap(map);
+        if (t.refMarker) t.refMarker.setMap(map);
     }
 
     /** 呼び出し元の overlays を消した後に参照だけクリア */
@@ -147,10 +159,13 @@ export class RectEditor {
 
         if (!takeoff) return { hasRect: false };
 
+        const takeoffColor = getAreaColor(geom, "takeoffArea");
+        const takeoffOpacity = getAreaFillOpacity(geom, "takeoffArea");
         // 本体
         const poly = this.drawRectangle(takeoff.coordinates, {
-            strokeColor: "#ed1b24",
-            fillColor: "#ed1b24",
+            strokeColor: takeoffColor,
+            fillColor: takeoffColor,
+            fillOpacity: takeoffOpacity,
         });
         poly.getPath().forEach((p) => bounds.extend(p as google.maps.LatLng));
 

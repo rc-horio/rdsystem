@@ -98,7 +98,11 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   /** =========================
    *  Helpers
    *  ========================= */
-  const buildHubUrl = (projectUuid?: string, date?: string): string | null => {
+  const buildHubUrl = (
+    projectUuid?: string,
+    date?: string,
+    scheduleUuid?: string
+  ): string | null => {
     if (!projectUuid) return null;
 
     // ローカル開発の場合
@@ -112,10 +116,16 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
         ? date.slice(0, 4)
         : String(new Date().getFullYear());
 
+    // RD Mapから遷移時は「エリア」タブを開き、対応スケジュールを選択（tab=エリア, scheduleUuid=xxx）
+    const tabParam = "tab=エリア";
+    const scheduleParam =
+      scheduleUuid && scheduleUuid.trim()
+        ? `&scheduleUuid=${encodeURIComponent(scheduleUuid)}`
+        : "";
+
     // ローカル開発の場合,ローカルのベースURLを返す
-    // RD Mapから遷移時は「エリア」タブを開く（tab=エリア）
     if (isLocalLike) {
-      return `${protocol}//${hostname}:5174/hub/${projectUuid}?source=s3&year=${yearFromDate}&tab=エリア`;
+      return `${protocol}//${hostname}:5174/hub/${projectUuid}?source=s3&year=${yearFromDate}&${tabParam}${scheduleParam}`;
     }
 
     // 本番の場合,環境変数からベースURLを取得
@@ -127,8 +137,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     if (!base) return null;
 
     // ベースURLとプロジェクトUUIDを組み合わせてURLを生成
-    // RD Mapから遷移時は「エリア」タブを開く（tab=エリア）
-    return `${base}/${projectUuid}?source=s3&year=${yearFromDate}&tab=エリア`;
+    return `${base}/${projectUuid}?source=s3&year=${yearFromDate}&${tabParam}${scheduleParam}`;
   };
 
   const fmtDate = (isoLike: string) => {
@@ -734,7 +743,8 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                             onClick={() => {
                               const url = buildHubUrl(
                                 item.projectUuid,
-                                item.date
+                                item.date,
+                                item.scheduleUuid
                               );
                               if (!url) {
                                 console.warn(

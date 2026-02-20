@@ -4,7 +4,6 @@ import html2canvas from "html2canvas";
 import { Loader } from "@googlemaps/js-api-loader";
 import {
   createMarkerIcon,
-  useDraggableMetricsPanel,
   useEditableBodyClass,
   useAddAreaMode,
   useMeasurementMode,
@@ -46,6 +45,11 @@ import {
 } from "./constants/events";
 import { AddAreaModal } from "./AddAreaModal";
 import { RegisterProjectModal } from "./RegisterProjectModal";
+import MapToolsPanel from "./MapToolsPanel";
+import {
+  DEFAULT_OVERLAY_VISIBILITY,
+  type OverlayVisibility,
+} from "./overlayVisibility";
 
 // 本番用のCatalogのベースURL
 const CATALOG =
@@ -94,8 +98,12 @@ export default function MapView({ onLoaded }: Props) {
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   // ジオメトリ未作成メッセージ（マップ上に表示）
   const [showNoGeometryHint, setShowNoGeometryHint] = useState(false);
+  // オーバーレイ表示切り替え（セッション中のみ保持）
+  const [overlayVisibility, setOverlayVisibility] =
+    useState<OverlayVisibility>(DEFAULT_OVERLAY_VISIBILITY);
+  // 色変更時にパネルを再描画するためのリビジョン（setGeometryRevision で re-render をトリガー）
+  const [, setGeometryRevision] = useState(0);
 
-  useDraggableMetricsPanel();
   const editable = useEditableBodyClass();
   const editableRef = useRef(editable);
 
@@ -2434,57 +2442,45 @@ export default function MapView({ onLoaded }: Props) {
         </div>
       )}
 
-      <div id="controls" className="cta-overlay">
-        {/* 案件情報セクションのときだけ CTA を表示 */}
-        {editable &&
-          selectionKind === "schedule" &&
-          showCreateGeomCta &&
-          isSelected && (
-            <button
-              id="create-geom-button"
-              type="button"
-              className="create-geom-button"
-              onClick={() => {
-                createDefaultGeometry();
-              }}
-              aria-label="飛行エリアを作図する"
-            >
-              飛行エリアを作図する
-            </button>
-          )}
-
-        {editable &&
-          selectionKind === "schedule" &&
-          !showCreateGeomCta &&
-          isSelected && (
-            <button
-              id="delete-geom-button"
-              type="button"
-              className="delete-geom-button"
-              onClick={() => {
-                deleteGeometry();
-              }}
-              aria-label="エリア情報を削除する"
-            >
-              エリア情報を削除する
-            </button>
-          )}
-
-        {/* 距離測定ボタン（iframe埋め込み時は非表示） */}
-        {!measurementMode && window === window.top && (
-          <button
-            id="measure-distance-button"
-            type="button"
-            className="measure-distance-button"
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent("map:start-measurement"));
-            }}
-            aria-label="距離を測る"
-          >
-            距離を測る
-          </button>
-        )}
-      </div>
+      <MapToolsPanel
+        overlayVisibility={overlayVisibility}
+        onOverlayVisibilityChange={(v) => {
+          setOverlayVisibility(v);
+          geomRef.current?.setOverlayVisibility(v);
+        }}
+        showOverlaySection={isSelected && !showCreateGeomCta}
+        currentGeometry={geomRef.current?.getCurrentGeometry() ?? null}
+        onGeometryColorChange={(areaKey, color) => {
+          const geom = geomRef.current?.getCurrentGeometry();
+          if (!geom) return;
+          const area = geom[areaKey];
+          if (!area || typeof area !== "object") return;
+          const updated = {
+            ...geom,
+            [areaKey]: { ...area, color },
+          };
+          geomRef.current?.renderGeometry(updated, { fit: false });
+          setGeometryRevision((r) => r + 1);
+        }}
+        onGeometryOpacityChange={(areaKey, fillOpacity) => {
+          const geom = geomRef.current?.getCurrentGeometry();
+          if (!geom) return;
+          const area = geom[areaKey];
+          if (!area || typeof area !== "object") return;
+          const updated = {
+            ...geom,
+            [areaKey]: { ...area, fillOpacity },
+          };
+          geomRef.current?.renderGeometry(updated, { fit: false });
+          setGeometryRevision((r) => r + 1);
+        }}
+        onCreateGeometry={createDefaultGeometry}
+        onDeleteGeometry={deleteGeometry}
+        onStartMeasurement={() => window.dispatchEvent(new CustomEvent("map:start-measurement"))}
+        showCreateButton={editable && selectionKind === "schedule" && !!showCreateGeomCta && isSelected}
+        showDeleteButton={editable && selectionKind === "schedule" && !showCreateGeomCta && isSelected}
+        showMeasureButton={!measurementMode && window === window.top}
+      />
       <AddAreaModal
         open={editable && !!newAreaDraft}
         draft={newAreaDraft}

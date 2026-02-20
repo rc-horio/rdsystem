@@ -1,6 +1,7 @@
 // src/pages/parts/geometry/AudienceEditor.ts
 import { toRad, toDeg, normalizeAngleDeg, fromLocalXY, toLocalXY } from "./math";
 import type { Geometry, LngLat, RectangleGeom, OrientedRect } from "@/features/types";
+import { getAreaColor, getAreaFillOpacity } from "../geometryColors";
 import { markerBase, ROTATE_HANDLE_GAP_M, Z } from "../constants/events";
 
 export type AudienceEditorOpts = {
@@ -37,6 +38,14 @@ export class AudienceEditor {
 
     constructor(opts: AudienceEditorOpts) {
         this.opts = opts;
+    }
+
+    /** 観客エリアの表示切り替え */
+    setOverlayVisibility(visible: boolean) {
+        const map = visible ? this.opts.getMap() : null;
+        if (this.poly) this.poly.setMap(map);
+        this.cornerMarkers?.forEach((mk) => mk.setMap(map));
+        if (this.rotateMarker) this.rotateMarker.setMap(map);
     }
 
     /** 呼び出し元の overlays を消した後に参照だけクリア */
@@ -91,11 +100,13 @@ export class AudienceEditor {
 
         if (!audience) return { hasAudience: false };
 
+        const audienceColor = getAreaColor(geom, "audienceArea");
+        const audienceOpacity = getAreaFillOpacity(geom, "audienceArea");
         // 本体
         this.poly = this.drawRectangle(audience.coordinates, {
-            strokeColor: "#1e88e5",
-            fillColor: "#1e88e5",
-            fillOpacity: 0.4,
+            strokeColor: audienceColor,
+            fillColor: audienceColor,
+            fillOpacity: audienceOpacity,
             strokeOpacity: 0.9,
             zIndex: Z.OVERLAY.TAKEOFF, // 飛行より下でもOK。必要なら専用zIndexに。
             draggable: this.opts.isEditingOn(),

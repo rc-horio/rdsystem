@@ -53,6 +53,7 @@ export function useHubPageState() {
   const initDate = q.get("date") || "";
   const initLabel = q.get("label") || "";
   const initTab = q.get("tab") || "";
+  const initScheduleUuid = q.get("scheduleUuid") || "";
 
   const validTabs = ["リソース", "エリア", "オペレーション", "現場写真"] as const;
   const [activeTab, setActiveTab] = useState<
@@ -332,14 +333,19 @@ export function useHubPageState() {
               const built = buildSchedulesFromProjectData(dup);
 
               // モーダルで日付が入っていたら、その日付のスケジュールを優先選択。
+              // scheduleUuid（RD Mapからの遷移）が指定されていればそのスケジュールを選択。
               // 見つからなければ1件追加して選択。
               let nextSchedules = built;
               let selected: string | null = built[0]?.id ?? null;
-              if (initDate) {
+              if (initScheduleUuid) {
+                const match = built.find((s) => s.id === initScheduleUuid);
+                if (match) selected = match.id;
+              }
+              if (initDate && selected === built[0]?.id) {
                 const match = built.find((s) => (s.date || "") === initDate);
                 if (match) {
                   selected = match.id;
-                } else {
+                } else if (!initScheduleUuid) {
                   const add = buildNewSchedule({
                     date: initDate,
                     label: initLabel || "",
@@ -423,12 +429,18 @@ export function useHubPageState() {
         setProjectData(data);
         const built = buildSchedulesFromProjectData(data);
         setSchedules(built);
-        setSelectedId(built[0]?.id ?? null);
+        // RD Mapから遷移時（scheduleUuid指定）は該当スケジュールを選択
+        const selected =
+          initScheduleUuid &&
+          built.some((s) => s.id === initScheduleUuid)
+            ? initScheduleUuid
+            : built[0]?.id ?? null;
+        setSelectedId(selected);
       } catch (e) {
         console.error("プロジェクト取得エラー", e);
       }
     })();
-  }, [id, source, isInit]);
+  }, [id, source, isInit, initScheduleUuid]);
 
   const updateSchedule = (id: string, updates: Partial<ScheduleDetail>) => {
     setSchedules((prev) =>
