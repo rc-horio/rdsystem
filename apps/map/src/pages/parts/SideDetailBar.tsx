@@ -76,6 +76,8 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     restrictionsMemo: "",
     remarks: "",
     candidate: [],
+    updated_at: undefined,
+    updated_by: undefined,
   });
 
   const candidates = meta.candidate ?? [];
@@ -147,6 +149,16 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     const m = `${d.getMonth() + 1}`.padStart(2, "0");
     const da = `${d.getDate()}`.padStart(2, "0");
     return `${yy}/${m}/${da}`;
+  };
+
+  const formatDateTime = (iso: string): string => {
+    return new Date(iso).toLocaleString("ja-JP", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   // タイトル重複チェック用ヘルパ（空文字は対象外）
@@ -1000,6 +1012,14 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
           </section>
         )}
       </div>
+
+      {(meta.updated_at ?? meta.updated_by) && (
+        <div className="detailbar-footer">
+          最終更新{" "}
+          {meta.updated_at ? formatDateTime(meta.updated_at) : "—"}
+          {meta.updated_by?.trim() ? ` ${meta.updated_by.trim()}` : ""}
+        </div>
+      )}
     </div>
   );
 }

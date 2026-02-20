@@ -763,9 +763,9 @@ body.detailbar-open #detailbar {
   transform: translateY(-50%) translateZ(0);
   pointer-events: auto;
 
-  /* 二段構成：上=ヘッダー固定、下=本文スクロール */
+  /* 三段構成：上=ヘッダー固定、中央=本文スクロール、下=フッター（最終更新） */
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto 1fr auto;
   padding: var(--detailbar-pad);
   gap: 12px;
   overflow: hidden; /* 外側は隠す（本文は内側 .detailbar-panel でスクロール） */
@@ -900,6 +900,14 @@ body.detailbar-open #detailbar {
   top: 8px;
   right: 8px;
   z-index: 5;
+}
+
+/* 左下の最終更新表示 */
+.detailbar-footer {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  align-self: end;
+  justify-self: start;
 }
 
 /* =========================================

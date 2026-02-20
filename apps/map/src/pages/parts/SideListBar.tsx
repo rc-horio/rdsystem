@@ -15,6 +15,7 @@ import {
   setDetailBarMeta,
   closeDetailBar,
 } from "./SideDetailBar";
+import { getUserDisplayName } from "@/lib/auditHeaders";
 import {
   fetchAreaInfo,
   fetchRawAreaInfo,
@@ -829,6 +830,7 @@ function SideListBarBase({
       );
 
       // （2-2）画面入力値からareas/<areaUuid>/index.json 形式
+      const displayName = await getUserDisplayName();
       const infoToSave = {
         ...(typeof raw === "object" && raw ? raw : {}),
         areaName: newTitle, // エリア名を index.json にも反映（areas.json と同期）
@@ -857,7 +859,7 @@ function SideListBarBase({
           ? raw.candidate
           : [],
         updated_at: new Date().toISOString(),
-        updated_by: "ui",
+        updated_by: displayName,
       };
 
       // （2-3）areas/<areaUuid>/index.json を保存
@@ -1030,6 +1032,8 @@ function SideListBarBase({
         permitMemo: infoToSave.details?.permitMemo ?? "",
         restrictionsMemo: infoToSave.details?.restrictionsMemo ?? "",
         remarks: infoToSave.details?.remarks ?? "",
+        updated_at: infoToSave.updated_at,
+        updated_by: infoToSave.updated_by,
       });
 
       // 案件履歴も再取得して詳細バーに反映

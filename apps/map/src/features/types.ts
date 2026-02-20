@@ -115,6 +115,10 @@ export interface DetailMeta {
     restrictionsMemo: string;
     remarks: string;
     candidate: Candidate[];
+    /** 最終更新日時（ISO8601） */
+    updated_at?: string;
+    /** 最終更新ユーザー */
+    updated_by?: string;
 }
 
 export interface Candidate {

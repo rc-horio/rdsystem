@@ -38,3 +38,40 @@ export async function getAuditHeaders(): Promise<AuditHeaders> {
     return { "X-User-Sub": "", "X-User-Email": "" };
   }
 }
+
+const DEV_DISPLAY_NAME = "開発ユーザー";
+
+/**
+ * 最終更新ユーザー表示用の表示名を取得
+ * 優先順位: name > given_name+family_name > preferred_username > email
+ * 開発環境では "開発ユーザー" を返す
+ */
+export async function getUserDisplayName(): Promise<string> {
+  const isDevBypass =
+    import.meta.env.VITE_DISABLE_AUTH === "true" || import.meta.env.DEV;
+  if (isDevBypass) {
+    return DEV_DISPLAY_NAME;
+  }
+
+  try {
+    const session = await fetchAuthSession();
+    const payload = session?.tokens?.idToken?.payload as Record<string, unknown> | undefined;
+    if (!payload) return "";
+
+    const name = (payload.name ?? "") as string;
+    if (typeof name === "string" && name.trim()) return name.trim();
+
+    const given = (payload.given_name ?? "") as string;
+    const family = (payload.family_name ?? "") as string;
+    const fullName = [given, family].filter(Boolean).join(" ").trim();
+    if (fullName) return fullName;
+
+    const preferred = (payload.preferred_username ?? "") as string;
+    if (typeof preferred === "string" && preferred.trim()) return preferred.trim();
+
+    const email = (payload.email ?? "") as string;
+    return typeof email === "string" ? email : "";
+  } catch {
+    return "";
+  }
+}

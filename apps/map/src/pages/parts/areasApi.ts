@@ -1,5 +1,6 @@
 // src/pages/parts/areasApi.ts
 import type { HistoryLite, DetailMeta, Candidate } from "@/features/types";
+import { getUserDisplayName } from "@/lib/auditHeaders";
 import { getAuditHeaders } from "@/lib/auditHeaders";
 import { getCurrentTurnMetrics } from "./geometry/orientationDebug";
 
@@ -420,6 +421,8 @@ function parseDetailMeta(info: any, fallbackAreaName?: string): DetailMeta {
         restrictionsMemo: toStr(dt.restrictionsMemo ?? dt.restrictions ?? ""),
         remarks: toStr(dt.remarks ?? ""),
         candidate,
+        updated_at: typeof info?.updated_at === "string" ? info.updated_at : undefined,
+        updated_by: typeof info?.updated_by === "string" ? info.updated_by : undefined,
     };
 }
 
@@ -711,6 +714,7 @@ export async function createNewArea(params: {
     // ② uuid 発行
     const uuid = generateUuid();
     const now = new Date().toISOString();
+    const displayName = await getUserDisplayName();
 
     // ③ areas/<uuid>/index.json の初期値
     const info = {
@@ -733,7 +737,7 @@ export async function createNewArea(params: {
         history: [],
         candidate: [],
         updated_at: now,
-        updated_by: "ui",
+        updated_by: displayName,
     };
 
     const okInfo = await saveAreaInfo(uuid, info);
