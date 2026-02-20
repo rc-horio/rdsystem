@@ -20,6 +20,20 @@ export default defineConfig({
     host: '0.0.0.0',   // ← これはあってもなくても OK
     port: 5173,
 
+    // 開発時のみ: Lambda への CORS 回避用プロキシ
+    proxy: {
+      "/__catalog-write": {
+        target: "https://u64h3yye227qjsnem7yyydakpu0vpkxn.lambda-url.ap-northeast-1.on.aws",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/__catalog-write/, ""),
+      },
+      "/__catalog-delete": {
+        target: "https://xfrtw5rsebwcgc6hyvhtvdlor40ornnm.lambda-url.ap-northeast-1.on.aws",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/__catalog-delete/, ""),
+      },
+    },
+
     // ファイルを監視して保存されたら自動でブラウザをリロード/差し替え（HMR）
     watch: {
       usePolling: true,   // ★ ポーリング方式

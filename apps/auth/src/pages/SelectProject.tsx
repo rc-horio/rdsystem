@@ -4,6 +4,14 @@ import { useNavigate } from "react-router-dom";
 import { BrandHeader, validateProjectId } from "@/components";
 import { signOut } from "aws-amplify/auth";
 import { getAuditHeaders } from "@/lib/auditHeaders";
+import {
+  fetchAreasList,
+  fetchRawAreaInfo,
+  fetchProjectIndex,
+  saveAreaInfo,
+  deleteFromCatalog,
+  extractProjectDeleteKeys,
+} from "@/lib/catalogApi";
 import { v4 as uuidv4 } from "uuid";
 import { FullHeightSelect } from "@/components";
 
@@ -27,8 +35,10 @@ const LIST_URL =
   String(import.meta.env.VITE_CATALOG_BASE_URL || "").replace(/\/+$/, "") +
   "/projects.json";
 
-// 環境変数からCatalogの書き込みURLを取得
-const LAMBDA_URL = String(import.meta.env.VITE_CATALOG_WRITE_URL || "");
+// 環境変数からCatalogの書き込みURLを取得（開発時はプロキシ経由で CORS 回避）
+const LAMBDA_URL = import.meta.env.DEV
+  ? "/__catalog-write"
+  : String(import.meta.env.VITE_CATALOG_WRITE_URL || "").replace(/\/+$/, "");
 
 interface ProjectMeta {
   uuid: string;
@@ -85,6 +95,40 @@ async function upsertProjectList(row: ListRow): Promise<ListRow[]> {
   return next;
 }
 
+async function removeProjectFromList(uuid: string): Promise<ListRow[]> {
+  let list: ListRow[] = [];
+  try {
+    const r = await fetch(LIST_URL, { cache: "no-cache" });
+    if (r.ok) {
+      const json = await r.json();
+      if (Array.isArray(json)) list = json;
+    }
+  } catch (e) {
+    console.warn("[SelectProject] fetch projects.json failed", e);
+  }
+
+  const next = list.filter((x) => x.uuid !== uuid);
+  next.sort((a, b) =>
+    (b.projectId || "").localeCompare(a.projectId || "")
+  );
+
+  const auditHeaders = await getAuditHeaders();
+  const res = await fetch(LAMBDA_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...auditHeaders },
+    body: JSON.stringify({
+      key: `catalog/v1/projects.json`,
+      body: next,
+      contentType: "application/json; charset=utf-8",
+    }),
+  });
+
+  const raw = await res.text();
+  const data = raw ? JSON.parse(raw) : null;
+  if (!res.ok || data?.error) throw new Error(data?.error ?? raw);
+  return next;
+}
+
 /* =========================
   プロジェクト選択ページ（SP/PC）
 ========================= */
@@ -103,6 +147,7 @@ export default function SelectProject() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   const modes = ["Hub", "Map"] as const;
   const [modeIndex, setModeIndex] = useState(0);
@@ -241,6 +286,95 @@ export default function SelectProject() {
     })();
   };
 
+  // === 削除クリック ===
+  const handleDeleteClick = async () => {
+    if (!selectedProject) {
+      alert("プロジェクトを選択してください");
+      return;
+    }
+    const meta = projects.find((p) => p.projectId === selectedProject);
+    if (!meta?.uuid) {
+      alert("プロジェクトのUUIDが見つかりません。");
+      return;
+    }
+    const label = `${meta.projectId} - ${meta.projectName}`;
+    const projectUuid = meta.uuid;
+
+    // 1. 紐づきチェック（全エリアを並列取得）
+    const areasList = await fetchAreasList();
+    const areaEntries = areasList
+      .map((a) => a?.uuid)
+      .filter((uuid): uuid is string => !!uuid);
+
+    const areaInfos = await Promise.all(
+      areaEntries.map((uuid) => fetchRawAreaInfo(uuid))
+    );
+
+    const linkedAreas: { uuid: string; areaName: string; info: Record<string, unknown> }[] = [];
+    for (let i = 0; i < areaEntries.length; i++) {
+      const uuid = areaEntries[i];
+      const info = areaInfos[i] ?? {};
+      const history = Array.isArray(info?.history) ? info.history : [];
+      const hasRef = history.some(
+        (h: { projectuuid?: string }) => (h?.projectuuid || "") === projectUuid
+      );
+      if (hasRef) {
+        const a = areasList.find((x) => x?.uuid === uuid);
+        linkedAreas.push({
+          uuid,
+          areaName: (a?.areaName as string) || uuid,
+          info,
+        });
+      }
+    }
+
+    // 2. 確認ポップアップ
+    let msg: string;
+    if (linkedAreas.length > 0) {
+      const names = linkedAreas.map((a) => a.areaName).join(", ");
+      msg = `このプロジェクトは以下のエリアに紐づいています。削除すると紐づきが解除されます。\n\nエリア: ${names}\n\nプロジェクト「${label}」を削除しますか？\nこの操作は取り消せません。`;
+    } else {
+      msg = `プロジェクト「${label}」を削除しますか？\nこの操作は取り消せません。`;
+    }
+    if (!confirm(msg)) return;
+
+    setDeleting(true);
+    try {
+      // 3a. エリアの history から projectuuid を除去（1で取得済みの info を利用）
+      const areaUpdates = linkedAreas.map(({ uuid: areaUuid, info }) => {
+        const history = Array.isArray(info?.history) ? info.history : [];
+        const nextHistory = history.filter(
+          (h: { projectuuid?: string }) => (h?.projectuuid || "") !== projectUuid
+        );
+        return saveAreaInfo(areaUuid, { ...info, history: nextHistory });
+      });
+      await Promise.all(areaUpdates);
+
+      // 3b. プロジェクト index 取得 → 削除キー抽出
+      const projectIndex = await fetchProjectIndex(projectUuid);
+      const keys = projectIndex
+        ? extractProjectDeleteKeys(projectUuid, projectIndex)
+        : [`catalog/v1/projects/${projectUuid}/index.json`];
+
+      // 3c. S3 削除
+      const deleted = await deleteFromCatalog(keys);
+      if (!deleted) throw new Error("プロジェクトの削除に失敗しました。");
+
+      // 3d. projects.json 更新
+      const updated = await removeProjectFromList(projectUuid);
+      setProjects(updated as ProjectMeta[]);
+      setSelectedProject("");
+      alert("プロジェクトを削除しました。");
+    } catch (e) {
+      console.error("[SelectProject] delete error", e);
+      alert(
+        `削除に失敗しました: ${e instanceof Error ? e.message : String(e)}`
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   // === ログアウト ===
   const handleLogout = async () => {
     try {
@@ -313,23 +447,38 @@ export default function SelectProject() {
             </div>
 
             {/* ボタン群 */}
-            <div className="grid gap-2 grid-rows-[42px_auto]">
-              {mode === "Hub" ? (
-                <button
-                  onClick={openCreateModal}
-                  className="w-full py-2 font-semibold text-white hover:underline active:scale-95 transition"
-                >
-                  {/* create / duplicate project */}
-                  create project
-                </button>
-              ) : (
-                <div className="invisible h-[42px]" aria-hidden />
+            <div className="space-y-3">
+              {mode === "Hub" && (
+                <div className="flex items-center justify-center gap-6 text-sm">
+                  <button
+                    type="button"
+                    onClick={openCreateModal}
+                    className="text-slate-300 cursor-pointer active:scale-95 transition hover:text-white"
+                  >
+                    create project
+                  </button>
+                  <span className="text-slate-600" aria-hidden>
+                    /
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleDeleteClick}
+                    disabled={deleting || !selectedProject}
+                    className={
+                      "text-slate-300 cursor-pointer active:scale-95 transition " +
+                      (selectedProject && !deleting
+                        ? "hover:text-white"
+                        : "opacity-40 cursor-not-allowed")
+                    }
+                  >
+                    {deleting ? "削除中…" : "delete project"}
+                  </button>
+                </div>
               )}
-
               <button
                 type="button"
                 onClick={handleJoin}
-                className="w-10/12 max-w-80 mx-auto rounded-lg bg-red-600 py-2 font-semibold text-white shadow hover:bg-red-700 active:scale-95 transition"
+                className="w-10/12 max-w-80 mx-auto block rounded-lg bg-red-600 py-2 font-semibold text-white shadow hover:bg-red-700 active:scale-95 transition"
               >
                 join
               </button>
@@ -403,20 +552,34 @@ export default function SelectProject() {
             </div>
 
             {/* ボタン群 */}
-            <div className="grid gap-2 grid-rows-[42px_auto]">
-              {mode === "Hub" ? (
-                <button
-                  type="button"
-                  onClick={openCreateModal}
-                  className="w-full py-2 font-semibold text-white hover:underline active:scale-95 transition"
-                >
-                  {/* create / duplicate project */}
-                  create project
-                </button>
-              ) : (
-                <div className="invisible h-[42px]" aria-hidden />
+            <div className="space-y-3">
+              {mode === "Hub" && (
+                <div className="flex items-center justify-center gap-6 text-sm">
+                  <button
+                    type="button"
+                    onClick={openCreateModal}
+                    className="text-slate-300 cursor-pointer active:scale-95 transition hover:text-white"
+                  >
+                    create project
+                  </button>
+                  <span className="text-slate-600" aria-hidden>
+                    /
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleDeleteClick}
+                    disabled={deleting || !selectedProject}
+                    className={
+                      "text-slate-300 cursor-pointer active:scale-95 transition " +
+                      (selectedProject && !deleting
+                        ? "hover:text-white"
+                        : "opacity-40 cursor-not-allowed")
+                    }
+                  >
+                    {deleting ? "削除中…" : "delete project"}
+                  </button>
+                </div>
               )}
-
               <button
                 type="button"
                 onClick={handleJoin}
