@@ -31,20 +31,20 @@ export function buildIndexJsonFromState(
     vehicles:
       r.vehicles && typeof r.vehicles === "object"
         ? {
-            rows: Array.isArray(r.vehicles.rows)
-              ? r.vehicles.rows
-              : [{ type: "", driver: "" }],
-            memo: r.vehicles.memo ?? "",
-          }
+          rows: Array.isArray(r.vehicles.rows)
+            ? r.vehicles.rows
+            : [{ type: "", driver: "" }],
+          memo: r.vehicles.memo ?? "",
+        }
         : { rows: [{ type: "", driver: "" }], memo: "" },
     items: Array.isArray(r.items) ? r.items : [],
     hotels: Array.isArray(r.hotels) ? r.hotels : [],
     people:
       r.people && typeof r.people === "object"
         ? {
-            groups: Array.isArray(r.people.groups) ? r.people.groups : [],
-            memo: r.people.memo ?? "",
-          }
+          groups: Array.isArray(r.people.groups) ? r.people.groups : [],
+          memo: r.people.memo ?? "",
+        }
         : { groups: [], memo: "" },
   });
 
