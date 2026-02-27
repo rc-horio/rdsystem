@@ -256,7 +256,7 @@ export function useMeasurementMode(
       setPoints([]);
       pointsRef.current = [];
       clearOverlays();
-      // エリア追加モードと排他
+      // エリア追加モードと排他（高さ制限チェックは維持し、測定中は表示のみ非表示）
       window.dispatchEvent(new CustomEvent("map:cancel-add-area"));
       window.dispatchEvent(
         new CustomEvent("map:measurement-mode-changed", {

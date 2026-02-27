@@ -14,6 +14,8 @@ export type OverlayVisibility = {
   labels: boolean;
   /** 飛行エリアの直径延長線 */
   diameterLines: boolean;
+  /** DJI 飛行禁止ゾーン（NFZ） */
+  djiNfz: boolean;
 };
 
 export const DEFAULT_OVERLAY_VISIBILITY: OverlayVisibility = {
@@ -24,4 +26,5 @@ export const DEFAULT_OVERLAY_VISIBILITY: OverlayVisibility = {
   arrows: true,
   labels: true,
   diameterLines: true,
+  djiNfz: true,
 };

@@ -120,7 +120,7 @@ function SideListBarBase({
   // 検索クエリ state
   const [searchQuery, setSearchQuery] = useState("");
   // ソート種類 state
-  const [sortType, setSortType] = useState<"name" | "prefecture" | "updated">("prefecture");
+  const [sortType, setSortType] = useState<"name" | "prefecture" | "updated">("updated");
   // フィルター条件 state
   const [filterType, setFilterType] = useState<
     "all" | "droneRecord" | "candidate"

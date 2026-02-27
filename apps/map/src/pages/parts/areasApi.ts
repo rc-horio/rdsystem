@@ -700,6 +700,10 @@ export async function createNewArea(params: {
     lon: number;
     prefecture?: string | null;
     address?: string | null;
+    /** 高さ制限（m）。空港高さ制限照会結果から自動設定 */
+    heightLimitM?: string | null;
+    /** 詳細タブ「制限」欄。DJI NFZ 該当時の文言 */
+    restrictionsMemo?: string | null;
 }): Promise<{ ok: boolean; uuid?: string; reason?: "duplicate" | "save-failed" }> {
     const trimmed = params.areaName.trim();
     if (!trimmed) {
@@ -725,13 +729,13 @@ export async function createNewArea(params: {
             manager: "",
             droneRecord: 0,
             droneCountEstimate: "",
-            heightLimitM: "",
+            heightLimitM: params.heightLimitM ?? "",
             availability: "",
         },
         details: {
             statusMemo: "",
             permitMemo: "",
-            restrictionsMemo: "",
+            restrictionsMemo: params.restrictionsMemo ?? "",
             remarks: "",
         },
         history: [],

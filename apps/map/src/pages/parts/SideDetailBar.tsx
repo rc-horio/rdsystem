@@ -668,7 +668,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                 }
               />
               <InputBox
-                label="高さ制限(海抜~)"
+                label="制限高(海抜高)"
                 value={meta.altitudeLimit}
                 onChange={(e) =>
                   setMeta((p) => ({ ...p, altitudeLimit: e.target.value }))

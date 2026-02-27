@@ -7,14 +7,32 @@ type Draft = {
     lng: number;
     prefecture: string | null;
     address: string | null;
+    /** 高さ制限（m）。空港高さ制限照会結果から自動設定 */
+    heightLimitM?: string | null;
+    /** 詳細タブ「制限」欄用。DJI NFZ 該当時の文言 */
+    djiNfzRestrictions?: string | null;
 } | null;
 
 const getGMaps = () =>
     (window as any).google.maps as typeof google.maps;
 
+export type AddAreaConfirmExtraContent = {
+    html: string;
+    heightLimitM?: string;
+    /** 詳細タブ「制限」欄用。DJI NFZ 該当時の文言 */
+    djiNfzRestrictions?: string;
+};
+
+export type GetAddAreaConfirmExtraContent = (
+    lat: number,
+    lng: number
+) => Promise<string | AddAreaConfirmExtraContent>;
+
 export function useAddAreaMode(
-    mapRef: React.MutableRefObject<google.maps.Map | null>
+    mapRef: React.MutableRefObject<google.maps.Map | null>,
+    options?: { getAddAreaConfirmExtraContent?: GetAddAreaConfirmExtraContent }
 ) {
+    const getAddAreaConfirmExtraContent = options?.getAddAreaConfirmExtraContent;
     const [addingAreaMode, setAddingAreaMode] = useState(false);
     const addingAreaModeRef = useRef(false);
     // クリックされた座標＋住所などのドラフト情報
@@ -86,7 +104,7 @@ export function useAddAreaMode(
     };
 
     /** 追加モード確認ダイアログを表示 */
-    const openAddAreaConfirm = (
+    const openAddAreaConfirm = async (
         latLng: google.maps.LatLng,
         draft: NonNullable<Draft>
     ) => {
@@ -96,6 +114,27 @@ export function useAddAreaMode(
 
         if (!addAreaConfirmInfoRef.current) {
             addAreaConfirmInfoRef.current = new gmaps.InfoWindow();
+        }
+
+        let extraHtml = "";
+        let heightLimitM: string | null = null;
+        let djiNfzRestrictions: string | null = null;
+        if (getAddAreaConfirmExtraContent) {
+            try {
+                const extra = await getAddAreaConfirmExtraContent(
+                    draft.lat,
+                    draft.lng
+                );
+                if (typeof extra === "string") {
+                    extraHtml = extra;
+                } else {
+                    extraHtml = extra.html;
+                    heightLimitM = extra.heightLimitM ?? null;
+                    djiNfzRestrictions = extra.djiNfzRestrictions ?? null;
+                }
+            } catch {
+                extraHtml = "";
+            }
         }
 
         const container = document.createElement("div");
@@ -110,35 +149,32 @@ export function useAddAreaMode(
       <div style="font-weight: 600; margin-bottom: 4px;">
         このエリアを登録しますか？
       </div>
-      <div style="font-family: monospace; font-size: 12px; color: #444; margin-bottom: 6px;">
-        ${draft.address}
+      <div style="font-family: monospace; font-size: 12px; color: #444; margin-bottom: 8px;">
+        ${(draft.address ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")}
       </div>
+      <div style="text-align: right; margin-bottom: 12px;">
+        <button type="button" id="add-area-yes-btn" style="padding: 2px 8px; margin-right: 4px;">はい</button>
+        <button type="button" id="add-area-no-btn" style="padding: 2px 8px;">いいえ</button>
+      </div>
+      ${extraHtml ? `<div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">${extraHtml}</div>` : ""}
     `;
 
-        const yesBtn = document.createElement("button");
-        yesBtn.textContent = "はい";
-        yesBtn.style.padding = "2px 8px";
-        yesBtn.style.marginRight = "4px";
+        const yesBtn = container.querySelector("#add-area-yes-btn") as HTMLButtonElement;
+        const noBtn = container.querySelector("#add-area-no-btn") as HTMLButtonElement;
 
-        const noBtn = document.createElement("button");
-        noBtn.textContent = "いいえ";
-        noBtn.style.padding = "2px 8px";
-
-        const btnWrap = document.createElement("div");
-        btnWrap.style.textAlign = "right";
-        btnWrap.appendChild(yesBtn);
-        btnWrap.appendChild(noBtn);
-        container.appendChild(btnWrap);
-
-        yesBtn.addEventListener("click", () => {
-            setNewAreaDraft(draft);
+        yesBtn?.addEventListener("click", () => {
+            setNewAreaDraft({ ...draft, heightLimitM, djiNfzRestrictions });
             setAreaNameInput("");
             setAddingAreaMode(false);
             addingAreaModeRef.current = false;
             addAreaConfirmInfoRef.current?.close();
         });
 
-        noBtn.addEventListener("click", () => {
+        noBtn?.addEventListener("click", () => {
             addAreaConfirmInfoRef.current?.close();
         });
 
@@ -170,7 +206,6 @@ export function useAddAreaMode(
             console.log("[map] start add-area mode");
             setAddingAreaMode(true);
             addingAreaModeRef.current = true;
-
             setNewAreaDraft(null);
             addAreaConfirmInfoRef.current?.close();
         };
@@ -234,7 +269,7 @@ export function useAddAreaMode(
         return () => {
             listener.remove();
         };
-    }, [mapRef, addingAreaMode]);
+    }, [mapRef, addingAreaMode, getAddAreaConfirmExtraContent]);
 
     /** エリア追加モードの状態を外部に通知 */
     useEffect(() => {
@@ -278,7 +313,7 @@ export function useAddAreaMode(
         window.addEventListener("map:add-area-picked", onPicked as EventListener);
         return () =>
             window.removeEventListener("map:add-area-picked", onPicked as EventListener);
-    }, [mapRef]);
+    }, [mapRef, getAddAreaConfirmExtraContent]);
 
     return {
         addingAreaMode,

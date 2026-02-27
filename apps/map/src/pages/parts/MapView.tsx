@@ -1,5 +1,11 @@
 // src/pages/parts/MapView.tsx
-import { useEffect, useRef, useState, type MutableRefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MutableRefObject,
+} from "react";
 import html2canvas from "html2canvas";
 import { Loader } from "@googlemaps/js-api-loader";
 import {
@@ -7,6 +13,7 @@ import {
   useEditableBodyClass,
   useAddAreaMode,
   useMeasurementMode,
+  useAirportHeightRestrictionMode,
   useScheduleSection,
   useCandidateSection,
 } from "@/components";
@@ -50,10 +57,267 @@ import {
   DEFAULT_OVERLAY_VISIBILITY,
   type OverlayVisibility,
 } from "./overlayVisibility";
+import {
+  calculateAirportRestriction,
+  buildAirportHeightRestrictionPopupHtml,
+} from "./airportRestriction";
+
+/** Data.Feature のポリゴン内に point が含まれるか */
+function isPointInDataFeature(
+  point: google.maps.LatLng,
+  feature: google.maps.Data.Feature
+): boolean {
+  try {
+    const geom = feature.getGeometry() as
+      | {
+          getType: () => string;
+          getAt: (i: number) => { getArray: () => google.maps.LatLng[] };
+        }
+      | null;
+    if (!geom || geom.getType() !== "Polygon") return false;
+    const ring = geom.getAt(0);
+    if (!ring) return false;
+    const path = ring.getArray();
+    const poly = new google.maps.Polygon({ paths: path });
+    return google.maps.geometry.poly.containsLocation(point, poly);
+  } catch {
+    return false;
+  }
+}
+import { kml } from "@tmcw/togeojson";
 
 // 本番用のCatalogのベースURL
 const CATALOG =
   String(import.meta.env.VITE_CATALOG_BASE_URL || "").replace(/\/+$/, "") + "/";
+
+/** DJI NFZ KML の URL（同一オリジン・相対パス） */
+const DJI_NFZ_KML_URL = `${(import.meta.env.BASE_URL || "/").replace(/\/+$/, "")}/dji-nfz.kml`;
+
+/** DJI API プロキシ URL（未設定時は KML を使用） */
+const DJI_NFZ_PROXY_URL = String(
+  import.meta.env.VITE_DJI_NFZ_PROXY_URL || ""
+).replace(/\/+$/, "");
+
+type GeoJsonFeature = {
+  type: "Feature";
+  geometry?: { type: string; coordinates?: unknown };
+  properties?: Record<string, unknown>;
+};
+
+/** Point を半径付き円ポリゴンに変換（description から "N meter radius" をパース） */
+function pointsToCirclePolygons(geoJson: {
+  type: "FeatureCollection";
+  features?: GeoJsonFeature[];
+}): { type: "FeatureCollection"; features: GeoJsonFeature[] } {
+  const RADIUS_REGEX = /(\d+)\s*meter\s*radius/i;
+  const SEGMENTS = 16; // 円の近似精度（パフォーマンス重視）
+  const DEFAULT_RADIUS = 500; // 半径が取れない場合のフォールバック（m）
+
+  const features: GeoJsonFeature[] = [];
+
+  for (const f of geoJson.features || []) {
+    if (f.geometry?.type !== "Point") {
+      features.push(f);
+      continue;
+    }
+
+    const coords = f.geometry.coordinates as [number, number];
+    const [lng, lat] = coords;
+    const props = f.properties as Record<string, unknown> | undefined;
+    const desc =
+      (props?.["description"] ?? props?.["Description"] ?? props?.["name"]) as
+        | string
+        | undefined;
+    const match = typeof desc === "string" ? desc.match(RADIUS_REGEX) : null;
+    const radiusM = match ? parseInt(match[1], 10) : DEFAULT_RADIUS;
+
+    // 緯度経度で半径 r[m] の円を近似（平面近似）
+    const r = radiusM;
+    const latRad = (lat * Math.PI) / 180;
+    const mPerDegLat = 111320;
+    const mPerDegLng = 111320 * Math.cos(latRad);
+
+    const ring: [number, number][] = [];
+    for (let i = 0; i <= SEGMENTS; i++) {
+      const angle = (2 * Math.PI * i) / SEGMENTS;
+      const dLat = (r * Math.cos(angle)) / mPerDegLat;
+      const dLng = (r * Math.sin(angle)) / mPerDegLng;
+      ring.push([lng + dLng, lat + dLat]);
+    }
+
+    features.push({
+      type: "Feature",
+      properties: f.properties,
+      geometry: {
+        type: "Polygon",
+        coordinates: [ring],
+      },
+    });
+  }
+
+  return { type: "FeatureCollection", features };
+}
+
+/** DJI API areas レスポンスの area 型（ol-dji-geozones 準拠） */
+type DjiArea = {
+  area_id: number;
+  name?: string;
+  city?: string;
+  type?: number;
+  shape?: number;
+  lat: number;
+  lng: number;
+  radius?: number;
+  level?: number;
+  polygon_points?: number[][][] | number[][];
+  sub_areas?: Array<{
+    lat: number;
+    lng: number;
+    radius?: number;
+    level?: number;
+    polygon_points?: number[][][] | number[][];
+  }>;
+};
+
+/** 中心点 + 半径(m) から円ポリゴンの座標を生成 */
+function circleToPolygonCoords(
+  lng: number,
+  lat: number,
+  radiusM: number,
+  segments = 24
+): [number, number][] {
+  const r = radiusM;
+  const latRad = (lat * Math.PI) / 180;
+  const mPerDegLat = 111320;
+  const mPerDegLng = 111320 * Math.cos(latRad);
+  const ring: [number, number][] = [];
+  for (let i = 0; i <= segments; i++) {
+    const angle = (2 * Math.PI * i) / segments;
+    const dLat = (r * Math.cos(angle)) / mPerDegLat;
+    const dLng = (r * Math.sin(angle)) / mPerDegLng;
+    ring.push([lng + dLng, lat + dLat]);
+  }
+  return ring;
+}
+
+/** polygon_points を GeoJSON Polygon coordinates に正規化 */
+function normalizePolygonCoords(
+  pts: number[][][] | number[][]
+): [number, number][] | null {
+  if (!pts || !Array.isArray(pts)) return null;
+  const first = pts[0];
+  if (Array.isArray(first) && typeof first[0] === "number") {
+    return pts as [number, number][];
+  }
+  if (Array.isArray(first) && Array.isArray(first[0])) {
+    return (first as number[][]) as [number, number][];
+  }
+  return null;
+}
+
+/** DJI GEO ゾーン種別ごとの色（API level に応じた配色） */
+const DJI_LEVEL_COLORS: Record<number, { fill: string; stroke: string }> = {
+  0: { fill: "#FFCC00", stroke: "#E6B800" }, // 警告区域（黄色）
+  1: { fill: "#1088F2", stroke: "#0E7AD9" }, // 承認区域（青）
+  2: { fill: "#DE4329", stroke: "#C83B24" }, // 制限区域（赤）
+  3: { fill: "#E67E22", stroke: "#CC6B1A" }, // 強化警告区域（オレンジ）
+  4: { fill: "#2E7D32", stroke: "#1B5E20" }, // 特別高度制限区域（深緑）
+  5: { fill: "#00BE00", stroke: "#00A800" }, // 推奨区域(2)
+  6: { fill: "#979797", stroke: "#7A7A7A" }, // 高度制限区域（グレー）
+  7: { fill: "#37C4DB", stroke: "#31B0C5" }, // 規制制限区域（水色）
+  8: { fill: "#00BE00", stroke: "#00A800" }, // 飛行許可区域（緑）
+  9: { fill: "#DE4329", stroke: "#C83B24" }, // 人口集中区域
+};
+
+const DJI_DEFAULT_COLOR = { fill: "#e53935", stroke: "#c62828" };
+
+/** level の日本語ラベル（DJI GEO区域 詳細情報に準拠） */
+const DJI_LEVEL_LABELS: Record<number, string> = {
+  0: "警告区域",
+  1: "承認区域",
+  2: "制限区域",
+  3: "強化警告区域",
+  4: "特別高度制限区域",
+  5: "推奨区域(2)",
+  6: "高度制限区域",
+  7: "規制制限区域",
+  8: "飛行許可区域",
+  9: "人口集中区域",
+};
+
+/** ポップアップでの表示順（制限→高度制限→承認→警告→強化警告→規制制限→飛行許可→特別高度制限） */
+const DJI_LEVEL_DISPLAY_ORDER = [2, 6, 1, 0, 3, 4, 8, 7, 5, 9];
+
+/** DJI API の areas レスポンスを GeoJSON FeatureCollection に変換 */
+function djiApiResponseToGeoJson(body: {
+  areas?: DjiArea[];
+}): { type: "FeatureCollection"; features: GeoJsonFeature[] } {
+  const features: GeoJsonFeature[] = [];
+  const areas = body.areas || [];
+
+  for (const area of areas) {
+    const baseProps = {
+      area_id: area.area_id,
+      name: area.name,
+      city: area.city,
+    };
+
+    const addPolygon = (
+      coords: [number, number][],
+      level: number | undefined
+    ) => {
+      if (coords.length < 3) return;
+      const ring = [...coords];
+      if (
+        ring[0][0] !== ring[ring.length - 1][0] ||
+        ring[0][1] !== ring[ring.length - 1][1]
+      ) {
+        ring.push(ring[0]);
+      }
+      features.push({
+        type: "Feature",
+        properties: { ...baseProps, level },
+        geometry: { type: "Polygon", coordinates: [ring] },
+      });
+    };
+
+    const addCircle = (
+      lng: number,
+      lat: number,
+      radiusM: number,
+      level: number | undefined
+    ) => {
+      const ring = circleToPolygonCoords(lng, lat, radiusM);
+      features.push({
+        type: "Feature",
+        properties: { ...baseProps, level },
+        geometry: { type: "Polygon", coordinates: [ring] },
+      });
+    };
+
+    const topPoly = normalizePolygonCoords(area.polygon_points as never);
+    if (topPoly) addPolygon(topPoly, area.level);
+
+    if (area.sub_areas?.length) {
+      for (const sub of area.sub_areas) {
+        const level = sub.level ?? area.level;
+        const poly = normalizePolygonCoords(sub.polygon_points as never);
+        if (poly) addPolygon(poly, level);
+        else if (
+          typeof sub.lng === "number" &&
+          typeof sub.lat === "number" &&
+          typeof sub.radius === "number"
+        ) {
+          addCircle(sub.lng, sub.lat, sub.radius, level);
+        }
+      }
+    } else if (!topPoly && typeof area.radius === "number") {
+      addCircle(area.lng, area.lat, area.radius, area.level);
+    }
+  }
+
+  return { type: "FeatureCollection", features };
+}
 
 type AddAreaSearchResult = {
   placeId: string;
@@ -72,6 +336,10 @@ export default function MapView({ onLoaded }: Props) {
   const zoomListenerRef = useRef<google.maps.MapsEventListener | null>(null);
   const desiredHeadingRef = useRef(0);
   const tileSessionRef = useRef<TileSession | null>(null);
+  const djiNfzLoadedRef = useRef(false);
+  const djiNfzInfoRef = useRef<google.maps.InfoWindow | null>(null);
+  const djiNfzClickedRef = useRef(false);
+  const airportHeightRestrictionInfoRef = useRef<google.maps.InfoWindow | null>(null);
 
   const currentAreaUuidRef = useRef<string | undefined>(undefined);
   const currentProjectUuidRef = useRef<string | undefined>(undefined);
@@ -101,6 +369,9 @@ export default function MapView({ onLoaded }: Props) {
   // オーバーレイ表示切り替え（セッション中のみ保持）
   const [overlayVisibility, setOverlayVisibility] =
     useState<OverlayVisibility>(DEFAULT_OVERLAY_VISIBILITY);
+  // DJI NFZ ローディング・エラー状態
+  const [djiNfzLoading, setDjiNfzLoading] = useState(false);
+  const [djiNfzError, setDjiNfzError] = useState<string | null>(null);
   // 色変更時にパネルを再描画するためのリビジョン（setGeometryRevision で re-render をトリガー）
   const [, setGeometryRevision] = useState(0);
 
@@ -939,6 +1210,87 @@ export default function MapView({ onLoaded }: Props) {
     return () => window.removeEventListener("message", onMessage);
   }, []);
 
+  const getAddAreaConfirmExtraContent = useCallback(
+    async (lat: number, lng: number) => {
+      const map = mapRef.current;
+      const gmaps = getGMaps();
+      if (!map || !gmaps) return { html: "" };
+
+      const djiNfzEntries: Array<{
+        name: string;
+        city?: string;
+        level: number;
+        label: string;
+        color: string;
+      }> = [];
+      if (overlayVisibility.djiNfz && map.data) {
+        const point = new gmaps.LatLng(lat, lng);
+        const featuresAtPoint: google.maps.Data.Feature[] = [];
+        map.data.forEach((f) => {
+          if (isPointInDataFeature(point, f)) featuresAtPoint.push(f);
+        });
+        const byNameLevel = new Map<
+          string,
+          { name: string; city?: string; level: number; label: string }
+        >();
+        for (const f of featuresAtPoint) {
+          const name = (f.getProperty("name") as string) || "—";
+          const city = f.getProperty("city") as string | undefined;
+          const levelVal = f.getProperty("level");
+          const level = levelVal != null ? Number(levelVal) : NaN;
+          if (Number.isNaN(level)) continue;
+          const key = `${String(name)}|${level}`;
+          if (!byNameLevel.has(key)) {
+            byNameLevel.set(key, {
+              name,
+              city,
+              level,
+              label: DJI_LEVEL_LABELS[level] ?? `レベル${level}`,
+            });
+          }
+        }
+        for (const { name, city, level, label } of byNameLevel.values()) {
+          const c =
+            level in DJI_LEVEL_COLORS
+              ? DJI_LEVEL_COLORS[level]
+              : DJI_DEFAULT_COLOR;
+          djiNfzEntries.push({ name, city, level, label, color: c.fill });
+        }
+        djiNfzEntries.sort(
+          (a, b) =>
+            DJI_LEVEL_DISPLAY_ORDER.indexOf(a.level) -
+            DJI_LEVEL_DISPLAY_ORDER.indexOf(b.level)
+        );
+      }
+
+      let airportResult;
+      try {
+        airportResult = calculateAirportRestriction(lat, lng, gmaps);
+      } catch {
+        airportResult = { items: [], error: true };
+      }
+
+      const html = buildAirportHeightRestrictionPopupHtml({
+        airportResult,
+        djiNfzEntries,
+      });
+
+      const heightLimitM =
+        !airportResult.error &&
+        airportResult.items.length > 0
+          ? String(Math.floor(airportResult.items[0].heightM))
+          : undefined;
+
+      const djiNfzRestrictions =
+        djiNfzEntries.length > 0
+          ? `DJI飛行禁止区域（${[...new Set(djiNfzEntries.map((e) => e.label))].join("、")}）に該当`
+          : undefined;
+
+      return { html, heightLimitM, djiNfzRestrictions };
+    },
+    [overlayVisibility.djiNfz]
+  );
+
   const {
     addingAreaMode,
     newAreaDraft,
@@ -946,7 +1298,7 @@ export default function MapView({ onLoaded }: Props) {
     setAreaNameInput,
     cancelAddMode,
     resetDraft,
-  } = useAddAreaMode(mapRef);
+  } = useAddAreaMode(mapRef, { getAddAreaConfirmExtraContent });
 
   const {
     measurementMode,
@@ -959,6 +1311,11 @@ export default function MapView({ onLoaded }: Props) {
     cancelMeasurementMode,
     clearPoints: clearMeasurementPoints,
   } = useMeasurementMode(mapRef, mapReady);
+
+  const {
+    airportHeightRestrictionMode,
+    airportHeightRestrictionModeRef,
+  } = useAirportHeightRestrictionMode();
 
   // エリア追加モードの現在値を参照するための ref
   const addingAreaModeRef = useRef(addingAreaMode);
@@ -1364,6 +1721,15 @@ export default function MapView({ onLoaded }: Props) {
     map?.setOptions({ draggableCursor: undefined });
   };
 
+  /** 空港高さ制限照会モード開始時に座標変更モードを終了 */
+  useEffect(() => {
+    const onStart = () => {
+      cancelChangePosition();
+    };
+    window.addEventListener("map:start-airport-height-restriction", onStart);
+    return () => window.removeEventListener("map:start-airport-height-restriction", onStart);
+  }, []);
+
   const openChangePositionConfirm = (
     latLng: google.maps.LatLng,
     lat: number,
@@ -1741,7 +2107,7 @@ export default function MapView({ onLoaded }: Props) {
           return;
         }
 
-        // 通常モード時のみ、マーカー選択処理を実行
+        // マーカークリック時はマーカー選択を優先（高さ制限照会モードでも同様）
         selectMarker(marker, p);
       });
     });
@@ -1983,8 +2349,54 @@ export default function MapView({ onLoaded }: Props) {
       // デバッグ用に参照を公開（必要になったら削除）
       (window as any).__RD_MAP__ = map;
       infoRef.current = new gmaps.InfoWindow();
+      djiNfzInfoRef.current = new gmaps.InfoWindow();
+      airportHeightRestrictionInfoRef.current = new gmaps.InfoWindow();
       map.addListener("click", (e: google.maps.MapMouseEvent) => {
         const latLng = e.latLng;
+
+        // 空港高さ制限照会モード中なら、クリック地点の高さ制限を表示（測定中・エリア追加中は表示しない）
+        if (
+          airportHeightRestrictionModeRef.current &&
+          !measurementModeRef.current &&
+          !addingAreaModeRef.current &&
+          latLng
+        ) {
+          infoRef.current?.close();
+          djiNfzInfoRef.current?.close();
+          try {
+            const result = calculateAirportRestriction(
+              latLng.lat(),
+              latLng.lng(),
+              gmaps
+            );
+            const html = buildAirportHeightRestrictionPopupHtml({
+              airportResult: result,
+            });
+            const info = airportHeightRestrictionInfoRef.current;
+            if (info) {
+              info.setContent(html);
+              info.setPosition(latLng);
+              info.open(map);
+            }
+          } catch {
+            const html = buildAirportHeightRestrictionPopupHtml({
+              airportResult: { items: [], error: true },
+            });
+            const info = airportHeightRestrictionInfoRef.current;
+            if (info) {
+              info.setContent(html);
+              info.setPosition(latLng);
+              info.open(map);
+            }
+          }
+          return;
+        }
+
+        // NFZ ポリゴンクリック直後は閉じない（map.data click と map click の両方が発火するため）
+        if (djiNfzClickedRef.current) {
+          djiNfzClickedRef.current = false;
+          return;
+        }
 
         // 座標変更モード中なら、クリック地点で確認用の吹き出しを出す
         if (changingPositionRef.current && latLng) {
@@ -1999,8 +2411,10 @@ export default function MapView({ onLoaded }: Props) {
           return;
         }
 
-        // 通常時はマーカーの InfoWindow を閉じるだけ
+        // 通常時はマーカー・NFZ・空港高さ制限の InfoWindow を閉じる
         infoRef.current?.close();
+        djiNfzInfoRef.current?.close();
+        airportHeightRestrictionInfoRef.current?.close();
       });
 
       geomRef.current = new MapGeometry(() => mapRef.current, {
@@ -2034,8 +2448,19 @@ export default function MapView({ onLoaded }: Props) {
         infoRef.current?.close();
       }
       infoRef.current = null;
+      djiNfzInfoRef.current?.close();
+      djiNfzInfoRef.current = null;
+      airportHeightRestrictionInfoRef.current?.close();
+      airportHeightRestrictionInfoRef.current = null;
 
       clearGeometryOverlays();
+      // DJI NFZ Data レイヤーの後始末
+      const map = mapRef.current;
+      if (map?.data) {
+        map.data.forEach((f) => map.data.remove(f));
+        map.data.setMap(null);
+      }
+      djiNfzLoadedRef.current = false;
       // トースト用タイマーの後始末
       if (areaCreatedToastTimerRef.current != null) {
         window.clearTimeout(areaCreatedToastTimerRef.current);
@@ -2168,6 +2593,331 @@ export default function MapView({ onLoaded }: Props) {
     };
   }, []);
 
+  /** NFZ ポリゴンのスタイル（cursor はエリア追加モード時に copy に） */
+  const getDjiNfzFeatureStyle = useCallback(
+    (feature: google.maps.Data.Feature) => {
+      const level = feature.getProperty("level") as number | undefined;
+      const c =
+        level != null && level in DJI_LEVEL_COLORS
+          ? DJI_LEVEL_COLORS[level]
+          : DJI_DEFAULT_COLOR;
+      return {
+        fillColor: c.fill,
+        fillOpacity: 0.25,
+        strokeColor: c.stroke,
+        strokeWeight: 1,
+        cursor: addingAreaModeRef.current ? "copy" : "pointer",
+      };
+    },
+    []
+  );
+
+  // エリア追加モード切替時に NFZ ポリゴンのカーソルを更新
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !overlayVisibility.djiNfz) return;
+    if (map.data.getMap() !== map) return;
+
+    map.data.setStyle((feature) => getDjiNfzFeatureStyle(feature));
+  }, [addingAreaMode, mapReady, overlayVisibility.djiNfz, getDjiNfzFeatureStyle]);
+
+  // DJI NFZ レイヤー：プロキシ URL ありなら API（範囲変更で再取得）、なければ KML を Data レイヤーで表示
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    const show = overlayVisibility.djiNfz;
+    const useApi = !!DJI_NFZ_PROXY_URL;
+
+    const fetchAndApplyDjiNfz = async () => {
+      const applyGeoJson = async (
+        geoJson: { type: "FeatureCollection"; features: GeoJsonFeature[] }
+      ) => {
+        map.data.setStyle((feature) => getDjiNfzFeatureStyle(feature));
+        if (useApi) {
+          map.data.forEach((f) => map.data.remove(f));
+        }
+        const BATCH_SIZE = 200;
+        const feats = geoJson.features || [];
+        for (let i = 0; i < feats.length; i += BATCH_SIZE) {
+          const batch = feats.slice(i, i + BATCH_SIZE);
+          map.data.addGeoJson({ type: "FeatureCollection", features: batch });
+          if (i + BATCH_SIZE < feats.length) {
+            await new Promise((r) => setTimeout(r, 0));
+          }
+        }
+      };
+
+      const loadKml = async () => {
+        const res = await fetch(DJI_NFZ_KML_URL);
+        if (!res.ok) throw new Error(`KML fetch failed: ${res.status}`);
+        const xmlText = await res.text();
+        const doc = new DOMParser().parseFromString(xmlText, "text/xml");
+        const rawGeoJson = kml(doc);
+        if (!rawGeoJson) throw new Error("KML parse failed");
+        return pointsToCirclePolygons(
+          rawGeoJson as { type: "FeatureCollection"; features?: GeoJsonFeature[] }
+        );
+      };
+
+      setDjiNfzError(null);
+      setDjiNfzLoading(true);
+      try {
+        let geoJson: { type: "FeatureCollection"; features: GeoJsonFeature[] };
+
+        if (useApi) {
+          try {
+            const center = map.getCenter();
+            const bounds = map.getBounds();
+            const zoom = map.getZoom() ?? 10;
+            const lng = center?.lng() ?? 139.7;
+            const lat = center?.lat() ?? 35.6;
+            let searchRadius = 50000;
+            if (bounds) {
+              const ne = bounds.getNorthEast();
+              const sw = bounds.getSouthWest();
+              const latRad = (lat * Math.PI) / 180;
+              const mPerDegLat = 111320;
+              const mPerDegLng = 111320 * Math.cos(latRad);
+              const dy = Math.abs(ne.lat() - sw.lat()) * mPerDegLat;
+              const dx = Math.abs(ne.lng() - sw.lng()) * mPerDegLng;
+              searchRadius = Math.max(
+                20000,
+                Math.min(100000, Math.ceil(Math.max(dy, dx) * 0.6) + 5000)
+              );
+              if (zoom >= 15) {
+                searchRadius = Math.max(searchRadius, 25000);
+              }
+            }
+            const url = `${DJI_NFZ_PROXY_URL}?lng=${lng}&lat=${lat}&search_radius=${searchRadius}`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`DJI API fetch failed: ${res.status}`);
+            const body = await res.json();
+            if (body.status === "422" || body.error) {
+              throw new Error(body.extra?.msg || body.error || "API error");
+            }
+            geoJson = djiApiResponseToGeoJson(body);
+          } catch (apiErr) {
+            console.warn("[map] DJI API failed, fallback to KML:", apiErr);
+            geoJson = await loadKml();
+          }
+        } else {
+          geoJson = await loadKml();
+        }
+
+        if (geoJson.features.length > 0) {
+          await applyGeoJson(geoJson);
+        }
+        setDjiNfzError(null);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn("[map] DJI NFZ load failed:", err);
+        setDjiNfzError(msg);
+      } finally {
+        setDjiNfzLoading(false);
+      }
+    };
+
+    const escapeHtml = (s: string) =>
+      s
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+
+    const isPointInFeature = (point: google.maps.LatLng, f: google.maps.Data.Feature): boolean => {
+      try {
+        const geom = f.getGeometry() as
+          | { getType: () => string; getAt: (i: number) => { getArray: () => google.maps.LatLng[] } }
+          | null;
+        if (!geom || geom.getType() !== "Polygon") return false;
+        const ring = geom.getAt(0);
+        if (!ring) return false;
+        const path = ring.getArray();
+        const poly = new google.maps.Polygon({ paths: path });
+        return google.maps.geometry.poly.containsLocation(point, poly);
+      } catch {
+        return false;
+      }
+    };
+
+    const openNfzInfo = (latLng: google.maps.LatLng, _feature: google.maps.Data.Feature) => {
+      const featuresAtPoint: google.maps.Data.Feature[] = [];
+      map.data.forEach((f) => {
+        if (isPointInFeature(latLng, f)) featuresAtPoint.push(f);
+      });
+
+      const byNameLevel = new Map<
+        string,
+        { name: string; city?: string; level: number; label: string }
+      >();
+      for (const f of featuresAtPoint) {
+        const name = (f.getProperty("name") as string) || "—";
+        const city = f.getProperty("city") as string | undefined;
+        const levelVal = f.getProperty("level");
+        const level = levelVal != null ? Number(levelVal) : NaN;
+        if (Number.isNaN(level)) continue;
+        const key = `${String(name)}|${level}`;
+        if (!byNameLevel.has(key)) {
+          byNameLevel.set(key, {
+            name,
+            city,
+            level,
+            label: DJI_LEVEL_LABELS[level] ?? `レベル${level}`,
+          });
+        }
+      }
+
+      const entries: Array<{ name: string; city?: string; level: number; label: string; color: string }> = [];
+      for (const { name, city, level, label } of byNameLevel.values()) {
+        const c = level in DJI_LEVEL_COLORS ? DJI_LEVEL_COLORS[level] : DJI_DEFAULT_COLOR;
+        entries.push({ name, city, level, label, color: c.fill });
+      }
+      entries.sort(
+        (a, b) =>
+          DJI_LEVEL_DISPLAY_ORDER.indexOf(a.level) -
+          DJI_LEVEL_DISPLAY_ORDER.indexOf(b.level)
+      );
+      if (entries.length === 0) {
+        const levelVal = _feature.getProperty("level");
+        const level = levelVal != null ? Number(levelVal) : -1;
+        const c = level >= 0 && level in DJI_LEVEL_COLORS ? DJI_LEVEL_COLORS[level] : DJI_DEFAULT_COLOR;
+        entries.push({
+          name: (_feature.getProperty("name") as string) || "—",
+          city: _feature.getProperty("city") as string | undefined,
+          level,
+          label: level >= 0 ? (DJI_LEVEL_LABELS[level] ?? `レベル${level}`) : "—",
+          color: c.fill,
+        });
+      }
+
+      // 空港高さ制限照会モード中は、NFZ と高さ制限を統合して表示（測定中は表示しない）
+      if (
+        airportHeightRestrictionModeRef.current &&
+        !measurementModeRef.current
+      ) {
+        infoRef.current?.close();
+        djiNfzInfoRef.current?.close();
+        try {
+          const gmaps = getGMaps();
+          const airportResult = calculateAirportRestriction(
+            latLng.lat(),
+            latLng.lng(),
+            gmaps
+          );
+          const html = buildAirportHeightRestrictionPopupHtml({
+            airportResult,
+            djiNfzEntries: entries,
+          });
+          const info = airportHeightRestrictionInfoRef.current;
+          if (info) {
+            info.setContent(html);
+            info.setPosition(latLng);
+            info.open(map);
+          }
+        } catch {
+          const html = buildAirportHeightRestrictionPopupHtml({
+            airportResult: { items: [], error: true },
+            djiNfzEntries: entries,
+          });
+          const info = airportHeightRestrictionInfoRef.current;
+          if (info) {
+            info.setContent(html);
+            info.setPosition(latLng);
+            info.open(map);
+          }
+        }
+        return;
+      }
+
+      const html = [
+        '<div class="dji-nfz-popup" style="min-width:200px;padding:4px 0;color:#000;">',
+        ...entries.map(
+          (e) =>
+            `<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:12px;color:#000;">` +
+            `<span style="flex-shrink:0;width:12px;height:12px;border-radius:50%;background:${e.color};border:1px solid rgba(0,0,0,0.2);"></span>` +
+            `<div style="color:#000;">` +
+            `<div>名称: ${escapeHtml(String(e.name))}</div>` +
+            `<div>レベル: ${escapeHtml(e.label)}</div>` +
+            (e.city ? `<div>都市: ${escapeHtml(e.city)}</div>` : "") +
+            `</div></div>`
+        ),
+        "</div>",
+      ].join("");
+      djiNfzInfoRef.current?.setContent(html);
+      djiNfzInfoRef.current?.setPosition(latLng);
+      djiNfzInfoRef.current?.open(map);
+    };
+
+    if (show) {
+      if (useApi) {
+        let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+        const scheduleFetch = () => {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            debounceTimer = null;
+            fetchAndApplyDjiNfz();
+          }, 400);
+        };
+        scheduleFetch();
+        const idleListener = map.addListener("idle", scheduleFetch);
+        map.data.setMap(map);
+        const dataClickListener = map.data.addListener("click", (e: google.maps.Data.MouseEvent) => {
+          const feature = e.feature;
+          const latLng = e.latLng;
+          if (!feature || !latLng) return;
+          // エリア追加モード中は map click が発火しないため、ここで add-area-picked を発火
+          if (addingAreaModeRef.current) {
+            airportHeightRestrictionInfoRef.current?.close();
+            window.dispatchEvent(
+              new CustomEvent("map:add-area-picked", {
+                detail: { lat: latLng.lat(), lng: latLng.lng() },
+              })
+            );
+            return;
+          }
+          djiNfzClickedRef.current = true;
+          openNfzInfo(latLng, feature);
+        });
+        return () => {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          google.maps.event.removeListener(idleListener);
+          google.maps.event.removeListener(dataClickListener);
+        };
+      } else {
+        if (!djiNfzLoadedRef.current) {
+          fetchAndApplyDjiNfz().then(() => {
+            djiNfzLoadedRef.current = true;
+          });
+        }
+        map.data.setMap(map);
+        const dataClickListener = map.data.addListener("click", (e: google.maps.Data.MouseEvent) => {
+          const feature = e.feature;
+          const latLng = e.latLng;
+          if (!feature || !latLng) return;
+          // エリア追加モード中は map click が発火しないため、ここで add-area-picked を発火
+          if (addingAreaModeRef.current) {
+            airportHeightRestrictionInfoRef.current?.close();
+            window.dispatchEvent(
+              new CustomEvent("map:add-area-picked", {
+                detail: { lat: latLng.lat(), lng: latLng.lng() },
+              })
+            );
+            return;
+          }
+          djiNfzClickedRef.current = true;
+          openNfzInfo(latLng, feature);
+        });
+        return () => {
+          google.maps.event.removeListener(dataClickListener);
+        };
+      }
+    } else {
+      map.data.setMap(null);
+      setDjiNfzError(null);
+    }
+  }, [mapReady, overlayVisibility.djiNfz, getDjiNfzFeatureStyle]);
+
   // 新規エリア追加モード中に、マップ以外がクリックされたらモード解除
   useEffect(() => {
     if (!editable) return;
@@ -2242,6 +2992,13 @@ export default function MapView({ onLoaded }: Props) {
       );
     };
   }, [measurementMode, cancelMeasurementMode]);
+
+  // 空港高さ制限照会モード終了時に吹き出しをクリア
+  useEffect(() => {
+    if (!airportHeightRestrictionMode) {
+      airportHeightRestrictionInfoRef.current?.close();
+    }
+  }, [airportHeightRestrictionMode]);
 
   // 測定モード切替時にジオメトリオーバーレイのクリック可否・カーソルを更新
   useEffect(() => {
@@ -2481,6 +3238,8 @@ export default function MapView({ onLoaded }: Props) {
 
       <MapToolsPanel
         overlayVisibility={overlayVisibility}
+        djiNfzLoading={djiNfzLoading}
+        djiNfzError={djiNfzError}
         onOverlayVisibilityChange={(v) => {
           setOverlayVisibility(v);
           geomRef.current?.setOverlayVisibility(v);
@@ -2514,9 +3273,19 @@ export default function MapView({ onLoaded }: Props) {
         onCreateGeometry={createDefaultGeometry}
         onDeleteGeometry={deleteGeometry}
         onStartMeasurement={() => window.dispatchEvent(new CustomEvent("map:start-measurement"))}
+        onAirportHeightRestrictionChange={(checked) => {
+          if (checked) {
+            window.dispatchEvent(new CustomEvent("map:start-airport-height-restriction"));
+          } else {
+            window.dispatchEvent(new CustomEvent("map:cancel-airport-height-restriction"));
+          }
+        }}
         showCreateButton={editable && selectionKind === "schedule" && !!showCreateGeomCta && isSelected}
         showDeleteButton={editable && selectionKind === "schedule" && !showCreateGeomCta && isSelected}
         showMeasureButton={!measurementMode && window === window.top}
+        showAirportHeightRestrictionCheckbox={window === window.top}
+        airportHeightRestrictionMode={airportHeightRestrictionMode}
+        airportHeightRestrictionDisabled={measurementMode}
       />
       <AddAreaModal
         open={editable && !!newAreaDraft}
@@ -2536,6 +3305,8 @@ export default function MapView({ onLoaded }: Props) {
             lon: newAreaDraft.lng,
             prefecture: newAreaDraft.prefecture,
             address: newAreaDraft.address,
+            heightLimitM: newAreaDraft.heightLimitM ?? undefined,
+            restrictionsMemo: newAreaDraft.djiNfzRestrictions ?? undefined,
           });
 
           if (!result.ok) {
