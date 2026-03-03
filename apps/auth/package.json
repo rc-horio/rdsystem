@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:staging": "tsc -b && vite build --mode staging",
     "lint": "eslint .",
-    "deploy": "pnpm build && pnpm -s deploy:s3",
+    "deploy": "pnpm build:staging && pnpm -s deploy:s3",
     "deploy:s3": "pnpm -s deploy:s3:assets && pnpm -s deploy:s3:html",
     "deploy:s3:assets": "aws s3 sync dist s3://rc-rdsystem-dev --region ap-northeast-1 --profile dev-developer --delete --exclude \"index.html\" --exclude \"*.html\" --cache-control \"public, max-age=31536000, immutable\"",
     "deploy:s3:html": "aws s3 cp dist s3://rc-rdsystem-dev --region ap-northeast-1 --profile dev-developer --recursive --exclude \"*\" --include \"*.html\" --include \"index.html\" --cache-control \"no-store, must-revalidate, max-age=0\" --content-type \"text/html; charset=utf-8\""

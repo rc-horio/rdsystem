@@ -15,9 +15,10 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { FullHeightSelect } from "@/components";
 
-// 環境変数からHubとMapのベースURLを取得
+// 環境変数からHub・Map・ストックコンテンツのベースURLを取得
 const HUB_BASE = String(import.meta.env.VITE_HUB_BASE_URL || "");
 const MAP_BASE = String(import.meta.env.VITE_MAP_BASE_URL || "");
+const STOCK_BASE = String(import.meta.env.VITE_STOCK_BASE_URL || "");
 
 // 安全な結合 util（末尾/先頭スラッシュを吸収）
 const join = (base: string, path: string) =>
@@ -149,12 +150,14 @@ export default function SelectProject() {
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState(false);
 
-  const modes = ["Hub", "Map"] as const;
+  const modes = ["Hub", "Map", "ストックコンテンツ"] as const;
   const [modeIndex, setModeIndex] = useState(0);
   const mode = modes[modeIndex];
   const nextMode = () => setModeIndex((i) => (i + 1) % modes.length);
   const prevMode = () =>
     setModeIndex((i) => (i - 1 + modes.length) % modes.length);
+
+  const modeLabel = mode === "Hub" ? "RD Hub" : mode === "Map" ? "RD Map" : mode;
 
   const navigate = useNavigate();
 
@@ -189,8 +192,11 @@ export default function SelectProject() {
 
   const handleJoin = () => {
     if (mode === "Map") {
-      // 別アプリ（5175 or /map/）へフルURLで遷移
       window.location.assign(MAP_BASE);
+      return;
+    }
+    if (mode === "ストックコンテンツ") {
+      window.location.assign(STOCK_BASE);
       return;
     }
     if (!selectedProject) {
@@ -411,7 +417,7 @@ export default function SelectProject() {
               <button onClick={prevMode} className="text-1xl px-10">
                 ◀
               </button>
-              <span className="text-xl flex-1 text-center">{`RD ${mode}`}</span>
+              <span className="text-xl flex-1 text-center">{modeLabel}</span>
               <button onClick={nextMode} className="text-1xl px-10">
                 ▶
               </button>
@@ -440,7 +446,7 @@ export default function SelectProject() {
               ) : (
                 <div className="w-full text-center text-slate-400">
                   <p className="text-sm tracking-wide">
-                    Click "join" to open the map interface
+                    Click &quot;join&quot; to open
                   </p>
                 </div>
               )}
@@ -515,7 +521,7 @@ export default function SelectProject() {
               >
                 ◀
               </button>
-              <span className="text-xl flex-1 text-center">{`RD ${mode}`}</span>
+              <span className="text-xl flex-1 text-center">{modeLabel}</span>
               <button
                 type="button"
                 onClick={nextMode}
@@ -545,7 +551,7 @@ export default function SelectProject() {
               ) : (
                 <div className="w-full text-center text-slate-400">
                   <p className="text-sm tracking-wide">
-                    Click "join" to open the map interface
+                    Click &quot;join&quot; to open
                   </p>
                 </div>
               )}

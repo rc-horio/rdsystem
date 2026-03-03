@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <!-- Google Tag Manager -->
+    <script>
+        (function (w, d, s, l, i) {
+            w[l] = w[l] || []; w[l].push({
+                'gtm.start':
+                    new Date().getTime(), event: 'gtm.js'
+            }); var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+                    'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-PLM9H87Z');
+    </script>
+    <!-- End Google Tag Manager -->
+
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="shortcut icon" href=" ./favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./css/style.css" />
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/plugins/SortableSwapPlugin.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.3/dist/purify.min.js"></script>
+</head>
+
+<!-- ヘッダー -->
+<header>
+    <div id="headTop">
+        <button id="backToMenuBtn" class="back-btn">メニューに戻る</button>
+        <button id="logoutBtn" class="logout-btn">ログアウト</button>
+        <img class="headpos" id="redcliffLogo" src="./assets/image/logo/sc_REDCLIFF_web1.png" alt="" />
+        <div class="headpos" id="subtitle">ストックコンテンツ</div>
+    </div>
+    <div id="headBotom">
+
+        <!-- フィルタリングメニュー -->
+        <nav id="filterMenu" class="cascading-menu">
+            <ul>
+                <li class="root has-sub">フィルター
+                    <ul>
+
+                        <li class="has-sub">機体数
+                            <ul>
+                                <li data-type="planes" data-value="0000">すべて表示</li>
+                                <li data-type="planes" data-value="0100">100機</li>
+                                <li data-type="planes" data-value="0200">200機</li>
+                                <li data-type="planes" data-value="0300">300機</li>
+                                <li data-type="planes" data-value="0400">400機</li>
+                                <li data-type="planes" data-value="0500">500機</li>
+                                <li data-type="planes" data-value="0600">600機</li>
+                                <li data-type="planes" data-value="0700">700機</li>
+                                <li data-type="planes" data-value="0800">800機</li>
+                                <li data-type="planes" data-value="0900">900機</li>
+                                <li data-type="planes" data-value="1000">1000機</li>
+                                <li data-type="planes" data-value="1100">1100機</li>
+                                <li data-type="planes" data-value="1200">1200機</li>
+                            </ul>
+                        </li>
+
+                        <li class="has-sub">季節
+                            <ul>
+                                <li data-type="planes" data-value="0000">すべて表示</li>
+                                <li data-type="season" data-value="none">なし</li>
+                                <li data-type="season" data-value="spring">春</li>
+                                <li data-type="season" data-value="summer">夏</li>
+                                <li data-type="season" data-value="autumn">秋</li>
+                                <li data-type="season" data-value="winter">冬</li>
+                            </ul>
+                        </li>
+
+                        <li class="has-sub">カテゴリー
+                            <ul>
+                                <li data-type="planes" data-value="0000">すべて表示</li>
+                                <li data-type="category" data-value="food">食べ物</li>
+                                <li data-type="category" data-value="animal">動物</li>
+                                <li data-type="category" data-value="insect">虫</li>
+                                <li data-type="category" data-value="plant">植物</li>
+                                <li data-type="category" data-value="building">建物</li>
+                                <li data-type="category" data-value="nature">自然</li>
+                                <li data-type="category" data-value="text">文字</li>
+                                <li data-type="category" data-value="symbol">記号</li>
+                                <li data-type="category" data-value="vehicle">乗り物</li>
+                                <li data-type="category" data-value="character">キャラクター</li>
+                                <li data-type="category" data-value="object">アイテム</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- ソートメニュー -->
+        <nav id="sortMenu" class="cascading-menu">
+            <ul>
+                <li class="root has-sub">ソート
+                    <ul>
+                        <li data-sort="planesAsc">機体数（少 → 多）</li>
+                        <li data-sort="planesDesc">機体数（多 → 少）</li>
+                        <li data-sort="dateAsc">古い順</li>
+                        <li data-sort="dateDesc">新しい順</li>
+                    </ul>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- リセットボタン -->
+        <button id="resetMenusBtn" class="menu-reset-btn">リセット</button>
+
+    </div>
+</header>
+
+<body>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript>
+        <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PLM9H87Z" height="0" width="0"
+            style="display:none;visibility:hidden"></iframe>
+    </noscript>
+    <!-- End Google Tag Manager (noscript) -->
+
+    <!-- メインコンテンツ -->
+    <div class="mainArray">
+        <div id="setGrid">
+            <div id="color_list"></div>
+        </div>
+    </div>
+
+    <!-- モチーフ再生モーダル -->
+    <div id="motifModalMask" class="hidden"></div>
+    <section id="motifModal" class="hidden">
+        <div class="motifModalHeader">
+            <div id="motifLabel" class="motifLabel"></div>
+            <div id="motifModalClose">&times;</div>
+        </div>
+
+        <div class="motifModalBody">
+            <!-- 切り替え可能なセクション: select, video, info -->
+            <div id="motifModalSelectWrapper" class="hidden">
+                <select id="motifModalSelect"></select>
+            </div>
+
+            <div class="motifVideoContainer">
+                <video id="motifVideo" autoplay muted loop>
+                    <source src="" type="video/mp4" id="motifVideoSource" />
+                </video>
+            </div>
+
+        </div>
+
+        <div class="motifModalFooter">
+            <div id="motifInfoText"></div>
+            <div id="motifModalInput">＋フッターに追加</div>
+        </div>
+    </section>
+
+    <!-- トランジション選択モーダル -->
+    <div id="transitionModalMask" class="hidden"></div>
+    <section id="transitionModal" class="hidden">
+        <div class="transitionModalHeader">
+            <div id="transitionModalClose">&times;</div>
+        </div>
+
+        <h3 class="transitionModalHeading">トランジションを選択してください</h3>
+
+        <div id="transitionGrid" class="transitionModalBody">
+            <!-- トランジションカードがここに入る -->
+        </div>
+    </section>
+
+    <!-- ★★ TL（離陸／着陸）選択モーダル -->
+    <div id="tlModalMask" class="hidden"></div>
+    <section id="tlModal" class="hidden">
+        <div class="transitionModalHeader">
+            <div id="tlModalClose">&times;</div>
+        </div>
+
+        <h3 id="tlModalHeading" style="color:#fff;text-align:center;margin:6px 0;"></h3>
+
+        <div id="tlGrid" class="tlModalBody">
+        </div>
+    </section>
+
+    <!-- フッター -->
+    <div id="footerPanel">
+        <div id="footerToggle">▼ フッターを非表示</div>
+        <div id="footertitle">
+            <div id="PDFoutput">PDF 出力</div>
+        </div>
+        <div id="footerItem"></div>
+    </div>
+</body>
+<!-- スクリプト -->
+<script type="module" src="./js/\\/pages/21_stock-contents.js"></script>
+<script type="module" src="./js/shared/feedback.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const toggle = document.getElementById('footerToggle');
+        const footer = document.getElementById('footerPanel');
+
+        toggle.addEventListener('click', () => {
+            const closed = footer.classList.toggle('closed');   // true → 閉じた
+            toggle.textContent = closed ? '▲ フッターを表示' : '▼ フッターを非表示';
+        });
+    });
+</script>
+
+
+</html>

@@ -26,7 +26,6 @@ export default defineConfig({
       "/map": {
         target: "http://localhost:5175",
         changeOrigin: true,
-        // ViteのWS(HMR)を通したい場合（Map側のHMRを使うなら）
         ws: true,
       },
       // ローカル開発: Lambda への CORS 回避用プロキシ（.env.local の /api/* 用）

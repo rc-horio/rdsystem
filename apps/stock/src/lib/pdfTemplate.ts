@@ -1,0 +1,37 @@
+export const PDF_TEMPLATE = `
+  <style>
+    * { box-sizing: border-box }
+    body { margin: 0; padding: 0; background: #fff; color: #000; font-family: sans-serif }
+    .sheet { display: flex; width: 210mm; min-height: 297mm; padding: 15mm 32px 28px; position: relative; background: #fff }
+    .logo { width: 140px }
+    .title-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 32px; background: #fff; width: 210mm; box-sizing: border-box; border-bottom: 0.7px solid #d50000 }
+    .title-text { font-size: 14px; color: #000 }
+    .column { flex: 1; display: flex; flex-direction: column; gap: 20px; position: relative }
+    .separator { width: 0.2mm; background: #555; margin: 6mm 8.5mm; height: 250mm }
+    .baseline { position: absolute; left: 19mm; width: 0.3mm; background: #555; margin: 5.2mm 0; height: 0; z-index: 0 }
+    .entry { display: grid; grid-template-columns: 32px 1px auto; column-gap: 12px; position: relative; z-index: 1 }
+    .entry-number { font: 700 25px/32px sans-serif; text-align: right; padding-right: 4px; display: flex; align-items: center; grid-column: 1 }
+    .entry-content { display: flex; flex-direction: row; align-items: center; grid-column: 3 }
+    .motif-img { width: 20mm; height: 20mm; object-fit: contain; margin-left: -2mm }
+    .caption-side { margin-left: 7mm; display: flex; flex-direction: column; justify-content: center; font-size: 9px; line-height: 1.6 }
+    .caption-line.title { font-size: 4mm; margin-bottom: 2mm }
+    .caption-line { white-space: nowrap }
+    .takeoff-label, .landing-label, .tl-label { font-size: 12px; color: #000; border-bottom: 1px solid #555; width: 150px; align-self: left; margin-left: 19mm; text-align: right; padding-bottom: 6px }
+    .takeoff-label { margin-top: -5px }
+  </style>
+  <div class="title-header">
+    <div class="title-text">制作依頼シート</div>
+  </div>
+  <div class="sheet">
+    <div class="column">
+      <div class="baseline"></div>
+      <div class="takeoff-label">{{takeoffLabel}}</div>
+      {{leftBlocks}}
+    </div>
+    <div class="separator"></div>
+    <div class="column">
+      <div class="baseline"></div>
+      {{rightBlocks}}
+    </div>
+  </div>
+`;
