@@ -1586,6 +1586,37 @@ select.rc-inp-input optgroup {
 }
 
 /* =========================================
+   10.4) フルスクリーンボタン（map-page 全体を対象）
+   ========================================= */
+
+.map-fullscreen-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 22;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.7);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  backdrop-filter: blur(12px) saturate(120%);
+  border: 1px solid rgba(29, 29, 29, 0.3);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.map-fullscreen-btn:hover {
+  opacity: 0.9;
+}
+
+/* =========================================
    10.5) Map Tools Panel（表示切り替え＋操作ボタン統合）
    ========================================= */
 
@@ -1608,6 +1639,50 @@ select.rc-inp-input optgroup {
 
 .map-tools-panel.dragging {
   opacity: 0.9;
+}
+
+/* 埋め込み時はドラッグ不可 */
+.map-tools-panel--embed {
+  cursor: default;
+}
+
+/* 埋め込み時の折りたたみ状態 */
+.map-tools-panel--collapsed {
+  min-width: auto;
+  padding: 6px 10px;
+  cursor: default;
+}
+
+.map-tools-panel--collapsed .map-tools-panel__section {
+  display: none;
+}
+
+.map-tools-panel__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 4px 6px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.map-tools-panel__toggle:hover {
+  opacity: 0.9;
+}
+
+.map-tools-panel__toggle-icon {
+  display: block;
+  flex-shrink: 0;
+}
+
+.map-tools-panel__toggle-label {
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .map-tools-panel__section {

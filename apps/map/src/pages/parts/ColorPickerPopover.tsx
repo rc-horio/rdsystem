@@ -3,6 +3,13 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { createPortal } from "react-dom";
 import { HexColorPicker } from "react-colorful";
 
+/** フルスクリーン時は fullscreenElement に portal しないと表示されない */
+function getPortalTarget(): HTMLElement {
+  const doc = document as Document & { webkitFullscreenElement?: Element };
+  const fs = document.fullscreenElement ?? doc.webkitFullscreenElement;
+  return (fs as HTMLElement) || document.body;
+}
+
 const POPOVER_WIDTH = 220;
 const POPOVER_HEIGHT = 200;
 const GAP = 12;
@@ -27,6 +34,17 @@ export default function ColorPickerPopover({
 }: Props) {
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const [position, setPosition] = useState({ top: 0, left: 0 });
+  const [portalTarget, setPortalTarget] = useState(getPortalTarget);
+
+  useEffect(() => {
+    const onFullscreenChange = () => setPortalTarget(getPortalTarget());
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", onFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", onFullscreenChange);
+    };
+  }, []);
 
   const updatePosition = useCallback(() => {
     if (!anchorEl || typeof document === "undefined") return;
@@ -132,5 +150,5 @@ export default function ColorPickerPopover({
     </div>
   );
 
-  return createPortal(content, document.body);
+  return createPortal(content, portalTarget);
 }

@@ -3,10 +3,12 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 // import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
+import { excludeStaticAssets } from '../../vite-plugin-exclude-static-assets'
 
 export default defineConfig({
   plugins: [
     react(),
+    excludeStaticAssets(),
     // VitePWA({
     //   registerType: 'autoUpdate',
     //   includeAssets: ['favicon.svg', 'robots.txt', 'apple-touch-icon.png'],

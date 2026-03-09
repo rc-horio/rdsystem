@@ -1,5 +1,6 @@
 // src/pages/parts/MapToolsPanel.tsx
 import { useRef, useState, type ChangeEvent } from "react";
+import clsx from "clsx";
 import { useDraggablePanel } from "./useDraggablePanel";
 import type { Geometry } from "@/features/types";
 import type { OverlayVisibility } from "./overlayVisibility";
@@ -65,6 +66,8 @@ export default function MapToolsPanel({
 }: Props) {
   const panelRef = useRef<HTMLElement | null>(null);
   const [openColorKey, setOpenColorKey] = useState<AreaColorKey | null>(null);
+  const isEmbed = typeof window !== "undefined" && detectEmbedMode();
+  const [collapsed, setCollapsed] = useState(true);
   const colorSwatchRefs = useRef<Record<AreaColorKey, HTMLButtonElement | null>>({
     takeoffArea: null,
     flightArea: null,
@@ -74,6 +77,7 @@ export default function MapToolsPanel({
 
   useDraggablePanel(panelRef, {
     exclude: ["input", "select", "textarea", "button", "label", ".color-picker-popover"],
+    enabled: !isEmbed,
   });
 
   const handleOverlayChange = (key: keyof OverlayVisibility) => (e: ChangeEvent<HTMLInputElement>) => {
@@ -86,7 +90,7 @@ export default function MapToolsPanel({
   const safetyDisabled = !flightChecked;
 
   const hasGeometry = !!currentGeometry;
-  const showDjiNfzSection = typeof window !== "undefined" && !detectEmbedMode();
+  const showDjiNfzSection = typeof window !== "undefined";
   const hasContent =
     showOverlaySection ||
     showCreateButton ||
@@ -95,19 +99,43 @@ export default function MapToolsPanel({
     showDjiNfzSection ||
     showAirportHeightRestrictionCheckbox;
 
-  if (typeof window !== "undefined" && detectEmbedMode()) {
-    return null;
-  }
-
   if (!hasContent) return null;
 
   return (
     <aside
       ref={panelRef}
-      className="map-tools-panel"
+      className={clsx(
+        "map-tools-panel",
+        isEmbed && "map-tools-panel--embed",
+        isEmbed && collapsed && "map-tools-panel--collapsed"
+      )}
       aria-label="地図ツール"
+      aria-expanded={!isEmbed || !collapsed}
     >
-
+      {isEmbed && (
+        <button
+          type="button"
+          className="map-tools-panel__toggle"
+          onClick={() => setCollapsed((c) => !c)}
+          aria-label={collapsed ? "ツールパネルを開く" : "ツールパネルを閉じる"}
+          aria-expanded={!collapsed}
+        >
+          {collapsed ? (
+            <svg className="map-tools-panel__toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <polyline points="18 15 12 9 6 15" />
+            </svg>
+          ) : (
+            <svg className="map-tools-panel__toggle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          )}
+          <span className="map-tools-panel__toggle-label">
+            {collapsed ? "ツールパネルを開く" : "ツールパネルを閉じる"}
+          </span>
+        </button>
+      )}
+      {(!isEmbed || !collapsed) && (
+        <>
       {showOverlaySection && (
         <section className="map-tools-panel__section" aria-label="表示切り替え">
           <div className="map-tools-panel__title">表示</div>
@@ -249,6 +277,8 @@ export default function MapToolsPanel({
             )}
           </div>
         </section>
+      )}
+        </>
       )}
     </aside>
   );

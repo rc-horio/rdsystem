@@ -15,8 +15,12 @@ function serveStockAssets() {
     configureServer(server: any) {
       server.middlewares.use((req: any, res: any, next: () => void) => {
         const urlPath = req.url?.split("?")[0] ?? "";
-        if (ROOT_ASSETS.some((name) => urlPath === `/${name}`)) {
-          const filePath = path.join(staticDir, urlPath.slice(1));
+        // /apple-touch-icon.png または /stock/apple-touch-icon.png を配信
+        const match = ROOT_ASSETS.find(
+          (name) => urlPath === `/${name}` || urlPath === `/stock/${name}`
+        );
+        if (match) {
+          const filePath = path.join(staticDir, match);
           if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
             res.setHeader("Content-Type", "image/png");
             fs.createReadStream(filePath).pipe(res);
@@ -29,25 +33,10 @@ function serveStockAssets() {
   };
 }
 
-/** ビルド時に stock アセット（csv, image）を dist から除外するプラグイン（アセットは別バケットで配信） */
-function excludeStockAssetsFromBuild() {
-  return {
-    name: "exclude-stock-assets-from-build",
-    closeBundle() {
-      const distDir = path.resolve(__dirname, "dist");
-      const toRemove = ["csv", "image"];
-      toRemove.forEach((sub) => {
-        const dir = path.join(distDir, "assets", sub);
-        if (fs.existsSync(dir)) {
-          fs.rmSync(dir, { recursive: true });
-        }
-      });
-    },
-  };
-}
+import { excludeStaticAssets } from "../../vite-plugin-exclude-static-assets";
 
 export default defineConfig({
-  plugins: [serveStockAssets(), react(), excludeStockAssetsFromBuild()],
+  plugins: [serveStockAssets(), react(), excludeStaticAssets()],
   base: "/stock/",
   envDir: __dirname,
   publicDir: path.resolve(__dirname, "../../static"),

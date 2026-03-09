@@ -14,6 +14,8 @@ interface ImportMetaEnv {
   readonly VITE_CATALOG_WRITE_URL?: string;
   readonly VITE_CATALOG_DELETE_URL?: string;
   readonly VITE_STOCK_BASE_URL?: string;
+  /** ストックコンテンツのディストリビューションが利用可能か（本番で未設定の場合は false） */
+  readonly VITE_STOCK_READY?: string;
   readonly VITE_COGNITO_USER_POOL_ID: string;
   readonly VITE_COGNITO_APP_CLIENT_ID: string;
   readonly VITE_COGNITO_DOMAIN: string;

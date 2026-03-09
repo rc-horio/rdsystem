@@ -1,8 +1,10 @@
 const AUTH_BASE = String(import.meta.env.VITE_AUTH_BASE_URL || "/auth/");
 const selectUrl = `${AUTH_BASE.replace(/\/+$/, "")}/select`;
 
+/** base 相対パスでロゴを参照（/stock/ 配下でも正しく解決される） */
+const logoUrl = `${import.meta.env.BASE_URL}apple-touch-icon.png`;
+
 export function StockHeader() {
-  const logoUrl = "/apple-touch-icon.png";
 
   return (
     <header>

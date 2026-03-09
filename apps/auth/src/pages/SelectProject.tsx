@@ -19,6 +19,8 @@ import { FullHeightSelect } from "@/components";
 const HUB_BASE = String(import.meta.env.VITE_HUB_BASE_URL || "");
 const MAP_BASE = String(import.meta.env.VITE_MAP_BASE_URL || "");
 const STOCK_BASE = String(import.meta.env.VITE_STOCK_BASE_URL || "");
+const STOCK_READY =
+  String(import.meta.env.VITE_STOCK_READY || "false").toLowerCase() === "true";
 
 // 安全な結合 util（末尾/先頭スラッシュを吸収）
 const join = (base: string, path: string) =>
@@ -149,6 +151,7 @@ export default function SelectProject() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [showPreparingModal, setShowPreparingModal] = useState(false);
 
   const modes = ["Hub", "Map", "ストックコンテンツ"] as const;
   const [modeIndex, setModeIndex] = useState(0);
@@ -196,7 +199,11 @@ export default function SelectProject() {
       return;
     }
     if (mode === "ストックコンテンツ") {
-      window.location.assign(STOCK_BASE);
+      if (STOCK_READY) {
+        window.location.assign(STOCK_BASE);
+      } else {
+        setShowPreparingModal(true);
+      }
       return;
     }
     if (!selectedProject) {
@@ -597,6 +604,39 @@ export default function SelectProject() {
           </div>
         </div>
       </div>
+
+      {/* ---- ストックコンテンツ 準備中モーダル（本番でディストリビューション未設定時） ---- */}
+      {showPreparingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="preparing-title"
+            className="w-[min(92vw,28rem)] rounded-xl bg-slate-900 border border-slate-700 shadow-xl p-6"
+          >
+            <h3
+              id="preparing-title"
+              className="text-lg font-semibold text-white text-center mb-4"
+            >
+              準備中
+            </h3>
+            <p className="text-slate-300 text-center text-sm mb-6">
+              ストックコンテンツは現在準備中です。
+              <br />
+              しばらくお待ちください。
+            </p>
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => setShowPreparingModal(false)}
+                className="px-6 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition"
+              >
+                閉じる
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ---- Create / Duplicate Modal（共通） ---- */}
       {showCreateModal && (

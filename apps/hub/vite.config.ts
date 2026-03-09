@@ -2,10 +2,11 @@
 /// <reference types="node" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import path from 'path'
+import path from 'path';
+import { excludeStaticAssets } from '../../vite-plugin-exclude-static-assets';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), excludeStaticAssets({ keepDanceSpec: true })],
   base: '/hub/',
   envDir: __dirname,
   publicDir: path.resolve(__dirname, '../../static'),

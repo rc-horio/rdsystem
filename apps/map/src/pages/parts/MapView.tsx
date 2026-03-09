@@ -330,6 +330,7 @@ type AddAreaSearchResult = {
 export default function MapView({ onLoaded }: Props) {
   /** ---- Refs (Map / UI state) ---- */
   const mapDivRef = useRef<HTMLDivElement | null>(null);
+  const mapPageRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const infoRef = useRef<google.maps.InfoWindow | null>(null);
@@ -372,6 +373,7 @@ export default function MapView({ onLoaded }: Props) {
   // DJI NFZ ローディング・エラー状態
   const [djiNfzLoading, setDjiNfzLoading] = useState(false);
   const [djiNfzError, setDjiNfzError] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   // 色変更時にパネルを再描画するためのリビジョン（setGeometryRevision で re-render をトリガー）
   const [, setGeometryRevision] = useState(0);
 
@@ -1473,6 +1475,42 @@ export default function MapView({ onLoaded }: Props) {
     };
   }, []);
 
+  // フルスクリーン状態の同期
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      const doc = document as Document & { webkitFullscreenElement?: Element };
+      setIsFullscreen(!!(document.fullscreenElement ?? doc.webkitFullscreenElement));
+    };
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", onFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", onFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullscreen = useCallback(async () => {
+    const el = mapPageRef.current;
+    if (!el) return;
+    const doc = document as Document & {
+      webkitFullscreenElement?: Element;
+      webkitExitFullscreen?: () => Promise<void>;
+    };
+    const isFs = !!(document.fullscreenElement ?? doc.webkitFullscreenElement);
+    try {
+      if (isFs) {
+        if (document.exitFullscreen) await document.exitFullscreen();
+        else if (doc.webkitExitFullscreen) await doc.webkitExitFullscreen();
+      } else {
+        const elem = el as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> };
+        if (elem.requestFullscreen) await elem.requestFullscreen();
+        else if (elem.webkitRequestFullscreen) await elem.webkitRequestFullscreen();
+      }
+    } catch (e) {
+      console.warn("[MapView] fullscreen error:", e);
+    }
+  }, []);
+
   // 案件情報モーダルを開くイベント
   useEffect(() => {
     const onOpen = () => {
@@ -2330,6 +2368,10 @@ export default function MapView({ onLoaded }: Props) {
         streetViewControl: false,
         mapTypeControl: false,
 
+        // デフォルトのフルスクリーンは #map の内部要素のみ対象になるため、
+        // ツールパネルが含まれる map-page 全体をフルスクリーンにする独自ボタンを使用
+        fullscreenControl: false,
+
         // 航空写真モードを選択
         mapTypeId: gmaps.MapTypeId.SATELLITE,
 
@@ -3128,8 +3170,26 @@ export default function MapView({ onLoaded }: Props) {
    *  Render
    *  ========================= */
   return (
-    <div className="map-page app-fullscreen">
+    <div className="map-page app-fullscreen" ref={mapPageRef}>
       <div id="map" ref={mapDivRef} />
+      {/* フルスクリーン切替（map-page 全体を対象にし、ツールパネルも含める） */}
+      <button
+        type="button"
+        className="map-fullscreen-btn"
+        onClick={toggleFullscreen}
+        aria-label={isFullscreen ? "フルスクリーンを終了" : "フルスクリーン"}
+        title={isFullscreen ? "フルスクリーンを終了" : "フルスクリーン"}
+      >
+        {isFullscreen ? (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
+          </svg>
+        ) : (
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+          </svg>
+        )}
+      </button>
       {/* 座標変更モード中のヒント */}
       {editable && isChangingPosition && (
         <div className="add-area-hint-layer">
@@ -3283,7 +3343,7 @@ export default function MapView({ onLoaded }: Props) {
         showCreateButton={editable && selectionKind === "schedule" && !!showCreateGeomCta && isSelected}
         showDeleteButton={editable && selectionKind === "schedule" && !showCreateGeomCta && isSelected}
         showMeasureButton={!measurementMode && window === window.top}
-        showAirportHeightRestrictionCheckbox={window === window.top}
+        showAirportHeightRestrictionCheckbox
         airportHeightRestrictionMode={airportHeightRestrictionMode}
         airportHeightRestrictionDisabled={measurementMode}
       />
