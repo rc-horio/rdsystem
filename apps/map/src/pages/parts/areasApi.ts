@@ -382,6 +382,57 @@ export async function buildAreaHistoryFromProjects(areaUuid: string): Promise<
     return rows;
 }
 
+/**
+ * エリアに紐づく案件の schedules[].area.drone_count.count を取得し、
+ * 複数ある場合は最大値を返す。
+ */
+export async function getMaxDroneCountFromScheduleArea(
+    areaUuid: string
+): Promise<number | undefined> {
+    const area = await fetchRawAreaInfo(areaUuid);
+    const pairs: Array<{ projectUuid: string; scheduleUuid: string }> =
+        Array.isArray(area?.history)
+            ? area.history.flatMap((h: any) => {
+                const projectUuid =
+                    typeof h?.projectuuid === "string" ? h.projectuuid : null;
+                const scheduleUuid =
+                    typeof h?.scheduleuuid === "string" ? h.scheduleuuid : null;
+                return projectUuid && scheduleUuid
+                    ? [{ projectUuid, scheduleUuid }]
+                    : [];
+            })
+            : [];
+
+    if (pairs.length === 0) return undefined;
+
+    const projectUuids = [...new Set(pairs.map((p) => p.projectUuid))];
+    const projectEntries = await Promise.all(
+        projectUuids.map(async (uuid) => {
+            const idx = await fetchProjectIndex(uuid);
+            return [uuid, idx] as const;
+        })
+    );
+    const projectMap = new Map<string, any>(
+        projectEntries.filter(([, idx]) => !!idx) as Array<[string, any]>
+    );
+
+    const counts: number[] = [];
+    for (const { projectUuid, scheduleUuid } of pairs) {
+        const pj = projectMap.get(projectUuid);
+        if (!pj || !Array.isArray(pj?.schedules)) continue;
+
+        const sch = pj.schedules.find((s: any) => s?.id === scheduleUuid);
+        const count = sch?.area?.drone_count?.count;
+        const n = Number(count);
+        if (!Number.isNaN(n) && n >= 0) {
+            counts.push(n);
+        }
+    }
+
+    if (counts.length === 0) return undefined;
+    return Math.max(...counts);
+}
+
 // index.json のキー名に揺れがあっても吸収できるようにゆるくマッピング
 function parseDetailMeta(info: any, fallbackAreaName?: string): DetailMeta {
     const ov = (typeof info?.overview === "object" && info.overview) || {};

@@ -21,6 +21,7 @@ import {
   fetchRawAreaInfo,
   saveAreaInfo,
   buildAreaHistoryFromProjects,
+  getMaxDroneCountFromScheduleArea,
   clearAreaCandidateGeometryAtIndex,
   upsertAreaCandidateAtIndex,
   upsertScheduleGeometry,
@@ -120,7 +121,7 @@ function SideListBarBase({
   // 検索クエリ state
   const [searchQuery, setSearchQuery] = useState("");
   // ソート種類 state
-  const [sortType, setSortType] = useState<"name" | "prefecture" | "updated">("updated");
+  const [sortType, setSortType] = useState<"name" | "prefecture" | "updated" | "droneCount">("updated");
   // フィルター条件 state
   const [filterType, setFilterType] = useState<
     "all" | "droneRecord" | "candidate"
@@ -131,18 +132,21 @@ function SideListBarBase({
   const [updatedAtCache, setUpdatedAtCache] = useState<Record<string, string>>({});
   // ドローン実績のキャッシュ（areaUuid -> 0|1）
   const [droneRecordCache, setDroneRecordCache] = useState<Record<string, number>>({});
+  // 機体数のキャッシュ（areaUuid -> schedules.area.drone_count.count の最大値）
+  const [droneCountCache, setDroneCountCache] = useState<Record<string, number | undefined>>({});
   
-  // エリア一覧が変更されたときに都道府県情報・更新日情報・ドローン実績を取得してキャッシュ
+  // エリア一覧が変更されたときに都道府県情報・更新日情報・ドローン実績・機体数を取得してキャッシュ
   useEffect(() => {
     const loadAreaMetadata = async () => {
       const prefectureCache: Record<string, string> = {};
       const updatedAtCache: Record<string, string> = {};
       const droneRecordCache: Record<string, number> = {};
+      const droneCountCache: Record<string, number | undefined> = {};
       const uniqueAreaUuids = new Set(
         points.map((p) => p.areaUuid).filter((uuid): uuid is string => !!uuid)
       );
       
-      // 並列で都道府県情報・更新日情報・ドローン実績を取得
+      // 並列で都道府県情報・更新日情報・ドローン実績・drone_count を取得
       await Promise.all(
         Array.from(uniqueAreaUuids).map(async (areaUuid) => {
           try {
@@ -162,6 +166,16 @@ function SideListBarBase({
             const v = raw?.overview?.droneRecord;
             const droneRecord = v === 1 || v === "1" || v === "あり" ? 1 : 0;
             droneRecordCache[areaUuid] = droneRecord;
+
+            // schedules.area.drone_count.count の最大値を取得してキャッシュ
+            const maxDroneCount = await getMaxDroneCountFromScheduleArea(areaUuid);
+            droneCountCache[areaUuid] = maxDroneCount;
+            const areaName = raw?.areaName ?? areaUuid;
+            if (import.meta.env.DEV) {
+              console.log(
+                `[drone_count] areaUuid=${areaUuid} areaName=${areaName} maxCount=${maxDroneCount ?? "なし"}`
+              );
+            }
           } catch (e) {
             // エラーは無視（都道府県情報や更新日情報がないエリアもある）
           }
@@ -171,6 +185,7 @@ function SideListBarBase({
       setPrefectureCache(prefectureCache);
       setUpdatedAtCache(updatedAtCache);
       setDroneRecordCache(droneRecordCache);
+      setDroneCountCache(droneCountCache);
     };
     
     if (points.length > 0) {
@@ -1413,10 +1428,35 @@ function SideListBarBase({
         );
         return nameA;
       });
+    } else if (sortType === "droneCount") {
+      // 機体数順（多い順、未設定は末尾）
+      filtered = [...filtered].sort((a, b) => {
+        const firstIdxA = a.indices[0];
+        const firstIdxB = b.indices[0];
+        const pointA = points[firstIdxA];
+        const pointB = points[firstIdxB];
+
+        const countA = pointA?.areaUuid ? droneCountCache[pointA.areaUuid] : undefined;
+        const countB = pointB?.areaUuid ? droneCountCache[pointB.areaUuid] : undefined;
+
+        const numA = countA ?? -1;
+        const numB = countB ?? -1;
+
+        if (numA !== numB) return numB - numA; // 降順（多い順）
+
+        if (numA === -1 && numB === -1) {
+          const nameA = (areaLabelOverrides[a.area] ?? a.area).localeCompare(
+            areaLabelOverrides[b.area] ?? b.area,
+            "ja"
+          );
+          return nameA;
+        }
+        return 0;
+      });
     }
     
     return filtered;
-  }, [areaGroups, searchQuery, areaLabelOverrides, points, prefectureCache, updatedAtCache, droneRecordCache, sortType, filterType]);
+  }, [areaGroups, searchQuery, areaLabelOverrides, points, prefectureCache, updatedAtCache, droneRecordCache, droneCountCache, sortType, filterType]);
 
   // フィルタ結果を地図に通知（マーカーの表示/非表示を同期）
   useEffect(() => {
@@ -1451,6 +1491,42 @@ function SideListBarBase({
     } catch (e) {
       return "Unknown";
     }
+  };
+
+  // 機体数グループのラベルを取得する関数
+  const getDroneCountGroupLabel = (count: number | undefined): string => {
+    if (count === undefined || count === null) return "未設定";
+    if (count === 0) return "0";
+    if (count <= 100) return "~100";
+    if (count <= 200) return "~200";
+    if (count <= 300) return "~300";
+    if (count <= 400) return "~400";
+    if (count <= 500) return "~500";
+    if (count <= 600) return "~600";
+    if (count <= 700) return "~700";
+    if (count <= 800) return "~800";
+    if (count <= 900) return "~900";
+    if (count <= 1000) return "~1000";
+    if (count <= 1500) return "~1500";
+    if (count <= 2000) return "~2000";
+    if (count <= 2500) return "~2500";
+    if (count <= 3000) return "~3000";
+    if (count <= 3500) return "~3500";
+    if (count <= 4000) return "~4000";
+    if (count <= 4500) return "~4500";
+    if (count <= 5000) return "~5000";
+    return "5000~";
+  };
+
+  // 機体数グループの表示順序（多い順: 5000~ が上、未設定が下）
+  const DRONE_COUNT_GROUP_ORDER = [
+    "5000~", "~5000", "~4500", "~4000", "~3500", "~3000", "~2500", "~2000",
+    "~1500", "~1000", "~900", "~800", "~700", "~600", "~500", "~400", "~300", "~200", "~100", "0", "未設定",
+  ];
+
+  const getDroneCountGroupOrder = (label: string): number => {
+    const idx = DRONE_COUNT_GROUP_ORDER.indexOf(label);
+    return idx >= 0 ? idx : 999;
   };
 
   // 更新日グループの順序を取得する関数
@@ -1559,6 +1635,37 @@ function SideListBarBase({
 
     return groups;
   }, [visibleAreaGroups, sortType, points, updatedAtCache]);
+
+  // 機体数順ソート時にグループ化する
+  const groupedByDroneCount = useMemo(() => {
+    if (sortType !== "droneCount") {
+      return null;
+    }
+
+    const groups: Array<{ groupLabel: string; areas: typeof visibleAreaGroups }> = [];
+
+    visibleAreaGroups.forEach((areaGroup) => {
+      const firstIdx = areaGroup.indices[0];
+      const firstPoint = points[firstIdx];
+      const count = firstPoint?.areaUuid ? droneCountCache[firstPoint.areaUuid] : undefined;
+      const groupLabel = getDroneCountGroupLabel(count);
+
+      let group = groups.find((g) => g.groupLabel === groupLabel);
+      if (!group) {
+        group = { groupLabel, areas: [] };
+        groups.push(group);
+      }
+      group.areas.push(areaGroup);
+    });
+
+    groups.sort((a, b) => {
+      const orderA = getDroneCountGroupOrder(a.groupLabel);
+      const orderB = getDroneCountGroupOrder(b.groupLabel);
+      return orderA - orderB;
+    });
+
+    return groups;
+  }, [visibleAreaGroups, sortType, points, droneCountCache]);
 
   // エリアアイテムのコンテンツをレンダリングする関数（グループ化時と通常時で共通）
   const renderAreaItemContent = (area: string, indices: number[]) => {
@@ -1905,12 +2012,13 @@ function SideListBarBase({
             <select
               id="sortSelect"
               value={sortType}
-              onChange={(e) => setSortType(e.target.value as "name" | "prefecture" | "updated")}
+              onChange={(e) => setSortType(e.target.value as "name" | "prefecture" | "updated" | "droneCount")}
               className="search-sort-select"
               aria-label="ソート順を選択"
             >
               <option value="prefecture">都道府県</option>
               <option value="updated">更新日</option>
+              <option value="droneCount">機体数</option>
               <option value="name">エリア名</option>
             </select>
             <label htmlFor="filterSelect" className="search-sort-filter-label">
@@ -2021,6 +2129,60 @@ function SideListBarBase({
             // 更新日順ソート時はグループ化して表示
             if (groupedByUpdatedAt) {
               return groupedByUpdatedAt.map((group) => {
+                const filteredAreas = group.areas.filter(
+                  ({ area }) => !deletedAreas.has(area)
+                );
+                if (filteredAreas.length === 0) return null;
+
+                return (
+                  <React.Fragment key={group.groupLabel}>
+                    <li className="location-prefecture-header" aria-label={group.groupLabel}>
+                      -  {group.groupLabel}
+                    </li>
+                    {filteredAreas.map(({ area, indices }) => {
+                      const isActive = activeKey === area;
+                      return (
+                        <li
+                          key={area}
+                          data-indices={indices.join(",")}
+                          data-area={area}
+                          className={isActive ? "active location-item-grouped" : "location-item-grouped"}
+                          onClick={(e) => {
+                            if (editingAreaKey === area) return;
+                            if (isOn && e.detail === 2) {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              beginEditAreaName(area);
+                              return;
+                            }
+                            activateArea(area);
+                          }}
+                          onKeyDown={(e) => {
+                            if (editingAreaKey === area) {
+                              if (e.key === "Escape") {
+                                e.preventDefault();
+                                cancelEditAreaName();
+                              }
+                              return;
+                            }
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              activateArea(area);
+                            }
+                          }}
+                        >
+                          {renderAreaItemContent(area, indices)}
+                        </li>
+                      );
+                    })}
+                  </React.Fragment>
+                );
+              });
+            }
+
+            // 機体数順ソート時はグループ化して表示
+            if (groupedByDroneCount) {
+              return groupedByDroneCount.map((group) => {
                 const filteredAreas = group.areas.filter(
                   ({ area }) => !deletedAreas.has(area)
                 );
