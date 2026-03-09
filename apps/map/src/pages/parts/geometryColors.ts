@@ -13,10 +13,10 @@ export const DEFAULT_GEOMETRY_COLORS: Record<AreaColorKey, string> = {
 
 /** 各エリアのデフォルト塗りつぶし透明度（0〜1） */
 export const DEFAULT_GEOMETRY_FILL_OPACITY: Record<AreaColorKey, number> = {
-  takeoffArea: 0.4,
-  flightArea: 0.4,
-  safetyArea: 0.4,
-  audienceArea: 0.12,
+  takeoffArea: 0.5,
+  flightArea: 0.5,
+  safetyArea: 0.5,
+  audienceArea: 0.5,
 };
 
 /** ジオメトリから指定エリアの色を取得（未指定時はデフォルト） */
