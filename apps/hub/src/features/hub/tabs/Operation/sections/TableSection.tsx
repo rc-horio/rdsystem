@@ -104,8 +104,8 @@ const PAD_TOP = TICK_Y + LABEL_Y + 4;
 const PAD_BOTTOM = TICK_Y + LABEL_Y + 4;
 
 // X軸ラベルの右オフセット(px)
-const X_LABEL_OFFSET_PX = 18;
-const Y_LABEL_OFFSET_PX = 14;
+const X_LABEL_OFFSET_PX = 16;
+const Y_LABEL_OFFSET_PX = 11;
 
 /* ---------------- Rulers ---------------- */
 // X軸ラベル
