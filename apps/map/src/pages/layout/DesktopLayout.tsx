@@ -87,14 +87,25 @@ export default function DesktopLayout({ sidebar, children }: Props) {
 
       <button
         id="sidebarToggle"
-        className="no-caret"
+        className="sidebar-toggle no-caret"
         onMouseDown={blurActiveInput}
         type="button"
         aria-label={collapsed ? "サイドバーを開く" : "サイドバーを閉じる"}
         aria-expanded={!collapsed}
+        title={collapsed ? "パネルを開く" : "パネルを閉じる"}
         onClick={() => setCollapsed((v) => !v)}
       >
-        {collapsed ? "›" : "‹"}
+        <span className="sidebar-toggle__icon" aria-hidden>
+          {collapsed ? (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          )}
+        </span>
       </button>
     </div>
   );

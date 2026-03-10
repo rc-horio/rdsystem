@@ -696,6 +696,62 @@ body.detailbar-open #sidebarToggle {
   caret-color: transparent !important;
 }
 
+/* トグル新デザイン（ガラス風・ chevron アイコン） */
+#sidebarToggle.sidebar-toggle {
+  --toggle-accent: #ed1b24;
+  --toggle-accent-soft: rgba(237, 27, 36, 0.4);
+  --toggle-bg: rgba(0, 0, 0, 0.5);
+  --toggle-border: rgba(255, 255, 255, 0.12);
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--toggle-bg);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  backdrop-filter: blur(12px) saturate(120%);
+  border: 1px solid var(--toggle-border);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 0; /* テキスト非表示（SVG のみ） */
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+#sidebarToggle.sidebar-toggle:hover {
+  background: rgba(0, 0, 0, 0.65);
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.4),
+    0 0 0 1px var(--toggle-accent-soft),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transform: translateY(-50%) scale(1.05);
+}
+
+#sidebarToggle.sidebar-toggle:active {
+  transform: translateY(-50%) scale(0.98);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+#sidebarToggle .sidebar-toggle__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: var(--toggle-accent);
+}
+
+#sidebarToggle .sidebar-toggle__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+#sidebarToggle.sidebar-toggle:hover .sidebar-toggle__icon {
+  color: #ff5252;
+}
+
 /* =========================================
    4) A11y Helpers
    ========================================= */
@@ -753,6 +809,38 @@ body.detailbar-open #sidebarToggle {
   pointer-events: none; /* 非活性 */
   transition: opacity 0.18s ease, transform 0.18s ease;
 }
+
+/* リサイズハンドル（右端・右にドラッグで幅を広げる） */
+.detailbar-resize-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 10;
+}
+.detailbar-resize-handle:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+.detailbar-resize-handle::after {
+  content: "";
+  position: absolute;
+  right: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 1px;
+}
+
+/* リサイズ中はテキスト選択を抑止 */
+body.detailbar-resizing {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -ms-user-select: none !important;
+}
 #detailbar button:hover {
   cursor: pointer;
 }
@@ -806,13 +894,13 @@ body.detailbar-open #detailbar {
   margin-top: calc(-1 * var(--detailbar-pad));
 }
 
-/* タイトル（横幅固定・中央寄せ・省略対応） */
+/* タイトル（横幅可変・中央寄せ・省略対応） */
 .detailbar-title {
   margin: 0;
   align-self: center;
 
-  /* サイズ/外観 */
-  width: 260px; /* 固定幅（必要に応じて調整） */
+  /* サイズ/外観（リサイズ時に幅に追従） */
+  width: min(260px, calc(100% - 32px));
   padding: 0 14px; /* 高さはパディングで確保 */
   border-radius: 4px;
   font-size: 50px;
