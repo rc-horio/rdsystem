@@ -180,6 +180,16 @@ export default function MapToolsPanel({
               );
             })}
             <label className="map-tools-panel__checkbox">
+              <input
+                type="checkbox"
+                checked={overlayVisibility.referencePoint}
+                onChange={handleOverlayChange("referencePoint")}
+                disabled={!overlayVisibility.takeoff}
+                aria-label="離発着矩形の基準点"
+              />
+              <span>基準点</span>
+            </label>
+            <label className="map-tools-panel__checkbox">
               <input type="checkbox" checked={overlayVisibility.arrows} onChange={handleOverlayChange("arrows")} aria-label="矢印" />
               <span>矢印</span>
             </label>

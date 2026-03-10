@@ -2,6 +2,8 @@
 export type OverlayVisibility = {
   /** 離発着エリア */
   takeoff: boolean;
+  /** 離発着矩形の基準点（白丸） */
+  referencePoint: boolean;
   /** 飛行エリア */
   flight: boolean;
   /** 保安エリア（飛行エリア表示時のみ有効） */
@@ -20,6 +22,7 @@ export type OverlayVisibility = {
 
 export const DEFAULT_OVERLAY_VISIBILITY: OverlayVisibility = {
   takeoff: true,
+  referencePoint: true,
   flight: true,
   safety: true,
   audience: true,

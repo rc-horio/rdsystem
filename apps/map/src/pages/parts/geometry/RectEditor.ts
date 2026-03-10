@@ -71,14 +71,15 @@ export class RectEditor {
     }
 
     /** 離発着エリアの表示切り替え */
-    setOverlayVisibility(visible: boolean) {
-        const map = visible ? this.opts.getMap() : null;
+    setOverlayVisibility(opts: { takeoff: boolean; referencePoint: boolean }) {
+        const map = opts.takeoff ? this.opts.getMap() : null;
         const t = this.takeoffEditRef;
         if (!t) return;
         if (t.poly) t.poly.setMap(map);
         t.cornerMarkers?.forEach((mk) => mk.setMap(map));
         if (t.rotateMarker) t.rotateMarker.setMap(map);
-        if (t.refMarker) t.refMarker.setMap(map);
+        // 基準点（白丸）は離発着表示時かつ referencePoint が true のときのみ表示
+        if (t.refMarker) t.refMarker.setMap(opts.takeoff && opts.referencePoint && map ? map : null);
     }
 
     /** 呼び出し元の overlays を消した後に参照だけクリア */

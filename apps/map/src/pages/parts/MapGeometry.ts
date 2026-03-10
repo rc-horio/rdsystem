@@ -717,7 +717,10 @@ export class MapGeometry {
         // 保安は飛行表示時のみ有効
         const effectiveSafety = v.flight && v.safety;
 
-        this.rectEditor.setOverlayVisibility(v.takeoff);
+        this.rectEditor.setOverlayVisibility({
+            takeoff: v.takeoff,
+            referencePoint: v.referencePoint,
+        });
         this.ellipseEditor.setOverlayVisibility({
             flight: v.flight,
             safety: effectiveSafety,
