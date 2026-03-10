@@ -79,8 +79,8 @@ export function useMotifData() {
         const parsed = parseCSV(text);
         setData(parseMotifData(parsed));
       })
-      .catch((e) => {
-        setError(String(e));
+      .catch(() => {
+        setError("データの読み込みができませんでした。しばらく時間をおいて、もう一度お試しください。");
       })
       .finally(() => setLoading(false));
   }, []);

@@ -33,6 +33,7 @@ import {
   fetchProjectIndex,
   upsertScheduleAreaRef,
   clearScheduleAreaRef,
+  FETCH_AREAS_LIST_ERROR_MSG,
 } from "./areasApi";
 import { PREFECTURES } from "./constants/events";
 import type {
@@ -58,6 +59,14 @@ import {
   EV_ADD_AREA_RESULT_COORDS,
   EV_GEOMETRY_SAVE_COMPLETE,
 } from "./constants/events";
+import {
+  systemError,
+  SAVE_TIMEOUT,
+  E001_PROJECT_INDEX,
+  E002_AREAS_LIST,
+  E003_SAVE_PROCESS,
+  E005_AREA_UUID,
+} from "@/lib/errorMessages";
 
 type AddAreaSearchStatus = "idle" | "ok" | "empty" | "error";
 type AddAreaSearchResult = {
@@ -713,9 +722,16 @@ function SideListBarBase({
             continue;
           }
 
-          const okRemove = await removeAreasListEntryByUuid(areaUuid);
-          if (!okRemove) {
-            console.warn("[save] removeAreasListEntryByUuid failed", areaUuid);
+          try {
+            const okRemove = await removeAreasListEntryByUuid(areaUuid);
+            if (!okRemove) {
+              console.warn("[save] removeAreasListEntryByUuid failed", areaUuid);
+            }
+          } catch (e) {
+            console.error("[save] removeAreasListEntryByUuid failed", areaUuid, e);
+            window.alert(FETCH_AREAS_LIST_ERROR_MSG);
+            allOk = false;
+            break;
           }
         }
 
@@ -723,7 +739,7 @@ function SideListBarBase({
         // 削除済みエリアを非表示に保つため。points 更新後に useEffect でクリーンアップ
         window.dispatchEvent(new Event("areas:reload"));
         window.dispatchEvent(new Event(EV_GEOMETRY_SAVE_COMPLETE));
-        window.alert(allOk ? "削除を保存しました" : "一部の削除に失敗しました。");
+        window.alert(allOk ? "削除を保存しました" : "一部の削除ができませんでした。しばらく時間をおいて、もう一度お試しください。");
         return;
       }
 
@@ -739,7 +755,12 @@ function SideListBarBase({
       const areaUuid =
         currentAreaUuidRef.current ?? getAreaUuidByAreaName(areaName);
       if (!areaUuid) {
-        window.alert("このエリアには areaUuid がありません。保存できません。");
+        window.alert(
+          systemError(
+            E005_AREA_UUID,
+            `エリアIDが取得できません${areaName ? `（area_name: ${areaName}）` : ""}`
+          )
+        );
         return;
       }
 
@@ -881,7 +902,10 @@ function SideListBarBase({
       const okInfo = await saveAreaInfo(areaUuid!, infoToSave);
       if (!okInfo) {
         window.alert(
-          "保存に失敗しました（index.json）。ブラウザの開発者ツール（F12）のコンソールでエラー内容を確認してください。"
+          systemError(
+            E001_PROJECT_INDEX,
+            `プロジェクト一覧の保存に失敗${areaName ? `（area_name: ${areaName}）` : ""}`
+          )
         );
         return;
       }
@@ -972,21 +996,30 @@ function SideListBarBase({
       const latToSave = repPoint?.lat ?? posFromPoints?.lat;
       const lonToSave = repPoint?.lng ?? posFromPoints?.lng;
 
-      const okAreas = await upsertAreasListEntryFromInfo({
-        uuid: areaUuid,
-        areaName: data.title,
-        lat: latToSave,
-        lon: lonToSave,
-        projectCount: infoToSave.history.length,
-      });
+      let okAreas = false;
+      try {
+        okAreas = await upsertAreasListEntryFromInfo({
+          uuid: areaUuid,
+          areaName: data.title,
+          lat: latToSave,
+          lon: lonToSave,
+          projectCount: infoToSave.history.length,
+        });
 
-      if (!okAreas) {
-        window.alert(
-          "保存に失敗しました（areas.json）。ブラウザの開発者ツール（F12）のコンソールでエラー内容を確認してください。"
-        );
-        // areas/<areaUuid>/index.json は保存済みなので続行可能
-      } else {
-        window.dispatchEvent(new Event("areas:reload"));
+        if (!okAreas) {
+          window.alert(
+            systemError(
+              E002_AREAS_LIST,
+              `エリア一覧の保存に失敗${areaName ? `（area_name: ${areaName}）` : ""}`
+            )
+          );
+          // areas/<areaUuid>/index.json は保存済みなので続行可能
+        } else {
+          window.dispatchEvent(new Event("areas:reload"));
+        }
+      } catch (e) {
+        console.error("[save] upsertAreasListEntryFromInfo failed", e);
+        window.alert(FETCH_AREAS_LIST_ERROR_MSG);
       }
 
       // （3-1）MapGeometry から現在編集中の geometry 情報（payload）を取得
@@ -1068,11 +1101,11 @@ function SideListBarBase({
       }
 
       // （5）従来メッセージを維持（UIのデグレ回避）
-      window.alert(okAreas ? "保存しました" : "保存に失敗しました。");
+      window.alert(okAreas ? "保存しました" : SAVE_TIMEOUT);
     } catch (e) {
       console.error("[save] 保存処理中にエラー:", e);
       window.alert(
-        "保存処理中にエラーが発生しました。ブラウザの開発者ツール（F12）のコンソールで詳細を確認してください。"
+        systemError(E003_SAVE_PROCESS, "保存処理中にエラー")
       );
     } finally {
       setIsSaving(false);
@@ -1753,7 +1786,7 @@ function SideListBarBase({
                 );
 
                 window.alert(
-                  "エリアを削除しました。\nこの変「SAVE」ボタンを押すまで S3 には反映されません。"
+                  "エリアを削除しました。\nこの後「SAVE」ボタンを押すまで反映されません。"
                 );
               }}
             />

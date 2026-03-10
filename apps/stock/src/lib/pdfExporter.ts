@@ -3,6 +3,7 @@ import { jsPDF } from "jspdf";
 import { parseCSV } from "./parseCsv";
 import { PDF_TEMPLATE } from "./pdfTemplate";
 import { ASSETS_BASE } from "./assetsBase";
+import { systemError, E301_PDF_EXPORT } from "./errorMessages";
 
 async function fetchMotifMap(signal?: AbortSignal): Promise<Map<string, { planeNum: string; width: string; height: string; depth: string; length: string }>> {
   const res = await fetch(`${ASSETS_BASE}/csv/motifs.csv`, { signal });
@@ -227,7 +228,7 @@ export async function exportToPdf(container: HTMLElement, signal?: AbortSignal):
       return;
     }
     console.error("PDF export error", err);
-    alert("PDF 生成に失敗しました（詳細はコンソール参照）");
+    alert(systemError(E301_PDF_EXPORT, "PDF生成に失敗"));
   } finally {
     if (document.body.contains(tempDiv)) {
       document.body.removeChild(tempDiv);

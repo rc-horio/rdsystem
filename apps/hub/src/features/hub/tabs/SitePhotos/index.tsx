@@ -133,7 +133,7 @@ export default function SitePhotosTab({
           } catch (error) {
             console.error(`Failed to convert ${file.name}:`, error);
             alert(
-              `${file.name}の変換に失敗しました。別のファイルを選択してください。`
+              `${file.name}の変換ができませんでした。別のファイルを選択するか、担当者にお問い合わせください。`
             );
           }
         } else {
@@ -161,7 +161,7 @@ export default function SitePhotosTab({
       if (inputRef.current) inputRef.current.value = "";
     } catch (error) {
       console.error("File processing error:", error);
-      alert("ファイルの処理中にエラーが発生しました。");
+      alert("ファイルの処理ができませんでした。しばらく時間をおいて、もう一度お試しください。");
     } finally {
       setIsConverting(false);
     }

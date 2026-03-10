@@ -63,16 +63,25 @@ const toSlug = (s: string) =>
     .replace(/[^a-z_-]+/g, "")
     .slice(0, 24);
 
+const FETCH_LIST_ERROR_MSG =
+  "プロジェクト一覧の取得に失敗しました。ネットワークを確認して、しばらく待ってから再試行してください。";
+
 async function upsertProjectList(row: ListRow): Promise<ListRow[]> {
   let list: ListRow[] = [];
   try {
     const r = await fetch(LIST_URL, { cache: "no-cache" });
-    if (r.ok) {
-      const json = await r.json();
-      if (Array.isArray(json)) list = json;
+    if (!r.ok) {
+      throw new Error(`${FETCH_LIST_ERROR_MSG}（${r.status}）`);
     }
+    const json = await r.json();
+    if (Array.isArray(json)) list = json;
   } catch (e) {
     console.warn("[SelectProject] fetch projects.json failed", e);
+    throw new Error(
+      e instanceof Error && e.message.includes("プロジェクト一覧の取得に失敗")
+        ? e.message
+        : FETCH_LIST_ERROR_MSG
+    );
   }
 
   const next = list.filter((x) => x.uuid !== row.uuid);
@@ -102,12 +111,18 @@ async function removeProjectFromList(uuid: string): Promise<ListRow[]> {
   let list: ListRow[] = [];
   try {
     const r = await fetch(LIST_URL, { cache: "no-cache" });
-    if (r.ok) {
-      const json = await r.json();
-      if (Array.isArray(json)) list = json;
+    if (!r.ok) {
+      throw new Error(`${FETCH_LIST_ERROR_MSG}（${r.status}）`);
     }
+    const json = await r.json();
+    if (Array.isArray(json)) list = json;
   } catch (e) {
     console.warn("[SelectProject] fetch projects.json failed", e);
+    throw new Error(
+      e instanceof Error && e.message.includes("プロジェクト一覧の取得に失敗")
+        ? e.message
+        : FETCH_LIST_ERROR_MSG
+    );
   }
 
   const next = list.filter((x) => x.uuid !== uuid);
@@ -181,7 +196,7 @@ export default function SelectProject() {
         setProjects(json);
       } catch (e) {
         console.error("[SelectProject] projects.json fetch error", e);
-        setError("プロジェクト一覧の取得に失敗しました");
+        setError("プロジェクト一覧を取得できませんでした。しばらく時間をおいて、もう一度お試しください。");
       } finally {
         setLoading(false);
       }
@@ -220,7 +235,7 @@ export default function SelectProject() {
       const url = join(HUB_BASE, meta.uuid) + `?${qp.toString()}`;
       window.location.assign(url);
     } else {
-      alert("選択したプロジェクトのUUIDが見つかりません。");
+      alert("プロジェクトが見つかりませんでした。担当者にお問い合わせください。（エラー内容: プロジェクト参照エラー）");
     }
   };
 
@@ -289,11 +304,15 @@ export default function SelectProject() {
             contentType: "application/json; charset=utf-8",
           }),
         });
-      } catch (e) {
-        console.error("[SelectProject] projects.json update error", e);
-      } finally {
+
         const url = join(HUB_BASE, newUuid) + `?${qp.toString()}`;
         window.location.assign(url);
+      } catch (e) {
+        console.error("[SelectProject] projects.json update error", e);
+        alert(
+          e instanceof Error ? e.message : FETCH_LIST_ERROR_MSG
+        );
+      } finally {
         setShowCreateModal(false);
       }
     })();
@@ -307,7 +326,7 @@ export default function SelectProject() {
     }
     const meta = projects.find((p) => p.projectId === selectedProject);
     if (!meta?.uuid) {
-      alert("プロジェクトのUUIDが見つかりません。");
+      alert("プロジェクトが見つかりませんでした。担当者にお問い合わせください。（エラー内容: プロジェクト参照エラー）");
       return;
     }
     const label = `${meta.projectId} - ${meta.projectName}`;
@@ -381,7 +400,7 @@ export default function SelectProject() {
     } catch (e) {
       console.error("[SelectProject] delete error", e);
       alert(
-        `削除に失敗しました: ${e instanceof Error ? e.message : String(e)}`
+        e instanceof Error ? e.message : "削除ができませんでした。担当者にお問い合わせください。（エラー内容: プロジェクト削除に失敗）"
       );
     } finally {
       setDeleting(false);

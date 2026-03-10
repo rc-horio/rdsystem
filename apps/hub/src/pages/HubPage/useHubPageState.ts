@@ -505,17 +505,13 @@ export function useHubPageState() {
         .map(({ idx, reason }) => {
           const msg =
             reason === "required"
-              ? "日付/スケジュール名は必須です"
-              : "日付は YYYY-MM-DDで、実在日である必要があります";
+              ? "日付とスケジュール名を入力してください。"
+              : "日付は「YYYY-MM-DD」形式で、正しい日付を入力してください。";
           return `${msg}`;
         })
         .join("\n");
 
-      alert(
-        `保存できません。\n` +
-        lines +
-        (errors.length > 5 ? `\n...他 ${errors.length - 5}件` : "")
-      );
+      alert(lines + (errors.length > 5 ? `\n...他 ${errors.length - 5}件` : ""));
       return;
     }
 
@@ -540,7 +536,7 @@ export function useHubPageState() {
 
     if (duplicates.length > 0) {
       alert(
-        `保存できません。\nスケジュールの日付と名称の組み合わせが重複しています。`
+        "同じ日付とスケジュール名の組み合わせが重複しています。日付または名称を変更してください。"
       );
       return;
     }
@@ -608,7 +604,7 @@ export function useHubPageState() {
         return;
       } catch (e) {
         console.error("local save error", e);
-        toast.showToast("保存に失敗しました。時間をおいて再実行してください。", "error");
+        toast.showToast("保存ができませんでした。しばらく時間をおいて、もう一度お試しください。", "error");
         return;
       }
     }
@@ -655,52 +651,56 @@ export function useHubPageState() {
       if (!res.ok || data?.error) throw new Error(data?.error ?? raw ?? `Request failed: ${res.status}`);
 
       // 🟢 projects.json も同期（projectId / projectName 変更時）
+      // fetch 失敗時は上書きしない（既存データ消失を防ぐ）
       try {
-        const listUrl =
-          `${CATALOG}/projects.json`;
+        const listUrl = `${CATALOG}/projects.json`;
         const listRes = await fetch(listUrl, { cache: "no-cache" });
-        let list: any[] = [];
-        if (listRes.ok) {
-          list = (await listRes.json()) ?? [];
-        }
-
-        // 現在のUUID行を探して更新 or 追加
-        const idx = list.findIndex((x) => x.uuid === currentUuid);
-        const updatedRow = {
-          uuid: currentUuid,
-          projectId: body.project.id,
-          projectName: body.project.name,
-        };
-        if (idx >= 0) {
-          list[idx] = updatedRow;
+        if (!listRes.ok) {
+          console.warn(
+            "projects.json fetch failed, skipping sync",
+            listRes.status
+          );
         } else {
-          list.push(updatedRow);
-        }
+          let list: any[] = (await listRes.json()) ?? [];
 
-        // 並び替え（名称順）
-        list.sort((a, b) =>
-          (a.projectName || "").localeCompare(b.projectName || "", "ja")
-        );
+          // 現在のUUID行を探して更新 or 追加
+          const idx = list.findIndex((x) => x.uuid === currentUuid);
+          const updatedRow = {
+            uuid: currentUuid,
+            projectId: body.project.id,
+            projectName: body.project.name,
+          };
+          if (idx >= 0) {
+            list[idx] = updatedRow;
+          } else {
+            list.push(updatedRow);
+          }
 
-        // Lambda 経由で上書き保存
-        const updateAuditHeaders = await getAuditHeaders();
-        const updateRes = await fetch(
-          CATALOG_WRITE_URL,
-          {
+          // 並び替え（名称順）
+          list.sort((a, b) =>
+            (a.projectName || "").localeCompare(b.projectName || "", "ja")
+          );
+
+          // Lambda 経由で上書き保存
+          const updateAuditHeaders = await getAuditHeaders();
+          const updateRes = await fetch(CATALOG_WRITE_URL, {
             method: "POST",
-            headers: { "Content-Type": "application/json", ...updateAuditHeaders },
+            headers: {
+              "Content-Type": "application/json",
+              ...updateAuditHeaders,
+            },
             body: JSON.stringify({
               key: `catalog/v1/projects.json`,
               body: list,
               contentType: "application/json; charset=utf-8",
             }),
+          });
+          if (!updateRes.ok) {
+            console.warn("projects.json update failed", await updateRes.text());
           }
-        );
-        if (!updateRes.ok) {
-          console.warn("projects.json update failed", await updateRes.text());
         }
       } catch (err) {
-        console.error("projects.json 同期エラー", err);
+        console.warn("projects.json fetch failed, skipping sync", err);
       }
 
       try {
@@ -741,7 +741,7 @@ export function useHubPageState() {
         } catch (e) {
           console.error("Batch S3 delete failed", e);
           toast.showToast(
-            "一部の画像が物理削除できませんでした。時間をおいて再実行してください。",
+            "一部の画像の削除ができませんでした。しばらく時間をおいて、もう一度お試しください。",
             "error"
           );
           // 予約は残す（次回SAVEで再トライ）
@@ -752,7 +752,7 @@ export function useHubPageState() {
       toast.showToast("保存しました。");
     } catch (e) {
       console.error(e);
-      toast.showToast("保存に失敗しました。時間をおいて再実行してください。", "error");
+      toast.showToast("保存ができませんでした。しばらく時間をおいて、もう一度お試しください。", "error");
     } finally {
       setIsSaving(false);
     }

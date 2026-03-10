@@ -18,7 +18,11 @@ import {
   useCandidateSection,
 } from "@/components";
 import type { Props, Point, Geometry } from "@/features/types";
-import { fetchAreaInfo, createNewArea } from "./areasApi";
+import {
+  fetchAreaInfo,
+  createNewArea,
+  FETCH_AREAS_LIST_ERROR_MSG,
+} from "./areasApi";
 import { EV_DETAILBAR_SELECTED, OPEN_INFO_ON_SELECT } from "./constants/events";
 import "../map.css";
 import {
@@ -57,6 +61,7 @@ import {
   DEFAULT_OVERLAY_VISIBILITY,
   type OverlayVisibility,
 } from "./overlayVisibility";
+import { systemError, E004_NEW_AREA_S3 } from "@/lib/errorMessages";
 import {
   calculateAirportRestriction,
   buildAirportHeightRestrictionPopupHtml,
@@ -2752,9 +2757,8 @@ export default function MapView({ onLoaded }: Props) {
         }
         setDjiNfzError(null);
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
         console.warn("[map] DJI NFZ load failed:", err);
-        setDjiNfzError(msg);
+        setDjiNfzError("飛行禁止エリアの情報を取得できませんでした。しばらく時間をおいて、もう一度お試しください。繰り返す場合は担当者にお問い合わせください。（エラー内容: 飛行禁止エリア照会エラー）");
       } finally {
         setDjiNfzLoading(false);
       }
@@ -3374,9 +3378,14 @@ export default function MapView({ onLoaded }: Props) {
               window.alert(
                 `エリア名「${areaNameInput.trim()}」は既に存在します。\n別の名称を指定してください。`
               );
+            } else if (result.reason === "fetch-list-failed") {
+              window.alert(FETCH_AREAS_LIST_ERROR_MSG);
             } else {
               window.alert(
-                "エリア情報の保存に失敗しました。S3 の設定（CORS / 権限）をご確認ください。"
+                systemError(
+                  E004_NEW_AREA_S3,
+                  `新規エリアの保存に失敗。S3 の設定（CORS / 権限）をご確認ください${areaNameInput.trim() ? `（area_name: ${areaNameInput.trim()}）` : ""}`
+                )
               );
             }
             // モーダルは開いたまま & 入力も保持 → ユーザーが名前を修正して再トライできる

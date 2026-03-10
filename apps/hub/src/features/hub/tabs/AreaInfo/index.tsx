@@ -37,7 +37,7 @@ export default function AreaInfoTab({
       return await mapCardRef.current?.requestScreenshot?.();
     } catch (e) {
       const msg =
-        e instanceof Error ? e.message : "スクリーンショットの作成に失敗しました。";
+        e instanceof Error ? e.message : "スクリーンショットを作成できませんでした。しばらく時間をおいて、もう一度お試しください。";
       window.alert(msg);
       return null;
     }

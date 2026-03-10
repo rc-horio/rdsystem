@@ -155,6 +155,22 @@ export async function fetchAreasList(): Promise<any[]> {
     return Array.isArray(data) ? data : [];
 }
 
+/** エリア一覧取得失敗時のメッセージ（保存処理で使用） */
+export const FETCH_AREAS_LIST_ERROR_MSG =
+    "エリア一覧の取得に失敗しました。ネットワークを確認して、しばらく待ってから再試行してください。";
+
+/**
+ * areas.json を読み、保存用にエリア一覧を返す。
+ * fetch 失敗時は throw（上書きによる既存データ消失を防ぐ）
+ */
+async function fetchAreasListForWrite(): Promise<any[]> {
+    const data = await getJson<any[]>(CATALOG + "areas.json");
+    if (data === null) {
+        throw new Error(FETCH_AREAS_LIST_ERROR_MSG);
+    }
+    return Array.isArray(data) ? data : [];
+}
+
 /** areas.json を保存（PUT）。成功なら true */
 export async function saveAreasList(list: any[]): Promise<boolean> {
     return await writeJsonToCatalog("catalog/v1/areas.json", list);
@@ -169,7 +185,7 @@ export async function upsertAreasListEntryFromInfo(params: {
     projectCount?: number;
 }): Promise<boolean> {
     const { uuid, areaName, lat, lon } = params;
-    const list = await fetchAreasList();
+    const list = await fetchAreasListForWrite();
 
     const dup = list.some(
         (x: any) => x?.areaName === areaName && x?.uuid !== uuid
@@ -213,7 +229,7 @@ export async function upsertAreasListEntryFromInfo(params: {
 /** areas.json から指定 uuid のエントリを削除して保存。成功なら true */
 export async function removeAreasListEntryByUuid(areaUuid: string): Promise<boolean> {
     if (!areaUuid) return false;
-    const list = await fetchAreasList();
+    const list = await fetchAreasListForWrite();
     const next = list.filter((x: any) => x?.uuid !== areaUuid);
     if (next.length === list.length) return true; // 既に存在しない
     return await saveAreasList(next);
@@ -755,7 +771,7 @@ export async function createNewArea(params: {
     heightLimitM?: string | null;
     /** 詳細タブ「制限」欄。DJI NFZ 該当時の文言 */
     restrictionsMemo?: string | null;
-}): Promise<{ ok: boolean; uuid?: string; reason?: "duplicate" | "save-failed" }> {
+}): Promise<{ ok: boolean; uuid?: string; reason?: "duplicate" | "save-failed" | "fetch-list-failed" }> {
     const trimmed = params.areaName.trim();
     if (!trimmed) {
         return { ok: false, reason: "save-failed" };
@@ -801,17 +817,22 @@ export async function createNewArea(params: {
     }
 
     // ④ areas.json に 1 件追加（ここでも重複チェックが走る）
-    const okAreas = await upsertAreasListEntryFromInfo({
-        uuid,
-        areaName: trimmed,
-        lat: params.lat,
-        lon: params.lon,
-        projectCount: 0,
-    });
+    try {
+        const okAreas = await upsertAreasListEntryFromInfo({
+            uuid,
+            areaName: trimmed,
+            lat: params.lat,
+            lon: params.lon,
+            projectCount: 0,
+        });
 
-    if (!okAreas) {
-        console.error("[createNewArea] upsertAreasListEntryFromInfo failed");
-        return { ok: false, reason: "save-failed" };
+        if (!okAreas) {
+            console.error("[createNewArea] upsertAreasListEntryFromInfo failed");
+            return { ok: false, reason: "save-failed" };
+        }
+    } catch (e) {
+        console.error("[createNewArea] upsertAreasListEntryFromInfo failed", e);
+        return { ok: false, reason: "fetch-list-failed" };
     }
 
     return { ok: true, uuid };

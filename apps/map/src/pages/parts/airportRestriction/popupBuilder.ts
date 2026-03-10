@@ -30,7 +30,7 @@ function buildAirportSection(result: AirportRestrictionResult): string {
       '<div class="airport-restriction-popup__section">',
       '<div class="airport-restriction-popup__title">■ 空港高さ制限</div>',
       '<div class="airport-restriction-popup__content">',
-      '<div class="airport-restriction-popup__error">照会できませんでした</div>',
+      '<div class="airport-restriction-popup__error">空港の高さ制限の照会ができませんでした。しばらく時間をおいて、もう一度お試しください。</div>',
       "</div>",
       "</div>",
     ].join("");

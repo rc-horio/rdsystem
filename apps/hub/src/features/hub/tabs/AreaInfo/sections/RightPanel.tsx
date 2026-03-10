@@ -172,7 +172,7 @@ export function RightPanel({
       } catch (e) {
         console.error(e);
         if (!cancelled) {
-          setAreasError("開催地一覧の取得に失敗しました");
+          setAreasError("開催地一覧を取得できませんでした。しばらく時間をおいて、もう一度お試しください。");
         }
       } finally {
         if (!cancelled) {
@@ -201,7 +201,7 @@ export function RightPanel({
             options={areaOptions}
             placeholder={
               areasError
-                ? "エリア取得エラー"
+                ? "開催地一覧を取得できませんでした"
                 : isLoadingAreas
                   ? "読込中..."
                   : "未設定"

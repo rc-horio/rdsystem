@@ -102,5 +102,5 @@ export const ADD_AREA_EMPTY_MESSAGE =
     "該当する候補がありません。住所（例：舞浜 / 東京都浦安市）で再検索してください。";
 
 export const ADD_AREA_ERROR_MESSAGE =
-    "検索に失敗しました。時間を置いて再試行してください。";
+    "検索ができませんでした。しばらく時間をおいて、もう一度お試しください。";
 
