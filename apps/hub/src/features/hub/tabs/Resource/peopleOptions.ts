@@ -9,6 +9,7 @@ export const NAME_OPTIONS: SelectOption[] = [
     { value: "蛇谷 光生", label: "蛇谷 光生" },
     { value: "山本 和真", label: "山本 和真" },
     { value: "相場 和大", label: "相場 和大" },
+    { value: "山口 遼", label: "山口 遼" },
     { value: "後藤 俊輝", label: "後藤 俊輝" },
     { value: "細井 勇吾", label: "細井 勇吾" },
     { value: "永野 勝俊", label: "永野 勝俊" },
