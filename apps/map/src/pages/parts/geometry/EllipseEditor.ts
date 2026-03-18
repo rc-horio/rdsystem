@@ -56,6 +56,9 @@ export class EllipseEditor {
     // depth 方向の直径ライン
     private depthDiameterLine?: google.maps.Polyline;
 
+    // 直径線の表示状態（表示切替パネルの状態を反映）
+    private showDiameterLines: boolean = true;
+
     // setPaths の競合抑制
     private suppressEllipseUpdateRef = false;
 
@@ -71,6 +74,9 @@ export class EllipseEditor {
 
     /** 飛行・保安・直径線の表示切り替え */
     setOverlayVisibility(opts: { flight: boolean; safety: boolean; diameterLines: boolean }) {
+        // 表示切替パネルの状態を内部に保持
+        this.showDiameterLines = opts.diameterLines;
+
         const map = this.opts.getMap();
         const flightMap = opts.flight && map ? map : null;
         const safetyMap = opts.safety && map ? map : null;
@@ -1089,6 +1095,16 @@ export class EllipseEditor {
         const gmaps = this.opts.getGMaps();
         const map = this.opts.getMap();
         if (!map) return;
+
+        // 直径線の表示がOFFの場合は常に非表示にする
+        if (!this.showDiameterLines) {
+            if (this.widthDiameterLine) {
+                this.widthDiameterLine.setMap(null);
+                this.widthDiameterLine = undefined;
+            }
+            return;
+        }
+
         if (!Number.isFinite(radiusX_m) || radiusX_m <= 0) {
             if (this.widthDiameterLine) {
                 this.widthDiameterLine.setMap(null);
@@ -1150,6 +1166,16 @@ export class EllipseEditor {
         const gmaps = this.opts.getGMaps();
         const map = this.opts.getMap();
         if (!map) return;
+
+        // 直径線の表示がOFFの場合は常に非表示にする
+        if (!this.showDiameterLines) {
+            if (this.depthDiameterLine) {
+                this.depthDiameterLine.setMap(null);
+                this.depthDiameterLine = undefined;
+            }
+            return;
+        }
+
         if (!Number.isFinite(radiusY_m) || radiusY_m <= 0) {
             if (this.depthDiameterLine) {
                 this.depthDiameterLine.setMap(null);
