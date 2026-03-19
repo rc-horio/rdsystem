@@ -20,6 +20,7 @@ export type FullscreenLayerProps = {
   module2Enabled?: boolean;
   onToggleModule1?: () => void;
   onToggleModule2?: () => void;
+  modules?: { title: string; enabled: boolean; onToggle: () => void }[];
 };
 
 function useLockBodyScroll(lock: boolean) {
@@ -43,6 +44,7 @@ export function FullscreenLayer({
   module2Enabled = true,
   onToggleModule1,
   onToggleModule2,
+  modules,
 }: FullscreenLayerProps) {
   const mountRef = useRef<HTMLElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -104,7 +106,27 @@ export function FullscreenLayer({
             <span className="text-sm">フルスクリーン表示</span>
           </div>
           <div className="flex items-center gap-3 px-3">
-            {onToggleModule1 && (
+            {Array.isArray(modules) && modules.length > 0 ? (
+              modules.map((m, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={m.onToggle}
+                  className="inline-flex items-center gap-1 rounded-full border border-white/20 px-2 py-1 text-xs"
+                  aria-pressed={m.enabled}
+                  aria-label={`${m.title}の表示切替`}
+                >
+                  {m.enabled ? (
+                    <Eye className="w-3.5 h-3.5" />
+                  ) : (
+                    <EyeOff className="w-3.5 h-3.5" />
+                  )}
+                  <span className="max-w-28 truncate">{m.title}</span>
+                </button>
+              ))
+            ) : (
+              <>
+                {onToggleModule1 && (
               <button
                 type="button"
                 onClick={onToggleModule1}
@@ -135,6 +157,8 @@ export function FullscreenLayer({
                 )}
                 <span>{module2Title ?? "モジュール2"}</span>
               </button>
+            )}
+              </>
             )}
             <button
               type="button"

@@ -10,17 +10,29 @@ type Props = {
   countY: number;
   /** 全機体数。端数時は右上を切った図形で描画 */
   totalCount?: number;
-  module1Nums: number[]; // モジュール1 = 赤
-  module2Nums: number[]; // モジュール2 = 青
+  /** 推奨：最大5件のモジュール配列（Tableのハイライト対象） */
+  modules?: { name: string; ids: number[] }[];
+  /** 互換用（旧API）。modules が渡された場合は無視される */
+  module1Nums?: number[]; // モジュール1 = 赤
+  /** 互換用（旧API）。modules が渡された場合は無視される */
+  module2Nums?: number[]; // モジュール2 = 青
   onOpenFull?: () => void;
   hideTitle?: boolean;
   hideScrollHint?: boolean;
   /** フルスクリーン時など、凡例（モジュール名＋トグル）を非表示にする */
   hideLegend?: boolean;
+  /** 互換用（旧API） */
   showModule1?: boolean;
+  /** 互換用（旧API） */
   showModule2?: boolean;
+  /** 互換用（旧API） */
   onToggleModule1?: () => void;
+  /** 互換用（旧API） */
   onToggleModule2?: () => void;
+  /** modules モード時の外部制御（任意） */
+  showModules?: boolean[];
+  /** modules モード時の外部制御（任意） */
+  onToggleModules?: (index: number) => void;
   spacingSeqX?: number[];
   spacingSeqY?: number[];
   /** フルスクリーン時など両軸スクロールを許可する */
@@ -246,8 +258,9 @@ export function TableSection({
   countX,
   countY,
   totalCount,
-  module1Nums,
-  module2Nums,
+  modules,
+  module1Nums = [],
+  module2Nums = [],
   onOpenFull,
   hideScrollHint,
   hideLegend = false,
@@ -255,18 +268,29 @@ export function TableSection({
   showModule2: showModule2Prop = true,
   onToggleModule1,
   onToggleModule2,
+  showModules,
+  onToggleModules,
   spacingSeqX,
   spacingSeqY,
   bothScroll = false,
 }: Props) {
+  const moduleList: { name: string; ids: number[] }[] =
+    Array.isArray(modules) && modules.length > 0
+      ? modules.slice(0, 5)
+      : [
+          { name: "モジュール1", ids: module1Nums },
+          { name: "モジュール2", ids: module2Nums },
+        ];
+
+  const isLegacy = !(Array.isArray(modules) && modules.length > 0);
+
+  // legacy: 従来通り 1/2 の外部制御を維持
   const [showM1Local, setShowM1Local] = useState(true);
   const [showM2Local, setShowM2Local] = useState(true);
-
-  const isControlledM1 = onToggleModule1 !== undefined;
-  const isControlledM2 = onToggleModule2 !== undefined;
+  const isControlledM1 = isLegacy && onToggleModule1 !== undefined;
+  const isControlledM2 = isLegacy && onToggleModule2 !== undefined;
   const showModule1 = isControlledM1 ? showModule1Prop : showM1Local;
   const showModule2 = isControlledM2 ? showModule2Prop : showM2Local;
-
   const handleToggleM1 = () => {
     if (onToggleModule1) onToggleModule1();
     else setShowM1Local((v) => !v);
@@ -276,9 +300,57 @@ export function TableSection({
     else setShowM2Local((v) => !v);
   };
 
+  // modules: 最大5件分をローカルでトグル（legacy制御とは独立）
+  const [showModulesLocal, setShowModulesLocal] = useState<boolean[]>(
+    () => moduleList.map(() => true)
+  );
+  useEffect(() => {
+    setShowModulesLocal((prev) => {
+      const next = moduleList.map((_, i) => prev[i] ?? true);
+      return next;
+    });
+  }, [moduleList.length]);
+
+  const isControlledModules =
+    !isLegacy &&
+    Array.isArray(showModules) &&
+    typeof onToggleModules === "function";
+
+  const getShowModules = () =>
+    isControlledModules ? showModules! : showModulesLocal;
+
   const scrollRef = useDragScroll<HTMLDivElement>();
-  const redSet = showModule1 ? new Set(module1Nums) : new Set<number>();
-  const blueSet = showModule2 ? new Set(module2Nums) : new Set<number>();
+
+  const palette = [
+    { bg: "bg-red-500", swatch: "bg-red-500" },
+    { bg: "bg-blue-500", swatch: "bg-blue-500" },
+    { bg: "bg-emerald-500", swatch: "bg-emerald-500" },
+    { bg: "bg-amber-500", swatch: "bg-amber-500" },
+    { bg: "bg-purple-500", swatch: "bg-purple-500" },
+  ] as const;
+
+  const activeSets: { name: string; set: Set<number>; bg: string; swatch: string }[] =
+    isLegacy
+      ? [
+          {
+            name: "モジュール1",
+            set: showModule1 ? new Set(module1Nums) : new Set<number>(),
+            bg: palette[0].bg,
+            swatch: palette[0].swatch,
+          },
+          {
+            name: "モジュール2",
+            set: showModule2 ? new Set(module2Nums) : new Set<number>(),
+            bg: palette[1].bg,
+            swatch: palette[1].swatch,
+          },
+        ]
+      : moduleList.map((m, i) => ({
+          name: m.name || `モジュール${i + 1}`,
+          set: getShowModules()[i] ? new Set(m.ids ?? []) : new Set<number>(),
+          bg: palette[i]?.bg ?? "bg-slate-500",
+          swatch: palette[i]?.swatch ?? "bg-slate-500",
+        }));
 
   // 端数時: 全機体数優先で actualRowCount、lastRowCount を算出
   const fullRectCount = countX * countY;
@@ -366,40 +438,85 @@ export function TableSection({
 
       {!hideLegend && (
         <div className="flex items-center gap-4 mb-2 text-sm flex-wrap">
-          <button
-            type="button"
-            onClick={handleToggleM1}
-            className={`inline-flex items-center gap-1.5 rounded px-2 py-1 transition-opacity ${
-              showModule1 ? "opacity-100" : "opacity-50"
-            } hover:opacity-100`}
-            aria-pressed={showModule1}
-            aria-label="モジュール1のハイライト切替"
-          >
-            <i className="inline-block w-4 h-4 rounded-sm bg-red-500 shrink-0" />
-            <span>モジュール1</span>
-            {showModule1 ? (
-              <Eye className="w-6 h-6 shrink-0" aria-hidden />
-            ) : (
-              <EyeOff className="w-6 h-6 shrink-0" aria-hidden />
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={handleToggleM2}
-            className={`inline-flex items-center gap-1.5 rounded px-2 py-1 transition-opacity ${
-              showModule2 ? "opacity-100" : "opacity-50"
-            } hover:opacity-100`}
-            aria-pressed={showModule2}
-            aria-label="モジュール2のハイライト切替"
-          >
-            <i className="inline-block w-4 h-4 rounded-sm bg-blue-500 shrink-0" />
-            <span>モジュール2</span>
-            {showModule2 ? (
-              <Eye className="w-6 h-6 shrink-0" aria-hidden />
-            ) : (
-              <EyeOff className="w-6 h-6 shrink-0" aria-hidden />
-            )}
-          </button>
+          {isLegacy ? (
+            <>
+              <button
+                type="button"
+                onClick={handleToggleM1}
+                className={`inline-flex items-center gap-1.5 rounded px-2 py-1 transition-opacity ${
+                  showModule1 ? "opacity-100" : "opacity-50"
+                } hover:opacity-100`}
+                aria-pressed={showModule1}
+                aria-label="モジュール1のハイライト切替"
+              >
+                <i className="inline-block w-4 h-4 rounded-sm bg-red-500 shrink-0" />
+                <span>モジュール1</span>
+                {showModule1 ? (
+                  <Eye className="w-6 h-6 shrink-0" aria-hidden />
+                ) : (
+                  <EyeOff className="w-6 h-6 shrink-0" aria-hidden />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={handleToggleM2}
+                className={`inline-flex items-center gap-1.5 rounded px-2 py-1 transition-opacity ${
+                  showModule2 ? "opacity-100" : "opacity-50"
+                } hover:opacity-100`}
+                aria-pressed={showModule2}
+                aria-label="モジュール2のハイライト切替"
+              >
+                <i className="inline-block w-4 h-4 rounded-sm bg-blue-500 shrink-0" />
+                <span>モジュール2</span>
+                {showModule2 ? (
+                  <Eye className="w-6 h-6 shrink-0" aria-hidden />
+                ) : (
+                  <EyeOff className="w-6 h-6 shrink-0" aria-hidden />
+                )}
+              </button>
+            </>
+          ) : (
+            <>
+              {moduleList.map((m, i) => {
+                const show = getShowModules()[i] ?? true;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() =>
+                      isControlledModules
+                        ? onToggleModules(i)
+                        : setShowModulesLocal((prev) => {
+                            const next = [...prev];
+                            next[i] = !show;
+                            return next;
+                          })
+                    }
+                    className={`inline-flex items-center gap-1.5 rounded px-2 py-1 transition-opacity ${
+                      show ? "opacity-100" : "opacity-50"
+                    } hover:opacity-100`}
+                    aria-pressed={show}
+                    aria-label={`${m.name || `モジュール${i + 1}`}` + "のハイライト切替"}
+                  >
+                    <i
+                      className={
+                        "inline-block w-4 h-4 rounded-sm shrink-0 " +
+                        (palette[i]?.swatch ?? "bg-slate-500")
+                      }
+                    />
+                    <span className="max-w-56 truncate">
+                      {m.name || `モジュール${i + 1}`}
+                    </span>
+                    {show ? (
+                      <Eye className="w-6 h-6 shrink-0" aria-hidden />
+                    ) : (
+                      <EyeOff className="w-6 h-6 shrink-0" aria-hidden />
+                    )}
+                  </button>
+                );
+              })}
+            </>
+          )}
           <span className="inline-flex items-center gap-1 text-slate-500 text-sm">
             <i className="inline-block w-4 h-4 rounded-sm bg-fuchsia-500" /> 重複
           </span>
@@ -452,19 +569,19 @@ export function TableSection({
                       {Array.from({ length: colsInRow }).map((_, c) => {
                         const num =
                           (actualRowCount - 1 - r) * countX + c;
-                        const isRed = redSet.has(num);
-                        const isBlue = blueSet.has(num);
+                        const hit = activeSets.filter((m) => m.set.has(num));
                         const bg =
-                          isRed && isBlue
+                          hit.length >= 2
                             ? "bg-fuchsia-500"
-                            : isRed
-                              ? "bg-red-500"
-                              : isBlue
-                                ? "bg-blue-500"
-                                : "";
+                            : hit.length === 1
+                              ? hit[0]!.bg
+                              : "";
 
-                        const text =
-                          isSaving ? "text-black" : (isRed || isBlue ? "text-white" : "");
+                        const text = isSaving
+                          ? "text-black"
+                          : hit.length > 0
+                            ? "text-white"
+                            : "";
 
                         return (
                           <td

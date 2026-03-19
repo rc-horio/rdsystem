@@ -10,10 +10,13 @@ type Props = {
   onTitleChange: (v: string) => void;
   input: string;
   onInputChange: (v: string) => void;
+  compact?: boolean;
   showModuleLabel?: boolean;
   appliedNums?: number[]; // 表示用（ユニーク数）
   /** 数字欄のフォーカスアウト完了時に通知（正規化済みの文字列） */
   onNumbersBlur?: (normalized: string) => void;
+  onRemove?: () => void;
+  validationMessage?: string;
 };
 
 export function ModuleSection({
@@ -24,9 +27,12 @@ export function ModuleSection({
   onTitleChange,
   input,
   onInputChange,
+  compact = false,
   showModuleLabel = true,
   appliedNums = [],
   onNumbersBlur,
+  onRemove,
+  validationMessage,
 }: Props) {
   const copy = async (t: string) => {
     try {
@@ -49,7 +55,7 @@ export function ModuleSection({
 
   return (
     <section className={className}>
-      <div className="space-y-2 mb-4">
+      <div className={compact ? "space-y-1.5 mb-2" : "space-y-2 mb-4"}>
         {showModuleLabel && (
           <p className="text-xs text-slate-300">{moduleLabel}</p>
         )}
@@ -59,9 +65,20 @@ export function ModuleSection({
             edit={edit}
             value={title}
             onChange={(e) => onTitleChange(e.target.value)}
-            className="w-36 text-sm text-center"
+            className={
+              (compact ? "w-24 text-xs" : "w-36 text-sm") + " text-center"
+            }
           />
           <CopyButton onClick={() => copy(input)} />
+          {onRemove && (
+            <button
+              type="button"
+              onClick={onRemove}
+              className="ml-auto px-2 py-1 text-xs rounded border border-slate-700 text-slate-200 bg-slate-900/40 hover:bg-slate-900/60"
+            >
+              削除
+            </button>
+          )}
         </div>
 
         {/* onBlur はバブリングで受ける（DisplayOrTextarea に onBlur が無くてもOK） */}
@@ -71,12 +88,16 @@ export function ModuleSection({
             value={input}
             onChange={(v) => onInputChange(v)} // 入力中は一切変換しない
             placeholder="空白区切りで番号を入力"
-            size="md"
+            size={compact ? "sm" : "md"}
             className="w-full"
             textClassName="font-mono"
             label=""
           />
         </div>
+
+        {validationMessage && (
+          <div className="text-xs text-amber-300">{validationMessage}</div>
+        )}
 
         <div className="text-xs text-slate-300 mt-1 text-right">
           合計{total}機

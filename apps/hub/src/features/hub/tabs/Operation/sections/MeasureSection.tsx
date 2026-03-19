@@ -58,6 +58,8 @@ export function MeasureSection({
     return Number.isFinite(n) ? `${n}` : `${v}`;
   };
 
+  const fmtSeqMeters = (seq: number[]) => seq.map((n) => `${n}m`).join(" / ");
+
   const hasSpacing =
     spacingXY && (spacingXY.x !== undefined || spacingXY.y !== undefined);
 
@@ -91,10 +93,10 @@ export function MeasureSection({
               <b className="tabular-nums">
                 {/* 配列ならCSVで見せる */}
                 {Array.isArray(spacingSeqX) && spacingSeqX.length > 0
-                  ? spacingSeqX.join(",")
+                  ? fmtSeqMeters(spacingSeqX)
                   : fmtVal(spacingXY?.x)}
                 {Array.isArray(spacingSeqX) && spacingSeqX.length > 0
-                  ? "m"
+                  ? ""
                   : fmtVal(spacingXY?.x) === "—"
                   ? ""
                   : "m"}
@@ -104,10 +106,10 @@ export function MeasureSection({
               y間隔：
               <b className="tabular-nums">
                 {Array.isArray(spacingSeqY) && spacingSeqY.length > 0
-                  ? spacingSeqY.join(",")
+                  ? fmtSeqMeters(spacingSeqY)
                   : fmtVal(spacingXY?.y)}
                 {Array.isArray(spacingSeqY) && spacingSeqY.length > 0
-                  ? "m"
+                  ? ""
                   : fmtVal(spacingXY?.y) === "—"
                   ? ""
                   : "m"}

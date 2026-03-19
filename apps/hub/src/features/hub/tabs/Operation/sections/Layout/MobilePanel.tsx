@@ -19,24 +19,19 @@ export function MobilePanel(props: {
   counts?: { total?: number; x?: number; y?: number };
   memoValue: string;
   setMemoValue: (v: string) => void;
+  modules: {
+    name: string;
+    input: string;
+    appliedIds: number[];
+    validationMessage?: string;
+  }[];
+  onAddModule: () => void;
+  onRemoveModule: (index: number) => void;
+  onChangeModuleName: (index: number, v: string) => void;
+  onChangeModuleInput: (index: number, v: string) => void;
+  onNumbersBlurModule: (index: number, normalized: string) => void;
   appliedM1: number[];
   appliedM2: number[];
-  setAppliedM1: (v: number[]) => void;
-  setAppliedM2: (v: number[]) => void;
-  module1: {
-    title: string;
-    setTitle: (v: string) => void;
-    input: string;
-    setInput: (v: string) => void;
-    onNumbersBlur?: (normalized: string) => void;
-  };
-  module2: {
-    title: string;
-    setTitle: (v: string) => void;
-    input: string;
-    setInput: (v: string) => void;
-    onNumbersBlur?: (normalized: string) => void;
-  };
   onCommitMeasurement?: (targetId: number | "", result: string | null) => void;
   spacingXY?: { x?: number | string | ""; y?: number | string | "" };
   spacingSeqX?: number[];
@@ -51,18 +46,27 @@ export function MobilePanel(props: {
     memoValue,
     counts,
     setMemoValue,
+    modules,
+    onAddModule,
+    onRemoveModule,
+    onChangeModuleName,
+    onChangeModuleInput,
+    onNumbersBlurModule,
     appliedM1,
     appliedM2,
-    module1,
-    module2,
     onCommitMeasurement,
     spacingXY,
     spacingSeqX,
     spacingSeqY,
   } = props;
 
-  const [showM1, setShowM1] = useState(true);
-  const [showM2, setShowM2] = useState(true);
+  const [showModules, setShowModules] = useState<boolean[]>(
+    () => modules.map(() => true)
+  );
+
+  useEffect(() => {
+    setShowModules((prev) => modules.map((_, i) => prev[i] ?? true));
+  }, [modules.length]);
 
   const fullScrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -80,13 +84,16 @@ export function MobilePanel(props: {
           countX={grid.countX}
           countY={grid.countY}
           totalCount={counts?.total}
-          module1Nums={appliedM1}
-          module2Nums={appliedM2}
+          modules={modules.map((m) => ({ name: m.name, ids: m.appliedIds }))}
+          showModules={showModules}
+          onToggleModules={(i) =>
+            setShowModules((prev) => {
+              const next = [...prev];
+              next[i] = !next[i];
+              return next;
+            })
+          }
           onOpenFull={() => setFull(true)}
-          showModule1={showM1}
-          showModule2={showM2}
-          onToggleModule1={() => setShowM1((v) => !v)}
-          onToggleModule2={() => setShowM2((v) => !v)}
           spacingSeqX={spacingSeqX}
           spacingSeqY={spacingSeqY}
         />
@@ -95,26 +102,33 @@ export function MobilePanel(props: {
       <FullscreenLayer
         open={full}
         onClose={() => setFull(false)}
-        module1Title={module1.title}
-        module2Title={module2.title}
-        module1Enabled={showM1}
-        module2Enabled={showM2}
-        onToggleModule1={() => setShowM1((v) => !v)}
-        onToggleModule2={() => setShowM2((v) => !v)}
+        modules={modules.map((m, i) => ({
+          title: m.name || `モジュール${i + 1}`,
+          enabled: showModules[i] ?? true,
+          onToggle: () =>
+            setShowModules((prev) => {
+              const next = [...prev];
+              next[i] = !next[i];
+              return next;
+            }),
+        }))}
       >
         <TableSection
           countX={grid.countX}
           countY={grid.countY}
           totalCount={counts?.total}
-          module1Nums={appliedM1}
-          module2Nums={appliedM2}
+          modules={modules.map((m) => ({ name: m.name, ids: m.appliedIds }))}
           hideTitle
           hideScrollHint
           hideLegend
-          showModule1={showM1}
-          showModule2={showM2}
-          onToggleModule1={() => setShowM1((v) => !v)}
-          onToggleModule2={() => setShowM2((v) => !v)}
+          showModules={showModules}
+          onToggleModules={(i) =>
+            setShowModules((prev) => {
+              const next = [...prev];
+              next[i] = !next[i];
+              return next;
+            })
+          }
           spacingSeqX={spacingSeqX}
           spacingSeqY={spacingSeqY}
         />
@@ -137,30 +151,44 @@ export function MobilePanel(props: {
 
       <section>
         <SectionTitle title="モジュール" />
-        <ModuleSection
-          edit={edit}
-          moduleLabel="モジュール1"
-          title={module1.title}
-          onTitleChange={module1.setTitle}
-          input={module1.input}
-          onInputChange={module1.setInput}
-          appliedNums={appliedM1}
-          onNumbersBlur={module1.onNumbersBlur}
-          showModuleLabel={false}
-          className="mb-4"
-        />
-        <ModuleSection
-          edit={edit}
-          moduleLabel="モジュール2"
-          title={module2.title}
-          onTitleChange={module2.setTitle}
-          input={module2.input}
-          onInputChange={module2.setInput}
-          appliedNums={appliedM2}
-          onNumbersBlur={module2.onNumbersBlur}
-          showModuleLabel={false}
-          className="mb-4"
-        />
+        <div className="mb-3 flex justify-end">
+          <button
+            type="button"
+            onClick={onAddModule}
+            disabled={modules.length >= 5}
+            className={`px-2 py-1 text-xs rounded border ${
+              modules.length < 5
+                ? "border-sky-500 text-sky-100 bg-sky-900/40 hover:bg-sky-900/60"
+                : "border-slate-700 text-slate-500 bg-slate-900/40"
+            }`}
+          >
+            + モジュール追加（{modules.length}/5）
+          </button>
+        </div>
+
+        {modules.length === 0 && (
+          <div className="text-xs text-slate-400 border border-dashed border-slate-700/80 rounded flex items-center justify-center p-6 mb-4">
+            モジュールは未設定です
+          </div>
+        )}
+
+        {modules.map((m, idx) => (
+          <ModuleSection
+            key={idx}
+            edit={edit}
+            moduleLabel={`モジュール${idx + 1}`}
+            title={m.name}
+            onTitleChange={(v) => onChangeModuleName(idx, v)}
+            input={m.input}
+            onInputChange={(v) => onChangeModuleInput(idx, v)}
+            appliedNums={m.appliedIds}
+            validationMessage={m.validationMessage}
+            onNumbersBlur={(normalized) => onNumbersBlurModule(idx, normalized)}
+            onRemove={() => onRemoveModule(idx)}
+            showModuleLabel={false}
+            className="mb-4"
+          />
+        ))}
         <MemoSection
           edit={edit}
           value={memoValue}

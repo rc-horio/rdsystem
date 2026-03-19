@@ -4,6 +4,13 @@ import { DesktopPanel, MobilePanel } from "./sections";
 import { useGrid } from "./hooks/useGrid";
 import { parseNums, normalizeInput } from "./utils/format";
 
+type UiModule = {
+  name: string;
+  input: string;
+  appliedIds: number[];
+  validationMessage?: string;
+};
+
 /* =========================
    入力中は未変換／未同期
    フォーカスアウトで正規化 → そのフィールドだけグリッド＆JSON反映
@@ -146,59 +153,137 @@ export default function OperationTab({
     });
   };
 
-  // 入力欄（自由入力）
-  const [m1Title, setM1Title] = useState("モジュール1");
-  const [m1Input, setM1Input] = useState("");
-  const [m2Title, setM2Title] = useState("モジュール2");
-  const [m2Input, setM2Input] = useState("");
+  // モジュール（0〜5件）
+  const [modules, setModules] = useState<UiModule[]>([]);
 
-  // 表示用（グリッド色）
-  const [appliedM1, setAppliedM1] = useState<number[]>([]);
-  const [appliedM2, setAppliedM2] = useState<number[]>([]);
+  const maxIdExclusive = (() => {
+    const t = safeCounts.total;
+    if (typeof t === "number" && Number.isFinite(t) && t > 0) return t;
+    const approx = countX * countY;
+    return Number.isFinite(approx) && approx > 0 ? approx : undefined;
+  })();
 
-  // ---- フォーカスアウト完了（正規化済み）を受け取って、そのフィールドだけ更新 ----
-  const handleNumbersBlurM1 = (normalized: string) => {
-    const norm = normalizeInput(normalized); // 念のため二重適用でも安定
-    const ids = parseNums(norm);
-    setM1Input(norm); // 表示値も正規化済みに
-    setAppliedM1(ids); // グリッド更新（片側のみ）
-    onPatchOperation({
-      modules: [
-        { name: m1Title, ids },
-        { name: m2Title, ids: parseNums(normalizeInput(m2Input)) },
-      ],
+  const validateIds = (ids: number[]) => {
+    const filtered = ids.filter((n) => Number.isInteger(n) && n >= 0);
+    const unique: number[] = [];
+    const seen = new Set<number>();
+    let dupCount = 0;
+    for (const n of filtered) {
+      if (seen.has(n)) {
+        dupCount++;
+        continue;
+      }
+      seen.add(n);
+      unique.push(n);
+    }
+
+    let outOfRangeCount = 0;
+    const bounded =
+      typeof maxIdExclusive === "number"
+        ? unique.filter((n) => {
+            const ok = n < maxIdExclusive;
+            if (!ok) outOfRangeCount++;
+            return ok;
+          })
+        : unique;
+
+    return {
+      ids: bounded,
+      removed: {
+        nonIntegerOrNegative: ids.length - filtered.length,
+        duplicates: dupCount,
+        outOfRange: outOfRangeCount,
+      },
+      maxIdExclusive,
+    };
+  };
+
+  const patchModulesToOperation = (nextModules: UiModule[]) => {
+    const payload = nextModules.map((m) => ({
+      name: m.name,
+      ids: parseNums(normalizeInput(m.input ?? "")),
+    }));
+    onPatchOperation({ modules: payload });
+  };
+
+  const handleAddModule = () => {
+    setModules((prev) => {
+      if (prev.length >= 5) return prev;
+      const nextIndex = prev.length + 1;
+      const next = [
+        ...prev,
+        { name: `モジュール${nextIndex}`, input: "", appliedIds: [] },
+      ];
+      patchModulesToOperation(next);
+      return next;
     });
   };
-  const handleNumbersBlurM2 = (normalized: string) => {
+
+  const handleRemoveModule = (index: number) => {
+    setModules((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      patchModulesToOperation(next);
+      return next;
+    });
+  };
+
+  const handleChangeModuleName = (index: number, v: string) => {
+    setModules((prev) => {
+      const next = [...prev];
+      if (!next[index]) return prev;
+      next[index] = { ...next[index], name: v };
+      patchModulesToOperation(next);
+      return next;
+    });
+  };
+
+  const handleChangeModuleInput = (index: number, v: string) => {
+    setModules((prev) => {
+      const next = [...prev];
+      if (!next[index]) return prev;
+      next[index] = { ...next[index], input: v };
+      return next;
+    });
+  };
+
+  const handleNumbersBlurModule = (index: number, normalized: string) => {
     const norm = normalizeInput(normalized);
-    const ids = parseNums(norm);
-    setM2Input(norm);
-    setAppliedM2(ids);
-    onPatchOperation({
-      modules: [
-        { name: m1Title, ids: parseNums(normalizeInput(m1Input)) },
-        { name: m2Title, ids },
-      ],
-    });
-  };
+    const rawIds = parseNums(norm);
+    const v = validateIds(rawIds);
+    const ids = v.ids;
+    const removedTotal =
+      v.removed.nonIntegerOrNegative + v.removed.duplicates + v.removed.outOfRange;
+    const validationMessage =
+      removedTotal > 0
+        ? [
+            v.removed.duplicates > 0
+              ? `重複${v.removed.duplicates}件`
+              : null,
+            v.removed.outOfRange > 0 && typeof v.maxIdExclusive === "number"
+              ? `範囲外${v.removed.outOfRange}件（0〜${v.maxIdExclusive - 1}）`
+              : v.removed.outOfRange > 0
+                ? `範囲外${v.removed.outOfRange}件`
+                : null,
+            v.removed.nonIntegerOrNegative > 0
+              ? `不正${v.removed.nonIntegerOrNegative}件`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(" / ") + " を除外しました"
+        : undefined;
 
-  // タイトルは即時同期してOK（入力制約に影響しない）
-  const handleM1Title = (v: string) => {
-    setM1Title(v);
-    onPatchOperation({
-      modules: [
-        { name: v, ids: parseNums(normalizeInput(m1Input)) },
-        { name: m2Title, ids: parseNums(normalizeInput(m2Input)) },
-      ],
-    });
-  };
-  const handleM2Title = (v: string) => {
-    setM2Title(v);
-    onPatchOperation({
-      modules: [
-        { name: m1Title, ids: parseNums(normalizeInput(m1Input)) },
-        { name: v, ids: parseNums(normalizeInput(m2Input)) },
-      ],
+    const normalizedForDisplay = ids.join(" ");
+    setModules((prev) => {
+      const next = [...prev];
+      if (!next[index]) return prev;
+      next[index] = {
+        ...next[index],
+        input: normalizedForDisplay,
+        appliedIds: ids,
+        validationMessage,
+      };
+      patchModulesToOperation(next);
+      return next;
     });
   };
 
@@ -212,17 +297,8 @@ export default function OperationTab({
       setInputSpacing(Number(p.spacing_m) || 0);
     }
 
-    const mods: { name: string; ids: number[] }[] = Array.isArray(
-      operation?.modules
-    )
-      ? operation!.modules
-      : [];
-    const m1 = mods[0] ?? { name: "モジュール1", ids: [] };
-    const m2 = mods[1] ?? { name: "モジュール2", ids: [] };
-
     const snapshot = JSON.stringify({
-      m1,
-      m2,
+      mods: operation?.modules ?? null,
       meas: operation?.measurement ?? null,
       memo: operation?.memo ?? "",
     });
@@ -230,16 +306,19 @@ export default function OperationTab({
     if (snapshot !== lastInitRef.current) {
       lastInitRef.current = snapshot;
 
-      setM1Title(m1.name || "");
-      setM2Title(m2.name || "");
-
-      const m1Str = (m1.ids ?? []).join(" ");
-      const m2Str = (m2.ids ?? []).join(" ");
-      setM1Input(m1Str);
-      setM2Input(m2Str);
-
-      setAppliedM1(m1.ids ?? []);
-      setAppliedM2(m2.ids ?? []);
+      const mods: { name?: string; ids?: number[] }[] = Array.isArray(
+        operation?.modules
+      )
+        ? operation!.modules
+        : [];
+      setModules(
+        mods.slice(0, 5).map((m, idx) => ({
+          name: typeof m?.name === "string" ? m.name : `モジュール${idx + 1}`,
+          input: Array.isArray(m?.ids) ? m.ids.join(" ") : "",
+          appliedIds: Array.isArray(m?.ids) ? m.ids : [],
+          validationMessage: undefined,
+        }))
+      );
 
       const meas = operation?.measurement;
       setMeasureNum(
@@ -268,6 +347,9 @@ export default function OperationTab({
     onPatchOperation({ memo: v });
   };
 
+  const appliedM1 = modules[0]?.appliedIds ?? [];
+  const appliedM2 = modules[1]?.appliedIds ?? [];
+
   return (
     <div className="space-y-8 pb-24 relative">
       <DesktopPanel
@@ -291,24 +373,14 @@ export default function OperationTab({
         counts={safeCounts}
         memoValue={memoValue}
         setMemoValue={handleChangeMemo}
+        modules={modules}
+        onAddModule={handleAddModule}
+        onRemoveModule={handleRemoveModule}
+        onChangeModuleName={handleChangeModuleName}
+        onChangeModuleInput={handleChangeModuleInput}
+        onNumbersBlurModule={handleNumbersBlurModule}
         appliedM1={appliedM1}
         appliedM2={appliedM2}
-        setAppliedM1={setAppliedM1}
-        setAppliedM2={setAppliedM2}
-        module1={{
-          title: m1Title,
-          setTitle: handleM1Title,
-          input: m1Input,
-          setInput: setM1Input, // 入力中はローカルのみ
-          onNumbersBlur: handleNumbersBlurM1, // ← フィールド個別に処理
-        }}
-        module2={{
-          title: m2Title,
-          setTitle: handleM2Title,
-          input: m2Input,
-          setInput: setM2Input,
-          onNumbersBlur: handleNumbersBlurM2,
-        }}
         onCommitMeasurement={commitMeasurement}
         spacingXY={spacingXY}
         spacingSeqX={spacingSeqX}
@@ -336,24 +408,14 @@ export default function OperationTab({
         counts={safeCounts}
         memoValue={memoValue}
         setMemoValue={handleChangeMemo}
+        modules={modules}
+        onAddModule={handleAddModule}
+        onRemoveModule={handleRemoveModule}
+        onChangeModuleName={handleChangeModuleName}
+        onChangeModuleInput={handleChangeModuleInput}
+        onNumbersBlurModule={handleNumbersBlurModule}
         appliedM1={appliedM1}
         appliedM2={appliedM2}
-        setAppliedM1={setAppliedM1}
-        setAppliedM2={setAppliedM2}
-        module1={{
-          title: m1Title,
-          setTitle: handleM1Title,
-          input: m1Input,
-          setInput: setM1Input,
-          onNumbersBlur: handleNumbersBlurM1,
-        }}
-        module2={{
-          title: m2Title,
-          setTitle: handleM2Title,
-          input: m2Input,
-          setInput: setM2Input,
-          onNumbersBlur: handleNumbersBlurM2,
-        }}
         onCommitMeasurement={commitMeasurement}
         spacingXY={spacingXY}
         spacingSeqX={spacingSeqX}
