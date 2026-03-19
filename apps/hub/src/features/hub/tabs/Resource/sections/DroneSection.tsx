@@ -159,7 +159,7 @@ export function DroneSection({
 
       <div className="space-y-1 hidden md:block">
         {localDrones.map((d, index) => (
-          <div key={d.id} className="w-full">
+          <div key={d.id} className="w-full group">
             <div className="flex items-center gap-2 w-full">
               <div className="ml-auto w-8 shrink-0 flex items-center justify-center">
                 <DeleteItemButton
@@ -167,7 +167,9 @@ export function DroneSection({
                   disabled={localDrones.length === 1}
                   className={clsx(
                     "flex items-center justify-center",
-                    !edit && "invisible"
+                    edit
+                      ? "invisible group-hover:visible group-focus-within:visible"
+                      : "invisible"
                   )}
                   title="項目削除"
                 />

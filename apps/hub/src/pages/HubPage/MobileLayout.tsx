@@ -18,6 +18,7 @@ export default function MobileLayout(props: any) {
     projectData,
     setProjectData,
     schedules,
+    sortedSchedules,
     setSchedules,
     updateSchedule,
     selectedId,
@@ -70,7 +71,7 @@ export default function MobileLayout(props: any) {
         onAddSchedule={() => openAddScheduleModal()}
         onDeleteSchedule={requestDeleteCurrent}
         edit={edit}
-        schedules={schedules}
+        schedules={sortedSchedules}
         selectedId={selectedId}
         onSelectSchedule={setSelectedId}
         onUpdateSchedules={setSchedules}

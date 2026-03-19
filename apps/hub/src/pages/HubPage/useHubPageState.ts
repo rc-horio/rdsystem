@@ -73,6 +73,29 @@ export function useHubPageState() {
   const [showAddScheduleModal, setShowAddScheduleModal] = useState(false);
   const [copySourceId, setCopySourceId] = useState<string>("");
 
+  const sortedSchedules = useMemo(() => {
+    const normalizeDate = (v?: string) => String(v ?? "").trim();
+    const hasValidDate = (v?: string) => /^\d{4}-\d{2}-\d{2}$/.test(normalizeDate(v));
+
+    return [...schedules].sort((a, b) => {
+      const aDate = normalizeDate(a.date);
+      const bDate = normalizeDate(b.date);
+      const aHasDate = hasValidDate(a.date);
+      const bHasDate = hasValidDate(b.date);
+
+      if (aHasDate && !bHasDate) return -1;
+      if (!aHasDate && bHasDate) return 1;
+
+      if (aHasDate && bHasDate && aDate !== bDate) {
+        return aDate.localeCompare(bDate, "ja");
+      }
+
+      const aLabel = String(a.label ?? "").trim();
+      const bLabel = String(b.label ?? "").trim();
+      return aLabel.localeCompare(bLabel, "ja");
+    });
+  }, [schedules]);
+
   const currentSchedule = useMemo(
     () => schedules.find((s) => s.id === selectedId) ?? null,
     [schedules, selectedId]
@@ -942,6 +965,7 @@ export function useHubPageState() {
     projectData,
     setProjectData,
     schedules,
+    sortedSchedules,
     setSchedules,
     selectedId,
     setSelectedId,

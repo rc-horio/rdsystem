@@ -167,7 +167,7 @@ export function OthersSection({
       {/* PC：常時削除ボタン */}
       <div className="space-y-1 hidden md:block">
         {localItems.map((item, index) => (
-          <div key={item.id} className="w-full">
+          <div key={item.id} className="w-full group">
             <div className="flex items-center gap-2 w-full">
               <div className="ml-auto w-8 shrink-0 flex items-center justify-center">
                 <DeleteItemButton
@@ -175,7 +175,9 @@ export function OthersSection({
                   disabled={localItems.length === 1}
                   className={clsx(
                     "flex items-center justify-center",
-                    !edit && "invisible"
+                    edit
+                      ? "invisible group-hover:visible group-focus-within:visible"
+                      : "invisible"
                   )}
                   title="項目削除"
                 />

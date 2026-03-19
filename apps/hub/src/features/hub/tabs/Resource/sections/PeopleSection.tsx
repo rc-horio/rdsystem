@@ -118,6 +118,7 @@ export function PeopleSection({
     groupIndex: number;
     personIndex: number;
   } | null>(null);
+  const [showReorderControls, setShowReorderControls] = useState(false);
 
   // 全体メモは people.memo をそのまま
   const [peopleMemo, setPeopleMemo] = useState<string>(people?.memo ?? "");
@@ -195,6 +196,39 @@ export function PeopleSection({
       if (prev.personIndex === personIndex) return null;
       if (prev.personIndex > personIndex)
         return { groupIndex, personIndex: prev.personIndex - 1 };
+      return prev;
+    });
+  };
+
+  const handleMovePerson = (
+    groupIndex: number,
+    personIndex: number,
+    direction: "up" | "down"
+  ) => {
+    const group = localGroups[groupIndex];
+    if (!group) return;
+    const targetIndex = direction === "up" ? personIndex - 1 : personIndex + 1;
+    if (targetIndex < 0 || targetIndex >= group.people.length) return;
+
+    const next = localGroups.map((g, gi) => {
+      if (gi !== groupIndex) return g;
+      const people = [...g.people];
+      const [moved] = people.splice(personIndex, 1);
+      people.splice(targetIndex, 0, moved);
+      return { ...g, people };
+    });
+
+    setLocalGroups(next);
+    emit(next, peopleMemo);
+
+    setSelected((prev) => {
+      if (!prev || prev.groupIndex !== groupIndex) return prev;
+      if (prev.personIndex === personIndex) {
+        return { groupIndex, personIndex: targetIndex };
+      }
+      if (prev.personIndex === targetIndex) {
+        return { groupIndex, personIndex };
+      }
       return prev;
     });
   };
@@ -326,7 +360,10 @@ export function PeopleSection({
 
       <ScheduleButton
         onClick={() => openMemoModal(groupIndex, personIndex)}
-        className="w-8 aspect-square flex items-center justify-center"
+        className={clsx(
+          "w-8 aspect-square flex items-center justify-center",
+          edit && "md:invisible md:group-hover:visible md:group-focus-within:visible"
+        )}
       />
     </div>
   );
@@ -334,6 +371,24 @@ export function PeopleSection({
   return (
     <>
       <BlackCard>
+        {edit && (
+          <div className="mb-3 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setShowReorderControls((prev) => !prev)}
+              className={clsx(
+                "h-8 px-2 rounded text-xs transition-colors",
+                showReorderControls
+                  ? "bg-slate-700 text-slate-100"
+                  : "bg-slate-800/70 text-slate-300 hover:bg-slate-700"
+              )}
+              aria-pressed={showReorderControls}
+              title="並べ替え"
+            >
+              並べ替え
+            </button>
+          </div>
+        )}
         {localGroups.map((group, groupIndex) => (
           <div key={group.id} className="mb-4">
             <div className="flex items-center justify-between gap-3 mb-2">
@@ -371,7 +426,47 @@ export function PeopleSection({
                   }
                   disabled={!edit}
                 >
-                  {RowFields(group, p, groupIndex, personIndex)}
+                  <div className="flex items-center gap-2 w-full">
+                    {RowFields(group, p, groupIndex, personIndex)}
+                    {edit && showReorderControls && (
+                      <div className="shrink-0 flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleMovePerson(groupIndex, personIndex, "up")
+                          }
+                          disabled={personIndex === 0}
+                          className={clsx(
+                            "h-7 w-7 rounded text-xs leading-none transition-colors",
+                            personIndex === 0
+                              ? "bg-slate-900/40 text-slate-600 cursor-not-allowed"
+                              : "bg-slate-800/70 text-slate-100 hover:bg-slate-700 active:bg-slate-600"
+                          )}
+                          aria-label="上へ移動"
+                          title="上へ移動"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleMovePerson(groupIndex, personIndex, "down")
+                          }
+                          disabled={personIndex === group.people.length - 1}
+                          className={clsx(
+                            "h-7 w-7 rounded text-xs leading-none transition-colors",
+                            personIndex === group.people.length - 1
+                              ? "bg-slate-900/40 text-slate-600 cursor-not-allowed"
+                              : "bg-slate-800/70 text-slate-100 hover:bg-slate-700 active:bg-slate-600"
+                          )}
+                          aria-label="下へ移動"
+                          title="下へ移動"
+                        >
+                          ↓
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </SwipeableRow>
               ))}
             </div>
@@ -379,7 +474,7 @@ export function PeopleSection({
             {/* PC版：常時削除ボタン */}
             <div className="space-y-1 hidden md:block">
               {group.people.map((p: any, personIndex: number) => (
-                <div key={(p as PersonRow).id} className="w-full">
+                <div key={(p as PersonRow).id} className="w-full group">
                   <div className="flex items-center gap-2 w-full">
                     <div className="ml-auto w-8 shrink-0 flex items-center justify-center">
                       <DeleteItemButton
@@ -389,12 +484,52 @@ export function PeopleSection({
                         disabled={group.people.length === 1}
                         className={clsx(
                           "flex items-center justify-center",
-                          !edit && "invisible"
+                          edit
+                            ? "invisible group-hover:visible group-focus-within:visible"
+                            : "invisible"
                         )}
                         title="項目削除"
                       />
                     </div>
                     {RowFields(group, p, groupIndex, personIndex)}
+                    {edit && showReorderControls && (
+                      <div className="shrink-0 flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleMovePerson(groupIndex, personIndex, "up")
+                          }
+                          disabled={personIndex === 0}
+                          className={clsx(
+                            "h-7 w-7 rounded text-xs leading-none transition-colors",
+                            personIndex === 0
+                              ? "bg-slate-900/40 text-slate-600 cursor-not-allowed"
+                              : "bg-slate-800/70 text-slate-100 hover:bg-slate-700 active:bg-slate-600"
+                          )}
+                          aria-label="上へ移動"
+                          title="上へ移動"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleMovePerson(groupIndex, personIndex, "down")
+                          }
+                          disabled={personIndex === group.people.length - 1}
+                          className={clsx(
+                            "h-7 w-7 rounded text-xs leading-none transition-colors",
+                            personIndex === group.people.length - 1
+                              ? "bg-slate-900/40 text-slate-600 cursor-not-allowed"
+                              : "bg-slate-800/70 text-slate-100 hover:bg-slate-700 active:bg-slate-600"
+                          )}
+                          aria-label="下へ移動"
+                          title="下へ移動"
+                        >
+                          ↓
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

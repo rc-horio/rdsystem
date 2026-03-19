@@ -150,7 +150,7 @@ export function HotelSection({
                   <DeleteItemButton
                     onClick={() => handleRemoveHotel(index)}
                     disabled={!edit || localHotels.length === 1}
-                    className="!ml-0"
+                    className="ml-0!"
                     title="項目削除"
                   />
                 </div>
@@ -165,7 +165,7 @@ export function HotelSection({
         {/* PC版：常時削除ボタン */}
         <div className="space-y-1 hidden md:block">
           {localHotels.map((hotel, index) => (
-            <div key={hotel.id} className="w-full">
+            <div key={hotel.id} className="w-full group">
               <div className="flex items-center gap-2 w-full">
                 {/* 固定幅スロットを常時表示 */}
                 <div className="ml-auto w-8 shrink-0 flex items-center justify-center">
@@ -174,7 +174,9 @@ export function HotelSection({
                     disabled={localHotels.length === 1}
                     className={clsx(
                       "flex items-center justify-center",
-                      !edit && "invisible"
+                      edit
+                        ? "invisible group-hover:visible group-focus-within:visible"
+                        : "invisible"
                     )}
                     title="項目削除"
                   />

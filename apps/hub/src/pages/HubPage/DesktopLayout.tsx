@@ -16,6 +16,7 @@ export default function DesktopLayout(props: any) {
     projectData,
     setProjectData,
     schedules,
+    sortedSchedules,
     setSchedules,
     updateSchedule,
     selectedId,
@@ -54,7 +55,7 @@ export default function DesktopLayout(props: any) {
           setEdit={setEdit}
           projectData={projectData}
           setProjectData={setProjectData}
-          schedules={schedules}
+          schedules={sortedSchedules}
           selectedId={selectedId}
           setSelectedId={setSelectedId}
           setSchedules={setSchedules}
