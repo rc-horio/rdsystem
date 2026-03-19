@@ -7,7 +7,7 @@ import {
   MemoSection,
 } from "..";
 import { SectionTitle, DividerRed } from "@/components";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 export function MobilePanel(props: {
   edit: boolean;
@@ -67,15 +67,6 @@ export function MobilePanel(props: {
   useEffect(() => {
     setShowModules((prev) => modules.map((_, i) => prev[i] ?? true));
   }, [modules.length]);
-
-  const fullScrollRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (full && fullScrollRef.current) {
-      fullScrollRef.current.scrollTop = 0;
-      fullScrollRef.current.scrollLeft = 0;
-    }
-  }, [full]);
 
   return (
     <div className="md:hidden space-y-8">
@@ -162,7 +153,7 @@ export function MobilePanel(props: {
                 : "border-slate-700 text-slate-500 bg-slate-900/40"
             }`}
           >
-            + モジュール追加（{modules.length}/5）
+            + モジュール追加
           </button>
         </div>
 

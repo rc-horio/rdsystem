@@ -1,5 +1,4 @@
 // src/features/hub/tabs/Operation/sections/Layout/DesktopPanel.tsx
-import { useMemo } from "react";
 import { MeasureSection, ModuleSection, TableSection, MemoSection } from "..";
 import { DividerRed } from "@/components";
 
@@ -54,10 +53,6 @@ export function DesktopPanel(props: {
 
   const moduleSlotCount = modules.length;
   const canAddMoreModules = moduleSlotCount < 5;
-  const moduleSlotsLabel = useMemo(
-    () => `${moduleSlotCount}/5`,
-    [moduleSlotCount]
-  );
 
   return (
     <div className="hidden md:block">
@@ -103,7 +98,7 @@ export function DesktopPanel(props: {
                   : "border-slate-700 text-slate-500 bg-slate-900/40 cursor-not-allowed"
               }`}
             >
-              + モジュール追加（{moduleSlotsLabel}）
+              + モジュール追加
             </button>
           </div>
 
