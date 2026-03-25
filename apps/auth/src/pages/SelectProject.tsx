@@ -624,7 +624,7 @@ export default function SelectProject() {
         </div>
       </div>
 
-      {/* ---- ストックコンテンツ 準備中モーダル（本番でディストリビューション未設定時） ---- */}
+      {/* ---- ストックコンテンツ 準備中モーダル（VITE_STOCK_READY=false 時） ---- */}
       {showPreparingModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div
