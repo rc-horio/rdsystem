@@ -20,6 +20,8 @@ interface ImportMetaEnv {
   readonly VITE_COGNITO_APP_CLIENT_ID: string;
   readonly VITE_COGNITO_DOMAIN: string;
   readonly VITE_SIGNOUT_REDIRECT?: string;
+  /** ステージングのみ: ログイン画面で本番への誘導モーダルを表示する遷移先 URL */
+  readonly VITE_STAGING_TO_PRODUCTION_URL?: string;
 }
 
 interface ImportMeta {

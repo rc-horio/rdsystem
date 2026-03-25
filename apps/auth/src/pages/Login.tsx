@@ -4,9 +4,16 @@ import { useNavigate } from "react-router-dom";
 import { BrandHeader } from "@/components";
 import { signInWithRedirect, fetchAuthSession } from "aws-amplify/auth";
 
+const STAGING_TO_PRODUCTION_URL = String(
+  import.meta.env.VITE_STAGING_TO_PRODUCTION_URL || "",
+).trim();
+
 export default function Login() {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
+  const [showStagingNotice, setShowStagingNotice] = useState(
+    () => STAGING_TO_PRODUCTION_URL.length > 0,
+  );
 
   useEffect(() => {
     (async () => {
@@ -124,6 +131,52 @@ export default function Login() {
           </div>
         </div>
       </div>
+
+      {showStagingNotice && STAGING_TO_PRODUCTION_URL && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="staging-notice-desc"
+            className="relative w-[min(92vw,28rem)] rounded-xl bg-slate-900 border border-slate-700 shadow-xl p-6 pt-10"
+          >
+            <button
+              type="button"
+              onClick={() => setShowStagingNotice(false)}
+              className="absolute top-2 right-2 grid place-items-center size-9 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition focus:outline-none focus:ring-2 focus:ring-red-500"
+              aria-label="閉じる"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="size-5"
+                aria-hidden
+              >
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
+            </button>
+            <p
+              id="staging-notice-desc"
+              className="text-slate-300 text-center text-sm leading-relaxed"
+            >
+              本番環境へ移行しました。
+              <a
+                href={STAGING_TO_PRODUCTION_URL}
+                className="text-red-400 hover:text-red-300 underline underline-offset-2 font-medium"
+              >
+                こちら
+              </a>
+              からお進みください。
+            </p>
+          </div>
+        </div>
+      )}
     </>
   );
 }
