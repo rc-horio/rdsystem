@@ -5,8 +5,9 @@ import { loadDanceSpecHtml } from "./template";
 import { captureElement } from "./capture";
 import { jsPDF } from "jspdf";
 import { sanitize, formatTurnText, getSpacingBetweenDronesText } from "./texts";
-import { buildLandingFigureSvg } from "@/features/hub/tabs/AreaInfo/figure/buildLandingFigureSvg";
+import { buildLandingFigureExportSvg } from "./buildLandingFigureExportSvg";
 import { applyDroneOrientationToPage2 } from "./applyDroneOrientation";
+import { getEffectiveBlocks, hasBlocks } from "@/features/hub/utils/areaBlocks";
 
 /**
  * PDFを出力
@@ -63,7 +64,7 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
     {
         const slot = p2clone.querySelector("#landing-figure-slot") as HTMLElement | null;
         if (slot) {
-            slot.innerHTML = buildLandingFigureSvg(area, { theme: "export" });
+            slot.innerHTML = buildLandingFigureExportSvg(area);
         }
     }
 
@@ -90,12 +91,22 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
     };
 
     // ■機体数
-    let aircraftVal =
-        fmtInt(drone?.count)
-            ? `${fmtInt(drone.count)}機`
-            : (fmtInt(drone?.x_count) && fmtInt(drone?.y_count))
-                ? `${fmtInt(drone.x_count)} × ${fmtInt(drone.y_count)} 機`
-                : "—";
+    let aircraftVal: string;
+    if (hasBlocks(area)) {
+        const blocks = getEffectiveBlocks(area);
+        const total = blocks.reduce((sum, b) => sum + (Number(b.count) || 0), 0);
+        const blockLines = blocks
+            .map((b, i) => `${String.fromCharCode(65 + i)}ブロック: ${fmtInt(b.count)}機`)
+            .join("\n");
+        aircraftVal = `総機体数: ${fmtInt(total)}機${blockLines ? `\n${blockLines}` : ""}`;
+    } else {
+        aircraftVal =
+            fmtInt(drone?.count)
+                ? `${fmtInt(drone.count)}機`
+                : (fmtInt(drone?.x_count) && fmtInt(drone?.y_count))
+                    ? `${fmtInt(drone.x_count)} × ${fmtInt(drone.y_count)} 機`
+                    : "—";
+    }
 
     if (aircraftVal !== "—" && model) {
         aircraftVal = `${model}：${aircraftVal}`;

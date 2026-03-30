@@ -123,9 +123,9 @@ export function buildLandingFigureModel(
     // 具体的な数値で状況を示す忠告
     const contradictionMessage =
         rowsExceedY
-            ? `全機体数(${totalCount})がX機体数×Y機体数(${fullRectCount})を超えています。数値を見直してください。`
+            ? `全機体数(${totalCount})がX機体数×Y機体数(${fullRectCount})を超えています。\n数値を見直してください。`
             : rowsUnderY
-                ? `X機体数×Y機体数(${fullRectCount})が全機体数(${totalCount})を超えています。数値を見直してください。`
+                ? `X機体数×Y機体数(${fullRectCount})が全機体数(${totalCount})を超えています。\n数値を見直してください。`
                 : null;
 
     // 実寸計算（全機体数優先時は actualRowCount で高さを算出）

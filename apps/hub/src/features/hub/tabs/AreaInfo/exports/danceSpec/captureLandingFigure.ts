@@ -1,5 +1,5 @@
 import { captureElement } from "./capture";
-import { buildLandingFigureSvg } from "@/features/hub/tabs/AreaInfo/figure/buildLandingFigureSvg";
+import { buildLandingFigureExportSvg } from "./buildLandingFigureExportSvg";
 
 export async function captureLandingFigure(
     area: any,
@@ -12,7 +12,7 @@ export async function captureLandingFigure(
     wrap.style.height = "220px";
     wrap.style.background = "transparent";
 
-    wrap.innerHTML = buildLandingFigureSvg(area, { theme: "export" });
+    wrap.innerHTML = buildLandingFigureExportSvg(area);
     const node = wrap.firstElementChild as HTMLElement;
 
     return captureElement(node, "#fff", styleNodes, cssVars);

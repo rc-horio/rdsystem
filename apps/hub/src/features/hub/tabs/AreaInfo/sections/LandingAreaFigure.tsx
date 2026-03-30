@@ -1,7 +1,8 @@
 // src/features/hub/tabs/AreaInfo/sections/LandingAreaFigure.tsx
 
-import { fmtMeters } from "@/features/hub/utils/spacing";
-import { buildLandingFigureModel } from "@/features/hub/tabs/AreaInfo/figure/landingFigureModel";
+import { buildLandingFigureSvg } from "@/features/hub/tabs/AreaInfo/figure/buildLandingFigureSvg";
+import { buildMultiBlockLandingFigureSvg } from "@/features/hub/tabs/AreaInfo/figure/multiBlockLandingFigureSvg";
+import { hasBlocks, getEffectiveBlocks } from "@/features/hub/utils/areaBlocks";
 import {
   SectionTitle,
   Drone1Icon,
@@ -16,9 +17,54 @@ type Props = {
 };
 
 export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
+  const figureDisplay = (area as any)?.landing_figure_display ?? {};
+  const cornerByBlockId =
+    (figureDisplay.corner_by_block_id as Record<
+      string,
+      {
+        fontSize?: number;
+        placement?: "inside" | "outside";
+        outsideHorizontal?: boolean;
+        outsideVertical?: boolean;
+      }
+    > | undefined) ?? {};
+  const ruler = (figureDisplay.ruler as
+    | { leftXOffsetPx?: number; bottomYOffsetPx?: number }
+    | undefined) ?? {
+    leftXOffsetPx: 0,
+    bottomYOffsetPx: 0,
+  };
+  const showCornerNumbers = figureDisplay.show_corner_numbers ?? true;
+  const showBlockLabels = figureDisplay.show_block_labels ?? true;
+  const showRuler = figureDisplay.show_ruler ?? true;
 
-  // 表示計算（SVG）
-  const m = buildLandingFigureModel(area);
+  const firstBlockId = getEffectiveBlocks(area)[0]?.id;
+
+  const svgMarkup = hasBlocks(area)
+    ? buildMultiBlockLandingFigureSvg(area as any, {
+        theme: "ui",
+        showCornerNumbers,
+        showBlockLabels,
+        showRuler,
+        cornerByBlockId,
+        ruler: {
+          leftXOffsetPx: Number.isFinite(ruler.leftXOffsetPx) ? Number(ruler.leftXOffsetPx) : 0,
+          bottomYOffsetPx: Number.isFinite(ruler.bottomYOffsetPx) ? Number(ruler.bottomYOffsetPx) : 0,
+        },
+      })
+    : buildLandingFigureSvg(area, {
+        theme: "ui",
+        showCornerNumbers,
+        showRuler,
+        cornerDisplay:
+          (firstBlockId && cornerByBlockId[firstBlockId]) || {
+            placement: "inside",
+          },
+        ruler: {
+          leftXOffsetPx: Number.isFinite(ruler.leftXOffsetPx) ? Number(ruler.leftXOffsetPx) : 0,
+          bottomYOffsetPx: Number.isFinite(ruler.bottomYOffsetPx) ? Number(ruler.bottomYOffsetPx) : 0,
+        },
+      });
 
   // 間隔入力（オペレーションタブのテーブルと同じ仕様）
   const horizontal = area?.spacing_between_drones_m?.horizontal ?? "";
@@ -66,22 +112,22 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
 
   // アンテナ位置
   const antennaPosition = () => {
-    const radius = 75;
+    const radius = 65;
     const angleInRadians = ((rotation + 90) % 360) * (Math.PI / 180);
     const x = radius * Math.cos(angleInRadians);
     const y = radius * Math.sin(angleInRadians);
-    const yOffset = 35;
+    const yOffset = 30;
     return { x, y: y + yOffset };
   };
   const { x, y } = antennaPosition();
 
   // バッテリー位置
   const batteryPosition = () => {
-    const radius = 75;
+    const radius = 62;
     const angleInRadians = ((rotation + 270) % 360) * (Math.PI / 180);
     const x = radius * Math.cos(angleInRadians);
     const y = radius * Math.sin(angleInRadians);
-    const yOffset = 35;
+    const yOffset = 25;
     return { x, y: y + yOffset };
   };
   const { x: batteryX, y: batteryY } = batteryPosition();
@@ -92,161 +138,17 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
 
       <div className="my-4 flex flex-col lg:flex-row gap-4">
         {/* 左: 離発着エリア図 */}
-        <div className="flex-1 lg:basis-6/12">
+        <div className="flex-1 lg:basis-8/12">
           <div className="h-120 w-full border border-slate-600">
-            <svg
-              viewBox={`0 0 ${m.viewW} ${m.viewH}`}
+            <div
               className="w-full h-full"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-
-              {m.canRenderFigure ? (
-                <>
-                  {/* 本体（矩形 or 六角形） */}
-                  {m.polygonPoints ? (
-                    <polygon
-                      points={m.polygonPoints
-                        .map(([x, y]) => `${x},${y}`)
-                        .join(" ")}
-                      stroke="#ed1b24"
-                      strokeWidth={2}
-                      strokeOpacity={0.9}
-                      fill="#ed1b24"
-                      fillOpacity={0.35}
-                    />
-                  ) : (
-                    <rect
-                      x={m.rx}
-                      y={m.ry}
-                      width={m.rectW}
-                      height={m.rectH}
-                      stroke="#ed1b24"
-                      strokeWidth={2}
-                      strokeOpacity={0.9}
-                      fill="#ed1b24"
-                      fillOpacity={0.35}
-                    />
-                  )}
-
-
-                  {/* 四隅の機体ID */}
-                  {m.corner && (
-                    <>
-                      {/* TL */}
-                      <text
-                        x={m.rx}
-                        y={m.ry - 8}
-                        fontSize="12"
-                        fill="#ffffff"
-                        textAnchor="start"
-                      >
-                        {m.corner.tl}
-                      </text>
-                      {/* TR */}
-                      <text
-                        x={m.cornerTrX}
-                        y={m.ry - 8}
-                        fontSize="12"
-                        fill="#ffffff"
-                        textAnchor="end"
-                      >
-                        {m.corner.tr}
-                      </text>
-                      {/* BL */}
-                      <text
-                        x={m.rx}
-                        y={m.ry + m.rectH + 16}
-                        fontSize="12"
-                        fill="#ffffff"
-                        textAnchor="start"
-                      >
-                        {m.corner.bl}
-                      </text>
-                      {/* BR */}
-                      <text
-                        x={m.rx + m.rectW}
-                        y={m.ry + m.rectH + 16}
-                        fontSize="12"
-                        fill="#ffffff"
-                        textAnchor="end"
-                      >
-                        {m.corner.br}
-                      </text>
-                    </>
-                  )}
-
-                  {/* 横幅寸法線 */}
-                  <line
-                    x1={m.rx}
-                    y1={m.ry + m.rectH + 26}
-                    x2={m.rx + m.rectW}
-                    y2={m.ry + m.rectH + 26}
-                    stroke="#ffffff"
-                    strokeWidth={1}
-                    opacity={0.9}
-                  />
-                  <text
-                    x={m.rx + m.rectW / 2}
-                    y={m.ry + m.rectH + 42}
-                    fontSize="12"
-                    fill="#ffffff"
-                    textAnchor="middle"
-                  >
-                    {m.xOk ? `${fmtMeters(m.widthM)}m` : "—m"}
-                  </text>
-
-                  {/* 縦幅寸法線 */}
-                  <line
-                    x1={m.rx - 15}
-                    y1={m.ry}
-                    x2={m.rx - 15}
-                    y2={m.ry + m.rectH}
-                    stroke="#ffffff"
-                    strokeWidth={1}
-                    opacity={0.9}
-                  />
-                  <text
-                    x={m.rx - 20}
-                    y={m.ry + m.rectH / 2}
-                    fontSize="12"
-                    fill="#ffffff"
-                    textAnchor="end"
-                    dominantBaseline="middle"
-                  >
-                    {m.yOk ? `${fmtMeters(m.heightM)}m` : "—m"}
-                  </text>
-                </>
-              ) : (
-                <text
-                  x={m.viewW / 2}
-                  y={m.viewH / 2}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  fontSize="14"
-                  fill="#ffffff"
-                  opacity={0.9}
-                >
-                  {(m.cannotRenderReason === "contradiction" &&
-                    m.contradictionMessage
-                    ? m.contradictionMessage.split("。").filter(Boolean)
-                    : ["x機体数 / y機体数 / 間隔 を入力してください"]
-                  ).map((line, i, arr) => (
-                    <tspan
-                      key={i}
-                      x={m.viewW / 2}
-                      dy={i === 0 ? -(arr.length - 1) * 9 : 18}
-                    >
-                      {line}
-                      {i < arr.length - 1 ? "。" : ""}
-                    </tspan>
-                  ))}
-                </text>
-              )}            </svg>
+              dangerouslySetInnerHTML={{ __html: svgMarkup }}
+            />
           </div>
         </div>
 
         {/* 右: 機体の向き図 */}
-        <div className="flex-1 lg:basis-4/12">
+        <div className="flex-1 lg:basis-3/12">
           <div data-export-orientation-figure
             className="h-120 w-full relative flex flex-col items-center justify-center border border-slate-600">
             <span className="absolute top-2 left-3 text-white text-sm font-semibold">
@@ -256,7 +158,7 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
             <div className="relative flex flex-col items-center justify-center">
               <div className="flex flex-col items-center gap-1">
                 <Drone1Icon
-                  className="w-24 h-24 drone1-img"
+                  className="w-20 h-20 drone1-img"
                   rotationDeg={rotation}
                 />
 
@@ -308,27 +210,27 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
             <div className="h-10" />
 
             <div className="relative flex flex-col items-center justify-center">
-              <div className="absolute left-[-100px] flex items-center gap-2">
+              <div className="absolute left-[-20px] flex items-center gap-2">
                 <DisplayOrInput
                   edit={edit}
                   value={horizontal}
                   onChange={(e) => setHorizontal(e.target.value)}
-                  className="w-[80px]! text-center"
+                  className="w-[70px]! text-center"
                 />
                 <span className="text-slate-100 text-sm">m</span>
               </div>
 
               <div>
-                <Drone2Icon className="w-20 h-20 drone2-img" />
+                <Drone2Icon className="w-20 h-20 drone2-img ml-20" />
               </div>
 
-              <div className="absolute top-[100px] left-[-5px] flex flex-col gap-1">
+              <div className="absolute top-[100px] left-[85px] flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <DisplayOrInput
                     edit={edit}
                     value={vertical}
                     onChange={(e) => setVertical(e.target.value)}
-                    className="w-[80px]! text-center"
+                    className="w-[70px]! text-center"
                   />
                   <span className="text-slate-100 text-sm">m</span>
                 </div>

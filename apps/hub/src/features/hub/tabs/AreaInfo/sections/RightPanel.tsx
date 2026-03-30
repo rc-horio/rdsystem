@@ -7,6 +7,8 @@ import {
   type SelectOption,
 } from "@/components";
 import { useEffect, useState } from "react";
+import { hasBlocks, getEffectiveBlocks } from "@/features/hub/utils/areaBlocks";
+import { MultiBlockEditModal } from "./MultiBlockEditModal";
 
 // 開発用のCatalogのベースURL
 // const S3_BASE =
@@ -55,6 +57,8 @@ export function RightPanel({
 
   const [isLoadingAreas, setIsLoadingAreas] = useState(false);
   const [areasError, setAreasError] = useState<string | null>(null);
+  const [showMultiBlockModal, setShowMultiBlockModal] = useState(false);
+  const [focusedBlockId, setFocusedBlockId] = useState<string | null>(null);
 
   const A = area ?? {};
   const geo = A.geometry ?? {};
@@ -218,22 +222,99 @@ export function RightPanel({
       <div className="mt-5 max-w-[260px]">
         <SectionTitle title="機体数" />
 
-        {/* 機種 & 総機体数 */}
+        {hasBlocks(area) ? (
+          <>
+            {/* 機種（複数ブロックでも 1 種類） */}
+            <div className={rowCls}>
+              <span className="w-24 text-sm">機種</span>
+              <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
+              <DisplayOrInput
+                edit={edit}
+                value={droneCnt.model ?? ""}
+                onChange={(e) => patch(["drone_count", "model"], e.target.value)}
+                className="max-w-[140px]"
+              />
+            </div>
+
+            {/* 総機体数 */}
+            <div className={rowCls}>
+              <span className="w-24 text-sm">総機体数</span>
+              <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
+              <span className="text-slate-200">
+                {getEffectiveBlocks(area).reduce((s, b) => s + b.count, 0)}機
+              </span>
+            </div>
+
+            {/* 各ブロックの機体数 / X / Y（カード表示） */}
+            <div className="mt-3 pl-4 md:pl-6 space-y-2">
+              {getEffectiveBlocks(area).map((block, i) => (
+                <div
+                  key={block.id}
+                  role={edit ? "button" : undefined}
+                  tabIndex={edit ? 0 : -1}
+                  onClick={
+                    edit
+                      ? () => {
+                          setFocusedBlockId(block.id);
+                          setShowMultiBlockModal(true);
+                        }
+                      : undefined
+                  }
+                  onKeyDown={
+                    edit
+                      ? (e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setFocusedBlockId(block.id);
+                            setShowMultiBlockModal(true);
+                          }
+                        }
+                      : undefined
+                  }
+                  className={`rounded-md border border-slate-600 bg-slate-900/40 px-3 py-2 text-sm text-slate-200 ${
+                    edit ? "cursor-pointer hover:bg-slate-800/60" : "cursor-default"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">
+                      {String.fromCharCode(65 + i)}ブロック
+                    </span>
+                    <span className="text-sm">
+                      ：{block.count}機
+                    </span>
+                  </div>
+                  <div className="mt-1 ml-1 text-xs text-slate-200 space-y-0.5">
+                    <div className="flex justify-between gap-2">
+                      <span>X方向</span>
+                      <span>{block.x_count}機</span>
+                    </div>
+                    <div className="flex justify-between gap-2">
+                      <span>Y方向</span>
+                      <span>{block.y_count}機</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
+        {/* 機種 */}
         <div className={rowCls}>
-          <div className="w-24">
-            <DisplayOrInput
-              edit={edit}
-              value={droneCnt.model ?? ""}
-              onChange={(e) => patch(["drone_count", "model"], e.target.value)}
-              placeholder="機種"
-              className="w-full text-center"
-            />
-          </div>
-
-          {/* コロン列（全行で同じ幅） */}
+          <span className="w-24 text-sm">機種</span>
           <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
+          <DisplayOrInput
+            edit={edit}
+            value={droneCnt.model ?? ""}
+            onChange={(e) => patch(["drone_count", "model"], e.target.value)}
+            className="max-w-[140px]"
+          />
+        </div>
 
-          {/* 値列（数値入力） */}
+        {/* 総機体数 */}
+        <div className={rowCls}>
+          <span className="w-24 text-sm">総機体数</span>
+          <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
           <DisplayOrInput
             edit={edit}
             value={edit ? localCount : (droneCnt.count ?? "").toString()}
@@ -245,9 +326,9 @@ export function RightPanel({
           <span className="w-6 ml-1">機</span>
         </div>
 
-        {/* x機体数 */}
+        {/* X方向 */}
         <div className={rowCls}>
-          <span className="w-24 text-sm">x機体数</span>
+          <span className="w-24 text-sm">X方向</span>
           <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
           <DisplayOrInput
             edit={edit}
@@ -260,9 +341,9 @@ export function RightPanel({
           <span className="w-6 ml-1">機</span>
         </div>
 
-        {/* y機体数 */}
+        {/* Y方向 */}
         <div className={rowCls}>
-          <span className="w-24 text-sm">y機体数</span>
+          <span className="w-24 text-sm">Y方向</span>
           <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
           <DisplayOrInput
             edit={edit}
@@ -287,7 +368,39 @@ export function RightPanel({
             </button>
           </div>
         )}
+          </>
+        )}
+        {edit && (
+          <div className="mt-3 pl-4 md:pl-6">
+            <button
+              type="button"
+              onClick={() => {
+                setFocusedBlockId(null);
+                setShowMultiBlockModal(true);
+              }}
+              className="px-3 py-1.5 rounded-md border border-slate-600 text-sm text-slate-200 hover:bg-slate-700"
+            >
+              配置の詳細設定
+            </button>
+          </div>
+        )}
       </div>
+
+      <MultiBlockEditModal
+        show={showMultiBlockModal}
+        onClose={() => setShowMultiBlockModal(false)}
+        onDecide={(nextArea) => {
+          // モーダルで編集した blocks / block_layout / spacing 等を親の area に反映
+          const merged = {
+            ...(area ?? {}),
+            ...nextArea,
+          };
+          onPatchArea(merged);
+          setShowMultiBlockModal(false);
+        }}
+        area={area}
+        focusedBlockId={focusedBlockId}
+      />
 
       {/* 離陸アクション移動 */}
       <div className="mt-5">

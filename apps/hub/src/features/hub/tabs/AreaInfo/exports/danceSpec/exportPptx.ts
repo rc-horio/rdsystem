@@ -5,8 +5,9 @@ import { loadDanceSpecHtml } from "./template";
 import { canvasToDataUri, captureElement } from "./capture";
 import PptxGenJS from "pptxgenjs";
 import { buildFileBaseName, formatTurnText, getSpacingBetweenDronesText } from "./texts";
-import { buildLandingFigureSvg } from "@/features/hub/tabs/AreaInfo/figure/buildLandingFigureSvg";
+import { buildLandingFigureExportSvg } from "./buildLandingFigureExportSvg";
 import { applyDroneOrientationToPage2 } from "./applyDroneOrientation";
+import { getEffectiveBlocks, hasBlocks } from "@/features/hub/utils/areaBlocks";
 
 /**
  * PPTXのスライドサイズ
@@ -218,12 +219,22 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
     const { horizontal, vertical } = getSpacingBetweenDronesText(area);
 
     // ■機体数
-    let aircraftVal =
-        fmtInt(drone?.count) !== ""
-            ? `${fmtInt(drone.count)}機`
-            : fmtInt(drone?.x_count) !== "" && fmtInt(drone?.y_count) !== ""
-                ? `${fmtInt(drone.x_count)} × ${fmtInt(drone.y_count)} 機`
-                : "—";
+    let aircraftVal: string;
+    if (hasBlocks(area)) {
+        const blocks = getEffectiveBlocks(area);
+        const total = blocks.reduce((sum, b) => sum + (Number(b.count) || 0), 0);
+        const blockLines = blocks
+            .map((b, i) => `${String.fromCharCode(65 + i)}ブロック: ${fmtInt(b.count)}機`)
+            .join("\n");
+        aircraftVal = `総機体数: ${fmtInt(total)}機${blockLines ? `\n${blockLines}` : ""}`;
+    } else {
+        aircraftVal =
+            fmtInt(drone?.count) !== ""
+                ? `${fmtInt(drone.count)}機`
+                : fmtInt(drone?.x_count) !== "" && fmtInt(drone?.y_count) !== ""
+                    ? `${fmtInt(drone.x_count)} × ${fmtInt(drone.y_count)} 機`
+                    : "—";
+    }
     if (aircraftVal !== "—" && model) aircraftVal = `${model}：${aircraftVal}`;
     setText(p2clone, "#v-aircraft", aircraftVal);
 
@@ -265,7 +276,7 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
 
     // 左ペイン：LandingAreaFigure 注入（slot 無ければ作る）
     const slot = ensureLandingFigureSlot(p2clone);
-    slot.innerHTML = buildLandingFigureSvg(area, { theme: "export" });
+    slot.innerHTML = buildLandingFigureExportSvg(area);
 
     // ■機体の向き（Drone1Icon）の回転と Antenna/Battery ラベル位置を反映
     applyDroneOrientationToPage2(p2clone, area);
