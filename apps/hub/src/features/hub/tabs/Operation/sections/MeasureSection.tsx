@@ -14,6 +14,7 @@ export function MeasureSection({
   spacingXY,
   spacingSeqX,
   spacingSeqY,
+  multiBlock,
 }: {
   grid: { countX: number; countY: number; spacing: number };
   measureNum: number | "";
@@ -24,6 +25,11 @@ export function MeasureSection({
   spacingXY?: { x?: number | string | ""; y?: number | string | "" };
   spacingSeqX?: number[];
   spacingSeqY?: number[];
+  /** 複数ブロック時: 0 番からの座標（占有セルベース） */
+  multiBlock?: {
+    maxIdExclusive: number;
+    measureMetersFromOrigin: (id: number) => { x: number; y: number } | null;
+  };
 }) {
   const [measureXY, setMeasureXY] = useState<{ x: number; y: number } | null>(
     null
@@ -43,6 +49,10 @@ export function MeasureSection({
   const fallback = grid.spacing;
 
   const calc = (num: number) => {
+    if (multiBlock) {
+      if (num < 0 || num >= multiBlock.maxIdExclusive) return null;
+      return multiBlock.measureMetersFromOrigin(num);
+    }
     if (num < 0 || num >= grid.countX * grid.countY) return null;
     const col = num % grid.countX;
     const row = Math.floor(num / grid.countX);

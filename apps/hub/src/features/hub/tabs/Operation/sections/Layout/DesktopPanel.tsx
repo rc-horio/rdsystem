@@ -1,6 +1,7 @@
 // src/features/hub/tabs/Operation/sections/Layout/DesktopPanel.tsx
 import { MeasureSection, ModuleSection, TableSection, MemoSection } from "..";
 import { DividerRed } from "@/components";
+import type { OperationMultiBlockViewModel } from "@/features/hub/tabs/Operation/utils/operationMultiBlockGrid";
 
 export function DesktopPanel(props: {
   edit: boolean;
@@ -29,6 +30,7 @@ export function DesktopPanel(props: {
   spacingXY?: { x?: number | string | ""; y?: number | string | "" };
   spacingSeqX?: number[];
   spacingSeqY?: number[];
+  operationMultiBlock?: OperationMultiBlockViewModel | null;
 }) {
   const {
     edit,
@@ -49,6 +51,7 @@ export function DesktopPanel(props: {
     spacingXY,
     spacingSeqX,
     spacingSeqY,
+    operationMultiBlock,
   } = props;
 
   const moduleSlotCount = modules.length;
@@ -72,6 +75,15 @@ export function DesktopPanel(props: {
               spacingXY={spacingXY}
               spacingSeqX={spacingSeqX}
               spacingSeqY={spacingSeqY}
+              multiBlock={
+                operationMultiBlock
+                  ? {
+                      maxIdExclusive: operationMultiBlock.occ.totalOccupied,
+                      measureMetersFromOrigin:
+                        operationMultiBlock.measureMetersFromOrigin,
+                    }
+                  : undefined
+              }
             />
           </div>
 
@@ -146,6 +158,15 @@ export function DesktopPanel(props: {
           modules={modules.map((m) => ({ name: m.name, ids: m.appliedIds }))}
           spacingSeqX={spacingSeqX}
           spacingSeqY={spacingSeqY}
+          virtualGrid={
+            operationMultiBlock
+              ? {
+                  cols: operationMultiBlock.occ.gridCols,
+                  rows: operationMultiBlock.occ.gridRows,
+                  cellIdAtVisualRow: operationMultiBlock.occ.cellIdAtVisualRow,
+                }
+              : undefined
+          }
         />
       </section>
     </div>

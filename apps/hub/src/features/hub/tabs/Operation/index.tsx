@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { DesktopPanel, MobilePanel } from "./sections";
 import { useGrid } from "./hooks/useGrid";
 import { parseNums, normalizeInput } from "./utils/format";
+import { buildOperationMultiBlockViewModel } from "./utils/operationMultiBlockGrid";
 
 type UiModule = {
   name: string;
@@ -142,6 +143,8 @@ export default function OperationTab({
     y: Number.isFinite(counts.y) ? counts.y : undefined,
   };
 
+  const operationMultiBlock = buildOperationMultiBlockViewModel(area);
+
   // 計測は即時OK
   const [measureNum, setMeasureNum] = useState<number | "">("");
   const commitMeasurement = (targetId: number | "", result: string | null) => {
@@ -157,6 +160,8 @@ export default function OperationTab({
   const [modules, setModules] = useState<UiModule[]>([]);
 
   const maxIdExclusive = (() => {
+    const mb = operationMultiBlock?.occ.totalOccupied;
+    if (typeof mb === "number" && Number.isFinite(mb) && mb > 0) return mb;
     const t = safeCounts.total;
     if (typeof t === "number" && Number.isFinite(t) && t > 0) return t;
     const approx = countX * countY;
@@ -385,6 +390,7 @@ export default function OperationTab({
         spacingXY={spacingXY}
         spacingSeqX={spacingSeqX}
         spacingSeqY={spacingSeqY}
+        operationMultiBlock={operationMultiBlock}
       />
 
       <MobilePanel
@@ -420,6 +426,7 @@ export default function OperationTab({
         spacingXY={spacingXY}
         spacingSeqX={spacingSeqX}
         spacingSeqY={spacingSeqY}
+        operationMultiBlock={operationMultiBlock}
       />
     </div>
   );

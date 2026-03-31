@@ -198,8 +198,9 @@ export function useHubPageState() {
     areaUuid: string;
     projectUuid: string;
     scheduleUuids: string[];
+    updatedBy: string;
   }) => {
-    const { areaUuid, projectUuid, scheduleUuids } = params;
+    const { areaUuid, projectUuid, scheduleUuids, updatedBy } = params;
 
     const url = `${AREAS_BASE_URL}/${areaUuid}/index.json`;
     const res = await fetch(url, { cache: "no-cache" });
@@ -214,6 +215,19 @@ export function useHubPageState() {
     const uniqScheduleUuids = Array.from(
       new Set(scheduleUuids.filter((s) => !!s))
     );
+
+    // まず「このプロジェクトの紐づき（schedule の集合）」が変わっていないなら
+    // PUT も timestamp 更新もしない（RD Map 側の最終更新者が不要に書き換わるのを防ぐ）
+    const currentProjectScheduleUuids = history
+      .filter((h) => h.projectuuid === projectUuid)
+      .map((h) => h.scheduleuuid)
+      .filter((s) => !!s);
+
+    const a = Array.from(new Set(uniqScheduleUuids)).sort();
+    const b = Array.from(new Set(currentProjectScheduleUuids)).sort();
+    const sameScheduleSet =
+      a.length === b.length && a.every((v, i) => v === b[i]);
+    if (sameScheduleSet) return;
 
     // 1) このプロジェクトの「今は紐づいていないスケジュール」を削除
     let nextHistory = history.filter((h) => {
@@ -237,7 +251,7 @@ export function useHubPageState() {
 
     json.history = nextHistory;
     json.updated_at = new Date().toISOString();
-    json.updated_by = "ui";
+    json.updated_by = updatedBy;
 
     await putJsonViaLambda({
       key: `catalog/v1/areas/${areaUuid}/index.json`,
@@ -249,8 +263,9 @@ export function useHubPageState() {
   const syncAllAreaHistories = async (params: {
     projectUuid: string;
     schedules: ScheduleDetail[];
+    updatedBy: string;
   }) => {
-    const { projectUuid, schedules } = params;
+    const { projectUuid, schedules, updatedBy } = params;
 
     // ① 現在の状態: areaUuid ごとに「今」紐づいている schedule id を集計
     const currentAreaMap = new Map<string, string[]>();
@@ -316,6 +331,7 @@ export function useHubPageState() {
           // 今の状態でそのエリアに紐づいている schedule 一覧
           // 何もなければ [] が渡る → そのエリアからはこのプロジェクトの履歴が全削除される
           scheduleUuids: currentAreaMap.get(areaUuid) ?? [],
+          updatedBy,
         })
       )
     );
@@ -730,6 +746,7 @@ export function useHubPageState() {
         await syncAllAreaHistories({
           projectUuid: currentUuid,
           schedules: schedulesAfterUpload,
+          updatedBy: displayName,
         });
       } catch (err) {
         console.error("area history 同期エラー", err);

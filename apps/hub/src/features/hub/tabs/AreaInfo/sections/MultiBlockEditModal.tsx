@@ -39,7 +39,9 @@ function hasMinusSign(raw: string): boolean {
 function reassignBlocksFromCounts(
   blocks: Block[],
   rows: BlockLayoutRow[],
-  prevGapsBetweenRowsM: number[]
+  prevGapsBetweenRowsM: number[],
+  defaultRowGapM: number,
+  defaultBetweenRowsGapM: number
 ): { rows: BlockLayoutRow[]; gapsBetweenRowsM: number[] } {
   const blockIdsInOrder = blocks.map((b) => b.id);
   const counts = rows.map((r) => r.block_ids.length);
@@ -61,7 +63,7 @@ function reassignBlocksFromCounts(
     const neededGaps = Math.max(0, ids.length - 1);
     const gaps =
       neededGaps > 0
-        ? Array.from({ length: neededGaps }, (_, i) => prevGaps[i] ?? 0)
+        ? Array.from({ length: neededGaps }, (_, i) => prevGaps[i] ?? defaultRowGapM)
         : [];
     return { block_ids: ids, gaps_m: gaps };
   });
@@ -69,7 +71,10 @@ function reassignBlocksFromCounts(
   const neededBetween = Math.max(0, newRows.length - 1);
   const gapsBetweenRowsM =
     neededBetween > 0
-      ? Array.from({ length: neededBetween }, (_, i) => prevGapsBetweenRowsM[i] ?? 0)
+      ? Array.from(
+          { length: neededBetween },
+          (_, i) => prevGapsBetweenRowsM[i] ?? defaultBetweenRowsGapM
+        )
       : [];
 
   return { rows: newRows, gapsBetweenRowsM };
@@ -349,15 +354,29 @@ export function MultiBlockEditModal({
         rows.push({ block_ids: [id], gaps_m: [] });
       } else {
         const last = rows[rows.length - 1];
+        const defaultRowGapM =
+          Number.isFinite(prev.spacingHorizontal[0]) && prev.spacingHorizontal[0] > 0
+            ? prev.spacingHorizontal[0]
+            : 1;
         rows[rows.length - 1] = {
           block_ids: [...last.block_ids, id],
-          gaps_m: [...last.gaps_m, 0],
+          gaps_m: [...last.gaps_m, defaultRowGapM],
         };
       }
+      const defaultRowGapM =
+        Number.isFinite(prev.spacingHorizontal[0]) && prev.spacingHorizontal[0] > 0
+          ? prev.spacingHorizontal[0]
+          : 1;
+      const defaultBetweenRowsGapM =
+        Number.isFinite(prev.spacingVertical[0]) && prev.spacingVertical[0] > 0
+          ? prev.spacingVertical[0]
+          : 1;
       const { rows: normalizedRows, gapsBetweenRowsM } = reassignBlocksFromCounts(
         blocks,
         rows,
-        prev.gapsBetweenRowsM
+        prev.gapsBetweenRowsM,
+        defaultRowGapM,
+        defaultBetweenRowsGapM
       );
       const template =
         prev.blocks.length > 0
@@ -390,10 +409,20 @@ export function MultiBlockEditModal({
         rows.length < prev.rows.length
           ? prev.gapsBetweenRowsM.slice(0, Math.max(0, rows.length - 1))
           : prev.gapsBetweenRowsM;
+      const defaultRowGapM =
+        Number.isFinite(prev.spacingHorizontal[0]) && prev.spacingHorizontal[0] > 0
+          ? prev.spacingHorizontal[0]
+          : 1;
+      const defaultBetweenRowsGapM =
+        Number.isFinite(prev.spacingVertical[0]) && prev.spacingVertical[0] > 0
+          ? prev.spacingVertical[0]
+          : 1;
       const { rows: normalizedRows, gapsBetweenRowsM } = reassignBlocksFromCounts(
         blocks,
         rows,
-        baseGaps
+        baseGaps,
+        defaultRowGapM,
+        defaultBetweenRowsGapM
       );
       const cornerDisplayByBlockId = { ...prev.cornerDisplayByBlockId };
       delete cornerDisplayByBlockId[blockId];
@@ -415,7 +444,11 @@ export function MultiBlockEditModal({
         .filter((id) => !assigned.has(id));
 
       let rows = [...prev.rows];
-      let gapsBetweenRowsM = [...prev.gapsBetweenRowsM, 0];
+      const defaultBetweenRowsGapM =
+        Number.isFinite(prev.spacingVertical[0]) && prev.spacingVertical[0] > 0
+          ? prev.spacingVertical[0]
+          : 1;
+      let gapsBetweenRowsM = [...prev.gapsBetweenRowsM, defaultBetweenRowsGapM];
 
       if (unassigned.length > 0) {
         // 未割り当てブロックがあれば、それを新しい行に配置
@@ -447,7 +480,17 @@ export function MultiBlockEditModal({
       }
 
       const { rows: normalizedRows, gapsBetweenRowsM: normalizedGaps } =
-        reassignBlocksFromCounts(prev.blocks, rows, gapsBetweenRowsM);
+        reassignBlocksFromCounts(
+          prev.blocks,
+          rows,
+          gapsBetweenRowsM,
+          Number.isFinite(prev.spacingHorizontal[0]) && prev.spacingHorizontal[0] > 0
+            ? prev.spacingHorizontal[0]
+            : 1,
+          Number.isFinite(prev.spacingVertical[0]) && prev.spacingVertical[0] > 0
+            ? prev.spacingVertical[0]
+            : 1
+        );
       return { ...prev, rows: normalizedRows, gapsBetweenRowsM: normalizedGaps };
     });
   }, []);
@@ -459,15 +502,32 @@ export function MultiBlockEditModal({
       const rows = prev.rows.filter((_, i) => i !== rowIndex);
       const gaps = prev.gapsBetweenRowsM.filter((_, i) => i !== rowIndex);
       if (removedRow.block_ids.length > 0 && rows.length > 0) {
+        const defaultRowGapM =
+          Number.isFinite(prev.spacingHorizontal[0]) && prev.spacingHorizontal[0] > 0
+            ? prev.spacingHorizontal[0]
+            : 1;
         rows[0] = {
           block_ids: [...rows[0].block_ids, ...removedRow.block_ids],
-          gaps_m: [...rows[0].gaps_m, ...Array(removedRow.block_ids.length).fill(0)],
+          gaps_m: [
+            ...rows[0].gaps_m,
+            ...Array(removedRow.block_ids.length).fill(defaultRowGapM),
+          ],
         };
       }
+      const defaultRowGapM =
+        Number.isFinite(prev.spacingHorizontal[0]) && prev.spacingHorizontal[0] > 0
+          ? prev.spacingHorizontal[0]
+          : 1;
+      const defaultBetweenRowsGapM =
+        Number.isFinite(prev.spacingVertical[0]) && prev.spacingVertical[0] > 0
+          ? prev.spacingVertical[0]
+          : 1;
       const { rows: normalizedRows, gapsBetweenRowsM } = reassignBlocksFromCounts(
         prev.blocks,
         rows,
-        gaps
+        gaps,
+        defaultRowGapM,
+        defaultBetweenRowsGapM
       );
       return { ...prev, rows: normalizedRows, gapsBetweenRowsM };
     });
@@ -1026,6 +1086,11 @@ export function MultiBlockEditModal({
                                 : row.block_ids.length;
                               if (v === row.block_ids.length) return;
                               setState((prev) => {
+                                const defaultRowGapM =
+                                  Number.isFinite(prev.spacingHorizontal[0]) &&
+                                  prev.spacingHorizontal[0] > 0
+                                    ? prev.spacingHorizontal[0]
+                                    : 1;
                                 // 左→右、下→上の順（blocks の並び）で再配分
                                 const blocksInOrder = prev.blocks.map((b) => b.id);
                                 const newCounts = prev.rows.map((r, i) =>
@@ -1048,20 +1113,25 @@ export function MultiBlockEditModal({
                                   const gaps =
                                     ids.length > 1
                                       ? (prev.rows[i]?.gaps_m?.slice(0, ids.length - 1) ??
-                                        Array(ids.length - 1).fill(0))
+                                        Array(ids.length - 1).fill(defaultRowGapM))
                                       : [];
                                   return {
                                     block_ids: ids,
                                     gaps_m:
                                       gaps.length === ids.length - 1
                                         ? gaps
-                                        : Array(Math.max(0, ids.length - 1)).fill(0),
+                                        : Array(Math.max(0, ids.length - 1)).fill(defaultRowGapM),
                                   };
                                 });
                                 const gapsBetweenRowsM =
                                   prev.gapsBetweenRowsM?.length
                                     ? prev.gapsBetweenRowsM.slice(0, Math.max(0, rows.length - 1))
-                                    : Array(Math.max(0, rows.length - 1)).fill(0);
+                                    : Array(Math.max(0, rows.length - 1)).fill(
+                                        Number.isFinite(prev.spacingVertical[0]) &&
+                                          prev.spacingVertical[0] > 0
+                                          ? prev.spacingVertical[0]
+                                          : 1
+                                      );
                                 return {
                                   ...prev,
                                   rows,
@@ -1070,7 +1140,12 @@ export function MultiBlockEditModal({
                                       ? gapsBetweenRowsM
                                       : [
                                           ...gapsBetweenRowsM,
-                                          ...Array(rows.length - 1 - gapsBetweenRowsM.length).fill(0),
+                                          ...Array(rows.length - 1 - gapsBetweenRowsM.length).fill(
+                                            Number.isFinite(prev.spacingVertical[0]) &&
+                                              prev.spacingVertical[0] > 0
+                                              ? prev.spacingVertical[0]
+                                              : 1
+                                          ),
                                         ],
                                 };
                               });

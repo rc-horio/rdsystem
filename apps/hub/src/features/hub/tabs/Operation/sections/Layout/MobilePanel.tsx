@@ -7,6 +7,7 @@ import {
   MemoSection,
 } from "..";
 import { SectionTitle, DividerRed } from "@/components";
+import type { OperationMultiBlockViewModel } from "@/features/hub/tabs/Operation/utils/operationMultiBlockGrid";
 import { useEffect, useState } from "react";
 
 export function MobilePanel(props: {
@@ -36,6 +37,7 @@ export function MobilePanel(props: {
   spacingXY?: { x?: number | string | ""; y?: number | string | "" };
   spacingSeqX?: number[];
   spacingSeqY?: number[];
+  operationMultiBlock?: OperationMultiBlockViewModel | null;
 }) {
   const {
     edit,
@@ -58,7 +60,23 @@ export function MobilePanel(props: {
     spacingXY,
     spacingSeqX,
     spacingSeqY,
+    operationMultiBlock,
   } = props;
+
+  const virtualGridProps = operationMultiBlock
+    ? {
+        cols: operationMultiBlock.occ.gridCols,
+        rows: operationMultiBlock.occ.gridRows,
+        cellIdAtVisualRow: operationMultiBlock.occ.cellIdAtVisualRow,
+      }
+    : undefined;
+
+  const multiBlockMeasureProps = operationMultiBlock
+    ? {
+        maxIdExclusive: operationMultiBlock.occ.totalOccupied,
+        measureMetersFromOrigin: operationMultiBlock.measureMetersFromOrigin,
+      }
+    : undefined;
 
   const [showModules, setShowModules] = useState<boolean[]>(
     () => modules.map(() => true)
@@ -87,6 +105,7 @@ export function MobilePanel(props: {
           onOpenFull={() => setFull(true)}
           spacingSeqX={spacingSeqX}
           spacingSeqY={spacingSeqY}
+          virtualGrid={virtualGridProps}
         />
       </section>
 
@@ -122,6 +141,7 @@ export function MobilePanel(props: {
           }
           spacingSeqX={spacingSeqX}
           spacingSeqY={spacingSeqY}
+          virtualGrid={virtualGridProps}
         />
       </FullscreenLayer>
 
@@ -137,6 +157,7 @@ export function MobilePanel(props: {
         spacingXY={spacingXY}
         spacingSeqX={spacingSeqX}
         spacingSeqY={spacingSeqY}
+        multiBlock={multiBlockMeasureProps}
       />
       <DividerRed />
 

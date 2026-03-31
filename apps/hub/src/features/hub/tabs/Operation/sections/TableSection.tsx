@@ -37,6 +37,14 @@ type Props = {
   spacingSeqY?: number[];
   /** フルスクリーン時など両軸スクロールを許可する */
   bothScroll?: boolean;
+  /**
+   * 複数ブロック時の仮想グリッド（占有セルのみ番号）。指定時は countX/countY/ totalCount の矩形採番は使わない。
+   */
+  virtualGrid?: {
+    cols: number;
+    rows: number;
+    cellIdAtVisualRow: (visualRow: number, col: number) => number | null;
+  };
 };
 
 // マウスドラッグスクロール用のカスタムフック
@@ -273,6 +281,7 @@ export function TableSection({
   spacingSeqX,
   spacingSeqY,
   bothScroll = false,
+  virtualGrid,
 }: Props) {
   const moduleList: { name: string; ids: number[] }[] =
     Array.isArray(modules) && modules.length > 0
@@ -352,25 +361,32 @@ export function TableSection({
           swatch: palette[i]?.swatch ?? "bg-slate-500",
         }));
 
-  // 端数時: 全機体数優先で actualRowCount、lastRowCount を算出
-  const fullRectCount = countX * countY;
+  const effectiveCountX = virtualGrid ? virtualGrid.cols : countX;
+  const effectiveCountY = virtualGrid ? virtualGrid.rows : countY;
+
+  // 端数時: 全機体数優先で actualRowCount、lastRowCount を算出（単一ブロック矩形のみ）
+  const fullRectCount = effectiveCountX * effectiveCountY;
   const hasTotalCount =
+    !virtualGrid &&
     typeof totalCount === "number" &&
     Number.isFinite(totalCount) &&
     totalCount > 0;
-  const actualRowCount = hasTotalCount
-    ? Math.ceil(totalCount / countX)
-    : countY;
+  const actualRowCount = virtualGrid
+    ? virtualGrid.rows
+    : hasTotalCount
+      ? Math.ceil(totalCount! / countX)
+      : countY;
   const lastRowCount = hasTotalCount
-    ? totalCount - (actualRowCount - 1) * countX
+    ? totalCount! - (actualRowCount - 1) * countX
     : countX;
   const usePartialLayout =
+    !virtualGrid &&
     hasTotalCount &&
-    totalCount < fullRectCount &&
+    totalCount! < fullRectCount &&
     lastRowCount > 0 &&
     lastRowCount < countX;
 
-  const tablePixelW = countX * CELL_W_PX;
+  const tablePixelW = effectiveCountX * CELL_W_PX;
   const tablePixelH = actualRowCount * CELL_H_PX;
 
   // フォールバック間隔（1m 等間隔）
@@ -409,7 +425,7 @@ export function TableSection({
 
       const a = document.createElement("a");
       a.href = dataUrl;
-      a.download = `table_${countX}x${countY}.png`;
+      a.download = `table_${effectiveCountX}x${effectiveCountY}.png`;
       a.click();
     } finally {
       setIsSaving(false);
@@ -563,13 +579,17 @@ export function TableSection({
               <tbody>
                 {Array.from({ length: actualRowCount }).map((_, r) => {
                   const colsInRow =
-                    usePartialLayout && r === 0 ? lastRowCount : countX;
+                    usePartialLayout && r === 0 ? lastRowCount : effectiveCountX;
                   return (
                     <tr key={r}>
                       {Array.from({ length: colsInRow }).map((_, c) => {
-                        const num =
-                          (actualRowCount - 1 - r) * countX + c;
-                        const hit = activeSets.filter((m) => m.set.has(num));
+                        const num = virtualGrid
+                          ? virtualGrid.cellIdAtVisualRow(r, c)
+                          : (actualRowCount - 1 - r) * countX + c;
+                        const hit =
+                          num === null
+                            ? []
+                            : activeSets.filter((m) => m.set.has(num));
                         const bg =
                           hit.length >= 2
                             ? "bg-fuchsia-500"
@@ -591,13 +611,13 @@ export function TableSection({
                               bg + " " + text
                             }
                           >
-                            {num}
+                            {num === null ? "" : num}
                           </td>
                         );
                       })}
-                      {usePartialLayout && r === 0 && colsInRow < countX && (
+                      {usePartialLayout && r === 0 && colsInRow < effectiveCountX && (
                         <td
-                          colSpan={countX - colsInRow}
+                          colSpan={effectiveCountX - colsInRow}
                           className="w-8 h-5 p-0 border-0"
                           aria-hidden
                         />
@@ -611,7 +631,7 @@ export function TableSection({
 
           {/* 外周ルーラー（上・下・右） */}
           <RulerX
-            count={countX}
+            count={effectiveCountX}
             width={tablePixelW}
             side="top"
             style={{ left: PAD_LEFT, top: PAD_TOP }}
@@ -619,7 +639,7 @@ export function TableSection({
             fallback={fallback}
           />
           <RulerX
-            count={countX}
+            count={effectiveCountX}
             width={tablePixelW}
             side="bottom"
             style={{ left: PAD_LEFT, top: PAD_TOP + tablePixelH }}
