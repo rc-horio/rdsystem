@@ -1419,6 +1419,7 @@ export default function MapView({ onLoaded }: Props) {
     new WeakMap()
   );
   const selectedMarkerRef = useRef<google.maps.Marker | null>(null);
+  const clearSelectedMarkerRef = useRef<() => void>(() => {});
   const changingPositionRef = useRef(false);
   const [isChangingPosition, setIsChangingPosition] = useState(false);
   const changePositionInfoRef = useRef<google.maps.InfoWindow | null>(null);
@@ -1427,9 +1428,50 @@ export default function MapView({ onLoaded }: Props) {
     lng: number;
   } | null>(null);
   const selectByKeyRef = useRef<
-    (keys: { areaUuid?: string; areaName?: string }) => void
-  >(() => { });
+    (keys: { areaUuid?: string; areaName?: string }) => boolean
+  >(() => false);
   const currentPointRef = useRef<Point | null>(null);
+  const syncAreaUuidQuery = useCallback((areaUuid?: string) => {
+    try {
+      const url = new URL(window.location.href);
+      const currentArea = url.searchParams.get("areaUuid") || undefined;
+      const nextArea = areaUuid?.trim() || undefined;
+
+      // areaUuid が全く変わらない場合は何もしない
+      if (currentArea === nextArea) return;
+
+      if (nextArea) {
+        // 別のエリアが選択されたタイミングで areaUuid を更新し、
+        // Hub 由来の projectUuid / scheduleUuid は URL から取り除く
+        url.searchParams.set("areaUuid", nextArea);
+        url.searchParams.delete("projectUuid");
+        url.searchParams.delete("scheduleUuid");
+      } else {
+        // 未選択になった場合は areaUuid / projectUuid / scheduleUuid をすべて削除
+        url.searchParams.delete("areaUuid");
+        url.searchParams.delete("projectUuid");
+        url.searchParams.delete("scheduleUuid");
+      }
+
+      const nextUrl = `${url.pathname}${url.search}${url.hash}`;
+      window.history.replaceState(window.history.state, "", nextUrl);
+    } catch (e) {
+      console.warn("[MapView] failed to sync areaUuid query:", e);
+    }
+  }, []);
+  const clearCurrentAreaSelection = useCallback(() => {
+    clearSelectedMarkerRef.current();
+    infoRef.current?.close();
+    djiNfzInfoRef.current?.close();
+    airportHeightRestrictionInfoRef.current?.close();
+    currentPointRef.current = null;
+    currentAreaUuidRef.current = undefined;
+    closeDetailBar();
+    window.dispatchEvent(
+      new CustomEvent(EV_SIDEBAR_SET_ACTIVE, { detail: { clear: true } })
+    );
+    syncAreaUuidQuery(undefined);
+  }, [syncAreaUuidQuery]);
 
   // 初期コンテキスト（URLパラメータ）からの自動選択
   useEffect(() => {
@@ -1447,7 +1489,11 @@ export default function MapView({ onLoaded }: Props) {
     if (!areaUuidFromUrl) return;
 
     const timer = setTimeout(() => {
-      selectByKeyRef.current?.({ areaUuid: areaUuidFromUrl });
+      const ok = selectByKeyRef.current?.({ areaUuid: areaUuidFromUrl });
+      if (!ok) {
+        // URLの areaUuid が無効な場合は未選択状態へ自己修復
+        syncAreaUuidQuery(undefined);
+      }
       console.log("[MapView] auto-selected from URL:", {
         areaUuidFromUrl,
         projectUuidFromUrl,
@@ -1456,7 +1502,7 @@ export default function MapView({ onLoaded }: Props) {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [syncAreaUuidQuery]);
 
   // サイドバー等から「今の代表点座標」を問い合わせるためのイベント
   useEffect(() => {
@@ -2004,6 +2050,11 @@ export default function MapView({ onLoaded }: Props) {
         marker.setZIndex(undefined);
       }
     };
+    clearSelectedMarkerRef.current = () => {
+      if (!selectedMarkerRef.current) return;
+      applySelection(selectedMarkerRef.current, false);
+      selectedMarkerRef.current = null;
+    };
 
     /** マーカーを選択した場合に地図を寄せる */
     const focusMapOnMarker = (
@@ -2039,6 +2090,7 @@ export default function MapView({ onLoaded }: Props) {
       currentPointRef.current = p;
       // エリアUUIDを保持（候補保存時に使用）
       currentAreaUuidRef.current = p.areaUuid || undefined;
+      syncAreaUuidQuery(p.areaUuid || undefined);
       const map = mapRef.current!;
       const gmaps = getGMaps();
 
@@ -2195,7 +2247,7 @@ export default function MapView({ onLoaded }: Props) {
 
       if (!marker) {
         console.warn("[map] marker NOT found for", { areaUuid, areaName });
-        return;
+        return false;
       }
 
       // マーカーに対応するポイントを取得
@@ -2213,7 +2265,9 @@ export default function MapView({ onLoaded }: Props) {
 
         // UI更新のみ（fetch 済）
         openMarker(marker, p, true);
+        return true;
       }
+      return false;
     };
 
     syncMarkersVisibilityForZoom();
@@ -2462,6 +2516,9 @@ export default function MapView({ onLoaded }: Props) {
         infoRef.current?.close();
         djiNfzInfoRef.current?.close();
         airportHeightRestrictionInfoRef.current?.close();
+
+        // 地図空クリックで選択解除（未選択）にする
+        clearCurrentAreaSelection();
       });
 
       geomRef.current = new MapGeometry(() => mapRef.current, {
@@ -2518,7 +2575,7 @@ export default function MapView({ onLoaded }: Props) {
         window.clearTimeout(positionUpdatedToastTimerRef.current);
       }
     };
-  }, []);
+  }, [clearCurrentAreaSelection]);
 
   // 座標変更モード中に、マップ以外がクリックされたらモード解除
   useEffect(() => {
@@ -2582,6 +2639,16 @@ export default function MapView({ onLoaded }: Props) {
         ? new Set(names)
         : null;
       syncMarkersVisibilityForZoom();
+
+      // フィルタ/検索で選択中エリアが非表示になったら未選択へ遷移
+      const currentAreaName = currentPointRef.current?.areaName?.trim() || "";
+      if (
+        currentAreaName &&
+        Array.isArray(names) &&
+        !visibleAreaNamesRef.current?.has(currentAreaName)
+      ) {
+        clearCurrentAreaSelection();
+      }
     };
 
     window.addEventListener(
@@ -2593,7 +2660,7 @@ export default function MapView({ onLoaded }: Props) {
         EV_SIDEBAR_VISIBLE_AREAS,
         onVisibleAreas as EventListener
       );
-  }, []);
+  }, [clearCurrentAreaSelection]);
 
   // 案件情報セクション（履歴）用の処理をフックに委譲
   useScheduleSection({
@@ -2639,6 +2706,36 @@ export default function MapView({ onLoaded }: Props) {
       window.removeEventListener(EV_DETAILBAR_SELECTED, onSelectedStateChange);
     };
   }, []);
+
+  // エリア追加モード開始時は「未選択」に揃える（URLもクリア）
+  useEffect(() => {
+    const onStartAddArea = () => {
+      clearCurrentAreaSelection();
+    };
+    window.addEventListener("map:start-add-area", onStartAddArea);
+    return () => window.removeEventListener("map:start-add-area", onStartAddArea);
+  }, [clearCurrentAreaSelection]);
+
+  // 選択中エリアが論理削除されたら未選択へ遷移
+  useEffect(() => {
+    const onDeleteArea = (e: Event) => {
+      const d =
+        (e as CustomEvent<{ areaUuid?: string; areaName?: string }>).detail || {};
+      const selected = currentPointRef.current;
+      if (!selected) return;
+      const sameUuid =
+        !!d.areaUuid && !!selected.areaUuid && d.areaUuid === selected.areaUuid;
+      const selectedAreaName = (selected.areaName || "").trim();
+      const sameName =
+        !!d.areaName && !!selectedAreaName && d.areaName === selectedAreaName;
+      if (sameUuid || sameName) {
+        clearCurrentAreaSelection();
+      }
+    };
+    window.addEventListener("sidebar:delete-area", onDeleteArea as EventListener);
+    return () =>
+      window.removeEventListener("sidebar:delete-area", onDeleteArea as EventListener);
+  }, [clearCurrentAreaSelection]);
 
   /** NFZ ポリゴンのスタイル（cursor はエリア追加モード時に copy に） */
   const getDjiNfzFeatureStyle = useCallback(

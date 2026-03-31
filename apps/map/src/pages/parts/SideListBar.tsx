@@ -1116,12 +1116,17 @@ function SideListBarBase({
   useEffect(() => {
     const onSetActive = (e: Event) => {
       const ce = e as CustomEvent<{
+        clear?: boolean;
         areaName?: string;
         name?: string;
         lat?: number;
         lng?: number;
       }>;
       const d = ce.detail || {};
+      if (d.clear) {
+        setActiveKey(null);
+        return;
+      }
       const idx = points.findIndex((p) => {
         const area = normArea(p);
         return (
