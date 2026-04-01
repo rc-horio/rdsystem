@@ -76,13 +76,13 @@ export function buildLandingFigureModel(
         left: opts?.pad?.left ?? 46,     // 縦寸法線+ラベル用
     };
 
-    // x軸 spacingSeqX = vertical、y軸 spacingSeqY = horizontal（既存仕様）
+    // x軸は horizontal、y軸は vertical
     const horizontal = area?.spacing_between_drones_m?.horizontal ?? "";
     const vertical = area?.spacing_between_drones_m?.vertical ?? "";
 
-    // 間隔入力（オペレーションタブのテーブルと同じ仕様）
-    const seqX = parseSpacingSeq(vertical);
-    const seqY = parseSpacingSeq(horizontal);
+    // 間隔入力（UIラベルに合わせて x=horizontal, y=vertical）
+    const seqX = parseSpacingSeq(horizontal);
+    const seqY = parseSpacingSeq(vertical);
 
     // 機体数入力
     const countX = Number(area?.drone_count?.x_count);

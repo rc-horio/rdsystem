@@ -75,6 +75,7 @@ export default function MobileLayout(props: any) {
         selectedId={selectedId}
         onSelectSchedule={setSelectedId}
         onUpdateSchedules={setSchedules}
+        isSaving={isSaving}
       />
       {/* タブバー（SP・横スクロール） */}
       <nav className="md:hidden mt-2 mb-2" role="tablist" aria-label="機能タブ">

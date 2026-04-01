@@ -61,6 +61,7 @@ export default function DesktopLayout(props: any) {
           setSchedules={setSchedules}
           onDeleteCurrent={requestDeleteCurrent}
           openAddScheduleModal={openAddScheduleModal}
+          isSaving={isSaving}
         />
       </aside>
 

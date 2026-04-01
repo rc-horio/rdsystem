@@ -8,6 +8,7 @@ import {
   formatAsYmdInput,
 } from "@/components";
 import type { ScheduleDetail } from "@/features/hub/types/resource";
+import { ProjectSelectDropdown } from "./ProjectSelectDropdown";
 
 export function ContentHeader({
   eventDisplay,
@@ -24,6 +25,7 @@ export function ContentHeader({
   onSelectSchedule,
   setProjectData,
   onUpdateSchedules,
+  isSaving,
 }: {
   eventDisplay: string;
   eventId: string;
@@ -39,6 +41,7 @@ export function ContentHeader({
   onSelectSchedule: (id: string) => void;
   setProjectData: (data: any) => void;
   onUpdateSchedules: (schedules: ScheduleDetail[]) => void;
+  isSaving: boolean;
 }) {
   if (!isMobile) return null;
 
@@ -54,6 +57,11 @@ export function ContentHeader({
 
   return (
     <div className="md:hidden px-4 py-3 md:py-4 space-y-3 border-b border-slate-800/60">
+      <ProjectSelectDropdown
+        edit={edit}
+        disabled={isSaving}
+        className="w-full"
+      />
       {showMetaInContent ? (
         <div className="flex justify-end">
           <HeaderMeta

@@ -128,8 +128,9 @@ export function buildMultiBlockLandingFigureSvg(
   // 各ブロックの六角形（端数）形状計算に必要な累積距離パターン
   const horizontal = area.spacing_between_drones_m?.horizontal ?? "";
   const vertical = area.spacing_between_drones_m?.vertical ?? "";
-  const seqX = parseSpacingSeq(vertical);
-  const seqY = parseSpacingSeq(horizontal);
+  // UIラベルに合わせて x=horizontal, y=vertical
+  const seqX = parseSpacingSeq(horizontal);
+  const seqY = parseSpacingSeq(vertical);
   const fallback = 1;
 
   const scaleX = figureW / safeW;

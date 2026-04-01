@@ -9,6 +9,7 @@ import {
   validateProjectId,
 } from "@/components";
 import type { ScheduleDetail } from "@/features/hub/types/resource";
+import { ProjectSelectDropdown } from "./ProjectSelectDropdown";
 
 export function Sidebar({
   activeTab,
@@ -22,6 +23,7 @@ export function Sidebar({
   setSchedules,
   onDeleteCurrent,
   openAddScheduleModal,
+  isSaving,
 }: {
   activeTab: "リソース" | "エリア" | "オペレーション" | "現場写真";
   setActiveTab: (t: any) => void;
@@ -37,6 +39,7 @@ export function Sidebar({
   ) => void;
   onDeleteCurrent: () => void;
   openAddScheduleModal: () => void;
+  isSaving: boolean;
   projectId?: string | null;
   year?: string | null;
 }) {
@@ -76,6 +79,14 @@ export function Sidebar({
 
   return (
     <div className="hidden md:block h-screen w-full shrink-0 bg-black overflow-y-auto [scrollbar-gutter:stable] pt-20">
+      <div className="px-5 pt-2 pb-3 border-b border-slate-800/50">
+        <ProjectSelectDropdown
+          edit={edit}
+          disabled={isSaving}
+          className="w-full"
+        />
+      </div>
+
       {/* 案件名・ID入力 */}
       <div className="px-5 py-5 space-y-4">
         {/* 案件名 */}

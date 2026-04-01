@@ -36,8 +36,9 @@ export function buildMultiBlockLayoutModel(area: Area): MultiBlockLayoutModel | 
   const horizontal = area.spacing_between_drones_m?.horizontal ?? "";
   const vertical = area.spacing_between_drones_m?.vertical ?? "";
 
-  const seqX = parseSpacingSeq(vertical);
-  const seqY = parseSpacingSeq(horizontal);
+  // UIラベルに合わせて x=horizontal, y=vertical
+  const seqX = parseSpacingSeq(horizontal);
+  const seqY = parseSpacingSeq(vertical);
 
   if (seqX.length === 0 || seqY.length === 0) return null;
 
