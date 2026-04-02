@@ -730,7 +730,7 @@ export default function SelectProject() {
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   className="w-full rounded-lg border border-slate-600 bg-slate-900/60 placeholder:text-slate-500 px-3 py-2 text-slate-100 focus:border-red-500 focus:ring-2 focus:ring-red-500 outline-none transition"
-                  placeholder="案件名を入力"
+                  placeholder="例：○○ドローンショー"
                 />
               </label>
               <label className="block space-y-1" contentEditable={false}>
@@ -749,7 +749,7 @@ export default function SelectProject() {
                       ? "border-red-500 focus:ring-2 focus:ring-red-500"
                       : "border-slate-600 focus:border-red-500 focus:ring-2 focus:ring-red-500"
                   }`}
-                  placeholder="250101project"
+                  placeholder="例：250101droneshow"
                 />
                 {idError && (
                   <p className="text-sm text-red-400 mt-1">{idError}</p>
