@@ -18,6 +18,8 @@ export type OverlayVisibility = {
   diameterLines: boolean;
   /** DJI 飛行禁止ゾーン（NFZ） */
   djiNfz: boolean;
+  /** カタログエリアの代表地点マーカー（areas.json） */
+  companyMarkers: boolean;
 };
 
 export const DEFAULT_OVERLAY_VISIBILITY: OverlayVisibility = {
@@ -30,4 +32,5 @@ export const DEFAULT_OVERLAY_VISIBILITY: OverlayVisibility = {
   labels: true,
   diameterLines: true,
   djiNfz: true,
+  companyMarkers: true,
 };

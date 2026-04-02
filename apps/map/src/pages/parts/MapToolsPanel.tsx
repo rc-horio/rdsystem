@@ -13,6 +13,8 @@ type Props = {
   overlayVisibility: OverlayVisibility;
   onOverlayVisibilityChange: (v: OverlayVisibility) => void;
   showOverlaySection: boolean;
+  /** エリア一覧マーカー（RCマーカー）の表示トグルを出す */
+  showCompanyMarkersToggle?: boolean;
 
   // DJI NFZ 状態（任意）
   djiNfzLoading?: boolean;
@@ -48,6 +50,7 @@ export default function MapToolsPanel({
   overlayVisibility,
   onOverlayVisibilityChange,
   showOverlaySection,
+  showCompanyMarkersToggle = true,
   djiNfzLoading = false,
   djiNfzError = null,
   currentGeometry,
@@ -92,6 +95,7 @@ export default function MapToolsPanel({
   const hasGeometry = !!currentGeometry;
   const showDjiNfzSection = typeof window !== "undefined";
   const hasContent =
+    showCompanyMarkersToggle ||
     showOverlaySection ||
     showCreateButton ||
     showDeleteButton ||
@@ -140,7 +144,8 @@ export default function MapToolsPanel({
         <section className="map-tools-panel__section" aria-label="表示切り替え">
           <div className="map-tools-panel__title">表示</div>
           <div className="map-tools-panel__checkboxes">
-            {(["takeoffArea", "flightArea", "safetyArea", "audienceArea"] as const).map((areaKey) => {
+            {showOverlaySection &&
+            (["takeoffArea", "flightArea", "safetyArea", "audienceArea"] as const).map((areaKey) => {
               const overlayKey = areaKey === "takeoffArea" ? "takeoff" : areaKey === "flightArea" ? "flight" : areaKey === "safetyArea" ? "safety" : "audience";
               const disabled = areaKey === "safetyArea" && safetyDisabled;
               return (
@@ -179,6 +184,8 @@ export default function MapToolsPanel({
                 </div>
               );
             })}
+            {showOverlaySection && (
+              <>
             <label className="map-tools-panel__checkbox">
               <input
                 type="checkbox"
@@ -201,12 +208,25 @@ export default function MapToolsPanel({
               <input type="checkbox" checked={overlayVisibility.diameterLines} onChange={handleOverlayChange("diameterLines")} aria-label="直径線" />
               <span>直径線</span>
             </label>
+              </>
+            )}
           </div>
         </section>
       )}
-      {(showDjiNfzSection || showAirportHeightRestrictionCheckbox) && (
+      {(showDjiNfzSection || showAirportHeightRestrictionCheckbox || showCompanyMarkersToggle) && (
         <section className="map-tools-panel__section" aria-label="制限情報">
           {showOverlaySection && <div className="map-tools-panel__divider" />}
+          {showCompanyMarkersToggle && (
+            <label className="map-tools-panel__checkbox">
+              <input
+                type="checkbox"
+                checked={overlayVisibility.companyMarkers}
+                onChange={handleOverlayChange("companyMarkers")}
+                aria-label="RCマーカー"
+              />
+              <span>RCマーカー</span>
+            </label>
+          )}
           {showDjiNfzSection && (
             <label className="map-tools-panel__checkbox">
               <input
@@ -266,7 +286,7 @@ export default function MapToolsPanel({
 
       {(showCreateButton || showDeleteButton || showMeasureButton) && (
         <section className="map-tools-panel__section map-tools-panel__buttons" aria-label="操作">
-          {(showDjiNfzSection || showOverlaySection || showAirportHeightRestrictionCheckbox) && (
+          {(showDjiNfzSection || showCompanyMarkersToggle || showOverlaySection || showAirportHeightRestrictionCheckbox) && (
             <div className="map-tools-panel__divider" />
           )}
           <div className="map-tools-panel__button-group">

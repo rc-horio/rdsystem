@@ -793,7 +793,7 @@ export async function createNewArea(params: {
         overview: {
             address: params.address ?? "",
             prefecture: params.prefecture ?? "",
-            manager: "",
+            manager: displayName,
             droneRecord: 0,
             droneCountEstimate: "",
             heightLimitM: params.heightLimitM ?? "",

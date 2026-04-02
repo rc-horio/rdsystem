@@ -375,6 +375,8 @@ export default function MapView({ onLoaded }: Props) {
   // オーバーレイ表示切り替え（セッション中のみ保持）
   const [overlayVisibility, setOverlayVisibility] =
     useState<OverlayVisibility>(DEFAULT_OVERLAY_VISIBILITY);
+  const overlayVisibilityRef = useRef(overlayVisibility);
+  overlayVisibilityRef.current = overlayVisibility;
   // DJI NFZ ローディング・エラー状態
   const [djiNfzLoading, setDjiNfzLoading] = useState(false);
   const [djiNfzError, setDjiNfzError] = useState<string | null>(null);
@@ -1932,28 +1934,34 @@ export default function MapView({ onLoaded }: Props) {
   /** フィルタで表示するエリア名（null = 全表示） */
   const visibleAreaNamesRef = useRef<Set<string> | null>(null);
 
-  /** ズーム・フィルタに応じてマーカーの可視状態を同期 */
-  const syncMarkersVisibilityForZoom = () => {
+  /** ズーム・フィルタ・表示パネルに応じてマーカーの可視状態を同期 */
+  const syncMarkersVisibilityForZoom = useCallback(() => {
     const map = mapRef.current;
     if (!map) return;
     const z = map.getZoom() ?? 0;
     const hideByZoom = z >= MARKERS_HIDE_ZOOM;
     const visibleAreas = visibleAreaNamesRef.current;
+    const companyMarkersOn = overlayVisibilityRef.current.companyMarkers;
 
     markersRef.current.forEach((m) => {
       const p = pointByMarkerRef.current.get(m);
       const areaKey = p?.areaName?.trim() || AREA_NAME_NONE;
       const visibleByFilter =
         !visibleAreas || visibleAreas.has(areaKey);
-      const visible = !hideByZoom && visibleByFilter;
+      const visible =
+        companyMarkersOn && !hideByZoom && visibleByFilter;
       m.setVisible(visible);
     });
 
-    if (hideByZoom) {
+    if (hideByZoom || !companyMarkersOn) {
       // マーカーを隠すときは InfoWindow も閉じる
       infoRef.current?.close();
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    syncMarkersVisibilityForZoom();
+  }, [overlayVisibility.companyMarkers, syncMarkersVisibilityForZoom]);
 
   /** =========================
    *  Data loading
@@ -2575,7 +2583,7 @@ export default function MapView({ onLoaded }: Props) {
         window.clearTimeout(positionUpdatedToastTimerRef.current);
       }
     };
-  }, [clearCurrentAreaSelection]);
+  }, [clearCurrentAreaSelection, syncMarkersVisibilityForZoom]);
 
   // 座標変更モード中に、マップ以外がクリックされたらモード解除
   useEffect(() => {
