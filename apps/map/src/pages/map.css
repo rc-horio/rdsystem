@@ -1261,6 +1261,24 @@ body.detailbar-open #detailbar {
   height: 23px;
 }
 
+/* 候補行の「複製」ボタン */
+.ds-candidate-duplicate-button {
+  margin-right: 6px;
+  height: 23px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ds-candidate-duplicate-button:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
 /* 候補地ラベル編集用インプット（シンプル版） */
 #detailbar .candidate-title-input {
   font-size: var(--ds-name-fz);

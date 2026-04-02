@@ -79,8 +79,9 @@ export default function OperationTab({
     const ax = toNum(area?.drone_count?.x_count);
     const ay = toNum(area?.drone_count?.y_count);
     // 間隔は必要なら平均化（または片方優先など、運用に合わせて）
-    const sx = toNum(area?.spacing_between_drones_m?.vertical);
-    const sy = toNum(area?.spacing_between_drones_m?.horizontal);
+    // x=横=horizontal, y=縦=vertical
+    const sx = toNum(area?.spacing_between_drones_m?.horizontal);
+    const sy = toNum(area?.spacing_between_drones_m?.vertical);
     const valids = [sx, sy].filter((n) => Number.isFinite(n)) as number[];
     const sAvg = valids.length
       ? valids.reduce((a, b) => a + b, 0) / valids.length
@@ -110,8 +111,8 @@ export default function OperationTab({
   ]);
 
   const spacingXY = {
-    x: area?.spacing_between_drones_m?.vertical ?? "", // 下部距離 → x
-    y: area?.spacing_between_drones_m?.horizontal ?? "", // 中央距離 → y
+    x: area?.spacing_between_drones_m?.horizontal ?? "", // 横方向間隔
+    y: area?.spacing_between_drones_m?.vertical ?? "", // 縦方向間隔
   };
 
   // CSV文字列を数値配列に（空/不正は除外）
@@ -122,7 +123,7 @@ export default function OperationTab({
       .map((s) => Number(s.trim()))
       .filter((n) => Number.isFinite(n) && n > 0);
   };
-  // x=vertical, y=horizontal のルールを踏襲
+  // x=横(horizontal), y=縦(vertical)
   const spacingSeqX = parseSeq(spacingXY.x); // 例: [1,0.8,1,0.8]
   const spacingSeqY = parseSeq(spacingXY.y);
 

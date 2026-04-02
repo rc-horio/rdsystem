@@ -60,6 +60,8 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   );
   const [editingCandidateTitle, setEditingCandidateTitle] = useState("");
   const editingCandidateInputRef = useRef<HTMLInputElement | null>(null);
+  // 「候補追加」直後に作った仮行の index を保持（未入力なら破棄するため）
+  const pendingNewCandidateIdxRef = useRef<number | null>(null);
 
   // index.json の内容を各フィールドに設定（初期値は空文字で統一）
   const [meta, setMeta] = useState<DetailMeta>({
@@ -230,6 +232,20 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     });
   };
 
+  // 複製時のタイトルを既存候補と重複しない形で採番する
+  const makeUniqueCandidateCopyTitle = (baseTitle: string): string => {
+    const source = baseTitle.trim() || "候補地ラベル";
+    const first = `${source} (コピー)`;
+    if (!hasDuplicateCandidateTitle(first, null)) return first;
+
+    let n = 2;
+    while (true) {
+      const next = `${source} (コピー${n})`;
+      if (!hasDuplicateCandidateTitle(next, null)) return next;
+      n += 1;
+    }
+  };
+
   // 「案件情報を紐づける」ボタン
   const handleRegisterProjectInfo = () => {
     // 画面中央モーダルを開いてもらうイベントだけ飛ばす
@@ -263,6 +279,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     setSelectedCandidateIdx(nextIdx);
     setEditingCandidateIdx(nextIdx);
     setEditingCandidateTitle(newCandidate.title);
+    pendingNewCandidateIdxRef.current = nextIdx;
   };
 
   // 候補地確定・キャンセル
@@ -301,6 +318,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     // 編集モード解除
     setEditingCandidateIdx(null);
     setEditingCandidateTitle("");
+    pendingNewCandidateIdxRef.current = null;
 
     // 「この候補が選択中」であることを明示しておく
     setSelectedHistoryIdx(null);
@@ -338,8 +356,68 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   };
 
   const cancelCandidateEdit = () => {
+    const idx = editingCandidateIdx;
+    const isPendingNew = idx != null && pendingNewCandidateIdxRef.current === idx;
+    const isEmptyInput = editingCandidateTitle.trim() === "";
+
+    // 追加直後の仮行で、タイトル未入力なら候補自体を破棄する
+    if (isPendingNew && isEmptyInput) {
+      setMeta((prev) => {
+        const list = Array.isArray(prev.candidate) ? [...prev.candidate] : [];
+        if (idx == null || idx < 0 || idx >= list.length) return prev;
+        list.splice(idx, 1);
+        return { ...prev, candidate: list };
+      });
+      setSelectedCandidateIdx((current) => (current === idx ? null : current));
+      pendingNewCandidateIdxRef.current = null;
+    }
+
     setEditingCandidateIdx(null);
     setEditingCandidateTitle("");
+  };
+
+  // 候補を複製して末尾に追加
+  const duplicateCandidate = (idx: number) => {
+    const source = candidates[idx];
+    if (!source) return;
+
+    // 深いコピーで元候補への参照共有を避ける
+    const copied: Candidate = JSON.parse(JSON.stringify(source));
+    copied.title = makeUniqueCandidateCopyTitle(source.title ?? "");
+
+    const nextIdx = candidates.length;
+    setMeta((prev) => ({
+      ...prev,
+      candidate: [...(prev.candidate ?? []), copied],
+    }));
+
+    // 見た目だけでなく、Map/保存側コンテキストも同期するため選択イベントを送る
+    setSelectedHistoryIdx(null);
+    setSelectedCandidateIdx(nextIdx);
+    window.dispatchEvent(
+      new CustomEvent(EV_DETAILBAR_SELECTED, {
+        detail: { isSelected: true, kind: "candidate" as const },
+      })
+    );
+    window.dispatchEvent(
+      new CustomEvent(EV_DETAILBAR_SELECT_CANDIDATE, {
+        detail: {
+          geometry: {
+            flightAltitude_min_m: copied.flightAltitude_min_m,
+            flightAltitude_Max_m: copied.flightAltitude_Max_m,
+            takeoffArea: copied.takeoffArea,
+            flightArea: copied.flightArea,
+            safetyArea: copied.safetyArea,
+            audienceArea: copied.audienceArea,
+          },
+          index: nextIdx,
+          title: copied.title,
+        },
+      })
+    );
+    setEditingCandidateIdx(null);
+    setEditingCandidateTitle("");
+    pendingNewCandidateIdxRef.current = null;
   };
 
   // 履歴のサニタイズ（unknown を HistoryItem[] に落とす）
@@ -406,7 +484,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   };
 
   // 候補エリア選択時
-  const onSelectCandidate = (candidate: Candidate, idx: number) => {
+  const onSelectCandidate = (idx: number) => {
     setSelectedCandidateIdx(idx); // 候補エリアのインデックスを設定
     setSelectedHistoryIdx(null); // 履歴の選択状態を解除
     // 候補選択イベントを通知（UI 状態は indices で管理）
@@ -415,9 +493,8 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
         detail: { isSelected: true, kind: "candidate" as const },
       })
     );
-    const selectedCandidate = meta.candidate.find(
-      (c) => c.title === candidate.title
-    );
+    // title一致ではなく index を正として参照する（同名候補があっても誤選択しない）
+    const selectedCandidate = meta.candidate[idx];
     if (selectedCandidate) {
       const geometry = {
         flightAltitude_min_m: selectedCandidate.flightAltitude_min_m,
@@ -929,7 +1006,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                       }`}
                       role="option"
                       aria-selected={selectedCandidateIdx === idx}
-                      onClick={() => onSelectCandidate(candidate, idx)}
+                      onClick={() => onSelectCandidate(idx)}
                     >
                       <span
                         className="ds-record-leftgap"
@@ -979,8 +1056,20 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                               setEditingCandidateTitle(e.target.value)
                             }
                             onBlur={() => {
-                              // フォーカスが外れたときは確定せず編集キャンセル
-                              // → alert が blur と連鎖してループするのを防ぐ
+                              // 追加直後の仮行は、タイトルが入力済みなら blur で確定。
+                              // 未入力のままなら cancel 側で仮行ごと破棄する。
+                              const idx = editingCandidateIdx;
+                              const isPendingNew =
+                                idx != null &&
+                                pendingNewCandidateIdxRef.current === idx;
+                              const hasInput = editingCandidateTitle.trim().length > 0;
+
+                              if (isPendingNew && hasInput) {
+                                commitCandidateTitle();
+                                return;
+                              }
+
+                              // 既存行編集・未入力時は従来どおりキャンセル
                               cancelCandidateEdit();
                             }}
                             onKeyDown={(e) => {
@@ -1006,6 +1095,14 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                             e.stopPropagation();
                           }}
                         >
+                          <button
+                            type="button"
+                            className="ds-candidate-duplicate-button"
+                            title="この候補を複製"
+                            onClick={() => duplicateCandidate(idx)}
+                          >
+                            複製
+                          </button>
                           <DeleteIconButton
                             className={
                               !editable ? "ds-record-delete--hidden" : undefined

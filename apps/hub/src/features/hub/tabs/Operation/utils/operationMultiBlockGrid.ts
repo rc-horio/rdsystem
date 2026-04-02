@@ -24,10 +24,11 @@ export function buildOperationMultiBlockViewModel(
   const layout = buildMultiBlockLayoutModel(area);
   if (!occ || !layout || occ.totalOccupied <= 0) return null;
 
-  const vertical = area.spacing_between_drones_m?.vertical ?? "";
   const horizontal = area.spacing_between_drones_m?.horizontal ?? "";
-  const seqX = parseSpacingSeq(vertical);
-  const seqY = parseSpacingSeq(horizontal);
+  const vertical = area.spacing_between_drones_m?.vertical ?? "";
+  // x=横(horizontal), y=縦(vertical) — エリア図・layout と一致
+  const seqX = parseSpacingSeq(horizontal);
+  const seqY = parseSpacingSeq(vertical);
   if (seqX.length === 0 || seqY.length === 0) return null;
 
   const fallback = 1;

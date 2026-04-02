@@ -17,8 +17,8 @@ export type LandingFigureModel = {
     countX: number;
     countY: number;
     totalCount: number;
-    seqX: number[]; // x軸 spacing（LandingAreaFigure: vertical）
-    seqY: number[]; // y軸 spacing（LandingAreaFigure: horizontal）
+    seqX: number[]; // x軸＝横＝horizontal
+    seqY: number[]; // y軸＝縦＝vertical
     fallback: number;
 
     // 実寸

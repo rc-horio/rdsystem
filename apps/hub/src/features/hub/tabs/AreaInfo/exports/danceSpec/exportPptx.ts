@@ -270,9 +270,9 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
         ww && dd ? `W${ww}m × L${dd}m` : ww ? `W${ww}m` : dd ? `L${dd}m` : "—"
     );
 
-    // ■並べる間隔
-    setText(p2clone, ".spacing-label--left", horizontal);
-    setText(p2clone, ".spacing-label--bottom", vertical);
+    // LandingAreaFigure と同じ: 左＝縦間隔(vertical)、下＝横間隔(horizontal)
+    setText(p2clone, ".spacing-label--left", vertical);
+    setText(p2clone, ".spacing-label--bottom", horizontal);
 
     // 左ペイン：LandingAreaFigure 注入（slot 無ければ作る）
     const slot = ensureLandingFigureSlot(p2clone);

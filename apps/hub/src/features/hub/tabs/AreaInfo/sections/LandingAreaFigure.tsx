@@ -213,8 +213,9 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
               <div className="absolute left-[-20px] flex items-center gap-2">
                 <DisplayOrInput
                   edit={edit}
-                  value={horizontal}
-                  onChange={(e) => setHorizontal(e.target.value)}
+                  // 左側（縦方向）は y 軸間隔
+                  value={vertical}
+                  onChange={(e) => setVertical(e.target.value)}
                   className="w-[70px]! text-center"
                 />
                 <span className="text-slate-100 text-sm">m</span>
@@ -228,8 +229,9 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
                 <div className="flex items-center gap-2">
                   <DisplayOrInput
                     edit={edit}
-                    value={vertical}
-                    onChange={(e) => setVertical(e.target.value)}
+                    // 下側（横方向）は x 軸間隔
+                    value={horizontal}
+                    onChange={(e) => setHorizontal(e.target.value)}
                     className="w-[70px]! text-center"
                   />
                   <span className="text-slate-100 text-sm">m</span>

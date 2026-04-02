@@ -51,8 +51,9 @@ export function buildMultiBlockOccupancyGrid(
   if (!blocks?.length || !layout?.rows?.length) return null;
 
   const blockById = new Map(blocks.map((b) => [b.id, b] as const));
-  const spacingX = parseSpacingSeq(area?.spacing_between_drones_m?.vertical ?? "");
-  const spacingY = parseSpacingSeq(area?.spacing_between_drones_m?.horizontal ?? "");
+  // x=横(horizontal), y=縦(vertical) — multiBlockLayoutModel と一致
+  const spacingX = parseSpacingSeq(area?.spacing_between_drones_m?.horizontal ?? "");
+  const spacingY = parseSpacingSeq(area?.spacing_between_drones_m?.vertical ?? "");
   if (!spacingX.length || !spacingY.length) return null;
   const fallback = 1;
 

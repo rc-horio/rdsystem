@@ -143,11 +143,9 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
     const d = text(area?.geometry?.flightArea.radiusY_m * 2, "");
     setTxt("#v-anim", (w && d) ? `W${w}m × L${d}m` : (w ? `W${w}m` : (d ? `L${d}m` : "—")));
 
-    // ■並べる間隔（左）
-    setTxt(".spacing-label--left", horizontal);
-
-    // ■並べる間隔（下）
-    setTxt(".spacing-label--bottom", vertical);
+    // LandingAreaFigure と同じ: 左＝縦間隔(vertical)、下＝横間隔(horizontal)
+    setTxt(".spacing-label--left", vertical);
+    setTxt(".spacing-label--bottom", horizontal);
 
     // ■機体の向き（Drone1Icon）の回転と Antenna/Battery ラベル位置を反映
     applyDroneOrientationToPage2(p2clone, area);
