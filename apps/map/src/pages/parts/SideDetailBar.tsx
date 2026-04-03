@@ -78,11 +78,13 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     restrictionsMemo: "",
     remarks: "",
     candidate: [],
+    candidateDeletionLocked: false,
     updated_at: undefined,
     updated_by: undefined,
   });
 
   const candidates = meta.candidate ?? [];
+  const candidateDeletionLocked = !!meta.candidateDeletionLocked;
 
   // URL 由来の初期選択（案件スケジュール）
   const initialScheduleRef = useRef<{
@@ -254,6 +256,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
 
   // 「候補地を追加する」ボタン
   const handleAddCandidate = () => {
+    if (candidateDeletionLocked) return;
     // 追加前の長さを基準に、新しい候補の index を決める
     const nextIdx = candidates.length;
 
@@ -285,6 +288,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   // 候補地確定・キャンセル
   const commitCandidateTitle = (): boolean => {
     if (editingCandidateIdx == null) return false;
+    if (candidateDeletionLocked) return false;
 
     const idx = editingCandidateIdx;
     const trimmed = editingCandidateTitle.trim();
@@ -378,6 +382,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
 
   // 候補を複製して末尾に追加
   const duplicateCandidate = (idx: number) => {
+    if (candidateDeletionLocked) return;
     const source = candidates[idx];
     if (!source) return;
 
@@ -419,6 +424,33 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     setEditingCandidateTitle("");
     pendingNewCandidateIdxRef.current = null;
   };
+
+  // 候補削除（不可逆）に追従して、選択/編集中状態を安全にクリア
+  useEffect(() => {
+    const candLen = candidates?.length ?? 0;
+
+    if (selectedCandidateIdx != null && selectedCandidateIdx >= candLen) {
+      setSelectedCandidateIdx(null);
+    }
+
+    if (editingCandidateIdx != null && editingCandidateIdx >= candLen) {
+      setEditingCandidateIdx(null);
+      setEditingCandidateTitle("");
+      pendingNewCandidateIdxRef.current = null;
+    }
+
+    if (candidateDeletionLocked) {
+      setSelectedCandidateIdx(null);
+      setEditingCandidateIdx(null);
+      setEditingCandidateTitle("");
+      pendingNewCandidateIdxRef.current = null;
+    }
+  }, [
+    candidates?.length,
+    selectedCandidateIdx,
+    editingCandidateIdx,
+    candidateDeletionLocked,
+  ]);
 
   // 履歴のサニタイズ（unknown を HistoryItem[] に落とす）
   const sanitizeHistory = (arrLike: unknown): HistoryItem[] => {
@@ -568,7 +600,16 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     const onSetMeta = (e: Event) => {
       const ce = e as CustomEvent<{ meta?: Partial<DetailMeta> }>;
       const m = ce.detail?.meta ?? {};
-      setMeta((prev) => ({ ...prev, ...m }));
+      const hasCandidateDeletionLocked =
+        Object.prototype.hasOwnProperty.call(m, "candidateDeletionLocked");
+
+      setMeta((prev) => ({
+        ...prev,
+        ...m,
+        // backend由来の meta 更新には candidateDeletionLocked が入らないため、
+        // エリア切り替えなどでロックが漏れないように明示的に false に戻す。
+        ...(hasCandidateDeletionLocked ? {} : { candidateDeletionLocked: false }),
+      }));
       if (import.meta.env.DEV) console.debug("[detailbar] meta applied", m);
     };
     window.addEventListener(EV_DETAILBAR_SET_META, onSetMeta as EventListener);
@@ -1088,7 +1129,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                         )}
                       </span>
 
-                      {editable && (
+                      {editable && !candidateDeletionLocked && (
                         <span
                           className="ds-record-delete"
                           onClick={(e: ReactMouseEvent<HTMLSpanElement>) => {
@@ -1151,7 +1192,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
               </div>
 
               {/* 候補地を追加するボタン */}
-              {editable && (
+              {editable && !candidateDeletionLocked && (
                 <button
                   type="button"
                   className="add-area-button detailbar-add-button"

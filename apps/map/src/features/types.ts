@@ -115,6 +115,12 @@ export interface DetailMeta {
     restrictionsMemo: string;
     remarks: string;
     candidate: Candidate[];
+    /**
+     * 「候補からコピー + 削除」などの不可逆操作後に、
+     * 候補UI（追加/複製/削除）をロックするためのフロント状態。
+     * 永続化は行わない（candidate 配列自体が空になるため）。
+     */
+    candidateDeletionLocked?: boolean;
     /** 最終更新日時（ISO8601） */
     updated_at?: string;
     /** 最終更新ユーザー */

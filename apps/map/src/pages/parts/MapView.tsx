@@ -17,13 +17,17 @@ import {
   useScheduleSection,
   useCandidateSection,
 } from "@/components";
-import type { Props, Point, Geometry } from "@/features/types";
+import type { Props, Point, Geometry, Candidate } from "@/features/types";
 import {
   fetchAreaInfo,
   createNewArea,
   FETCH_AREAS_LIST_ERROR_MSG,
 } from "./areasApi";
 import { EV_DETAILBAR_SELECTED, OPEN_INFO_ON_SELECT } from "./constants/events";
+import {
+  EV_DETAILBAR_REQUEST_DATA,
+  EV_DETAILBAR_RESPOND_DATA,
+} from "./constants/events";
 import "../map.css";
 import {
   openDetailBar,
@@ -57,6 +61,7 @@ import {
 import { AddAreaModal } from "./AddAreaModal";
 import { RegisterProjectModal } from "./RegisterProjectModal";
 import MapToolsPanel from "./MapToolsPanel";
+import { FlightAreaCreateModeModal } from "./FlightAreaCreateModeModal";
 import {
   DEFAULT_OVERLAY_VISIBILITY,
   type OverlayVisibility,
@@ -355,6 +360,10 @@ export default function MapView({ onLoaded }: Props) {
 
   const [mapReady, setMapReady] = useState(false);
   const [showCreateGeomCta, setShowCreateGeomCta] = useState(false);
+  const [flightAreaCreateModalOpen, setFlightAreaCreateModalOpen] =
+    useState(false);
+  const [flightAreaCreateCandidates, setFlightAreaCreateCandidates] =
+    useState<Candidate[]>([]);
   const [isSelected, setIsSelected] = useState(false);
   // 「どのセクション由来の選択か」を保持（案件 or 候補）
   const [selectionKind, setSelectionKind] = useState<
@@ -3275,6 +3284,127 @@ export default function MapView({ onLoaded }: Props) {
     console.info("[map] geometry marked as deleted (pending Save)");
   }
 
+  // DetailBar の現在データ（候補など）を取得する
+  const requestDetailbarData = async (): Promise<{
+    title: string;
+    meta: any;
+    history: any[];
+  }> => {
+    return await new Promise((resolve, reject) => {
+      let timer: number | null = null;
+
+      const onRespond = (e: Event) => {
+        window.removeEventListener(
+          EV_DETAILBAR_RESPOND_DATA,
+          onRespond as EventListener
+        );
+        if (timer != null) window.clearTimeout(timer);
+        const detail = (e as CustomEvent).detail as {
+          title?: string;
+          meta?: any;
+          history?: any[];
+        };
+
+        resolve({
+          title: detail.title ?? "",
+          meta: detail.meta ?? {},
+          history: Array.isArray(detail.history) ? detail.history : [],
+        });
+      };
+
+      window.addEventListener(
+        EV_DETAILBAR_RESPOND_DATA,
+        onRespond as EventListener,
+        { once: true }
+      );
+
+      window.dispatchEvent(new Event(EV_DETAILBAR_REQUEST_DATA));
+
+      timer = window.setTimeout(() => {
+        window.removeEventListener(
+          EV_DETAILBAR_RESPOND_DATA,
+          onRespond as EventListener
+        );
+        reject(new Error("detailbar からの応答がありません"));
+      }, 1500);
+    });
+  };
+
+  const openFlightAreaCreateModal = () => {
+    void (async () => {
+      try {
+        const snapshot = await requestDetailbarData();
+        const nextCandidates = Array.isArray(snapshot?.meta?.candidate)
+          ? (snapshot.meta.candidate as Candidate[])
+          : [];
+        if (nextCandidates.length === 0) {
+          // 候補が0件なら、モーダルを出さずに新規作成へフォールバック
+          void createDefaultGeometry();
+          return;
+        }
+        setFlightAreaCreateCandidates(nextCandidates);
+        setFlightAreaCreateModalOpen(true);
+      } catch (e) {
+        console.warn("[map] requestDetailbarData failed:", e);
+        // フォールバック：従来どおり新規作成
+        void createDefaultGeometry();
+      }
+    })();
+  };
+
+  const handleCopyFromCandidate = (params: {
+    candidateIndex: number;
+    deleteAllCandidatesAfterCopy: boolean;
+  }) => {
+    const { candidateIndex, deleteAllCandidatesAfterCopy } = params;
+    const source = flightAreaCreateCandidates[candidateIndex];
+    if (!source) {
+      window.alert("候補が見つかりません。再度お試しください。");
+      return;
+    }
+
+    const hasAnyGeom =
+      !!source.takeoffArea ||
+      !!source.flightArea ||
+      !!source.safetyArea ||
+      !!source.audienceArea ||
+      source.flightAltitude_min_m != null ||
+      source.flightAltitude_Max_m != null;
+
+    if (!hasAnyGeom) {
+      window.alert("候補に図形情報がありません。新規作成を選択してください。");
+      return;
+    }
+
+    // candidate -> schedule geometry（参照共有回避のため深いコピー）
+    const geometry: Geometry = {
+      flightAltitude_min_m: source.flightAltitude_min_m,
+      flightAltitude_Max_m: source.flightAltitude_Max_m,
+      takeoffArea: source.takeoffArea,
+      flightArea: source.flightArea,
+      safetyArea: source.safetyArea,
+      audienceArea: source.audienceArea,
+    };
+
+    const geometryDeepCopy = JSON.parse(JSON.stringify(geometry)) as Geometry;
+    geomRef.current?.renderGeometry(geometryDeepCopy, { fit: true });
+    setShowCreateGeomCta(false);
+
+    if (deleteAllCandidatesAfterCopy) {
+      setDetailBarMeta({
+        candidate: [],
+        candidateDeletionLocked: true,
+      });
+      setFlightAreaCreateCandidates([]);
+      window.alert(
+        "候補をコピーしました。\n候補は削除しました。SAVEボタンで確定してください。"
+      );
+      return;
+    }
+
+    window.alert("候補をコピーしました。\nSAVEボタンで確定してください。");
+  };
+
   /** =========================
    *  Render
    *  ========================= */
@@ -3439,7 +3569,7 @@ export default function MapView({ onLoaded }: Props) {
           geomRef.current?.renderGeometry(updated, { fit: false });
           setGeometryRevision((r) => r + 1);
         }}
-        onCreateGeometry={createDefaultGeometry}
+        onCreateGeometry={openFlightAreaCreateModal}
         onDeleteGeometry={deleteGeometry}
         onStartMeasurement={() => window.dispatchEvent(new CustomEvent("map:start-measurement"))}
         onAirportHeightRestrictionChange={(checked) => {
@@ -3455,6 +3585,16 @@ export default function MapView({ onLoaded }: Props) {
         showAirportHeightRestrictionCheckbox
         airportHeightRestrictionMode={airportHeightRestrictionMode}
         airportHeightRestrictionDisabled={measurementMode}
+      />
+
+      <FlightAreaCreateModeModal
+        open={flightAreaCreateModalOpen}
+        onClose={() => setFlightAreaCreateModalOpen(false)}
+        candidates={flightAreaCreateCandidates}
+        onNewCreate={() => {
+          void createDefaultGeometry();
+        }}
+        onCopyFromCandidate={handleCopyFromCandidate}
       />
       <AddAreaModal
         open={editable && !!newAreaDraft}
