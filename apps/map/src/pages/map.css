@@ -29,7 +29,7 @@
   --detailbar-pad: 16px; /* 詳細バー内パディング */
 
   /* ========== Map overlay tokens ========== */
-  /* 離発着 長方形（赤系） */
+  /* 離着陸 長方形（赤系） */
   --map-takeoff-stroke: #ed1b24;
   --map-takeoff-fill: #ed1b24;
   --map-takeoff-stroke-opacity: 0.9;
@@ -56,7 +56,7 @@
   --map-arrow-stroke-width: 2;
   --map-arrow-head-scale: 3;
 
-  /* 離発着 基準点（白丸マーカー） */
+  /* 離着陸 基準点（白丸マーカー） */
   --map-refcorner-fill: #ffffff;
   --map-refcorner-stroke: #000000;
   --map-refcorner-stroke-width: 2;

@@ -44,7 +44,7 @@ export type RectEditorOpts = {
 export class RectEditor {
     private opts: RectEditorOpts;
 
-    // 離発着エリアの編集用
+    // 離着陸エリアの編集用
     private takeoffEditRef: {
         poly?: google.maps.Polygon;
         cornerMarkers?: google.maps.Marker[];
@@ -70,7 +70,7 @@ export class RectEditor {
         this.opts = opts;
     }
 
-    /** 離発着エリアの表示切り替え */
+    /** 離着陸エリアの表示切り替え */
     setOverlayVisibility(opts: { takeoff: boolean; referencePoint: boolean }) {
         const map = opts.takeoff ? this.opts.getMap() : null;
         const t = this.takeoffEditRef;
@@ -78,7 +78,7 @@ export class RectEditor {
         if (t.poly) t.poly.setMap(map);
         t.cornerMarkers?.forEach((mk) => mk.setMap(map));
         if (t.rotateMarker) t.rotateMarker.setMap(map);
-        // 基準点（白丸）は離発着表示時かつ referencePoint が true のときのみ表示
+        // 基準点（白丸）は離着陸表示時かつ referencePoint が true のときのみ表示
         if (t.refMarker) t.refMarker.setMap(opts.takeoff && opts.referencePoint && map ? map : null);
     }
 
@@ -267,7 +267,7 @@ export class RectEditor {
         return Number.isInteger(idx) ? Math.max(0, Math.min(len - 1, idx as number)) : 0;
     }
 
-    /** 離発着エリアの矩形を描画 */
+    /** 離着陸エリアの矩形を描画 */
     private drawRectangle(
         coordsLngLat: Array<LngLat>,
         style: Partial<google.maps.PolygonOptions> = {}
@@ -359,7 +359,7 @@ export class RectEditor {
         return poly;
     }
 
-    /** 離発着エリアの角ハンドルを描画 */
+    /** 離着陸エリアの角ハンドルを描画 */
     private drawTakeoffCornerHandles(takeoffArea: RectangleGeom) {
         const gmaps = this.opts.getGMaps();
         const map = this.opts.getMap()!;
@@ -492,7 +492,7 @@ export class RectEditor {
         this.takeoffEditRef = { ...(this.takeoffEditRef ?? {}), cornerMarkers };
     }
 
-    /** 離発着エリアの基準点マーカーを描画 */
+    /** 離着陸エリアの基準点マーカーを描画 */
     private drawReferenceCorner(takeoffArea: RectangleGeom) {
         const gmaps = this.opts.getGMaps();
         const map = this.opts.getMap()!;
@@ -539,7 +539,7 @@ export class RectEditor {
         return { marker, pos };
     }
 
-    /** 離発着エリアの回転ハンドルを描画 */
+    /** 離着陸エリアの回転ハンドルを描画 */
     private drawRotateHandle(takeoffArea: RectangleGeom) {
         const gmaps = this.opts.getGMaps();
         const map = this.opts.getMap()!;

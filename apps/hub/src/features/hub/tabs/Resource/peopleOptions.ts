@@ -63,6 +63,10 @@ export const NAME_OPTIONS: SelectOption[] = [
     { value: "安藤 望", label: "安藤 望" },
     { value: "藤田 紘成", label: "藤田 紘成" },
     { value: "野口 宏実", label: "野口 宏実" },
+    { value: "上村 大地", label: "上村 大地" },
+    { value: "長田 俊", label: "長田 俊" },
+    { value: "羽月 力哉", label: "羽月 力哉" },
+    { value: "宮原 優真", label: "宮原 優真" },
 ];
 
 /**

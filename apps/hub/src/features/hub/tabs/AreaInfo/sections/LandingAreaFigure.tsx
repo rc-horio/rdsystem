@@ -134,10 +134,10 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
 
   return (
     <div className="p-0">
-      <SectionTitle title="離発着エリア" />
+      <SectionTitle title="離着陸エリア" />
 
       <div className="my-4 flex flex-col lg:flex-row gap-4">
-        {/* 左: 離発着エリア図 */}
+        {/* 左: 離着陸エリア図 */}
         <div className="flex-1 lg:basis-8/12">
           <div className="h-120 w-full border border-slate-600">
             <div

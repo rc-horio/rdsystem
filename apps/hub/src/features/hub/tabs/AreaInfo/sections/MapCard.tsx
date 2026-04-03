@@ -39,7 +39,7 @@ type Props = {
   onScreenshotCaptured?: (dataUrl: string) => void;
 };
 
-// 離発着エリアの矩形をパラメータに変換
+// 離着陸エリアの矩形をパラメータに変換
 const toTakeoffRectParam = (coords?: [number, number][]) => {
   if (!Array.isArray(coords) || coords.length !== 4) return "";
   // coords は [lng,lat] の順。Map 側もその前提で parse しているのでそのまま
@@ -309,7 +309,7 @@ export const MapCard = forwardRef<MapCardHandle, Props>(function MapCard(
           height="100%"
           className="w-full h-full"
           style={{ border: "none" }}
-          title="離発着エリア地図"
+          title="離着陸エリア地図"
           loading="lazy"
           allow="fullscreen"
           allowFullScreen

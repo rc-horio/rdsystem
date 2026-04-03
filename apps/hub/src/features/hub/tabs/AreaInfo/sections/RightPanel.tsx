@@ -432,9 +432,9 @@ export function RightPanel({
         </div>{" "}
       </div>
 
-      {/* 離発着演出 */}
+      {/* 離着陸演出 */}
       <div className="mt-5">
-        <SectionTitle title="離発着演出" />
+        <SectionTitle title="離着陸演出" />
         <div className={rowCls}>
           <span className="w-7 text-sm shrink-0">離陸</span>
           <DisplayOrInput

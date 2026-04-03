@@ -115,7 +115,7 @@ export function getAnimSizeText(areaInput: any): string {
     return "—";
 }
 
-/** 離発着演出 */
+/** 離着陸演出 */
 export function getShowText(areaInput: any): string {
     const area = normalizeArea(areaInput);
     const lights = area?.lights ?? {};

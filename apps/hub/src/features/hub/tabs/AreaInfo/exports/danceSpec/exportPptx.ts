@@ -186,7 +186,7 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
     const { project, schedule } = pickProjectAndSchedule(opts);
 
     const company = (opts?.companyName ?? "株式会社レッドクリフ").trim();
-    const page2Header = (opts?.page2HeaderText ?? "離発着情報").trim();
+    const page2Header = (opts?.page2HeaderText ?? "離着陸情報").trim();
     const gradFrom = opts?.gradFrom ?? "#E00022";
     const gradTo = opts?.gradTo ?? "#FFD23A";
 
@@ -255,7 +255,7 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
     // ■障害物情報
     setText(p2clone, "#v-obstacles", textOr(area?.obstacle_note, "なし"));
 
-    // ■離発着演出
+    // ■離着陸演出
     const takeoff = textOr(lights?.takeoff, "—");
     const landing = textOr(lights?.landing, "—");
     const note = textOr(area?.return_note, "—");

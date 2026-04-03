@@ -29,7 +29,7 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
     if (!project) project = "案件名";
 
     const company = (opts?.companyName ?? "株式会社レッドクリフ").trim();
-    const page2Header = (opts?.page2HeaderText ?? "離発着情報").trim();
+    const page2Header = (opts?.page2HeaderText ?? "離着陸情報").trim();
     const gradFrom = opts?.gradFrom ?? "#E00022";
     const gradTo = opts?.gradTo ?? "#FFD23A";
 
@@ -57,7 +57,7 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
     const headerEl = p2clone.querySelector("#page2-header") as HTMLElement | null;
     if (headerEl) headerEl.textContent = page2Header;
 
-    // 離発着情報
+    // 離着陸情報
     const area = opts?.area ?? {};
 
     // ===== 左ペイン：LandingAreaFigure を注入 =====
@@ -129,7 +129,7 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
     // ■障害物情報
     setTxt("#v-obstacles", text(area?.obstacle_note, "なし"));
 
-    // ■離発着演出
+    // ■離着陸演出
     const takeoff = text(lights?.takeoff, "—");
     const landing = text(lights?.landing, "—");
     const note = text(area?.return_note, "—");

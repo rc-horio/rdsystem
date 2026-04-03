@@ -30,7 +30,7 @@ type UseCandidateSectionParams = {
 
 /**
  * 候補ジオメトリの有無を判定するユーティリティ関数。
- * 各エリア（離発着 / 飛行 / 保安 / 観客）のどれか 1 つでも妥当な形状があれば「有り」とみなす。
+ * 各エリア（離着陸 / 飛行 / 保安 / 観客）のどれか 1 つでも妥当な形状があれば「有り」とみなす。
  */
 const hasCandidateGeometry = (g?: Geometry | null): boolean => {
     if (!g || typeof g !== "object") return false;

@@ -112,7 +112,7 @@ export type Area = {
   blocks?: Block[];
   /** 複数ブロック時の行ごとの配置・間隔 */
   block_layout?: BlockLayout;
-  /** 離発着エリア図の表示設定（四隅番号・メモリ位置調整） */
+  /** 離着陸エリア図の表示設定（四隅番号・メモリ位置調整） */
   landing_figure_display?: {
     show_corner_numbers?: boolean;
     show_block_labels?: boolean;

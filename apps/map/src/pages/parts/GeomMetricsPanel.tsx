@@ -96,7 +96,7 @@ export default function GeomMetricsPanel() {
           
           // 外部から値が設定された場合は入力状態も更新（フォーカス中でない場合のみ）
           const activeLabel = document.activeElement?.getAttribute("aria-label");
-          if (typeof updated.rectWidth_m === "number" && activeLabel !== "離発着エリア 幅(m)") {
+          if (typeof updated.rectWidth_m === "number" && activeLabel !== "離着陸エリア 幅(m)") {
             const formatted = typeof updated.rectWidth_m === "number" && Number.isFinite(updated.rectWidth_m)
               ? (() => {
                   const rounded = Math.round(updated.rectWidth_m * 10) / 10;
@@ -105,7 +105,7 @@ export default function GeomMetricsPanel() {
               : "";
             setRectWidthInput(formatted);
           }
-          if (typeof updated.rectDepth_m === "number" && activeLabel !== "離発着エリア 奥行(m)") {
+          if (typeof updated.rectDepth_m === "number" && activeLabel !== "離着陸エリア 奥行(m)") {
             const formatted = typeof updated.rectDepth_m === "number" && Number.isFinite(updated.rectDepth_m)
               ? (() => {
                   const rounded = Math.round(updated.rectDepth_m * 10) / 10;
@@ -457,9 +457,9 @@ export default function GeomMetricsPanel() {
           </div>
         </section>
 
-        {/* 離発着エリア */}
-        <section className="geom-col" aria-label="離発着エリア">
-          <div className="geom-col-title">離発着エリア</div>
+        {/* 離着陸エリア */}
+        <section className="geom-col" aria-label="離着陸エリア">
+          <div className="geom-col-title">離着陸エリア</div>
           <div className="geom-rows">
             <div className="geom-row">
               <span className="k">w</span>
@@ -498,7 +498,7 @@ export default function GeomMetricsPanel() {
                   }
                 }}
                 disabled={!editable}
-                aria-label="離発着エリア 幅(m)"
+                aria-label="離着陸エリア 幅(m)"
               />
               <span className="u">m</span>
             </div>
@@ -539,7 +539,7 @@ export default function GeomMetricsPanel() {
                   }
                 }}
                 disabled={!editable}
-                aria-label="離発着エリア 奥行(m)"
+                aria-label="離着陸エリア 奥行(m)"
               />
               <span className="u">m</span>
             </div>
@@ -560,7 +560,7 @@ export default function GeomMetricsPanel() {
                   if (normalized !== undefined) send({ rectRotation_deg: normalized });
                 }}
                 disabled={!editable}
-                aria-label="離発着エリア 角度(度)"
+                aria-label="離着陸エリア 角度(度)"
               />
               <span className="u">度</span>
             </div>

@@ -524,7 +524,7 @@ export class MapGeometry {
         const bounds = new gmaps.LatLngBounds();
         const metrics: Partial<GeometryMetrics> = {};
 
-        // --- 矩形（離発着） ---
+        // --- 矩形（離着陸） ---
         const { hasRect, metrics: rectMetrics } = this.rectEditor.render(geom, bounds);
         if (hasRect && rectMetrics) {
             metrics.rectWidth_m = rectMetrics.rectWidth_m;
@@ -599,7 +599,7 @@ export class MapGeometry {
             metrics.flightToAudienceDistance_m = Math.round(distance);
         }
 
-        // --- 離発着エリア（rectEditor.render が返すならここも） ---
+        // --- 離着陸エリア（rectEditor.render が返すならここも） ---
         if (hasRect && rectMetrics) {
             metrics.rectWidth_m =
                 typeof rectMetrics.rectWidth_m === "number" && Number.isFinite(rectMetrics.rectWidth_m)
@@ -843,7 +843,7 @@ export class MapGeometry {
             }
         }
 
-        // ---- 離発着エリア（矩形）: w/d/角度
+        // ---- 離着陸エリア（矩形）: w/d/角度
         {
             const w =
                 typeof d.rectWidth_m === "number" && Number.isFinite(d.rectWidth_m)
@@ -1011,7 +1011,7 @@ export class MapGeometry {
     }
 
     /** =========================
-     *  離発着エリア（矩形）: 基準点参照 & 変更
+     *  離着陸エリア（矩形）: 基準点参照 & 変更
      *  ========================= */
     private pickReferenceCorner(takeoffArea?: RectangleGeom): LngLat | undefined {
         const coords = Array.isArray(takeoffArea?.coordinates) ? takeoffArea!.coordinates : [];
@@ -1021,7 +1021,7 @@ export class MapGeometry {
     }
 
     /** =========================
-     *  離発着エリア（矩形）: 基準点参照 & 変更
+     *  離着陸エリア（矩形）: 基準点参照 & 変更
      *  ========================= */
     private setReferenceCornerIndex(newIdx: number, coords: Array<LngLat>) {
         if (!this.isEditingOn()) return;
@@ -1195,7 +1195,7 @@ export class MapGeometry {
         return { line2, line3 };
     }
 
-    // 離発着エリアの「d（depth）」単位ベクトル（fromを原点にローカルXY[m]）
+    // 離着陸エリアの「d（depth）」単位ベクトル（fromを原点にローカルXY[m]）
     private computeDepthUnit(from: LngLat): { dx: number; dy: number } | null {
         const t = this.currentGeomRef?.takeoffArea;
         if (t?.type !== "rectangle" || !Array.isArray(t.coordinates) || t.coordinates.length < 4) return null;
@@ -1273,10 +1273,10 @@ export class MapGeometry {
 
     /**
      * Shift+ドラッグ時（飛行エリア）: ドラッグ方向を判定し、動いていない方の矢印を固定する。
-     * 離発着基準点→飛行中心の矢印の制約。飛行中心の移動を depth/perp のいずれかに制限。
+     * 離着陸基準点→飛行中心の矢印の制約。飛行中心の移動を depth/perp のいずれかに制限。
      * @param oldTo ドラッグ開始時の飛行中心
      * @param newTo 現在のドラッグ位置（飛行中心）
-     * @param from 離発着基準点（固定）
+     * @param from 離着陸基準点（固定）
      * @returns 制約後の飛行中心。制約できない場合は null
      */
     constrainFlightCenterForShiftDrag(

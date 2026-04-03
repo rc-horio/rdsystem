@@ -56,7 +56,7 @@ export const CLS_DETAILBAR_OPEN = "detailbar-open";
 /** Google Maps 図形/マーカー用の共通レイヤー定義 */
 export const Z = {
     OVERLAY: {
-        TAKEOFF: 30,    // 離発着（矩形）
+        TAKEOFF: 30,    // 離着陸（矩形）
         FLIGHT: 20,     // 飛行（楕円）
         SAFETY: 10,     // 保安エリア
         ARROW: 999,     // 参照点→中心の矢印（最前面のオーバーレイ）

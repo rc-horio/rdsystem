@@ -88,9 +88,9 @@ export default function OverlayVisibilityPanel({
             type="checkbox"
             checked={visibility.takeoff}
             onChange={handleChange("takeoff")}
-            aria-label="離発着エリア"
+            aria-label="離着陸エリア"
           />
-          <span>離発着</span>
+          <span>離着陸</span>
         </label>
         <label className="overlay-visibility-panel__item">
           <input

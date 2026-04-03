@@ -40,7 +40,7 @@ type Props = {
 };
 
 const AREA_LABELS: Record<AreaColorKey, string> = {
-  takeoffArea: "離発着",
+  takeoffArea: "離着陸",
   flightArea: "飛行",
   safetyArea: "保安",
   audienceArea: "観客",
@@ -192,7 +192,7 @@ export default function MapToolsPanel({
                 checked={overlayVisibility.referencePoint}
                 onChange={handleOverlayChange("referencePoint")}
                 disabled={!overlayVisibility.takeoff}
-                aria-label="離発着矩形の基準点"
+                aria-label="離着陸矩形の基準点"
               />
               <span>基準点</span>
             </label>

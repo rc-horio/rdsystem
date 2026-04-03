@@ -1,8 +1,8 @@
 /** 地図オーバーレイの表示切り替え用 */
 export type OverlayVisibility = {
-  /** 離発着エリア */
+  /** 離着陸エリア */
   takeoff: boolean;
-  /** 離発着矩形の基準点（白丸） */
+  /** 離着陸矩形の基準点（白丸） */
   referencePoint: boolean;
   /** 飛行エリア */
   flight: boolean;
