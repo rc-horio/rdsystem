@@ -8,6 +8,7 @@ import {
 } from "..";
 import { SectionTitle, DividerRed } from "@/components";
 import type { OperationMultiBlockViewModel } from "@/features/hub/tabs/Operation/utils/operationMultiBlockGrid";
+import { OPERATION_MAX_MODULES } from "@/features/hub/tabs/Operation/constants";
 import { useEffect, useState } from "react";
 
 export function MobilePanel(props: {
@@ -163,20 +164,22 @@ export function MobilePanel(props: {
 
       <section>
         <SectionTitle title="モジュール" />
-        <div className="mb-3 flex justify-end">
-          <button
-            type="button"
-            onClick={onAddModule}
-            disabled={modules.length >= 5}
-            className={`px-2 py-1 text-xs rounded border ${
-              modules.length < 5
-                ? "border-sky-500 text-sky-100 bg-sky-900/40 hover:bg-sky-900/60"
-                : "border-slate-700 text-slate-500 bg-slate-900/40"
-            }`}
-          >
-            + モジュール追加
-          </button>
-        </div>
+        {edit && (
+          <div className="mb-3 flex justify-end">
+            <button
+              type="button"
+              onClick={onAddModule}
+              disabled={modules.length >= OPERATION_MAX_MODULES}
+              className={`px-2 py-1 text-xs rounded border ${
+                modules.length < OPERATION_MAX_MODULES
+                  ? "border-sky-500 text-sky-100 bg-sky-900/40 hover:bg-sky-900/60"
+                  : "border-slate-700 text-slate-500 bg-slate-900/40"
+              }`}
+            >
+              + モジュール追加
+            </button>
+          </div>
+        )}
 
         {modules.length === 0 && (
           <div className="text-xs text-slate-400 border border-dashed border-slate-700/80 rounded flex items-center justify-center p-6 mb-4">

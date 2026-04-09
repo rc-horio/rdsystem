@@ -4,13 +4,14 @@ import { ButtonRed, SectionTitle } from "@/components";
 import { Eye, EyeOff } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { cumDist, fmtMeters } from "@/features/hub/utils/spacing";
+import { OPERATION_MAX_MODULES } from "@/features/hub/tabs/Operation/constants";
 
 type Props = {
   countX: number;
   countY: number;
   /** 全機体数。端数時は右上を切った図形で描画 */
   totalCount?: number;
-  /** 推奨：最大5件のモジュール配列（Tableのハイライト対象） */
+  /** モジュール配列（Tableのハイライト対象。最大20種類まで） */
   modules?: { name: string; ids: number[] }[];
   /** 互換用（旧API）。modules が渡された場合は無視される */
   module1Nums?: number[]; // モジュール1 = 赤
@@ -285,7 +286,7 @@ export function TableSection({
 }: Props) {
   const moduleList: { name: string; ids: number[] }[] =
     Array.isArray(modules) && modules.length > 0
-      ? modules.slice(0, 5)
+      ? modules.slice(0, OPERATION_MAX_MODULES)
       : [
           { name: "モジュール1", ids: module1Nums },
           { name: "モジュール2", ids: module2Nums },
@@ -309,7 +310,7 @@ export function TableSection({
     else setShowM2Local((v) => !v);
   };
 
-  // modules: 最大5件分をローカルでトグル（legacy制御とは独立）
+  // modules: 最大 OPERATION_MAX_MODULES 件分をローカルでトグル（legacy制御とは独立）
   const [showModulesLocal, setShowModulesLocal] = useState<boolean[]>(
     () => moduleList.map(() => true)
   );
@@ -336,6 +337,21 @@ export function TableSection({
     { bg: "bg-emerald-500", swatch: "bg-emerald-500" },
     { bg: "bg-amber-500", swatch: "bg-amber-500" },
     { bg: "bg-purple-500", swatch: "bg-purple-500" },
+    { bg: "bg-rose-500", swatch: "bg-rose-500" },
+    { bg: "bg-orange-500", swatch: "bg-orange-500" },
+    { bg: "bg-lime-500", swatch: "bg-lime-500" },
+    { bg: "bg-cyan-500", swatch: "bg-cyan-500" },
+    { bg: "bg-sky-500", swatch: "bg-sky-500" },
+    { bg: "bg-indigo-500", swatch: "bg-indigo-500" },
+    { bg: "bg-violet-500", swatch: "bg-violet-500" },
+    { bg: "bg-pink-500", swatch: "bg-pink-500" },
+    { bg: "bg-teal-500", swatch: "bg-teal-500" },
+    { bg: "bg-yellow-500", swatch: "bg-yellow-500" },
+    { bg: "bg-green-500", swatch: "bg-green-500" },
+    { bg: "bg-fuchsia-500", swatch: "bg-fuchsia-500" },
+    { bg: "bg-red-600", swatch: "bg-red-600" },
+    { bg: "bg-blue-600", swatch: "bg-blue-600" },
+    { bg: "bg-emerald-600", swatch: "bg-emerald-600" },
   ] as const;
 
   const activeSets: { name: string; set: Set<number>; bg: string; swatch: string }[] =

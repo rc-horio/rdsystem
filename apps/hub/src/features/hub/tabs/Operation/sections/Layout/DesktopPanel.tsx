@@ -2,6 +2,7 @@
 import { MeasureSection, ModuleSection, TableSection, MemoSection } from "..";
 import { DividerRed } from "@/components";
 import type { OperationMultiBlockViewModel } from "@/features/hub/tabs/Operation/utils/operationMultiBlockGrid";
+import { OPERATION_MAX_MODULES } from "@/features/hub/tabs/Operation/constants";
 
 export function DesktopPanel(props: {
   edit: boolean;
@@ -55,7 +56,7 @@ export function DesktopPanel(props: {
   } = props;
 
   const moduleSlotCount = modules.length;
-  const canAddMoreModules = moduleSlotCount < 5;
+  const canAddMoreModules = moduleSlotCount < OPERATION_MAX_MODULES;
 
   return (
     <div className="hidden md:block">
@@ -101,17 +102,19 @@ export function DesktopPanel(props: {
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <p className="text-xs text-slate-300">モジュール</p>
-            <button
-              type="button"
-              onClick={onAddModule}
-              className={`px-2 py-1 text-xs rounded border ${
-                canAddMoreModules
-                  ? "border-sky-500 text-sky-100 bg-sky-900/40 hover:bg-sky-900/60 cursor-pointer"
-                  : "border-slate-700 text-slate-500 bg-slate-900/40 cursor-not-allowed"
-              }`}
-            >
-              + モジュール追加
-            </button>
+            {edit && (
+              <button
+                type="button"
+                onClick={onAddModule}
+                className={`px-2 py-1 text-xs rounded border ${
+                  canAddMoreModules
+                    ? "border-sky-500 text-sky-100 bg-sky-900/40 hover:bg-sky-900/60 cursor-pointer"
+                    : "border-slate-700 text-slate-500 bg-slate-900/40 cursor-not-allowed"
+                }`}
+              >
+                + モジュール追加
+              </button>
+            )}
           </div>
 
           <div className="grid w-full gap-3 items-stretch grid-cols-5">

@@ -4,6 +4,7 @@ import { DesktopPanel, MobilePanel } from "./sections";
 import { useGrid } from "./hooks/useGrid";
 import { parseNums, normalizeInput } from "./utils/format";
 import { buildOperationMultiBlockViewModel } from "./utils/operationMultiBlockGrid";
+import { OPERATION_MAX_MODULES } from "./constants";
 
 type UiModule = {
   name: string;
@@ -157,7 +158,7 @@ export default function OperationTab({
     });
   };
 
-  // モジュール（0〜5件）
+  // モジュール（0〜OPERATION_MAX_MODULES 件）
   const [modules, setModules] = useState<UiModule[]>([]);
 
   const maxIdExclusive = (() => {
@@ -214,7 +215,7 @@ export default function OperationTab({
 
   const handleAddModule = () => {
     setModules((prev) => {
-      if (prev.length >= 5) return prev;
+      if (prev.length >= OPERATION_MAX_MODULES) return prev;
       const nextIndex = prev.length + 1;
       const next = [
         ...prev,
@@ -318,7 +319,7 @@ export default function OperationTab({
         ? operation!.modules
         : [];
       setModules(
-        mods.slice(0, 5).map((m, idx) => ({
+        mods.slice(0, OPERATION_MAX_MODULES).map((m, idx) => ({
           name: typeof m?.name === "string" ? m.name : `モジュール${idx + 1}`,
           input: Array.isArray(m?.ids) ? m.ids.join(" ") : "",
           appliedIds: Array.isArray(m?.ids) ? m.ids : [],
