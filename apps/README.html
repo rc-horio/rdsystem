@@ -1,0 +1,78 @@
+<h1>apps（フロントエンド）</h1>
+<p><code>rdsystem</code> モノレポ内の <strong>SPA（React + Vite + TypeScript）</strong> 群です。ドローン演出・運用まわりの案件データを扱う Web UI が、<strong>認証・ハブ（案件編集）・地図・素材ストック</strong> に分割されています。本番では同一オリジン配下のパス（<code>/auth/</code> <code>/hub/</code> <code>/map/</code> <code>/stock/</code>）として載せる想定です。</p>
+<h2>システム概要（ざっくり）</h2>
+<table>
+<thead>
+<tr>
+<th>アプリ</th>
+<th>パッケージ名</th>
+<th>役割</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>auth</strong></td>
+<td><code>rdauth-client</code></td>
+<td>ログイン（OIDC）、コールバック、認証後のプロジェクト選択。利用の入口。</td>
+</tr>
+<tr>
+<td><strong>hub</strong></td>
+<td><code>rdhub-client</code></td>
+<td>案件単位のハブ。スケジュール／リソース／エリア情報／運用／現場写真などを編集・保存。帳票・エクスポート（PDF / PPTX 等）やローカルキャッシュ（Dexie）を利用。</td>
+</tr>
+<tr>
+<td><strong>map</strong></td>
+<td><code>rdmap-client</code></td>
+<td>Google マップ上での飛行エリア・地点の可視化・編集。空港周辺制限などの補助ロジック、KML 等の取り込み。クエリ（<code>areaName</code> 等）でハブからの遷移に連動可能。</td>
+</tr>
+<tr>
+<td><strong>stock</strong></td>
+<td><code>rdstock-client</code></td>
+<td>モチーフ・遷移など <strong>素材カタログ</strong> の閲覧・並べ替え・フッターへの組み立て、PDF 出力など。</td>
+</tr>
+</tbody></table>
+<p><strong>共通の技術要素</strong></p>
+<ul>
+<li>React 18、React Router 7、Tailwind CSS、AWS Amplify（バックエンド連携）</li>
+<li>認証: <code>react-oidc-context</code> / <code>oidc-client-ts</code>（hub / map / stock は <code>RequireAuth</code> でガード。<code>VITE_DISABLE_AUTH=true</code> でローカルだけ認証オフ可）</li>
+<li>静的アセット: リポジトリ直下の <code>static/</code> を各アプリの <code>publicDir</code> から参照</li>
+</ul>
+<h2>リポジトリからの起動</h2>
+<p>リポジトリルート（<code>C:\rdsystem\dev</code>）で:</p>
+<table>
+<thead>
+<tr>
+<th>コマンド</th>
+<th>説明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>pnpm dev:hub</code></td>
+<td>Hub（既定ポート <strong>5174</strong>、<code>base: /hub/</code>）</td>
+</tr>
+<tr>
+<td><code>pnpm dev:map</code></td>
+<td>Map（既定ポート <strong>5175</strong>、<code>base: /map/</code>）</td>
+</tr>
+<tr>
+<td><code>pnpm dev:stock</code></td>
+<td>Stock（既定ポート <strong>5176</strong>、<code>base: /stock/</code>）</td>
+</tr>
+</tbody></table>
+<p><strong>auth</strong> はルート <code>package.json</code> にスクリプトが無いため、直接:</p>
+<pre><code class="language-bash">pnpm --filter ./apps/auth dev
+</code></pre>
+<p>（既定ポート <strong>5173</strong>、<code>base: /auth/</code>）</p>
+<p>開発時、Hub の Vite が <code>/map</code> をローカルの Map 開発サーバーへプロキシする設定があるため、<strong>Hub と Map を同時に立ち上げる</strong>と横断動作の確認がしやすいです。</p>
+<h2>ビルド・デプロイ</h2>
+<ul>
+<li>ルート: <code>pnpm build</code> で <code>apps/**</code> をビルド（必要に応じて個別は <code>build:hub</code> / <code>build:map</code>）。</li>
+<li>各アプリの <code>package.json</code> に <strong>S3 同期用の <code>deploy</code> スクリプト</strong>（<code>hub</code> / <code>map</code> はルートスクリプト、<code>stock</code> / <code>auth</code> はアプリ単体）があります。実行には AWS CLI とプロファイル等の前提があります。</li>
+</ul>
+<h2>ディレクトリ</h2>
+<pre><code>apps/
+  auth/    # 認証・プロジェクト選択
+  hub/     # 案件ハブ（メイン編集 UI）
+  map/     # マップ・エリア
+  stock/   # 素材ストック
+</code></pre>
+<p>各アプリの詳細な画面仕様や環境変数は、該当ディレクトリの <code>vite.config.ts</code>・<code>.env*</code>・ソース内コメントを参照してください。</p>
