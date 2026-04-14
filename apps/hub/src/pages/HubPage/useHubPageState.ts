@@ -7,6 +7,7 @@ import type { ScheduleDetail } from "@/features/hub/types/resource";
 import {
   buildIndexJsonFromState,
   buildSchedulesFromProjectData,
+  normalizeIndexJsonForProjectLostDeal,
 } from "./builders";
 import { v4 as uuid } from "uuid";
 
@@ -55,9 +56,9 @@ export function useHubPageState() {
   const initTab = q.get("tab") || "";
   const initScheduleUuid = q.get("scheduleUuid") || "";
 
-  const validTabs = ["リソース", "エリア", "オペレーション", "現場写真"] as const;
+  const validTabs = ["リソース", "エリア", "オペレーション", "現場記録"] as const;
   const [activeTab, setActiveTab] = useState<
-    "リソース" | "エリア" | "オペレーション" | "現場写真"
+    "リソース" | "エリア" | "オペレーション" | "現場記録"
   >(
     validTabs.includes(initTab as (typeof validTabs)[number])
       ? (initTab as (typeof validTabs)[number])
@@ -111,8 +112,20 @@ export function useHubPageState() {
   const headerTitle = useMemo(() => {
     const base = eventDisplay || "案件名";
     const schedLabel = currentSchedule?.label?.trim();
-    return schedLabel ? `${base}　${schedLabel}` : base;
-  }, [eventDisplay, currentSchedule?.label]);
+    const baseWithLost = Boolean(projectData?.project?.lostDeal)
+      ? `${base}（失注）`
+      : base;
+    if (!schedLabel) return baseWithLost;
+    const schedWithCancelled = currentSchedule?.cancelled
+      ? `${schedLabel}（中止）`
+      : schedLabel;
+    return `${baseWithLost}　${schedWithCancelled}`;
+  }, [
+    eventDisplay,
+    currentSchedule?.label,
+    currentSchedule?.cancelled,
+    projectData?.project?.lostDeal,
+  ]);
 
   const updatedAt = projectData?.project?.updated_at ?? null;
   const updatedBy = projectData?.project?.updated_by ?? "";
@@ -154,6 +167,8 @@ export function useHubPageState() {
         memo: "",
       },
       photos: [],
+      cancelled: false,
+      cancelledReason: "",
     };
   };
 
@@ -363,7 +378,7 @@ export function useHubPageState() {
 
             if (copied) {
               // 2) 複製用の整形：名称に（複製）を付与、更新情報リセット
-              const dup = {
+              const dup = normalizeIndexJsonForProjectLostDeal({
                 ...copied,
                 project: {
                   ...(copied.project ?? {}),
@@ -375,7 +390,7 @@ export function useHubPageState() {
                     "copy",
                   updated_at: null,
                 },
-              };
+              });
               const built = buildSchedulesFromProjectData(dup);
 
               // モーダルで日付が入っていたら、その日付のスケジュールを優先選択。
@@ -462,16 +477,17 @@ export function useHubPageState() {
         }
 
         if (!res.ok) throw new Error(String(res.status));
-        const data = await res.json();
+        const raw = await res.json();
         // 既存データに id が無ければ補完（後方互換）
         if (id) {
           // uuid が無ければ補完（これはOK）
-          if (!data?.project) data.project = {};
-          if (!data.project.uuid) data.project.uuid = id;
+          if (!raw?.project) raw.project = {};
+          if (!raw.project.uuid) raw.project.uuid = id;
 
           // 命名IDは「無いなら空」のまま（uuidで埋めない）
-          if (!data.project.id) data.project.id = "";
+          if (!raw.project.id) raw.project.id = "";
         }
+        const data = normalizeIndexJsonForProjectLostDeal(raw);
         setProjectData(data);
         const built = buildSchedulesFromProjectData(data);
         setSchedules(built);
@@ -633,6 +649,7 @@ export function useHubPageState() {
             id: body.project.id,
             name: body.project.name ?? p?.project?.name ?? p?.event?.name ?? "",
             updated_by: body.project.updated_by ?? p?.project?.updated_by ?? "",
+            lostDeal: Boolean(body.project?.lostDeal),
           },
           schedules: body.schedules,
         }));
@@ -768,6 +785,7 @@ export function useHubPageState() {
           id: body.project.id,
           name: body.project.name ?? p?.project?.name ?? p?.event?.name ?? "",
           updated_by: body.project.updated_by ?? p?.project?.updated_by ?? "",
+          lostDeal: Boolean(body.project?.lostDeal),
         },
         // buildIndexJsonFromState の返り値（保存したJSON）をそのまま保持する
         schedules: body.schedules,

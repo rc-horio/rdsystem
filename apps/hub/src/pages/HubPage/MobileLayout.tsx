@@ -76,6 +76,8 @@ export default function MobileLayout(props: any) {
         onSelectSchedule={setSelectedId}
         onUpdateSchedules={setSchedules}
         isSaving={isSaving}
+        projectLostDeal={Boolean(projectData?.project?.lostDeal)}
+        projectLostDealReason={String(projectData?.project?.lostDealReason ?? "")}
       />
       {/* タブバー（SP・横スクロール） */}
       <nav className="md:hidden mt-2 mb-2" role="tablist" aria-label="機能タブ">
@@ -97,7 +99,7 @@ export default function MobileLayout(props: any) {
                 "リソース",
                 "エリア",
                 "オペレーション",
-                "現場写真",
+                "現場記録",
               ] as const
             ).map((t) => {
               const active = activeTab === t;
@@ -177,7 +179,7 @@ export default function MobileLayout(props: any) {
           />
         </section>
 
-        <section hidden={activeTab !== "現場写真"}>
+        <section hidden={activeTab !== "現場記録"}>
           <SitePhotosTab
             edit={edit}
             setEdit={setEdit}

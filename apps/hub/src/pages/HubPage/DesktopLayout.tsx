@@ -115,7 +115,7 @@ export default function DesktopLayout(props: any) {
             />
           </section>
 
-          <section hidden={activeTab !== "現場写真"}>
+          <section hidden={activeTab !== "現場記録"}>
             <SitePhotosTab
               edit={edit}
               setEdit={setEdit}

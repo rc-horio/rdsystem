@@ -4,7 +4,7 @@ import type { ScheduleDetail } from "@/features/hub/types/resource";
 /**
  * 画面 state から S3 に保存する index.json を構築
  * - project.id / updated_at を補正
- * - photosMemo を含める
+ * - photosMemo / cancelled（スケジュール）、project.lostDeal（案件）は project側の spread で保持
  * - 写真配列からブラウザ専用の __file を除去
  * - 未定義の入れ子は既定形で補完（なるべく現行の初期形に揃える）
  */
@@ -82,6 +82,7 @@ export function buildIndexJsonFromState(
     date: s.date ?? "",
     place: s.place ?? "",
     photosMemo: (s as any).photosMemo ?? "",
+    cancelled: Boolean((s as any).cancelled),
     resource: ensureResource((s as any).resource),
     area: ensureArea((s as any).area),
     operation: ensureOperation((s as any).operation),

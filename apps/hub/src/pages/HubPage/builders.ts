@@ -7,6 +7,21 @@ import type {
   PhotoItem,
 } from "@/features/hub/types/resource";
 
+/** 旧形式: スケジュール単位の lostDeal を案件へ寄せる（読み込み時に1回） */
+export function normalizeIndexJsonForProjectLostDeal(data: any): any {
+  if (!data || typeof data !== "object") return data;
+  const p = data.project ?? {};
+  if (p.lostDeal) return data;
+  const anySch =
+    Array.isArray(data.schedules) &&
+    data.schedules.some((s: any) => Boolean(s?.lostDeal));
+  if (!anySch) return data;
+  return {
+    ...data,
+    project: { ...p, lostDeal: true },
+  };
+}
+
 /* ===== APIデータ → スケジュール（表示用） ===== */
 export function buildSchedulesFromProjectData(pd: any): ScheduleDetail[] {
   if (!pd?.schedules) return [];
@@ -137,6 +152,8 @@ export function buildSchedulesFromProjectData(pd: any): ScheduleDetail[] {
           .filter((p: PhotoItem) => p.url.length > 0)
         : [],
       photosMemo: photosMemo ?? "",
+      cancelled: Boolean(sch?.cancelled),
+      cancelledReason: String(sch?.cancelledReason ?? ""),
     };
   });
 }
@@ -170,6 +187,8 @@ export function buildIndexJsonFromState(
     name: prev?.project?.name ?? prev?.event?.name ?? "（名称未設定）",
     updated_at: new Date().toISOString(),
     updated_by: updatedBy ?? prev?.project?.updated_by ?? "",
+    lostDeal: Boolean(prev?.project?.lostDeal),
+    lostDealReason: String(prev?.project?.lostDealReason ?? ""),
   };
 
   const nextSchedules = (schedules ?? []).map((s) => {
@@ -186,6 +205,8 @@ export function buildIndexJsonFromState(
       date: s.date ?? "",
       location: s.place ?? "",
       photosMemo: (s as any)?.photosMemo ?? "",
+      cancelled: Boolean(s.cancelled),
+      cancelledReason: String(s.cancelledReason ?? ""),
       resources: {
         drones: (s.resource?.drones ?? []).map((d: any) => ({
           model: d.model ?? "",

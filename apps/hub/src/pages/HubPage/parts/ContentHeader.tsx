@@ -9,6 +9,7 @@ import {
 } from "@/components";
 import type { ScheduleDetail } from "@/features/hub/types/resource";
 import { ProjectSelectDropdown } from "./ProjectSelectDropdown";
+import { ScheduleStatusFlags } from "./ScheduleStatusFlags";
 
 export function ContentHeader({
   eventDisplay,
@@ -26,6 +27,8 @@ export function ContentHeader({
   setProjectData,
   onUpdateSchedules,
   isSaving,
+  projectLostDeal,
+  projectLostDealReason,
 }: {
   eventDisplay: string;
   eventId: string;
@@ -42,6 +45,9 @@ export function ContentHeader({
   setProjectData: (data: any) => void;
   onUpdateSchedules: (schedules: ScheduleDetail[]) => void;
   isSaving: boolean;
+  /** index.json project.lostDeal */
+  projectLostDeal: boolean;
+  projectLostDealReason: string;
 }) {
   if (!isMobile) return null;
 
@@ -72,9 +78,54 @@ export function ContentHeader({
         </div>
       ) : null}
 
+      <div className="flex justify-end">
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-1.5 text-xs text-slate-200 cursor-pointer select-none shrink-0">
+            <input
+              type="checkbox"
+              disabled={!edit}
+              checked={projectLostDeal}
+              onChange={(e) =>
+                setProjectData((prev: any) => ({
+                  ...prev,
+                  project: {
+                    ...(prev?.project ?? {}),
+                    lostDeal: e.target.checked,
+                    lostDealReason: e.target.checked
+                      ? prev?.project?.lostDealReason ?? ""
+                      : "",
+                  },
+                }))
+              }
+              className="accent-red-600 h-3.5 w-3.5 shrink-0 disabled:opacity-50"
+            />
+            失注
+          </label>
+          {projectLostDeal ? (
+            <DisplayOrInput
+              edit={edit}
+              value={projectLostDealReason}
+              onChange={(e) =>
+                setProjectData((prev: any) => ({
+                  ...prev,
+                  project: {
+                    ...(prev?.project ?? {}),
+                    lostDealReason: e.target.value,
+                  },
+                }))
+              }
+              placeholder="失注理由"
+              className="w-[130px] h-7 text-[11px]"
+            />
+          ) : null}
+        </div>
+      </div>
+
       {/* 案件名 */}
-      <div className="flex items-center gap-2">
-        <p className="text-slate-200 text-xs m-0 whitespace-nowrap">案件名</p>
+      <div className="flex items-center gap-2 flex-wrap">
+        <p className="text-slate-200 text-xs m-0 whitespace-nowrap shrink-0">
+          案件名
+        </p>
         <DisplayOrInput
           edit={edit}
           value={eventDisplay}
@@ -84,7 +135,7 @@ export function ContentHeader({
               project: { ...prev?.project, name: e.target.value },
             }))
           }
-          className="ml-auto w-[200px] md:w-[280px] text-lg md:text-xl leading-7 md:leading-8 truncate"
+          className="ml-auto w-[200px] md:w-[280px] min-w-0 text-lg md:text-xl leading-7 md:leading-8 truncate"
           placeholder="案件名を入力"
         />
       </div>
@@ -168,22 +219,31 @@ export function ContentHeader({
             const cur = schedules.find((s) => s.id === selectedId);
             if (!cur) return null;
             return (
-              <div className="grid grid-cols-2 gap-2">
-                <DisplayOrInput
-                  edit
-                  value={cur.date ?? ""}
-                  placeholder="2000-01-01"
-                  className="w-full"
-                  onChange={(e) =>
-                    updateCurrent({ date: formatAsYmdInput(e.target.value) })
-                  }
-                />
-                <DisplayOrInput
-                  edit
-                  value={cur.label ?? ""}
-                  placeholder="タイトル"
-                  className="w-full"
-                  onChange={(e) => updateCurrent({ label: e.target.value })}
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <DisplayOrInput
+                    edit
+                    value={cur.date ?? ""}
+                    placeholder="2000-01-01"
+                    className="w-full"
+                    onChange={(e) =>
+                      updateCurrent({ date: formatAsYmdInput(e.target.value) })
+                    }
+                  />
+                  <DisplayOrInput
+                    edit
+                    value={cur.label ?? ""}
+                    placeholder="タイトル"
+                    className="w-full"
+                    onChange={(e) => updateCurrent({ label: e.target.value })}
+                  />
+                </div>
+                <ScheduleStatusFlags
+                  className="flex justify-end"
+                  edit={edit}
+                  selectedId={selectedId}
+                  schedules={schedules}
+                  onPatch={(patch) => updateCurrent(patch)}
                 />
               </div>
             );

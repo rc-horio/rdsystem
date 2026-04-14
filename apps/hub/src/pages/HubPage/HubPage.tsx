@@ -21,8 +21,11 @@ export default function HubPage() {
           : state.projectData?.event?.name) ?? "";
 
   const titleFallback = projectName || qName || "案件名";
+  const mobileTitle = state.projectData?.project?.lostDeal
+    ? `${titleFallback}（失注）`
+    : titleFallback;
   const headerTitleForView = isMobile
-    ? titleFallback
+    ? mobileTitle
     : state.headerTitle || titleFallback;
 
   return (

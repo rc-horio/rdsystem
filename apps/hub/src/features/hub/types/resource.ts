@@ -167,4 +167,8 @@ export interface ScheduleDetail {
   area?: any;
   operation?: any;
   photos?: PhotoItem[];
+  /** 中止（index.json のスケジュールに保存） */
+  cancelled?: boolean;
+  /** 中止理由（1行メモ） */
+  cancelledReason?: string;
 }

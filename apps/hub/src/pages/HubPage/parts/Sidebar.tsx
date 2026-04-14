@@ -25,7 +25,7 @@ export function Sidebar({
   openAddScheduleModal,
   isSaving,
 }: {
-  activeTab: "リソース" | "エリア" | "オペレーション" | "現場写真";
+  activeTab: "リソース" | "エリア" | "オペレーション" | "現場記録";
   setActiveTab: (t: any) => void;
   edit: boolean;
   setEdit: (v: boolean) => void;
@@ -47,7 +47,7 @@ export function Sidebar({
     "リソース",
     "エリア",
     "オペレーション",
-    "現場写真",
+    "現場記録",
   ] as const;
 
   const projectName =
@@ -91,7 +91,51 @@ export function Sidebar({
       <div className="px-5 py-5 space-y-4">
         {/* 案件名 */}
         <div className="space-y-2">
-          <p className="text-slate-200 cursor-default select-none">案件名</p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-slate-200 cursor-default select-none shrink-0">
+              案件名
+            </p>
+            <div className="flex items-center gap-2 shrink-0">
+              <label className="flex items-center gap-2 text-sm text-slate-200 cursor-pointer select-none shrink-0">
+                <input
+                  type="checkbox"
+                  disabled={!edit}
+                  checked={Boolean(projectData?.project?.lostDeal)}
+                  onChange={(e) =>
+                    setProjectData((prev: any) => ({
+                      ...prev,
+                      project: {
+                        ...(prev?.project ?? {}),
+                        lostDeal: e.target.checked,
+                        lostDealReason: e.target.checked
+                          ? prev?.project?.lostDealReason ?? ""
+                          : "",
+                      },
+                    }))
+                  }
+                  className="accent-red-600 h-4 w-4 shrink-0 disabled:opacity-50"
+                />
+                失注
+              </label>
+              {projectData?.project?.lostDeal ? (
+                <DisplayOrInput
+                  edit={edit}
+                  value={String(projectData?.project?.lostDealReason ?? "")}
+                  onChange={(e) =>
+                    setProjectData((prev: any) => ({
+                      ...prev,
+                      project: {
+                        ...(prev?.project ?? {}),
+                        lostDealReason: e.target.value,
+                      },
+                    }))
+                  }
+                  placeholder="失注理由"
+                  className="w-[160px] h-8 text-xs"
+                />
+              ) : null}
+            </div>
+          </div>
           <DisplayOrInput
             edit={edit}
             value={projectName}
