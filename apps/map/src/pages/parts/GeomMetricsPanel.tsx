@@ -260,38 +260,40 @@ export default function GeomMetricsPanel() {
         <section className="geom-col" aria-label="保安距離">
           <div className="geom-col-title">保安距離</div>
           <div className="geom-rows">
-            {/* 新式 */}
-            <div className="geom-row">
-              <span className="k radio-position">
-                <label
-                  className={`inline-flex items-center gap-1 ${!editable ? "radio-readonly" : ""
-                    }`}
-                >
-                  <input
-                    type="radio"
-                    name="safetyMode"
-                    value="new"
-                    checked={(m.safetyMode ?? "new") === "new"}
-                    onChange={() => {
-                      if (!editable) return;
-                      setM((p) => ({ ...p, safetyMode: "new" }));
-                      send({ safetyMode: "new" } as any);
-                    }}
-                  />
-                  <span className="leading-none"> 新</span>
-                </label>
-              </span>
-              <input
-                className="v geom-input"
-                type="text"
-                placeholder="-"
-                value={toInput(m.safetyDistanceNew_m)}
-                readOnly
-                disabled
-                aria-label="保安距離(新式)"
-              />
-              <span className="u">m</span>
-            </div>
+            {/* 一時対応: 新式は使用不可のため非表示（復活時は下記ブロックを戻す） */}
+            {/*
+              <div className="geom-row">
+                <span className="k radio-position">
+                  <label
+                    className={`inline-flex items-center gap-1 ${!editable ? "radio-readonly" : ""
+                      }`}
+                  >
+                    <input
+                      type="radio"
+                      name="safetyMode"
+                      value="new"
+                      checked={(m.safetyMode ?? "new") === "new"}
+                      onChange={() => {
+                        if (!editable) return;
+                        setM((p) => ({ ...p, safetyMode: "new" }));
+                        send({ safetyMode: "new" } as any);
+                      }}
+                    />
+                    <span className="leading-none"> 新</span>
+                  </label>
+                </span>
+                <input
+                  className="v geom-input"
+                  type="text"
+                  placeholder="-"
+                  value={toInput(m.safetyDistanceNew_m)}
+                  readOnly
+                  disabled
+                  aria-label="保安距離(新式)"
+                />
+                <span className="u">m</span>
+              </div>
+            */}
 
             {/* 旧式 */}
             <div className="geom-row">
@@ -304,7 +306,7 @@ export default function GeomMetricsPanel() {
                     type="radio"
                     name="safetyMode"
                     value="old"
-                    checked={m.safetyMode === "old"}
+                    checked={(m.safetyMode ?? "old") === "old" || m.safetyMode === "new"}
                     onChange={() => {
                       if (!editable) return;
                       setM((p) => ({ ...p, safetyMode: "old" }));
