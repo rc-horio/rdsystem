@@ -1,5 +1,5 @@
 // apps/auth/src/pages/SelectProject.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { BrandHeader, validateProjectId } from "@/components";
 import { signOut } from "aws-amplify/auth";
@@ -14,6 +14,11 @@ import {
 } from "@/lib/catalogApi";
 import { v4 as uuidv4 } from "uuid";
 import { FullHeightSelect } from "@/components";
+import {
+  partitionProjectsForDropdown,
+  PROJECT_SELECT_DIVIDER_LABEL,
+} from "@/lib/sortProjectsForDropdown";
+import type { SelectOptionGroup } from "@/components/FullHeightSelect";
 
 // 環境変数からHub・Map・ストックコンテンツのベースURLを取得
 const HUB_BASE = String(import.meta.env.VITE_HUB_BASE_URL || "");
@@ -179,10 +184,38 @@ export default function SelectProject() {
 
   const navigate = useNavigate();
 
-  const projectOptions = projects.map((p) => ({
+  const { active: activeProjects, old: oldProjects } = useMemo(
+    () => partitionProjectsForDropdown(projects),
+    [projects]
+  );
+
+  const sortedProjects = useMemo(
+    () => [...activeProjects, ...oldProjects],
+    [activeProjects, oldProjects]
+  );
+
+  const toProjectOption = (p: ProjectMeta) => ({
     value: p.projectId,
     label: `${p.projectId.slice(0, 6)}-${p.projectName}`,
-  }));
+  });
+
+  const projectOptionGroups = useMemo((): SelectOptionGroup[] => {
+    const activeOpts = activeProjects.map(toProjectOption);
+    const oldOpts = oldProjects.map(toProjectOption);
+    if (activeOpts.length === 0) {
+      return [{ label: "", options: oldOpts }];
+    }
+    if (oldOpts.length === 0) {
+      return [{ label: "", options: activeOpts }];
+    }
+    return [
+      { label: "", options: activeOpts },
+      { label: PROJECT_SELECT_DIVIDER_LABEL, options: oldOpts },
+    ];
+  }, [activeProjects, oldProjects]);
+
+  const showProjectDivider =
+    activeProjects.length > 0 && oldProjects.length > 0;
 
   useEffect(() => {
     (async () => {
@@ -190,9 +223,6 @@ export default function SelectProject() {
         const res = await fetch(LIST_URL, { cache: "no-cache" });
         if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
         const json: ProjectMeta[] = await res.json();
-        json.sort((a, b) =>
-          (b.projectId || "").localeCompare(a.projectId || "")
-        );
         setProjects(json);
       } catch (e) {
         console.error("[SelectProject] projects.json fetch error", e);
@@ -460,7 +490,7 @@ export default function SelectProject() {
                   <div className="w-10/12 max-w-80 mx-auto mt-2">
                     <label className="block space-y-1">
                       <FullHeightSelect
-                        options={projectOptions}
+                        optionGroups={projectOptionGroups}
                         value={selectedProject}
                         onChange={setSelectedProject}
                         placeholder="-- Select a project --"
@@ -567,7 +597,7 @@ export default function SelectProject() {
                 <div className="w-full">
                   <label className="block space-y-1 mt-2">
                     <FullHeightSelect
-                      options={projectOptions}
+                      optionGroups={projectOptionGroups}
                       value={selectedProject}
                       onChange={setSelectedProject}
                       placeholder="-- Select a project --"
@@ -714,7 +744,17 @@ export default function SelectProject() {
                     className="w-full rounded-lg border border-slate-600 bg-slate-900/60 px-3 py-2 text-slate-100 focus:border-red-500 focus:ring-2 focus:ring-red-500 outline-none transition"
                   >
                     <option value="">-- Select a project --</option>
-                    {projects.map((p) => (
+                    {activeProjects.map((p) => (
+                      <option key={p.projectId} value={p.projectId}>
+                        {`${p.projectId.slice(0, 6)}-${p.projectName}`}
+                      </option>
+                    ))}
+                    {showProjectDivider && (
+                      <option disabled value="" className="text-slate-500">
+                        — Old —
+                      </option>
+                    )}
+                    {oldProjects.map((p) => (
                       <option key={p.projectId} value={p.projectId}>
                         {`${p.projectId.slice(0, 6)}-${p.projectName}`}
                       </option>

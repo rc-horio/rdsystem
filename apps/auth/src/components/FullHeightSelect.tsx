@@ -1,11 +1,24 @@
 // apps/auth/src/components/FullHeightSelect.tsx
 import { useMemo } from "react";
-import Select, { StylesConfig } from "react-select";
+import Select, {
+  type GroupBase,
+  type GroupHeadingProps,
+  type StylesConfig,
+} from "react-select";
+import { PROJECT_SELECT_DIVIDER_LABEL } from "@/lib/sortProjectsForDropdown";
 
 export type SelectOption = { value: string; label: string };
 
-type Props = {
+export type SelectOptionGroup = {
+  label: string;
   options: SelectOption[];
+};
+
+type Props = {
+  /** フラットな選択肢（optionGroups 未指定時） */
+  options?: SelectOption[];
+  /** グループ化された選択肢（アクティブ / Old 区切りなど） */
+  optionGroups?: SelectOptionGroup[];
   /** 選択中の値（option.value） */
   value: string;
   onChange: (value: string) => void;
@@ -25,6 +38,41 @@ type Props = {
   /** false=通常のプルダウン（SP向け） */
   fullHeight?: boolean;
 };
+
+function findOption(
+  value: string,
+  options?: SelectOption[],
+  optionGroups?: SelectOptionGroup[]
+): SelectOption | null {
+  if (options) {
+    return options.find((o) => o.value === value) ?? null;
+  }
+  if (optionGroups) {
+    for (const group of optionGroups) {
+      const found = group.options.find((o) => o.value === value);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function DividerGroupHeading(
+  props: GroupHeadingProps<SelectOption, false, GroupBase<SelectOption>>
+) {
+  if (props.data.label !== PROJECT_SELECT_DIVIDER_LABEL) return null;
+  return (
+    <div
+      className="mx-3 my-2 flex items-center gap-2"
+      role="separator"
+      aria-label="Old"
+    >
+      <span className="shrink-0 text-xs font-medium text-slate-500">
+        old
+      </span>
+      <div className="min-w-0 flex-1 border-t border-slate-600" />
+    </div>
+  );
+}
 
 /** プルダウン：画面上部〜下部まで伸ばして表示 */
 function createFullHeightMenu(config: {
@@ -82,6 +130,11 @@ const createStyles = (fullHeight: boolean): StylesConfig<SelectOption, false> =>
     ...base,
     maxHeight: fullHeight ? "calc(100vh - 96px)" : 300,
   }),
+  groupHeading: (base) => ({
+    ...base,
+    margin: 0,
+    padding: 0,
+  }),
   option: (base, state) => ({
     ...base,
     padding: "8px 12px",
@@ -99,6 +152,7 @@ const createStyles = (fullHeight: boolean): StylesConfig<SelectOption, false> =>
 
 export function FullHeightSelect({
   options,
+  optionGroups,
   value,
   onChange,
   placeholder = "-- Select --",
@@ -111,7 +165,11 @@ export function FullHeightSelect({
   menuOffsetFromCenter = 200,
   fullHeight = true,
 }: Props) {
-  const selected = options.find((o) => o.value === value) ?? null;
+  const selected = useMemo(
+    () => findOption(value, options, optionGroups),
+    [value, options, optionGroups]
+  );
+
   const Menu = useMemo(
     () =>
       fullHeight
@@ -133,9 +191,12 @@ export function FullHeightSelect({
     ]
   );
 
+  const selectOptions = optionGroups ?? options ?? [];
+  const useGroups = !!optionGroups;
+
   return (
-    <Select<SelectOption, false>
-      options={options}
+    <Select<SelectOption, false, GroupBase<SelectOption>>
+      options={selectOptions}
       value={selected}
       onChange={(opt) =>
         onChange((opt as SelectOption | null)?.value ?? "")
@@ -145,7 +206,16 @@ export function FullHeightSelect({
       isSearchable={isSearchable}
       menuPortalTarget={fullHeight ? document.body : undefined}
       menuPosition={fullHeight ? "fixed" : undefined}
-      components={Menu ? { Menu } : undefined}
+      components={
+        useGroups
+          ? {
+              ...(Menu ? { Menu } : {}),
+              GroupHeading: DividerGroupHeading,
+            }
+          : Menu
+            ? { Menu }
+            : undefined
+      }
       styles={createStyles(fullHeight)}
     />
   );
