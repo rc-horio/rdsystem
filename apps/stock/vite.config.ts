@@ -55,5 +55,5 @@ export default defineConfig({
       interval: 150,
     },
   },
-  build: { outDir: "dist", sourcemap: true },
+  build: { outDir: "dist", sourcemap: false },
 });

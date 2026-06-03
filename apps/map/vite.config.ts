@@ -77,5 +77,5 @@ export default defineConfig({
       interval: 150,      //   監視間隔 (ms) 好みで調整
     },
   },
-  build: { outDir: 'dist', sourcemap: true },
+  build: { outDir: 'dist', sourcemap: false },
 })
