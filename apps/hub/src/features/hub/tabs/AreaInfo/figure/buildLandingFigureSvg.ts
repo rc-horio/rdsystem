@@ -96,6 +96,8 @@ export function buildLandingFigureSvg(
         const leftInsetX = 4;
         const rightInsetX = 4;
         const topRightX = m.cornerTrX;
+        const xMid = m.rx + m.rectW / 2;
+        const yMid = m.ry + m.rectH / 2;
         const tlX = useOutsideH ? m.rx - outsidePadX : m.rx + leftInsetX;
         const tlY = useOutsideV ? m.ry - outsidePadY : m.ry + insetY;
         const trX = useOutsideH
@@ -110,16 +112,40 @@ export function buildLandingFigureSvg(
             ? m.rx + m.rectW + outsidePadX
             : m.rx + m.rectW - rightInsetX;
         const brY = blY;
+        const topY = tlY;
+        const bottomY = blY;
         const anchorTL = useOutsideH ? "end" : "start";
         const anchorTR = useOutsideH ? "start" : "end";
-        const anchorBL = anchorTL;
-        const anchorBR = anchorTR;
-        cornerNumberTexts = `
-            <text x="${tlX}" y="${tlY}" font-size="${fontSize}" fill="${labelColor}" text-anchor="${anchorTL}" dominant-baseline="middle" pointer-events="none" style="user-select: none;">${m.corner.tl}</text>
-            <text x="${trX}" y="${trY}" font-size="${fontSize}" fill="${labelColor}" text-anchor="${anchorTR}" dominant-baseline="middle" pointer-events="none" style="user-select: none;">${m.corner.tr}</text>
-            <text x="${blX}" y="${blY}" font-size="${fontSize}" fill="${labelColor}" text-anchor="${anchorBL}" dominant-baseline="middle" pointer-events="none" style="user-select: none;">${m.corner.bl}</text>
-            <text x="${brX}" y="${brY}" font-size="${fontSize}" fill="${labelColor}" text-anchor="${anchorBR}" dominant-baseline="middle" pointer-events="none" style="user-select: none;">${m.corner.br}</text>
+        const cornerText = (
+            x: number,
+            y: number,
+            anchor: string,
+            value: number,
+        ) =>
+            `<text x="${x}" y="${y}" font-size="${fontSize}" fill="${labelColor}" text-anchor="${anchor}" dominant-baseline="middle" pointer-events="none" style="user-select: none;">${value}</text>`;
+
+        if (m.countX === 1 && m.countY === 1) {
+            cornerNumberTexts = cornerText(xMid, yMid, "middle", m.corner.bl);
+        } else if (m.countX === 1) {
+            // 1列: 上下のみ（左右は同じ番号になる）
+            cornerNumberTexts = `
+            ${cornerText(xMid, topY, "middle", m.corner.tl)}
+            ${cornerText(xMid, bottomY, "middle", m.corner.bl)}
         `;
+        } else if (m.countY === 1) {
+            // 1行: 左右のみ（上下は同じ番号になる）
+            cornerNumberTexts = `
+            ${cornerText(tlX, yMid, anchorTL, m.corner.bl)}
+            ${cornerText(trX, yMid, anchorTR, m.corner.br)}
+        `;
+        } else {
+            cornerNumberTexts = `
+            ${cornerText(tlX, tlY, anchorTL, m.corner.tl)}
+            ${cornerText(trX, trY, anchorTR, m.corner.tr)}
+            ${cornerText(blX, blY, anchorTL, m.corner.bl)}
+            ${cornerText(brX, brY, anchorTR, m.corner.br)}
+        `;
+        }
     }
 
     const rectStroke = "#ed1b24";

@@ -1,7 +1,7 @@
 import type { Area } from "@/features/hub/types/resource";
 import { fmtMeters, parseSpacingSeq, cumDist } from "@/features/hub/utils/spacing";
-import type { BlockLayoutResolved } from "@/features/hub/tabs/AreaInfo/figure/multiBlockLayoutModel";
 import { buildMultiBlockLayoutModel } from "@/features/hub/tabs/AreaInfo/figure/multiBlockLayoutModel";
+import { buildMultiBlockOccupancyGrid } from "@/features/hub/tabs/AreaInfo/figure/multiBlockOccupancyGrid";
 
 type Theme = "ui" | "export";
 
@@ -50,6 +50,7 @@ export function buildMultiBlockLandingFigureSvg(
     : 0;
 
   const model = buildMultiBlockLayoutModel(area);
+  const occ = buildMultiBlockOccupancyGrid(area);
 
   const viewW = 460;
   const calcUiViewH = (aspect: number) => {
@@ -112,6 +113,9 @@ export function buildMultiBlockLandingFigureSvg(
 
   const safeW = Math.max(model.totalWidthM, 1);
   const safeH = Math.max(model.totalHeightM, 1);
+  // 1列/1行で機体中心スパンが 0 のとき、ダミー 1m キャンバスの中央に置く
+  const shiftXM = model.totalWidthM <= 0 ? safeW / 2 : 0;
+  const shiftYM = model.totalHeightM <= 0 ? safeH / 2 : 0;
 
   const scale = Math.min(usableW / safeW, usableH / safeH);
 
@@ -123,6 +127,14 @@ export function buildMultiBlockLandingFigureSvg(
   const figureLeft = pad.left + (usableW - figureW) / 2;
   const figureTop = pad.top + (usableH - figureH) / 2;
 
+  const toSvgX = (m: number) => figureLeft + ((m + shiftXM) / safeW) * figureW;
+  const toSvgY = (m: number) => figureTop + ((m + shiftYM) / safeH) * figureH;
+  const MIN_DRAW_PX = 12;
+  const inflateSpan = (origin: number, size: number) => {
+    if (size >= MIN_DRAW_PX) return { origin, size };
+    return { origin: origin - (MIN_DRAW_PX - size) / 2, size: MIN_DRAW_PX };
+  };
+
   const labels = "ABCDEFGHIJ".split("");
 
   // 各ブロックの六角形（端数）形状計算に必要な累積距離パターン
@@ -132,9 +144,6 @@ export function buildMultiBlockLandingFigureSvg(
   const seqX = parseSpacingSeq(horizontal);
   const seqY = parseSpacingSeq(vertical);
   const fallback = 1;
-
-  const scaleX = figureW / safeW;
-  const scaleY = figureH / safeH;
 
   // 行ごとのブロック配列（x昇順）。隣接時のラベル被り回避に使う
   const blocksByRow = new Map<number, typeof model.blocks>();
@@ -148,90 +157,12 @@ export function buildMultiBlockLandingFigureSvg(
     blocksByRow.set(k, arr);
   }
 
-  // 採番は「全体グリッド」基準（ブロック局所 + オフセットではない）
-  // - 列数: 各行の countX 合計の最大値
-  // - 行基点: rows[0] が最下段、その上に rows[1]...
-  const rowIndices = [...blocksByRow.keys()].sort((a, b) => a - b);
-  const rowHeightCells = new Map<number, number>();
-  const colStartByBlockId = new Map<string, number>();
-  const rowBaseByRowIndex = new Map<number, number>();
+  const idAt = (globalRow: number, globalCol: number): number | null =>
+    occ?.cellIdAtGlobal(globalRow, globalCol) ?? null;
 
-  for (const rowIndex of rowIndices) {
-    const arr = blocksByRow.get(rowIndex) ?? [];
-    let col = 0;
-    let maxRowsInRow = 1;
-    for (const b of arr) {
-      const countX = Math.max(0, Math.trunc(b.xCount));
-      const totalCount = Math.max(0, Math.trunc(b.totalCount));
-      colStartByBlockId.set(b.blockId, col);
-      col += countX;
-      if (countX > 0 && totalCount > 0) {
-        const actualRows = Math.ceil(totalCount / countX);
-        if (actualRows > maxRowsInRow) maxRowsInRow = actualRows;
-      }
-    }
-    rowHeightCells.set(rowIndex, Math.max(1, maxRowsInRow));
-  }
-
-  let runningRowBase = 0;
-  for (const rowIndex of rowIndices) {
-    rowBaseByRowIndex.set(rowIndex, runningRowBase);
-    runningRowBase += rowHeightCells.get(rowIndex) ?? 1;
-  }
-
-  // 占有セルのみを採番対象にする（空白セルはカウントしない）
-  // key: globalRow, value: [startCol, endCol] の配列（行内で昇順）
-  const occupiedIntervalsByGlobalRow = new Map<number, Array<[number, number]>>();
-  for (const b of model.blocks) {
-    const countX = Math.max(0, Math.trunc(b.xCount));
-    const totalCount = Math.max(0, Math.trunc(b.totalCount));
-    if (countX <= 0 || totalCount <= 0) continue;
-
-    const rowBase = rowBaseByRowIndex.get(b.rowIndex) ?? 0;
-    const colStart = colStartByBlockId.get(b.blockId) ?? 0;
-    const actualRows = Math.ceil(totalCount / countX);
-    const lastRowCount = totalCount - (actualRows - 1) * countX;
-    const isHexagon =
-      totalCount < countX * Math.max(1, Math.trunc(b.yCount)) &&
-      lastRowCount > 0 &&
-      lastRowCount < countX;
-
-    for (let r = 0; r < actualRows; r++) {
-      const rowWidth = isHexagon && r === actualRows - 1 ? lastRowCount : countX;
-      if (rowWidth <= 0) continue;
-      const gRow = rowBase + r;
-      const intervals = occupiedIntervalsByGlobalRow.get(gRow) ?? [];
-      intervals.push([colStart, colStart + rowWidth - 1]);
-      intervals.sort((a, c) => a[0] - c[0]);
-      occupiedIntervalsByGlobalRow.set(gRow, intervals);
-    }
-  }
-
-  // 各行の累積占有セル数（行頭まで）を前計算
-  const globalRows = [...occupiedIntervalsByGlobalRow.keys()].sort((a, b) => a - b);
-  const occupiedPrefixBeforeRow = new Map<number, number>();
-  let occupiedRunning = 0;
-  for (const gRow of globalRows) {
-    occupiedPrefixBeforeRow.set(gRow, occupiedRunning);
-    const rowIntervals = occupiedIntervalsByGlobalRow.get(gRow) ?? [];
-    occupiedRunning += rowIntervals.reduce((sum, [s, e]) => sum + (e - s + 1), 0);
-  }
-
-  const rankAtOccupiedCell = (globalRow: number, globalCol: number): number => {
-    const base = occupiedPrefixBeforeRow.get(globalRow) ?? 0;
-    const rowIntervals = occupiedIntervalsByGlobalRow.get(globalRow) ?? [];
-    let inRow = 0;
-    for (const [s, e] of rowIntervals) {
-      if (globalCol < s) break;
-      if (globalCol > e) {
-        inRow += e - s + 1;
-        continue;
-      }
-      inRow += globalCol - s + 1;
-      return base + inRow - 1;
-    }
-    // 本来ここには来ない（cornerは常に占有セル）
-    return Math.max(0, base + inRow - 1);
+  const spanOnSeq = (fromIndex: number, steps: number, seq: number[]) => {
+    if (steps <= 0) return 0;
+    return cumDist(fromIndex + steps, seq, fallback) - cumDist(fromIndex, seq, fallback);
   };
 
   const rects = model.blocks.map((b) => {
@@ -245,10 +176,16 @@ export function buildMultiBlockLandingFigureSvg(
     const useOutsideV =
       placement === "outside" ? cornerOpts.outsideVertical ?? true : false;
 
-    const x = figureLeft + (b.x / safeW) * figureW;
-    const y = figureTop + (b.y / safeH) * figureH;
-    const w = (b.widthM / safeW) * figureW;
-    const h = (b.heightM / safeH) * figureH;
+    const geomX = toSvgX(b.x);
+    const geomY = toSvgY(b.y);
+    const geomW = (b.widthM / safeW) * figureW;
+    const geomH = (b.heightM / safeH) * figureH;
+    const inflatedX = inflateSpan(geomX, geomW);
+    const inflatedY = inflateSpan(geomY, geomH);
+    const x = inflatedX.origin;
+    const y = inflatedY.origin;
+    const w = inflatedX.size;
+    const h = inflatedY.size;
 
     const cx = x + w / 2;
     const cy = y + h / 2;
@@ -276,34 +213,40 @@ export function buildMultiBlockLandingFigureSvg(
       lastRowCount > 0 &&
       lastRowCount < countX;
 
-    // 六角形時の切れ目位置（TRラベル位置にも利用）
+    // 六角形時の切れ目位置（TRラベル位置にも利用）。幅・高さは格子上の位相で計算する
     let topRowWidthScaled = w;
     let lastRowHeightScaled = h;
     if (isHexagon) {
       const minLastRowHeightRatio = 0.15;
       const minStepWidthRatio = 0.08;
+      const drawScaleX = w / Math.max(b.widthM, 1e-9);
+      const drawScaleY = h / Math.max(b.heightM, 1e-9);
 
       if (actualRowCount === 1) {
         const topRowWidthM =
-          lastRowCount >= 1 ? cumDist(lastRowCount - 1, seqX, fallback) : 0;
-        topRowWidthScaled = topRowWidthM * scaleX;
+          lastRowCount >= 1
+            ? spanOnSeq(b.colStart, lastRowCount - 1, seqX)
+            : 0;
+        topRowWidthScaled = topRowWidthM * drawScaleX;
       } else {
-        // landingFigureModel と同様の計算方針
+        const topRow = b.rowBase + actualRowCount - 1;
         const lastRowHeightM =
           actualRowCount === 2
             ? b.heightM / 2
-            : cumDist(actualRowCount - 1, seqY, fallback) -
-              cumDist(actualRowCount - 2, seqY, fallback);
-        const rawLastRowHeightScaled = lastRowHeightM * scaleY;
+            : cumDist(topRow, seqY, fallback) -
+              cumDist(topRow - 1, seqY, fallback);
+        const rawLastRowHeightScaled = lastRowHeightM * drawScaleY;
         lastRowHeightScaled = Math.max(
           rawLastRowHeightScaled,
           h * minLastRowHeightRatio
         );
 
         const topRowWidthM =
-          lastRowCount >= 2 ? cumDist(lastRowCount - 1, seqX, fallback) : 0;
+          lastRowCount >= 2
+            ? spanOnSeq(b.colStart, lastRowCount - 1, seqX)
+            : 0;
         topRowWidthScaled = Math.min(
-          topRowWidthM * scaleX,
+          topRowWidthM * drawScaleX,
           w * (1 - minStepWidthRatio)
         );
       }
@@ -311,7 +254,7 @@ export function buildMultiBlockLandingFigureSvg(
 
     const topRightX = isHexagon ? x + topRowWidthScaled : x + w;
 
-    // ブロック内の四隅ID（全体仮想グリッド基準、ただし空白セルは採番しない）
+    // ブロック内の四隅ID（占有グリッド。空白セルは採番しない）
     const corner = (() => {
       if (!Number.isFinite(countX) || !Number.isFinite(countY) || !Number.isFinite(totalCount)) return null;
       if (countX <= 0 || countY <= 0 || totalCount <= 0) return null;
@@ -323,19 +266,17 @@ export function buildMultiBlockLandingFigureSvg(
       const isHexagon =
         totalCount < fullRectCount && lastRowCount > 0 && lastRowCount < countX;
 
-      const colStart = colStartByBlockId.get(b.blockId) ?? 0;
-      const rowBase = rowBaseByRowIndex.get(b.rowIndex) ?? 0;
-
       const bottomCols =
         isHexagon && actualRowCount === 1 ? lastRowCount : countX;
       const topCols =
         isHexagon ? lastRowCount : countX;
 
-      const topRow = rowBase + actualRowCount - 1;
-      const bl = rankAtOccupiedCell(rowBase, colStart);
-      const br = rankAtOccupiedCell(rowBase, colStart + Math.max(1, bottomCols) - 1);
-      const tl = rankAtOccupiedCell(topRow, colStart);
-      const tr = rankAtOccupiedCell(topRow, colStart + Math.max(1, topCols) - 1);
+      const topRow = b.rowBase + actualRowCount - 1;
+      const bl = idAt(b.rowBase, b.colStart);
+      const br = idAt(b.rowBase, b.colStart + Math.max(1, bottomCols) - 1);
+      const tl = idAt(topRow, b.colStart);
+      const tr = idAt(topRow, b.colStart + Math.max(1, topCols) - 1);
+      if (bl === null || br === null || tl === null || tr === null) return null;
 
       return {
         tl,
@@ -469,7 +410,26 @@ export function buildMultiBlockLandingFigureSvg(
       if (!showCornerNumbers) return "";
       if (!corner) return "";
 
-      // y_count=1 は左右のみ、x_count=1 は上下のみ表示
+      // 1機だけなら中央に1つ。y=1 は左右のみ、x=1 は上下のみ（同じ番号の重複を避ける）
+      if (countX === 1 && countY === 1) {
+        const xMid = x + w / 2;
+        const yMid = y + h / 2;
+        return `
+  <text
+    x="${xMid}"
+    y="${yMid}"
+    font-size="${fontSize}"
+    fill="${labelColor}"
+    text-anchor="middle"
+    dominant-baseline="middle"
+    pointer-events="none"
+    style="user-select: none;"
+  >
+    ${corner.bl}
+  </text>
+        `.trim();
+      }
+
       if (countY === 1) {
         const yMid = y + h / 2;
         return `
