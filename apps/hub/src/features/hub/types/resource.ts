@@ -105,8 +105,9 @@ export type Area = {
   return_note: string;
   distance_from_viewers_m: number | null;
   spacing_between_drones_m: {
-    horizontal: string; // "0.6 1.2" のようにスペース区切り
+    horizontal: string; // CSV。不等間隔時は "0.4,0.5,0.4,1.4"
     vertical: string;
+    unequal?: boolean;
   };
   /** 複数ブロック時のみ。無い or 空の場合は drone_count を参照して 1 ブロックとして扱う */
   blocks?: Block[];

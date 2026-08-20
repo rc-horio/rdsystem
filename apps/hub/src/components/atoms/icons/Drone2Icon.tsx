@@ -12,6 +12,10 @@ type Drone2IconProps = {
   rotationDeg?: number;
   cols?: number;
   rows?: number;
+  /** 1機の表示サイズ。未指定なら DRONE_SPACING_ICON_PX */
+  iconPx?: number;
+  /** 機間ギャップ。未指定なら DRONE_SPACING_GAP_PX */
+  gapPx?: number;
 };
 
 /* =========================
@@ -22,16 +26,15 @@ export function Drone2Icon({
   rotationDeg = 180,
   cols = 2,
   rows = 2,
+  iconPx = DRONE_SPACING_ICON_PX,
+  gapPx = DRONE_SPACING_GAP_PX,
 }: Drone2IconProps) {
   const colCount = Math.max(2, cols);
   const rowCount = Math.max(2, rows);
-  const width =
-    colCount * DRONE_SPACING_ICON_PX + (colCount - 1) * DRONE_SPACING_GAP_PX;
-  const height =
-    rowCount * DRONE_SPACING_ICON_PX + (rowCount - 1) * DRONE_SPACING_GAP_PX;
-  const inset = DRONE_SPACING_ICON_PX / 2 + LINE_END_GAP_PX;
-  const centerAt = (i: number) =>
-    i * (DRONE_SPACING_ICON_PX + DRONE_SPACING_GAP_PX) + DRONE_SPACING_ICON_PX / 2;
+  const width = colCount * iconPx + (colCount - 1) * gapPx;
+  const height = rowCount * iconPx + (rowCount - 1) * gapPx;
+  const inset = iconPx / 2 + LINE_END_GAP_PX;
+  const centerAt = (i: number) => i * (iconPx + gapPx) + iconPx / 2;
 
   const hLines: { x1: number; x2: number; y: number }[] = [];
   const vLines: { y1: number; y2: number; x: number }[] = [];
@@ -86,14 +89,15 @@ export function Drone2Icon({
       <div
         className="relative grid"
         style={{
-          gridTemplateColumns: `repeat(${colCount}, ${DRONE_SPACING_ICON_PX}px)`,
-          gap: DRONE_SPACING_GAP_PX,
+          gridTemplateColumns: `repeat(${colCount}, ${iconPx}px)`,
+          gap: gapPx,
         }}
       >
         {Array.from({ length: colCount * rowCount }).map((_, i) => (
           <Drone1Icon
             key={i}
-            className="w-10 h-10"
+            className="block"
+            style={{ width: iconPx, height: iconPx }}
             rotationDeg={rotationDeg}
             alt=""
           />

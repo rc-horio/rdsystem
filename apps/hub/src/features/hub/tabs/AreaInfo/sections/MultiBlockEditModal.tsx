@@ -2,7 +2,10 @@
 // 複数ブロック編集モーダル（Phase 2-1: UI 構築）
 
 import { useState, useEffect, useCallback } from "react";
-import { Modal } from "@/components";
+import {
+  Modal,
+  Drone2Icon,
+} from "@/components";
 import { buildLandingFigureModel } from "@/features/hub/tabs/AreaInfo/figure/landingFigureModel";
 import { buildLandingFigureSvg } from "@/features/hub/tabs/AreaInfo/figure/buildLandingFigureSvg";
 import { buildMultiBlockLandingFigureSvg } from "@/features/hub/tabs/AreaInfo/figure/multiBlockLandingFigureSvg";
@@ -14,6 +17,10 @@ const BLOCK_LABELS = "ABCDEFGHIJ".split("");
 const BLOCK_COUNT_MAX = 10;
 const BLOCK_COUNT_MAX_DIGITS = 5;
 const BLOCK_SIDE_MAX_DIGITS = 4;
+const MAX_SPACING_GAPS = 8;
+const SPACING_INPUT_W_PX = 52;
+const MODAL_DRONE_ICON_PX = 24;
+const MODAL_DRONE_GAP_PX = 48;
 
 function isPositiveInt(n: number): boolean {
   return Number.isInteger(n) && n > 0;
@@ -130,6 +137,7 @@ type ModalState = {
   gapsBetweenRowsM: number[];
   spacingHorizontal: number[];
   spacingVertical: number[];
+  spacingUnequal: boolean;
   /** ブロック ID ごとの四隅機体番号表示 */
   cornerDisplayByBlockId: Record<string, CornerDisplayForBlock>;
   rulerDisplay: {
@@ -170,6 +178,10 @@ function initialStateFromArea(area: Area | null | undefined): ModalState {
   const spacingVertical = parseSpacing(v);
   if (spacingHorizontal.length === 0) spacingHorizontal.push(1);
   if (spacingVertical.length === 0) spacingVertical.push(1);
+  const spacingUnequal =
+    (area as any)?.spacing_between_drones_m?.unequal === true ||
+    spacingHorizontal.length > 1 ||
+    spacingVertical.length > 1;
 
   const savedDisplay = (area as any)?.landing_figure_display ?? {};
   const savedCornerByBlockId =
@@ -201,6 +213,7 @@ function initialStateFromArea(area: Area | null | undefined): ModalState {
     gapsBetweenRowsM,
     spacingHorizontal,
     spacingVertical,
+    spacingUnequal,
     cornerDisplayByBlockId,
     rulerDisplay: {
       leftXOffsetPx: Number.isFinite(savedRuler.leftXOffsetPx) ? Number(savedRuler.leftXOffsetPx) : 0,
@@ -272,6 +285,7 @@ export function MultiBlockEditModal({
     spacing_between_drones_m: {
       horizontal: figureSource.spacingHorizontal.join(","),
       vertical: figureSource.spacingVertical.join(","),
+      unequal: figureSource.spacingUnequal,
     },
     drone_count: figureSource.blocks[0]
       ? {
@@ -543,32 +557,48 @@ export function MultiBlockEditModal({
   }, []);
 
   const addSpacingHorizontal = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      spacingHorizontal: [...prev.spacingHorizontal, 1],
-    }));
-  }, []);
-
-  const addSpacingVertical = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      spacingVertical: [...prev.spacingVertical, 1],
-    }));
-  }, []);
-
-  const removeSpacingHorizontal = useCallback((index: number) => {
     setState((prev) => {
-      if (prev.spacingHorizontal.length <= 1) return prev;
-      const arr = prev.spacingHorizontal.filter((_, i) => i !== index);
-      return { ...prev, spacingHorizontal: arr };
+      if (prev.spacingHorizontal.length >= MAX_SPACING_GAPS) return prev;
+      const last = prev.spacingHorizontal[prev.spacingHorizontal.length - 1] ?? 1;
+      return {
+        ...prev,
+        spacingUnequal: true,
+        spacingHorizontal: [...prev.spacingHorizontal, last],
+      };
     });
   }, []);
 
-  const removeSpacingVertical = useCallback((index: number) => {
+  const addSpacingVertical = useCallback(() => {
+    setState((prev) => {
+      if (prev.spacingVertical.length >= MAX_SPACING_GAPS) return prev;
+      const last = prev.spacingVertical[prev.spacingVertical.length - 1] ?? 1;
+      return {
+        ...prev,
+        spacingUnequal: true,
+        spacingVertical: [...prev.spacingVertical, last],
+      };
+    });
+  }, []);
+
+  const removeSpacingHorizontal = useCallback(() => {
+    setState((prev) => {
+      if (prev.spacingHorizontal.length <= 1) return prev;
+      return {
+        ...prev,
+        spacingUnequal: true,
+        spacingHorizontal: prev.spacingHorizontal.slice(0, -1),
+      };
+    });
+  }, []);
+
+  const removeSpacingVertical = useCallback(() => {
     setState((prev) => {
       if (prev.spacingVertical.length <= 1) return prev;
-      const arr = prev.spacingVertical.filter((_, i) => i !== index);
-      return { ...prev, spacingVertical: arr };
+      return {
+        ...prev,
+        spacingUnequal: true,
+        spacingVertical: prev.spacingVertical.slice(0, -1),
+      };
     });
   }, []);
 
@@ -586,6 +616,23 @@ export function MultiBlockEditModal({
       arr[index] = value;
       return { ...prev, spacingVertical: arr };
     });
+  }, []);
+
+  const setSpacingUnequal = useCallback((next: boolean) => {
+    if (next) {
+      setState((prev) => ({ ...prev, spacingUnequal: true }));
+      return;
+    }
+    const ok = window.confirm(
+      "不等間隔をオフにすると、追加した間隔の入力は先頭の1件だけ残して削除されます。よろしいですか？"
+    );
+    if (!ok) return;
+    setState((prev) => ({
+      ...prev,
+      spacingUnequal: false,
+      spacingHorizontal: [prev.spacingHorizontal[0] ?? 1],
+      spacingVertical: [prev.spacingVertical[0] ?? 1],
+    }));
   }, []);
 
   const updateRowGap = useCallback((rowIndex: number, gapIndex: number, value: number) => {
@@ -653,6 +700,7 @@ export function MultiBlockEditModal({
       spacing_between_drones_m: {
         horizontal: state.spacingHorizontal.join(","),
         vertical: state.spacingVertical.join(","),
+        unequal: state.spacingUnequal,
       },
     };
 
@@ -813,6 +861,19 @@ export function MultiBlockEditModal({
   const inputSm = "w-14 px-2 py-1 text-sm";
   const inputXs = "w-12 px-1.5 py-0.5 text-xs";
 
+  const seqX = state.spacingHorizontal;
+  const seqY = state.spacingVertical;
+  const spacingUnequalActive =
+    state.spacingUnequal || seqX.length > 1 || seqY.length > 1;
+  const spacingCols = spacingUnequalActive ? Math.max(2, seqX.length + 1) : 2;
+  const spacingRows = spacingUnequalActive ? Math.max(2, seqY.length + 1) : 2;
+  const rawDroneRotation = (area as { drone_orientation_deg?: number } | null | undefined)
+    ?.drone_orientation_deg;
+  const droneRotation =
+    typeof rawDroneRotation === "number" && Number.isFinite(rawDroneRotation)
+      ? rawDroneRotation
+      : 180;
+
   return (
     <Modal
       show={show}
@@ -854,92 +915,169 @@ export function MultiBlockEditModal({
             {/* ① 機体間隔 */}
             <section>
               <h3 className="text-sm font-medium text-slate-200 mb-3">機体間隔</h3>
-              <div className="flex gap-8">
-                <div>
-                  <label className="block text-xs text-slate-200 mb-1.5">x</label>
-                  <div className="flex flex-col gap-1.5">
-                    {state.spacingHorizontal.map((v, i) => (
-                      <div key={i} className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          value={Number.isFinite(v) ? v : ""}
-                          onChange={(e) => {
-                            const raw = e.target.value;
-                            if (hasMinusSign(raw) || isOverCharLimit(raw, 4)) return;
-                            const num = raw === "" ? NaN : Number(raw);
-                            updateSpacingHorizontal(i, num);
-                          }}
-                          className={`${inputBase} ${inputSm} ${
-                            invalidSpacingHorizontal[i] ? "border-red-500" : ""
+              <div className="flex flex-col items-start gap-3 min-w-0 overflow-x-auto pb-1">
+                    <label className="flex items-center gap-2 text-sm text-slate-200 select-none cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={spacingUnequalActive}
+                        onChange={(e) => setSpacingUnequal(e.target.checked)}
+                        className="accent-red-600 h-4 w-4 shrink-0"
+                      />
+                      不等間隔
+                    </label>
+
+                    <div className="flex items-start">
+                      <div className="relative shrink-0 mr-4">
+                        <div
+                          className={`absolute top-0 z-10 flex items-center gap-1 ${
+                            spacingUnequalActive ? "" : "invisible"
                           }`}
-                          inputMode="decimal"
-                          step="0.1"
-                          min="0"
-                        />
-                        <span className="text-slate-200 text-sm">m</span>
-                        {state.spacingHorizontal.length > 1 && (
+                          style={{ left: -5 }}
+                        >
                           <button
                             type="button"
-                            onClick={() => removeSpacingHorizontal(i)}
-                            className="w-6 h-6 flex items-center justify-center rounded text-slate-200 hover:bg-slate-700 hover:text-slate-200 text-sm"
+                            onClick={addSpacingVertical}
+                            disabled={!spacingUnequalActive || seqY.length >= MAX_SPACING_GAPS}
+                            className="px-2 py-0.5 text-sm text-slate-100 hover:bg-slate-700 disabled:opacity-50"
+                            title="上に間隔を追加"
+                            aria-label="上に間隔を追加"
                           >
-                            ー
+                            ＋
                           </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={addSpacingHorizontal}
-                    className="mt-1.5 px-2 py-1 rounded text-sm text-slate-200 hover:bg-slate-700 hover:text-slate-200"
-                  >
-                    ＋
-                  </button>
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-200 mb-1.5">y</label>
-                  <div className="flex flex-col gap-1.5">
-                    {state.spacingVertical.map((v, i) => (
-                      <div key={i} className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          value={Number.isFinite(v) ? v : ""}
-                          onChange={(e) => {
-                            const raw = e.target.value;
-                            if (hasMinusSign(raw) || isOverCharLimit(raw, 4)) return;
-                            const num = raw === "" ? NaN : Number(raw);
-                            updateSpacingVertical(i, num);
-                          }}
-                          className={`${inputBase} ${inputSm} ${
-                            invalidSpacingVertical[i] ? "border-red-500" : ""
-                          }`}
-                          inputMode="decimal"
-                          step="0.1"
-                          min="0"
-                        />
-                        <span className="text-slate-200 text-sm">m</span>
-                        {state.spacingVertical.length > 1 && (
                           <button
                             type="button"
-                            onClick={() => removeSpacingVertical(i)}
-                            className="w-6 h-6 flex items-center justify-center rounded text-slate-200 hover:bg-slate-700 hover:text-slate-200 text-sm"
+                            onClick={removeSpacingVertical}
+                            disabled={!spacingUnequalActive || seqY.length <= 1}
+                            className="px-2 py-0.5 text-sm text-slate-100 hover:bg-slate-700 disabled:opacity-50"
+                            title="上の間隔を削除"
+                            aria-label="上の間隔を削除"
                           >
-                            ー
+                            －
                           </button>
-                        )}
+                        </div>
+                        <div
+                          className="flex flex-col"
+                          style={{ paddingTop: MODAL_DRONE_ICON_PX }}
+                        >
+                          {[...seqY].reverse().map((val, visualI) => {
+                            const actualI = seqY.length - 1 - visualI;
+                            const isLast = visualI === seqY.length - 1;
+                            return (
+                              <div
+                                key={`y-${actualI}`}
+                                className="relative flex items-center justify-center"
+                                style={{
+                                  height: MODAL_DRONE_GAP_PX,
+                                  marginBottom: isLast ? 0 : MODAL_DRONE_ICON_PX,
+                                  width: SPACING_INPUT_W_PX,
+                                }}
+                              >
+                                <input
+                                  type="number"
+                                  value={Number.isFinite(val) ? val : ""}
+                                  onChange={(e) => {
+                                    const raw = e.target.value;
+                                    if (hasMinusSign(raw) || isOverCharLimit(raw, 4)) return;
+                                    const num = raw === "" ? NaN : Number(raw);
+                                    updateSpacingVertical(actualI, num);
+                                  }}
+                                  className={`${inputBase} w-[52px] px-1 py-1 text-sm text-center ${
+                                    invalidSpacingVertical[actualI] ? "border-red-500" : ""
+                                  }`}
+                                  inputMode="decimal"
+                                  step="0.1"
+                                  min="0"
+                                />
+                                <span className="absolute left-full ml-1 text-slate-100 text-sm">
+                                  m
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    ))}
+
+                      <div className="relative">
+                        <Drone2Icon
+                          className="drone2-img"
+                          rotationDeg={droneRotation}
+                          cols={spacingCols}
+                          rows={spacingRows}
+                          iconPx={MODAL_DRONE_ICON_PX}
+                          gapPx={MODAL_DRONE_GAP_PX}
+                        />
+                        <div
+                          className="flex"
+                          style={{
+                            paddingLeft: MODAL_DRONE_ICON_PX,
+                            paddingTop: 10,
+                          }}
+                        >
+                          {seqX.map((val, i) => {
+                            const isLast = i === seqX.length - 1;
+                            return (
+                              <div
+                                key={`x-${i}`}
+                                className="relative flex items-center justify-center"
+                                style={{
+                                  width: MODAL_DRONE_GAP_PX,
+                                  height: MODAL_DRONE_GAP_PX,
+                                  marginRight: isLast ? 0 : MODAL_DRONE_ICON_PX,
+                                }}
+                              >
+                                <input
+                                  type="number"
+                                  value={Number.isFinite(val) ? val : ""}
+                                  onChange={(e) => {
+                                    const raw = e.target.value;
+                                    if (hasMinusSign(raw) || isOverCharLimit(raw, 4)) return;
+                                    const num = raw === "" ? NaN : Number(raw);
+                                    updateSpacingHorizontal(i, num);
+                                  }}
+                                  className={`${inputBase} w-[52px] px-1 py-1 text-sm text-center ${
+                                    invalidSpacingHorizontal[i] ? "border-red-500" : ""
+                                  }`}
+                                  inputMode="decimal"
+                                  step="0.1"
+                                  min="0"
+                                />
+                                <span className="absolute left-full ml-1 text-slate-100 text-sm">
+                                  m
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div
+                          className={`absolute flex items-center gap-1 ${
+                            spacingUnequalActive ? "" : "invisible"
+                          }`}
+                          style={{ left: "100%", bottom: 12, marginLeft: 12 }}
+                        >
+                          <button
+                            type="button"
+                            onClick={addSpacingHorizontal}
+                            disabled={!spacingUnequalActive || seqX.length >= MAX_SPACING_GAPS}
+                            className="px-2 py-0.5 text-sm text-slate-100 hover:bg-slate-700 disabled:opacity-50"
+                            title="右に間隔を追加"
+                            aria-label="右に間隔を追加"
+                          >
+                            ＋
+                          </button>
+                          <button
+                            type="button"
+                            onClick={removeSpacingHorizontal}
+                            disabled={!spacingUnequalActive || seqX.length <= 1}
+                            className="px-2 py-0.5 text-sm text-slate-100 hover:bg-slate-700 disabled:opacity-50"
+                            title="右の間隔を削除"
+                            aria-label="右の間隔を削除"
+                          >
+                            －
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={addSpacingVertical}
-                    className="mt-1.5 px-2 py-1 rounded text-sm text-slate-200 hover:bg-slate-700 hover:text-slate-200"
-                  >
-                    ＋
-                  </button>
-                </div>
-              </div>
             </section>
 
             {/* ② ブロック */}
