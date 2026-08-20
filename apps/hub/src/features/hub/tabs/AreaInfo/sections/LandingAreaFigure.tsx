@@ -8,6 +8,8 @@ import {
   Drone1Icon,
   Drone2Icon,
   DisplayOrInput,
+  DRONE_SPACING_ICON_PX,
+  DRONE_SPACING_GAP_PX,
 } from "@/components";
 
 type Props = {
@@ -15,6 +17,16 @@ type Props = {
   area: any | null;
   onPatchArea: (patch: any) => void;
 };
+
+const MAX_SPACING_GAPS = 8;
+const SPACING_INPUT_W_PX = 52;
+
+function splitSpacingFields(v: string): string[] {
+  if (typeof v !== "string" || v.trim() === "") return [""];
+  const parts = v.split(",").map((s) => s.trim());
+  while (parts.length > 1 && parts[parts.length - 1] === "") parts.pop();
+  return parts.length > 0 ? parts : [""];
+}
 
 export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
   const figureDisplay = (area as any)?.landing_figure_display ?? {};
@@ -66,9 +78,90 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
         },
       });
 
-  // 間隔入力（オペレーションタブのテーブルと同じ仕様）
-  const horizontal = area?.spacing_between_drones_m?.horizontal ?? "";
-  const vertical = area?.spacing_between_drones_m?.vertical ?? "";
+  // 間隔入力（オペレーションタブのテーブルと同じ CSV を内部保持）
+  const spacing = area?.spacing_between_drones_m ?? {};
+  const horizontal = spacing.horizontal ?? "";
+  const vertical = spacing.vertical ?? "";
+
+  const seqXFields = splitSpacingFields(horizontal);
+  const seqYFields = splitSpacingFields(vertical);
+  const unequal =
+    spacing.unequal === true ||
+    seqXFields.length > 1 ||
+    seqYFields.length > 1;
+
+  const cols = unequal ? Math.max(2, seqXFields.length + 1) : 2;
+  const rows = unequal ? Math.max(2, seqYFields.length + 1) : 2;
+
+  const patchSpacing = (partial: Record<string, unknown>) => {
+    onPatchArea({
+      ...(area ?? {}),
+      spacing_between_drones_m: {
+        ...spacing,
+        ...partial,
+      },
+    });
+  };
+
+  const setSeqXAt = (index: number, v: string) => {
+    const next = [...seqXFields];
+    next[index] = v;
+    patchSpacing({
+      horizontal: next.join(","),
+      ...(unequal ? { unequal: true } : {}),
+    });
+  };
+  const setSeqYAt = (index: number, v: string) => {
+    const next = [...seqYFields];
+    next[index] = v;
+    patchSpacing({
+      vertical: next.join(","),
+      ...(unequal ? { unequal: true } : {}),
+    });
+  };
+
+  const addSeqX = () => {
+    if (seqXFields.length >= MAX_SPACING_GAPS) return;
+    const last = seqXFields[seqXFields.length - 1] ?? "";
+    patchSpacing({
+      horizontal: [...seqXFields, last].join(","),
+      unequal: true,
+    });
+  };
+  const addSeqY = () => {
+    if (seqYFields.length >= MAX_SPACING_GAPS) return;
+    const last = seqYFields[seqYFields.length - 1] ?? "";
+    patchSpacing({
+      vertical: [...seqYFields, last].join(","),
+      unequal: true,
+    });
+  };
+  const removeSeqX = () => {
+    if (seqXFields.length <= 1) return;
+    patchSpacing({
+      horizontal: seqXFields.slice(0, -1).join(","),
+      unequal: true,
+    });
+  };
+  const removeSeqY = () => {
+    if (seqYFields.length <= 1) return;
+    patchSpacing({
+      vertical: seqYFields.slice(0, -1).join(","),
+      unequal: true,
+    });
+  };
+
+  const setUnequal = (next: boolean) => {
+    if (next) {
+      patchSpacing({ unequal: true });
+      return;
+    }
+    patchSpacing({
+      unequal: false,
+      horizontal: seqXFields[0] ?? "",
+      vertical: seqYFields[0] ?? "",
+    });
+  };
 
   // 機体向きUI
   const rotation =
@@ -76,30 +169,6 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
       Number.isFinite(area.drone_orientation_deg)
       ? (area.drone_orientation_deg as number)
       : 180;
-
-  // 間隔入力
-  const setHorizontal = (v: string) => {
-    const next = {
-      ...(area ?? {}),
-      spacing_between_drones_m: {
-        ...(area?.spacing_between_drones_m ?? {}),
-        horizontal: v,
-      },
-    };
-    onPatchArea(next);
-  };
-
-  // 間隔入力
-  const setVertical = (v: string) => {
-    const next = {
-      ...(area ?? {}),
-      spacing_between_drones_m: {
-        ...(area?.spacing_between_drones_m ?? {}),
-        vertical: v,
-      },
-    };
-    onPatchArea(next);
-  };
 
   // 機体向き
   const rotateBy = (delta: number) => {
@@ -133,13 +202,16 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
   const { x: batteryX, y: batteryY } = batteryPosition();
 
   return (
-    <div className="p-0">
+    <div className="p-0 min-w-0">
       <SectionTitle title="離着陸エリア" />
 
-      <div className="my-4 flex flex-col lg:flex-row gap-4">
-        {/* 左: 離着陸エリア図 */}
-        <div className="flex-1 lg:basis-8/12">
-          <div className="h-120 w-full border border-slate-600">
+      <div className="my-4 flex flex-col gap-4">
+        {/* 配置図 */}
+        <div className="w-full">
+          <div className="h-120 w-full relative border border-slate-600">
+            <span className="absolute top-2 left-3 z-10 text-white text-sm font-semibold">
+              配置図
+            </span>
             <div
               className="w-full h-full"
               dangerouslySetInnerHTML={{ __html: svgMarkup }}
@@ -147,10 +219,12 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
           </div>
         </div>
 
-        {/* 右: 機体の向き図 */}
-        <div className="flex-1 lg:basis-3/12">
-          <div data-export-orientation-figure
-            className="h-120 w-full relative flex flex-col items-center justify-center border border-slate-600">
+        {/* 機体の向き図：カラム幅に合わせ、はみ出しは横スクロール */}
+        <div className="w-full min-w-0 overflow-x-auto">
+          <div
+            data-export-orientation-figure
+            className="min-h-80 min-w-full w-max relative flex flex-row items-center justify-evenly gap-32 border border-slate-600 py-10 pl-8 pr-20 overflow-visible"
+          >
             <span className="absolute top-2 left-3 text-white text-sm font-semibold">
               機体の向き
             </span>
@@ -162,6 +236,7 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
                   rotationDeg={rotation}
                 />
 
+                {/* 回転操作は一旦非表示。必要になったら復帰する
                 <div className="mt-10 flex items-center gap-3">
                   <button
                     type="button"
@@ -184,6 +259,7 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
                     ↷
                   </button>
                 </div>
+                */}
 
                 <div
                   className="absolute"
@@ -207,40 +283,151 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
               </div>
             </div>
 
-            <div className="h-10" />
-
-            <div className="relative flex flex-col items-center justify-center">
-              <div className="absolute left-[-20px] flex items-center gap-2">
-                <DisplayOrInput
-                  edit={edit}
-                  // 左側（縦方向）は y 軸間隔
-                  value={vertical}
-                  onChange={(e) => setVertical(e.target.value)}
-                  className="w-[70px]! text-center"
+            <div className="relative flex flex-col items-center gap-3 pb-2">
+              <label
+                className={`flex items-center gap-2 text-sm text-slate-200 select-none self-start ${
+                  edit ? "cursor-pointer" : "cursor-default"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  disabled={!edit}
+                  checked={unequal}
+                  onChange={(e) => setUnequal(e.target.checked)}
+                  className="accent-red-600 h-4 w-4 shrink-0 disabled:opacity-50"
                 />
-                <span className="text-slate-100 text-sm">m</span>
-              </div>
+                不等間隔
+              </label>
 
-              <div>
-                <Drone2Icon className="w-20 h-20 drone2-img ml-20" />
-              </div>
+              <div className="flex items-start">
+                <div className="relative shrink-0 mr-4">
+                  <div
+                    className={`absolute top-0 z-10 flex items-center gap-1 ${
+                      unequal && edit ? "" : "invisible"
+                    }`}
+                    style={{ left: -5 }}
+                  >
+                    <button
+                      type="button"
+                      onClick={addSeqY}
+                      disabled={!unequal || !edit || seqYFields.length >= MAX_SPACING_GAPS}
+                      className="px-2 py-0.5 text-sm text-slate-100 hover:bg-slate-700 disabled:opacity-50"
+                      title="上に間隔を追加"
+                      aria-label="上に間隔を追加"
+                    >
+                      ＋
+                    </button>
+                    <button
+                      type="button"
+                      onClick={removeSeqY}
+                      disabled={!unequal || !edit || seqYFields.length <= 1}
+                      className="px-2 py-0.5 text-sm text-slate-100 hover:bg-slate-700 disabled:opacity-50"
+                      title="上の間隔を削除"
+                      aria-label="上の間隔を削除"
+                    >
+                      －
+                    </button>
+                  </div>
+                  <div
+                    className="flex flex-col"
+                    style={{ paddingTop: DRONE_SPACING_ICON_PX }}
+                  >
+                    {[...seqYFields].reverse().map((val, visualI) => {
+                      const actualI = seqYFields.length - 1 - visualI;
+                      const isLast = visualI === seqYFields.length - 1;
+                      return (
+                        <div
+                          key={`y-${actualI}`}
+                          className="relative flex items-center justify-center"
+                          style={{
+                            height: DRONE_SPACING_GAP_PX,
+                            marginBottom: isLast ? 0 : DRONE_SPACING_ICON_PX,
+                            width: SPACING_INPUT_W_PX,
+                          }}
+                        >
+                          <DisplayOrInput
+                            edit={edit}
+                            value={val}
+                            onChange={(e) => setSeqYAt(actualI, e.target.value)}
+                            className="w-[52px]! text-center"
+                          />
+                          <span className="absolute left-full ml-1 text-slate-100 text-sm">
+                            m
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
 
-              <div className="absolute top-[100px] left-[85px] flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <DisplayOrInput
-                    edit={edit}
-                    // 下側（横方向）は x 軸間隔
-                    value={horizontal}
-                    onChange={(e) => setHorizontal(e.target.value)}
-                    className="w-[70px]! text-center"
+                <div className="relative">
+                  <Drone2Icon
+                    className="drone2-img"
+                    rotationDeg={rotation}
+                    cols={cols}
+                    rows={rows}
                   />
-                  <span className="text-slate-100 text-sm">m</span>
+                  <div
+                    className="flex"
+                    style={{
+                      paddingLeft: DRONE_SPACING_ICON_PX,
+                      paddingTop: 10,
+                    }}
+                  >
+                    {seqXFields.map((val, i) => {
+                      const isLast = i === seqXFields.length - 1;
+                      return (
+                        <div
+                          key={`x-${i}`}
+                          className="relative flex items-center justify-center"
+                          style={{
+                            width: DRONE_SPACING_GAP_PX,
+                            height: DRONE_SPACING_GAP_PX,
+                            marginRight: isLast ? 0 : DRONE_SPACING_ICON_PX,
+                          }}
+                        >
+                          <DisplayOrInput
+                            edit={edit}
+                            value={val}
+                            onChange={(e) => setSeqXAt(i, e.target.value)}
+                            className="w-[52px]! text-center"
+                          />
+                          <span className="absolute left-full ml-1 text-slate-100 text-sm">
+                            m
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div
+                    className={`absolute flex items-center gap-1 ${
+                      unequal && edit ? "" : "invisible"
+                    }`}
+                    style={{ left: "100%", bottom: 12, marginLeft: 12 }}
+                  >
+                    <button
+                      type="button"
+                      onClick={addSeqX}
+                      disabled={!unequal || !edit || seqXFields.length >= MAX_SPACING_GAPS}
+                      className="px-2 py-0.5 text-sm text-slate-100 hover:bg-slate-700 disabled:opacity-50"
+                      title="右に間隔を追加"
+                      aria-label="右に間隔を追加"
+                    >
+                      ＋
+                    </button>
+                    <button
+                      type="button"
+                      onClick={removeSeqX}
+                      disabled={!unequal || !edit || seqXFields.length <= 1}
+                      className="px-2 py-0.5 text-sm text-slate-100 hover:bg-slate-700 disabled:opacity-50"
+                      title="右の間隔を削除"
+                      aria-label="右の間隔を削除"
+                    >
+                      －
+                    </button>
+                  </div>
                 </div>
               </div>
-
-              <span className="absolute top-[150px] left-1/2 -translate-x-1/2 text-[12px] leading-tight text-slate-300 whitespace-nowrap">
-                ※複数値をカンマ区切りで指定
-              </span>
             </div>
           </div>
         </div>

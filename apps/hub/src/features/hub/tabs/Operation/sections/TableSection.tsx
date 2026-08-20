@@ -273,15 +273,14 @@ export function TableSection({
   bothScroll = false,
   virtualGrid,
 }: Props) {
-  const moduleList: { name: string; ids: number[] }[] =
-    Array.isArray(modules) && modules.length > 0
-      ? modules.slice(0, OPERATION_MAX_MODULES)
-      : [
-          { name: "モジュール1", ids: module1Nums },
-          { name: "モジュール2", ids: module2Nums },
-        ];
+  const moduleList: { name: string; ids: number[] }[] = Array.isArray(modules)
+    ? modules.slice(0, OPERATION_MAX_MODULES)
+    : [
+        { name: "モジュール1", ids: module1Nums },
+        { name: "モジュール2", ids: module2Nums },
+      ];
 
-  const isLegacy = !(Array.isArray(modules) && modules.length > 0);
+  const isLegacy = !Array.isArray(modules);
 
   // legacy: 従来通り 1/2 の外部制御を維持
   const [showM1Local, setShowM1Local] = useState(true);
@@ -542,7 +541,7 @@ export function TableSection({
         </div>
       )}
 
-      {!hideLegend && (
+      {!hideLegend && moduleList.length > 0 && (
         <div className="flex items-center gap-4 mb-2 text-sm flex-wrap">
           {isLegacy ? (
             <>

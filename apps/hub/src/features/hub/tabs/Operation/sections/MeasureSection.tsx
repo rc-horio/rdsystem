@@ -97,7 +97,7 @@ export function MeasureSection({
       {/* AreaInfo の間隔（x: 下部, y: 中央）を表示 */}
       {hasSpacing && (
         <div className="flex justify-center">
-          <div className="inline-flex gap-5 text-sm text-slate-300 mt-1">
+          <div className="flex flex-col items-center gap-0.5 text-sm text-slate-300 mt-1">
             <span>
               x間隔：
               <b className="tabular-nums">

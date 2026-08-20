@@ -181,7 +181,7 @@ export function MobilePanel(props: {
           </div>
         )}
 
-        {modules.length === 0 && (
+        {modules.length === 0 && edit && (
           <div className="text-xs text-slate-400 border border-dashed border-slate-700/80 rounded flex items-center justify-center p-6 mb-4">
             モジュールは未設定です
           </div>

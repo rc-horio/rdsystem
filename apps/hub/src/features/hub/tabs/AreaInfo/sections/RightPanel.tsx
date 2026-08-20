@@ -222,6 +222,25 @@ export function RightPanel({
       <div className="mt-5 max-w-[260px]">
         <SectionTitle title="機体数" />
 
+        <div className={rowCls}>
+          <label
+            className={`flex items-center gap-2 text-sm text-slate-200 select-none ${
+              edit ? "cursor-pointer" : "cursor-default"
+            }`}
+          >
+            <input
+              type="checkbox"
+              disabled={!edit}
+              checked={Boolean(A.use_takeoff_landing_box)}
+              onChange={(e) =>
+                patch(["use_takeoff_landing_box"], e.target.checked)
+              }
+              className="accent-red-600 h-4 w-4 shrink-0 disabled:opacity-50"
+            />
+            離発着ボックス
+          </label>
+        </div>
+
         {hasBlocks(area) ? (
           <>
             {/* 機種（複数ブロックでも 1 種類） */}

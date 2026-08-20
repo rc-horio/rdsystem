@@ -1,9 +1,13 @@
 // src/pages/HubPage/DesktopLayout.tsx
+import { useState } from "react";
+import clsx from "clsx";
 import { Sidebar } from "./parts/Sidebar";
 import ResourceTab from "@/features/hub/tabs/Resource";
 import OperationTab from "@/features/hub/tabs/Operation";
 import AreaInfoTab from "@/features/hub/tabs/AreaInfo";
 import SitePhotosTab from "@/features/hub/tabs/SitePhotos";
+
+const SIDEBAR_W = "22.5rem";
 
 export default function DesktopLayout(props: any) {
   const {
@@ -29,6 +33,8 @@ export default function DesktopLayout(props: any) {
     removeAt,
   } = props;
 
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
   // Operation の更新を反映する
   const patchOperation = (patch: any) => {
     if (!currentSchedule) return;
@@ -46,28 +52,64 @@ export default function DesktopLayout(props: any) {
 
   return (
     <div className="md:flex">
-      {/* サイドバー：画面左に完全固定、内部のみ必要時スクロール */}
-      <aside className="hidden md:block fixed top-0 left-0 h-screen shrink-0 bg-black overflow-y-auto w-80 md:w-90 z-20">
-        <Sidebar
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          edit={edit}
-          setEdit={setEdit}
-          projectData={projectData}
-          setProjectData={setProjectData}
-          schedules={sortedSchedules}
-          selectedId={selectedId}
-          setSelectedId={setSelectedId}
-          setSchedules={setSchedules}
-          onDeleteCurrent={requestDeleteCurrent}
-          openAddScheduleModal={openAddScheduleModal}
-          isSaving={isSaving}
-        />
-      </aside>
+      {/* サイドバー＋トグルを同じ transform でスライドさせる */}
+      <div
+        className={clsx(
+          "hidden md:block fixed top-0 left-0 z-30 h-screen",
+          "transition-transform duration-300 ease-out",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+        style={{ width: SIDEBAR_W }}
+      >
+        <aside
+          id="hub-sidebar"
+          className="h-full w-full bg-black overflow-y-auto"
+          aria-hidden={!sidebarOpen}
+        >
+          <Sidebar
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            edit={edit}
+            setEdit={setEdit}
+            projectData={projectData}
+            setProjectData={setProjectData}
+            schedules={sortedSchedules}
+            selectedId={selectedId}
+            setSelectedId={setSelectedId}
+            setSchedules={setSchedules}
+            onDeleteCurrent={requestDeleteCurrent}
+            openAddScheduleModal={openAddScheduleModal}
+            isSaving={isSaving}
+          />
+        </aside>
 
-      <main className="flex-1 p-0 overflow-x-hidden md:ml-88">
-        {" "}
-        <div className="p-6">
+        <button
+          type="button"
+          onClick={() => setSidebarOpen((v) => !v)}
+          aria-expanded={sidebarOpen}
+          aria-controls="hub-sidebar"
+          aria-label={sidebarOpen ? "サイドバーを閉じる" : "サイドバーを開く"}
+          className={clsx(
+            "absolute left-full items-center justify-center flex w-7 h-14 rounded-r-md",
+            "border border-l-0 border-red-600 bg-[#000A1B] text-white text-lg font-semibold leading-none",
+            "shadow-[0_0_10px_rgba(220,38,38,0.35)]",
+            "hover:bg-red-900/30 hover:border-red-500"
+          )}
+          style={{ top: "calc(var(--safe-top) + 5.5rem)" }}
+        >
+          {sidebarOpen ? "‹" : "›"}
+        </button>
+      </div>
+
+      <main
+        className={clsx(
+          "min-w-0 overflow-x-auto transition-[margin,width] duration-300 ease-out",
+          sidebarOpen
+            ? "md:ml-[calc(22.5rem+2rem)] md:w-[calc(100%-22.5rem-2rem)]"
+            : "md:ml-8 md:w-[calc(100%-2rem)]"
+        )}
+      >
+        <div className="p-6 w-full min-w-0">
           <section hidden={activeTab !== "リソース"}>
             {projectData && (
               <ResourceTab
