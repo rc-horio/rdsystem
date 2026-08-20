@@ -2529,6 +2529,11 @@ export default function MapView({ onLoaded }: Props) {
           return;
         }
 
+        // 測定中は頂点追加のみ行い、選択・詳細バー・ジオメトリは維持する
+        if (measurementModeRef.current) {
+          return;
+        }
+
         // 通常時はマーカー・NFZ・空港高さ制限の InfoWindow を閉じる
         infoRef.current?.close();
         djiNfzInfoRef.current?.close();
@@ -2754,7 +2759,7 @@ export default function MapView({ onLoaded }: Props) {
       window.removeEventListener("sidebar:delete-area", onDeleteArea as EventListener);
   }, [clearCurrentAreaSelection]);
 
-  /** NFZ ポリゴンのスタイル（cursor はエリア追加モード時に copy に） */
+  /** NFZ ポリゴンのスタイル（測定中は地図クリックを通す／エリア追加中は copy カーソル） */
   const getDjiNfzFeatureStyle = useCallback(
     (feature: google.maps.Data.Feature) => {
       const level = feature.getProperty("level") as number | undefined;
@@ -2762,25 +2767,31 @@ export default function MapView({ onLoaded }: Props) {
         level != null && level in DJI_LEVEL_COLORS
           ? DJI_LEVEL_COLORS[level]
           : DJI_DEFAULT_COLOR;
+      const isMeasurement = measurementModeRef.current;
       return {
         fillColor: c.fill,
         fillOpacity: 0.25,
         strokeColor: c.stroke,
         strokeWeight: 1,
-        cursor: addingAreaModeRef.current ? "copy" : "pointer",
+        clickable: !isMeasurement,
+        cursor: addingAreaModeRef.current
+          ? "copy"
+          : isMeasurement
+            ? "crosshair"
+            : "pointer",
       };
     },
     []
   );
 
-  // エリア追加モード切替時に NFZ ポリゴンのカーソルを更新
+  // エリア追加・測定モード切替時に NFZ ポリゴンのクリック可否・カーソルを更新
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady || !overlayVisibility.djiNfz) return;
     if (map.data.getMap() !== map) return;
 
     map.data.setStyle((feature) => getDjiNfzFeatureStyle(feature));
-  }, [addingAreaMode, mapReady, overlayVisibility.djiNfz, getDjiNfzFeatureStyle]);
+  }, [addingAreaMode, measurementMode, mapReady, overlayVisibility.djiNfz, getDjiNfzFeatureStyle]);
 
   // DJI NFZ レイヤー：プロキシ URL ありなら API（範囲変更で再取得）、なければ KML を Data レイヤーで表示
   useEffect(() => {
@@ -3026,6 +3037,8 @@ export default function MapView({ onLoaded }: Props) {
           const feature = e.feature;
           const latLng = e.latLng;
           if (!feature || !latLng) return;
+          // 測定中は地図クリックへ通す（頂点追加）。吹き出しは出さない
+          if (measurementModeRef.current) return;
           // エリア追加モード中は map click が発火しないため、ここで add-area-picked を発火
           if (addingAreaModeRef.current) {
             airportHeightRestrictionInfoRef.current?.close();
@@ -3055,6 +3068,8 @@ export default function MapView({ onLoaded }: Props) {
           const feature = e.feature;
           const latLng = e.latLng;
           if (!feature || !latLng) return;
+          // 測定中は地図クリックへ通す（頂点追加）。吹き出しは出さない
+          if (measurementModeRef.current) return;
           // エリア追加モード中は map click が発火しないため、ここで add-area-picked を発火
           if (addingAreaModeRef.current) {
             airportHeightRestrictionInfoRef.current?.close();
