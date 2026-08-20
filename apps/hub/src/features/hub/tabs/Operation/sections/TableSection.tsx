@@ -112,6 +112,15 @@ function useDragScroll<T extends HTMLElement>() {
 const CELL_W_PX = 32;
 const CELL_H_PX = 20;
 
+/** 間隔列の最小値。等間隔ならその値＝セル1個分になるよう縮尺する */
+function minSpacing(seq: number[], fallback: number): number {
+  if (!seq || seq.length === 0) return fallback;
+  return Math.min(...seq);
+}
+
+type LayoutMode = "index" | "scale";
+type RulerTick = { posPx: number; label: string };
+
 // 目盛り・ラベルの寸法
 const TICK_X = 16; // 左右方向（Y軸の目盛り線の長さ）
 const LABEL_X = 7; // Yラベルの幅
@@ -131,19 +140,15 @@ const Y_LABEL_OFFSET_PX = 11;
 /* ---------------- Rulers ---------------- */
 // X軸ラベル
 function RulerX({
-  count,
+  ticks,
   width,
   side, // 'top' | 'bottom'
   style,
-  seq,
-  fallback = 1,
 }: {
-  count: number;
+  ticks: RulerTick[];
   width: number;
   side: "top" | "bottom";
   style?: React.CSSProperties;
-  seq: number[];
-  fallback?: number;
 }) {
   const isTop = side === "top";
   const tickH = TICK_Y;
@@ -154,14 +159,13 @@ function RulerX({
       className="absolute left-0 select-none text-[10px] text-slate-400 pointer-events-none"
       style={{ width, height: tickH + LABEL_Y, ...style }}
     >
-      {/* 縦線の延長 */}
-      {Array.from({ length: count }).map((_, i) => (
+      {ticks.map((tick, i) => (
         <div
           key={`x-line-${i}`}
           className="absolute bg-slate-500/70"
           style={{
-            left: i * CELL_W_PX + X_LABEL_OFFSET_PX,
-            top: isTop ? 0 : 0,
+            left: tick.posPx,
+            top: 0,
             width: 1,
             height: tickH,
             transform: isTop
@@ -171,19 +175,18 @@ function RulerX({
         />
       ))}
 
-      {/* 数値（線の先端） */}
-      {Array.from({ length: count }).map((_, i) => (
+      {ticks.map((tick, i) => (
         <div
           key={`x-num-${i}`}
           className="absolute"
           style={{
-            left: i * CELL_W_PX + X_LABEL_OFFSET_PX,
+            left: tick.posPx,
             top: isTop ? -tickH - (LABEL_Y - 2) : tickH,
             transform: "translateX(-50%)",
             lineHeight: "12px",
           }}
         >
-          {fmtMeters(cumDist(i, seq, fallback))}
+          {tick.label}
         </div>
       ))}
     </div>
@@ -192,19 +195,15 @@ function RulerX({
 
 // Y軸ラベル
 function RulerY({
-  count,
+  ticks,
   height,
   side, // 'left' | 'right'
   style,
-  seq,
-  fallback = 1,
 }: {
-  count: number;
+  ticks: RulerTick[];
   height: number;
   side: "left" | "right";
   style?: React.CSSProperties;
-  seq: number[];
-  fallback?: number;
 }) {
   const isLeft = side === "left";
   const tickW = TICK_X;
@@ -216,47 +215,37 @@ function RulerY({
       className="absolute select-none text-[10px] text-slate-400 pointer-events-none"
       style={{ width: tickW + labelW, height, ...style }}
     >
-      {/* 横線の延長：上端からの距離で揃える（格子線と一致） */}
-      {Array.from({ length: count }).map((_, i) => {
-        const y = i * CELL_H_PX;
-        return (
-          <div
-            key={`y-line-${i}`}
-            className="absolute bg-slate-500/70"
-            style={{
-              top: y + Y_LABEL_OFFSET_PX,
-              left: isLeft ? 7 : 1,
-              width: tickW,
-              height: 1,
-              transform: "translateY(-0.5px)",
-            }}
-          />
-        );
-      })}
+      {ticks.map((tick, i) => (
+        <div
+          key={`y-line-${i}`}
+          className="absolute bg-slate-500/70"
+          style={{
+            top: tick.posPx,
+            left: isLeft ? 7 : 1,
+            width: tickW,
+            height: 1,
+            transform: "translateY(-0.5px)",
+          }}
+        />
+      ))}
 
-      {/* 数値（線の先端） */}
-      {Array.from({ length: count }).map((_, i) => {
-        const y = i * CELL_H_PX;
-        // 下が0m。上へ行くほど値が増えるので、上端＝ count * spacing
-        const label = cumDist(count - 1 - i, seq, fallback);
-        return (
-          <div
-            key={`y-num-${i}`}
-            className="absolute"
-            style={{
-              top: y + Y_LABEL_OFFSET_PX,
-              left: isLeft ? -1 : tickW,
-              transform: "translateY(-50%)",
-              minWidth: isLeft ? labelW : 0,
-              lineHeight: "12px",
-              textAlign: "left",
-              zIndex: 1,
-            }}
-          >
-            {fmtMeters(label)}
-          </div>
-        );
-      })}
+      {ticks.map((tick, i) => (
+        <div
+          key={`y-num-${i}`}
+          className="absolute"
+          style={{
+            top: tick.posPx,
+            left: isLeft ? -1 : tickW,
+            transform: "translateY(-50%)",
+            minWidth: isLeft ? labelW : 0,
+            lineHeight: "12px",
+            textAlign: "left",
+            zIndex: 1,
+          }}
+        >
+          {tick.label}
+        </div>
+      ))}
     </div>
   );
 }
@@ -330,6 +319,8 @@ export function TableSection({
     isControlledModules ? showModules! : showModulesLocal;
 
   const scrollRef = useDragScroll<HTMLDivElement>();
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>("index");
+  const isScale = layoutMode === "scale";
 
   const palette = [
     { bg: "bg-red-500", swatch: "bg-red-500" },
@@ -402,13 +393,50 @@ export function TableSection({
     lastRowCount > 0 &&
     lastRowCount < countX;
 
-  const tablePixelW = effectiveCountX * CELL_W_PX;
-  const tablePixelH = actualRowCount * CELL_H_PX;
-
   // フォールバック間隔（1m 等間隔）
   const fallback = 1;
   const seqX = Array.isArray(spacingSeqX) ? spacingSeqX : [];
   const seqY = Array.isArray(spacingSeqY) ? spacingSeqY : [];
+  const pxPerMeterX = CELL_W_PX / minSpacing(seqX, fallback);
+  const pxPerMeterY = CELL_H_PX / minSpacing(seqY, fallback);
+
+  const maxXM =
+    effectiveCountX > 0 ? cumDist(effectiveCountX - 1, seqX, fallback) : 0;
+  const maxYM =
+    actualRowCount > 0 ? cumDist(actualRowCount - 1, seqY, fallback) : 0;
+
+  const tablePixelW = isScale
+    ? maxXM * pxPerMeterX + CELL_W_PX
+    : effectiveCountX * CELL_W_PX;
+  const tablePixelH = isScale
+    ? maxYM * pxPerMeterY + CELL_H_PX
+    : actualRowCount * CELL_H_PX;
+
+  const ticksX: RulerTick[] = Array.from({ length: effectiveCountX }, (_, i) => {
+    const meters = cumDist(i, seqX, fallback);
+    return {
+      posPx: isScale
+        ? meters * pxPerMeterX + CELL_W_PX / 2
+        : i * CELL_W_PX + X_LABEL_OFFSET_PX,
+      label: fmtMeters(meters),
+    };
+  });
+
+  const ticksY: RulerTick[] = Array.from({ length: actualRowCount }, (_, i) => {
+    const meters = cumDist(actualRowCount - 1 - i, seqY, fallback);
+    return {
+      posPx: isScale
+        ? (maxYM - meters) * pxPerMeterY + CELL_H_PX / 2
+        : i * CELL_H_PX + Y_LABEL_OFFSET_PX,
+      label: fmtMeters(meters),
+    };
+  });
+
+  const cellIdAt = (r: number, c: number): number | null => {
+    if (virtualGrid) return virtualGrid.cellIdAtVisualRow(r, c);
+    if (usePartialLayout && r === 0 && c >= lastRowCount) return null;
+    return (actualRowCount - 1 - r) * countX + c;
+  };
 
   // ラッパーの“実寸”を明示：縦スクロールなし
   const wrapperW = PAD_LEFT + tablePixelW + PAD_RIGHT;
@@ -417,6 +445,22 @@ export function TableSection({
   // 画像化対象（ルーラー＋テーブルを含む“実寸の板”）
   const captureRef = useRef<HTMLDivElement>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  const appearanceOf = (num: number | null) => {
+    const hit = num === null ? [] : activeSets.filter((m) => m.set.has(num));
+    const bg =
+      hit.length >= 2
+        ? "bg-fuchsia-500"
+        : hit.length === 1
+          ? hit[0]!.bg
+          : "";
+    const text = isSaving
+      ? "text-black"
+      : hit.length > 0
+        ? "text-white"
+        : "";
+    return { bg, text };
+  };
 
   const handleSave = async () => {
     const node = captureRef.current;
@@ -452,8 +496,38 @@ export function TableSection({
     <section>
       <SectionTitle title="機体の配列" />
 
-      {/* 保存ボタン */}
-      <div className="mb-2 flex justify-end">
+      {/* 表示切替 + 保存ボタン */}
+      <div className="mb-2 flex items-center justify-between gap-2 flex-wrap">
+        <div
+          className="inline-flex rounded-md border border-slate-600 overflow-hidden text-sm shrink-0"
+          role="group"
+          aria-label="配置の表示切替"
+        >
+          <button
+            type="button"
+            aria-pressed={layoutMode === "index"}
+            onClick={() => setLayoutMode("index")}
+            className={`px-3 py-1.5 transition ${
+              layoutMode === "index"
+                ? "bg-slate-600 text-white"
+                : "text-slate-400 hover:text-white hover:bg-slate-700/60"
+            }`}
+          >
+            番号配置
+          </button>
+          <button
+            type="button"
+            aria-pressed={layoutMode === "scale"}
+            onClick={() => setLayoutMode("scale")}
+            className={`px-3 py-1.5 transition ${
+              layoutMode === "scale"
+                ? "bg-slate-600 text-white"
+                : "text-slate-400 hover:text-white hover:bg-slate-700/60"
+            }`}
+          >
+            実寸配置
+          </button>
+        </div>
         <ButtonRed onClick={handleSave} disabled={isSaving}>
           {isSaving ? "保存中..." : "配置図を保存"}
         </ButtonRed>
@@ -559,7 +633,7 @@ export function TableSection({
       <div
         ref={scrollRef}
         className={
-          (bothScroll
+          (bothScroll || isScale
             ? "overflow-auto "
             : "overflow-x-auto overflow-y-hidden ") + "rounded-md"
         }
@@ -583,92 +657,102 @@ export function TableSection({
           >
             {/* ← ここに左ルーラーを“内側”に配置。テーブル左端から負方向に出す */}
             <RulerY
-              count={actualRowCount}
+              ticks={ticksY}
               height={tablePixelH}
               side="left"
               style={{ left: -(TICK_X + LABEL_X), top: 0 }}
-              seq={seqY}
-              fallback={fallback}
             />
 
-            <table className="table-fixed border-collapse text-[10px] font-mono min-w-max">
-              <tbody>
-                {Array.from({ length: actualRowCount }).map((_, r) => {
-                  const colsInRow =
-                    usePartialLayout && r === 0 ? lastRowCount : effectiveCountX;
-                  return (
-                    <tr key={r}>
-                      {Array.from({ length: colsInRow }).map((_, c) => {
-                        const num = virtualGrid
-                          ? virtualGrid.cellIdAtVisualRow(r, c)
-                          : (actualRowCount - 1 - r) * countX + c;
-                        const hit =
-                          num === null
-                            ? []
-                            : activeSets.filter((m) => m.set.has(num));
-                        const bg =
-                          hit.length >= 2
-                            ? "bg-fuchsia-500"
-                            : hit.length === 1
-                              ? hit[0]!.bg
-                              : "";
-
-                        const text = isSaving
-                          ? "text-black"
-                          : hit.length > 0
-                            ? "text-white"
-                            : "";
-
-                        return (
+            {isScale ? (
+              <div className="relative w-full h-full text-[10px] font-mono">
+                {Array.from({ length: actualRowCount }).flatMap((_, r) =>
+                  Array.from({ length: effectiveCountX }).map((_, c) => {
+                    const num = cellIdAt(r, c);
+                    if (num === null) return null;
+                    const xM = cumDist(c, seqX, fallback);
+                    const yM = cumDist(actualRowCount - 1 - r, seqY, fallback);
+                    const { bg, text } = appearanceOf(num);
+                    return (
+                      <div
+                        key={`${r}-${c}`}
+                        className={
+                          "absolute flex items-center justify-center " +
+                          "w-8 h-5 p-0 text-center border border-slate-600 select-none " +
+                          bg +
+                          " " +
+                          text
+                        }
+                        style={{
+                          left: xM * pxPerMeterX,
+                          top: (maxYM - yM) * pxPerMeterY,
+                          width: CELL_W_PX,
+                          height: CELL_H_PX,
+                        }}
+                      >
+                        {num}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            ) : (
+              <table className="table-fixed border-collapse text-[10px] font-mono min-w-max">
+                <tbody>
+                  {Array.from({ length: actualRowCount }).map((_, r) => {
+                    const colsInRow =
+                      usePartialLayout && r === 0 ? lastRowCount : effectiveCountX;
+                    return (
+                      <tr key={r}>
+                        {Array.from({ length: colsInRow }).map((_, c) => {
+                          const num = cellIdAt(r, c);
+                          const { bg, text } = appearanceOf(num);
+                          return (
+                            <td
+                              key={c}
+                              className={
+                                "w-8 h-5 p-0 text-center border border-slate-600 select-none " +
+                                bg +
+                                " " +
+                                text
+                              }
+                            >
+                              {num === null ? "" : num}
+                            </td>
+                          );
+                        })}
+                        {usePartialLayout && r === 0 && colsInRow < effectiveCountX && (
                           <td
-                            key={c}
-                            className={
-                              "w-8 h-5 p-0 text-center border border-slate-600 select-none " +
-                              bg + " " + text
-                            }
-                          >
-                            {num === null ? "" : num}
-                          </td>
-                        );
-                      })}
-                      {usePartialLayout && r === 0 && colsInRow < effectiveCountX && (
-                        <td
-                          colSpan={effectiveCountX - colsInRow}
-                          className="w-8 h-5 p-0 border-0"
-                          aria-hidden
-                        />
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                            colSpan={effectiveCountX - colsInRow}
+                            className="w-8 h-5 p-0 border-0"
+                            aria-hidden
+                          />
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
 
           {/* 外周ルーラー（上・下・右） */}
           <RulerX
-            count={effectiveCountX}
+            ticks={ticksX}
             width={tablePixelW}
             side="top"
             style={{ left: PAD_LEFT, top: PAD_TOP }}
-            seq={seqX}
-            fallback={fallback}
           />
           <RulerX
-            count={effectiveCountX}
+            ticks={ticksX}
             width={tablePixelW}
             side="bottom"
             style={{ left: PAD_LEFT, top: PAD_TOP + tablePixelH }}
-            seq={seqX}
-            fallback={fallback}
           />
           <RulerY
-            count={actualRowCount}
+            ticks={ticksY}
             height={tablePixelH}
             side="right"
             style={{ left: PAD_LEFT + tablePixelW, top: PAD_TOP }}
-            seq={seqY}
-            fallback={fallback}
           />
         </div>
       </div>
