@@ -156,6 +156,10 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
       patchSpacing({ unequal: true });
       return;
     }
+    const ok = window.confirm(
+      "不等間隔をオフにすると、追加した間隔の入力は先頭の1件だけ残して削除されます。よろしいですか？"
+    );
+    if (!ok) return;
     patchSpacing({
       unequal: false,
       horizontal: seqXFields[0] ?? "",
