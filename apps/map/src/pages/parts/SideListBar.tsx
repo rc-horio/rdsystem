@@ -584,7 +584,8 @@ function SideListBarBase({
   const applyProjectGeometryFromPayload = async (
     payload: GeometryPayload
   ): Promise<void> => {
-    const { projectUuid, scheduleUuid, geometry, deleted } = payload;
+    const { projectUuid, scheduleUuid, geometry, deleted, flightFigureId } =
+      payload;
     if (!projectUuid || !scheduleUuid) return;
 
     if (deleted === true) {
@@ -594,10 +595,12 @@ function SideListBarBase({
       });
       if (!okGeomDel) console.warn("[save] geometry delete failed");
     } else if (geometry) {
+      // 選択中の飛行エリア図があればそれを更新＋confirmed に切替（SAVE時）
       const okGeomSave = await upsertScheduleGeometry({
         projectUuid,
         scheduleUuid,
         geometry,
+        flightFigureId,
       });
       if (!okGeomSave) console.warn("[save] geometry save failed");
     } else {

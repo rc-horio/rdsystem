@@ -8,6 +8,7 @@ import { buildFileBaseName, formatTurnText, getSpacingBetweenDronesText } from "
 import { buildLandingFigureExportSvg } from "./buildLandingFigureExportSvg";
 import { applyDroneOrientationToPage2 } from "./applyDroneOrientation";
 import { getEffectiveBlocks, hasBlocks } from "@/features/hub/utils/areaBlocks";
+import { resolveConfirmedGeometry } from "@/features/hub/utils/flightFigures";
 
 /**
  * PPTXのスライドサイズ
@@ -475,6 +476,7 @@ function buildRightPaneRows(area: any): RightPaneRow[] {
     const model = (drone?.model ?? "").trim();
     const actions = area?.actions ?? {};
     const lights = area?.lights ?? {};
+    const geo = resolveConfirmedGeometry(area) ?? {};
 
     let aircraftVal: string;
     if (hasBlocks(area)) {
@@ -495,16 +497,16 @@ function buildRightPaneRows(area: any): RightPaneRow[] {
     if (aircraftVal !== "—" && model) aircraftVal = `${model}：${aircraftVal}`;
 
     const altitudeVal =
-        `最高高度: ${textOr(area?.geometry?.flightAltitude_Max_m, "—")} m\n` +
-        `最低高度: ${textOr(area?.geometry?.flightAltitude_min_m, "—")} m`;
+        `最高高度: ${textOr(geo.flightAltitude_Max_m, "—")} m\n` +
+        `最低高度: ${textOr(geo.flightAltitude_min_m, "—")} m`;
 
     const takeoff = textOr(lights?.takeoff, "—");
     const landing = textOr(lights?.landing, "—");
     const note = textOr(area?.return_note, "—");
     const showVal = `離陸: ${takeoff}\n着陸: ${landing}\n ${note}`;
 
-    const ww = textOr(area?.geometry?.flightArea?.radiusX_m * 2, "");
-    const depthM = textOr(area?.geometry?.flightArea?.radiusY_m * 2, "");
+    const ww = textOr(geo.flightArea?.radiusX_m * 2, "");
+    const depthM = textOr(geo.flightArea?.radiusY_m * 2, "");
     const animVal =
         ww && depthM ? `W${ww}m × L${depthM}m` : ww ? `W${ww}m` : depthM ? `L${depthM}m` : "—";
 
@@ -512,7 +514,7 @@ function buildRightPaneRows(area: any): RightPaneRow[] {
         { label: "■機体数", value: aircraftVal },
         { label: "■最低、最高高度", value: altitudeVal },
         { label: "■移動", value: textOr(actions?.liftoff, "—") },
-        { label: "■旋回", value: formatTurnText(area?.geometry?.turn) },
+        { label: "■旋回", value: formatTurnText(geo.turn) },
         { label: "■障害物情報", value: textOr(area?.obstacle_note, "なし") },
         { label: "■離着陸演出", value: showVal },
         { label: "■アニメーションサイズ", value: animVal },

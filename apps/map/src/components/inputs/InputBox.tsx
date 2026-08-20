@@ -2,7 +2,7 @@ import React, { useEffect, useId, useRef, useState } from "react";
 
 export type InputBoxProps = Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
-  "placeholder" | "type"
+  "type"
 > & {
   label?: string;
   note?: string;
@@ -63,7 +63,6 @@ export function InputBox({
             ref={inputRef}
             type="text"
             className="rc-inp-input"
-            placeholder=""
             disabled={!editable}
             {...rest}
           />

@@ -1,5 +1,11 @@
 // src/pages/parts/areasApi.ts
 import type { HistoryLite, DetailMeta, Candidate } from "@/features/types";
+import {
+    applyFlightAreaToScheduleArea,
+    resolveConfirmedGeometry,
+    upsertConfirmedGeometry,
+    upsertGeometryForFigure,
+} from "@/features/flightFigures";
 import { getUserDisplayName } from "@/lib/auditHeaders";
 import { getAuditHeaders } from "@/lib/auditHeaders";
 import { getCurrentTurnMetrics } from "./geometry/orientationDebug";
@@ -536,7 +542,6 @@ export async function appendAreaCandidate(params: {
 }
 
 /**
- * スケジュールの takeoff 基準点 index を更新する。
  * 既存構造を壊さないように、存在するときのみ上書き（追加はしない）。
  * 成功なら true（対象なし含めて false）。
  */
@@ -558,31 +563,36 @@ export async function updateScheduleTakeoffReferencePoint(params: {
     if (idx < 0) return false;
 
     const sch = proj.schedules[idx];
+    const fallbackTitle =
+        typeof sch?.label === "string" && sch.label.trim()
+            ? sch.label.trim()
+            : "飛行エリア図";
 
-    // 既存 geometry/takeoffArea が rectangle である場合のみ上書き（無いなら何もしない）
-    const takeoff = sch?.area?.geometry?.takeoffArea;
+    // 旧 geometry / 新 flight_figures どちらからも確定図を取得
+    const geom = resolveConfirmedGeometry(sch?.area, fallbackTitle);
+    const takeoff = geom?.takeoffArea;
     if (!takeoff || takeoff?.type !== "rectangle" || !Array.isArray(takeoff?.coordinates)) {
         if (import.meta.env.DEV) console.warn("[updateRef] takeoff rectangle not found");
         return false;
     }
 
-    // 破壊的変更を避けて浅いコピーで更新
+    const nextGeom = {
+        ...geom,
+        takeoffArea: {
+            ...takeoff,
+            referencePointIndex,
+        },
+    };
+    const normalized = upsertConfirmedGeometry(sch?.area, nextGeom, fallbackTitle);
+
+    // 破壊的変更を避けて浅いコピーで更新（新形のみ書き、旧 geometry は除去）
     const next = {
         ...proj,
         schedules: proj.schedules.map((s: any, i: number) =>
             i === idx
                 ? {
                     ...s,
-                    area: {
-                        ...(s?.area ?? {}),
-                        geometry: {
-                            ...(s?.area?.geometry ?? {}),
-                            takeoffArea: {
-                                ...s?.area?.geometry?.takeoffArea,
-                                referencePointIndex,
-                            },
-                        },
-                    },
+                    area: applyFlightAreaToScheduleArea(s?.area, normalized),
                 }
                 : s),
     };
@@ -593,15 +603,19 @@ export async function updateScheduleTakeoffReferencePoint(params: {
 }
 
 /**
- * 指定スケジュールの geometry を置き換えて保存します（存在時のみ更新）。
+ * 指定スケジュールの飛行エリア図 geometry を置き換えて保存します（存在時のみ更新）。
+ * - flightFigureId があればその図を更新し、同時に confirmed にする
+ * - 無ければ従来どおり confirmed 図を更新
+ * 正本は flight_figures（旧 area.geometry は書かない／除去）。
  * 成功: true / 失敗 or 対象なし: false
  */
 export async function upsertScheduleGeometry(params: {
     projectUuid: string;
     scheduleUuid: string;
     geometry: any;
+    flightFigureId?: string;
 }): Promise<boolean> {
-    const { projectUuid, scheduleUuid, geometry } = params;
+    const { projectUuid, scheduleUuid, geometry, flightFigureId } = params;
     if (!projectUuid || !scheduleUuid || !geometry) return false;
 
     const proj = await fetchProjectIndex(projectUuid);
@@ -615,20 +629,26 @@ export async function upsertScheduleGeometry(params: {
         ...geometry,
         ...(turn ? { turn } : {}),
     };
+
     const next = {
         ...proj,
         schedules: proj.schedules.map((s: any, i: number) => {
             if (i !== idx) return s;
 
-            const prevArea =
-                (typeof s?.area === "object" && s.area) ? s.area : {};
+            const fallbackTitle =
+                typeof s?.label === "string" && s.label.trim()
+                    ? s.label.trim()
+                    : "飛行エリア図";
+            const normalized = upsertGeometryForFigure(
+                s?.area,
+                flightFigureId,
+                geometryWithTurn,
+                fallbackTitle
+            );
 
             return {
                 ...s,
-                area: {
-                    ...prevArea,
-                    geometry: geometryWithTurn,
-                },
+                area: applyFlightAreaToScheduleArea(s?.area, normalized),
             };
         }),
     };
@@ -719,7 +739,7 @@ export async function clearAreaCandidateGeometryAtIndex(params: {
     return ok;
 }
 
-/** 指定スケジュールの geometry を削除（キーごと除去）して保存します。成功: true */
+/** 指定スケジュールの飛行エリア図を削除（新形・旧形とも除去）して保存します。成功: true */
 export async function clearScheduleGeometry(params: {
     projectUuid: string;
     scheduleUuid: string;
@@ -739,12 +759,17 @@ export async function clearScheduleGeometry(params: {
             if (i !== idx) return s;
 
             const prevArea = (typeof s?.area === "object" && s.area) ? s.area : {};
-            const { geometry, ...restArea } = prevArea;
+            const {
+                geometry: _geometry,
+                flight_figures: _flightFigures,
+                confirmed_figure_id: _confirmedFigureId,
+                ...restArea
+            } = prevArea;
 
             return {
                 ...s,
                 area: {
-                    ...restArea, // geometry だけ落とす（他の area_* は維持）
+                    ...restArea,
                 },
             };
         }),

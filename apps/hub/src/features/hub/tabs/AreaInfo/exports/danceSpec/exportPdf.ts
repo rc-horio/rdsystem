@@ -8,6 +8,7 @@ import { sanitize, formatTurnText, getSpacingBetweenDronesText } from "./texts";
 import { buildLandingFigureExportSvg } from "./buildLandingFigureExportSvg";
 import { applyDroneOrientationToPage2 } from "./applyDroneOrientation";
 import { getEffectiveBlocks, hasBlocks } from "@/features/hub/utils/areaBlocks";
+import { resolveConfirmedGeometry } from "@/features/hub/utils/flightFigures";
 
 /**
  * PDFを出力
@@ -59,6 +60,7 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
 
     // 離着陸情報
     const area = opts?.area ?? {};
+    const geo = resolveConfirmedGeometry(area) ?? {};
 
     // ===== 左ペイン：LandingAreaFigure を注入 =====
     {
@@ -116,15 +118,15 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
     // ■最低、最高高度
     setTxt(
         "#v-altitude",
-        `最高高度: ${text(area?.geometry?.flightAltitude_Max_m, "—")} m\n` +
-        `最低高度: ${text(area?.geometry?.flightAltitude_min_m, "—")} m`
+        `最高高度: ${text(geo.flightAltitude_Max_m, "—")} m\n` +
+        `最低高度: ${text(geo.flightAltitude_min_m, "—")} m`
     );
 
     // ■移動
     setTxt("#v-move", text(actions?.liftoff, "—"));
 
     // ■旋回
-    setTxt("#v-turn", formatTurnText(area?.geometry?.turn));
+    setTxt("#v-turn", formatTurnText(geo.turn));
 
     // ■障害物情報
     setTxt("#v-obstacles", text(area?.obstacle_note, "なし"));
@@ -139,8 +141,8 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
     );
 
     // ■アニメーションサイズ
-    const w = text(area?.geometry?.flightArea.radiusX_m * 2, "");
-    const d = text(area?.geometry?.flightArea.radiusY_m * 2, "");
+    const w = text(geo.flightArea?.radiusX_m * 2, "");
+    const d = text(geo.flightArea?.radiusY_m * 2, "");
     setTxt("#v-anim", (w && d) ? `W${w}m × L${d}m` : (w ? `W${w}m` : (d ? `L${d}m` : "—")));
 
     // LandingAreaFigure と同じ: 左＝縦間隔(vertical)、下＝横間隔(horizontal)

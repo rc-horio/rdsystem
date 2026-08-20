@@ -52,6 +52,7 @@ import {
   MARKERS_HIDE_ZOOM,
   DEFAULTS,
   EV_PROJECT_MODAL_OPEN,
+  EV_FLIGHT_AREA_CREATE_OPEN,
   ADD_AREA_EMPTY_MESSAGE,
   ADD_AREA_ERROR_MESSAGE,
   EV_DETAILBAR_SELECT_CANDIDATE,
@@ -3351,6 +3352,20 @@ export default function MapView({ onLoaded }: Props) {
       }
     })();
   };
+
+  // 詳細バー「飛行エリア図を追加」などから作図フローを起動
+  useEffect(() => {
+    const onOpen = () => {
+      openFlightAreaCreateModal();
+    };
+    window.addEventListener(EV_FLIGHT_AREA_CREATE_OPEN, onOpen as EventListener);
+    return () => {
+      window.removeEventListener(
+        EV_FLIGHT_AREA_CREATE_OPEN,
+        onOpen as EventListener
+      );
+    };
+  }, []);
 
   const handleCopyFromCandidate = (params: {
     candidateIndex: number;

@@ -2,7 +2,10 @@
 
 import { useEffect } from "react";
 import type { MutableRefObject } from "react";
-import type { Geometry } from "@/features/types";
+import {
+    resolveConfirmedGeometry,
+    resolveGeometryByFigureId,
+} from "@/features/flightFigures";
 import { fetchProjectIndex } from "../../pages/parts/areasApi";
 import { EV_DETAILBAR_SELECT_HISTORY } from "../../pages/parts/constants/events";
 import type { MapGeometry } from "../../pages/parts/MapGeometry";
@@ -25,7 +28,7 @@ type UseScheduleSectionParams = {
 /**
  * detailbar:select-history（案件情報セクションで履歴を選択）のイベントを購読し、
  * - projectUuid / scheduleUuid の記録
- * - 該当スケジュールの geometry 取得
+ * - 該当スケジュールの確定飛行エリア図（geometry）取得
  * - MapGeometry への描画
  * - CTA（飛行エリアを作図する）の表示制御
  * をまとめて行うカスタムフック。
@@ -45,11 +48,12 @@ export function useScheduleSection({
         // SideDetailBar 側で履歴が選択されたときに飛んでくるイベントハンドラ
         const onSelect = async (e: Event) => {
             try {
-                const { projectUuid, scheduleUuid } =
+                const { projectUuid, scheduleUuid, flightFigureId } =
                     (
                         e as CustomEvent<{
                             projectUuid?: string;
                             scheduleUuid?: string;
+                            flightFigureId?: string;
                         }>
                     ).detail || {};
 
@@ -61,7 +65,11 @@ export function useScheduleSection({
                 setShowCreateGeomCta(false);
 
                 // MapGeometry 側にも「今のスケジュール」を通知（参照点の表示などで利用）
-                geomRef.current?.setCurrentSchedule(projectUuid, scheduleUuid);
+                geomRef.current?.setCurrentSchedule(
+                    projectUuid,
+                    scheduleUuid,
+                    flightFigureId
+                );
 
                 // projectUuid / scheduleUuid のどちらかが無ければジオメトリを表示できない
                 if (!projectUuid || !scheduleUuid) {
@@ -91,13 +99,15 @@ export function useScheduleSection({
                     return;
                 }
 
-                // geometry の有無判定
-                const geom = sch?.area?.geometry as Geometry | undefined;
-                const hasGeom =
-                    !!geom && typeof geom === "object" && Object.keys(geom).length > 0;
-                    
                 const label =
                     typeof sch?.label === "string" ? sch.label : String(scheduleUuid);
+                // プレビュー選択中の figureId があればそれを優先。無ければ confirmed。
+                const geom = flightFigureId
+                    ? resolveGeometryByFigureId(sch?.area, flightFigureId, label) ??
+                      resolveConfirmedGeometry(sch?.area, label)
+                    : resolveConfirmedGeometry(sch?.area, label);
+                const hasGeom =
+                    !!geom && typeof geom === "object" && Object.keys(geom).length > 0;
 
                 if (hasGeom && geom) {
                     // 飛行エリア中心（ellipse）の座標ログ用

@@ -49,6 +49,8 @@ export function buildIndexJsonFromState(
   });
 
   const ensureArea = (a: any = {}) => ({
+    // map 等が持つフィールド（flight_figures / geometry / area_uuid / blocks 等）を消さない
+    ...a,
     area_name: a.area_name ?? "",
     drone_count: a.drone_count ?? { model: "", count: 0 },
     actions: a.actions ?? { liftoff: "", turn: "" },

@@ -12,12 +12,15 @@ import {
   detectEmbedMode,
 } from "@/components";
 import type {
-  TabKey,
+  DetailPrimaryTabKey,
   HistoryItem,
   GeometryMetrics,
   DetailMeta,
   Candidate,
+  FlightFigure,
 } from "@/features/types";
+import { normalizeScheduleFlightArea } from "@/features/flightFigures";
+import { fetchProjectIndex } from "./areasApi";
 import {
   CLS_DETAILBAR_OPEN,
   EV_DETAILBAR_REQUEST_DATA,
@@ -32,7 +35,60 @@ import {
   EV_DETAILBAR_SELECTED,
   EV_SIDEBAR_SET_ACTIVE,
   EV_PROJECT_MODAL_OPEN,
+  EV_FLIGHT_AREA_CREATE_OPEN,
 } from "./constants/events";
+
+/** 検討中タブ用の仮サンプル（UI確認用・後続で実データ接続） */
+const CONSIDERING_STATUS_OPTIONS = ["交渉中", "OK", "NG"] as const;
+const CONSIDERING_CHANNEL_OPTIONS = ["直販", "代理店"] as const;
+const CONSIDERING_FEASIBILITY_OPTIONS = ["○ 実施事例あり"] as const;
+
+type OtherCompanyRecord = {
+  id: string;
+  companyName: string;
+  eventTitle: string;
+  heldOn: string;
+  venue: string;
+  aircraftCount: string;
+  rcApproach: string;
+  impression: string;
+  memo: string;
+  flightAreas: { id: string; label: string }[];
+};
+
+type OwnFlightFigureView = {
+  id: string;
+  title: string;
+  isConfirmed: boolean;
+};
+
+/** 他社タブ用の仮サンプル（UI確認用・編集ONで入力可・後続で実データ接続） */
+const OTHER_TAB_SAMPLE_RECORDS: OtherCompanyRecord[] = [
+  {
+    id: "other-1",
+    companyName: "株式会社ドローンショージャパン",
+    eventTitle: "東京ドイツ村ドローンショー",
+    heldOn: "2024年12月",
+    venue: "東京ドイツ村",
+    aircraftCount: "500機",
+    rcApproach: "済",
+    impression: "前向き",
+    memo: "中島・菅沼が対応",
+    flightAreas: [{ id: "ofa-1", label: "広場エリア（資料推測）" }],
+  },
+  {
+    id: "other-2",
+    companyName: "株式会社ドローンショージャパン",
+    eventTitle: "イルミネーションドローンショー",
+    heldOn: "2023年12月",
+    venue: "",
+    aircraftCount: "",
+    rcApproach: "",
+    impression: "",
+    memo: "",
+    flightAreas: [],
+  },
+];
 
 /** =========================
  *  SideDetailBar Component
@@ -43,9 +99,43 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     return null; // 埋め込み時は詳細バーを描画しない
   }
   const editable = useEditableBodyClass();
-  const [active, setActive] = useState<TabKey>("overview");
+  const [activePrimary, setActivePrimary] =
+    useState<DetailPrimaryTabKey>("own");
   const [title, setTitle] = useState("");
+  // 自社タブ専用フィールド（まずは画面のみ。保存連携は後続フェーズ）
+  const [facilityType, setFacilityType] = useState("");
+  const [owner, setOwner] = useState("");
+  const [notesOpen, setNotesOpen] = useState(false);
+  // 自社タブ：案件カードの開閉（デフォルトは全閉）
+  const [ownExpandedKeys, setOwnExpandedKeys] = useState<Set<string>>(
+    () => new Set()
+  );
+  // 検討中タブ（まずは画面のみ）
+  const [consideringStatus, setConsideringStatus] = useState<string>("交渉中");
+  const [consideringManager, setConsideringManager] =
+    useState("安藤望 (UNIT1)");
+  const [consideringChannel, setConsideringChannel] = useState<string>("直販");
+  const [consideringFeasibility, setConsideringFeasibility] = useState<string>(
+    "○ 実施事例あり"
+  );
+  const [consideringCost, setConsideringCost] = useState("");
+  const [consideringMemo, setConsideringMemo] = useState(
+    "宗教法人のため許可ルートが特殊。窓口は寺務所。"
+  );
+  // 他社タブ（まずは画面のみ。編集ONで入力可）
+  const [otherRecords, setOtherRecords] = useState<OtherCompanyRecord[]>(
+    () => OTHER_TAB_SAMPLE_RECORDS.map((r) => ({ ...r, flightAreas: [...r.flightAreas] }))
+  );
+  const [otherExpandedIds, setOtherExpandedIds] = useState<Set<string>>(
+    () => new Set([OTHER_TAB_SAMPLE_RECORDS[0].id])
+  );
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [ownFlightFiguresByCardKey, setOwnFlightFiguresByCardKey] = useState<
+    Record<string, OwnFlightFigureView[]>
+  >({});
+  const [selectedOwnFlightFigureId, setSelectedOwnFlightFigureId] = useState<
+    string | null
+  >(null);
   const [selectedHistoryIdx, setSelectedHistoryIdx] = useState<number | null>(
     null
   );
@@ -201,14 +291,6 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     return `${base}/${projectUuid}?source=s3&year=${yearFromDate}&${tabParam}${scheduleParam}`;
   };
 
-  const fmtDate = (isoLike: string) => {
-    const d = new Date(isoLike);
-    if (Number.isNaN(d.getTime())) return isoLike;
-    const yy = String(d.getFullYear()).slice(-2);
-    const m = `${d.getMonth() + 1}`.padStart(2, "0");
-    const da = `${d.getDate()}`.padStart(2, "0");
-    return `${yy}/${m}/${da}`;
-  };
 
   const formatDateTime = (iso: string): string => {
     return new Date(iso).toLocaleString("ja-JP", {
@@ -234,9 +316,12 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     });
   };
 
+  const getOwnCardKey = (item: HistoryItem, i: number) =>
+    `${item.projectUuid ?? item.projectName}-${item.scheduleUuid ?? item.scheduleName}-${item.date}-${i}`;
+
   // 複製時のタイトルを既存候補と重複しない形で採番する
   const makeUniqueCandidateCopyTitle = (baseTitle: string): string => {
-    const source = baseTitle.trim() || "候補地ラベル";
+    const source = baseTitle.trim() || "飛行エリア図";
     const first = `${source} (コピー)`;
     if (!hasDuplicateCandidateTitle(first, null)) return first;
 
@@ -254,7 +339,14 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     window.dispatchEvent(new Event(EV_PROJECT_MODAL_OPEN));
   };
 
-  // 「候補地を追加する」ボタン
+  // 「飛行エリア図を追加」→ ツールパネル「飛行エリア作図」と同じ処理
+  const handleAddFlightAreaFigure = (item: HistoryItem, idx: number) => {
+    // 対象スケジュールを地図コンテキストに載せてから作図フローへ
+    onSelectHistory(item, idx);
+    window.dispatchEvent(new Event(EV_FLIGHT_AREA_CREATE_OPEN));
+  };
+
+  // 「飛行エリア図を追加」ボタン（検討中タブ / meta.candidate）
   const handleAddCandidate = () => {
     if (candidateDeletionLocked) return;
     // 追加前の長さを基準に、新しい候補の index を決める
@@ -294,12 +386,12 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     const trimmed = editingCandidateTitle.trim();
 
     // 最終的なタイトル文字列（空ならデフォルト）
-    const finalTitle = trimmed || "候補地ラベル";
+    const finalTitle = trimmed || "飛行エリア図";
 
     // ===== 重複チェック =====
     if (hasDuplicateCandidateTitle(finalTitle, idx)) {
       window.alert(
-        "同じタイトルの候補が既にあります。別のタイトルを入力してください。"
+        "同じタイトルの飛行エリア図が既にあります。別のタイトルを入力してください。"
       );
       // state は触らず、そのまま編集を続行できるようにする
       return false;
@@ -500,8 +592,20 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   };
 
   // 履歴選択
-  const onSelectHistory = (item: HistoryItem, idx: number) => {
+  const onSelectHistory = (
+    item: HistoryItem,
+    idx: number,
+    flightFigureId?: string
+  ) => {
     setSelectedHistoryIdx(idx); // 履歴のインデックスを設定
+    const cardKey = getOwnCardKey(item, idx);
+    const figures = ownFlightFiguresByCardKey[cardKey] ?? [];
+    const resolvedFigureId =
+      flightFigureId?.trim() ||
+      figures.find((f) => f.isConfirmed)?.id ||
+      figures[0]?.id ||
+      null;
+    setSelectedOwnFlightFigureId(resolvedFigureId);
     setSelectedCandidateIdx(null); // 候補の選択状態を解除
     // 履歴選択イベントを通知（UI 状態は indices で管理）
     window.dispatchEvent(
@@ -510,7 +614,12 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       })
     );
     const event = new CustomEvent(EV_DETAILBAR_SELECT_HISTORY, {
-      detail: { ...item, index: idx },
+      detail: {
+        ...item,
+        index: idx,
+        // 地図側には明示的な figureId（または confirmed）を渡す
+        flightFigureId: resolvedFigureId ?? undefined,
+      },
     });
     window.dispatchEvent(event);
   };
@@ -519,6 +628,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   const onSelectCandidate = (idx: number) => {
     setSelectedCandidateIdx(idx); // 候補エリアのインデックスを設定
     setSelectedHistoryIdx(null); // 履歴の選択状態を解除
+    setSelectedOwnFlightFigureId(null);
     // 候補選択イベントを通知（UI 状態は indices で管理）
     window.dispatchEvent(
       new CustomEvent(EV_DETAILBAR_SELECTED, {
@@ -610,6 +720,9 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
         // エリア切り替えなどでロックが漏れないように明示的に false に戻す。
         ...(hasCandidateDeletionLocked ? {} : { candidateDeletionLocked: false }),
       }));
+      // 自社タブの画面専用フィールドはエリア切替でクリア（保存未接続）
+      setFacilityType("");
+      setOwner("");
       if (import.meta.env.DEV) console.debug("[detailbar] meta applied", m);
     };
     window.addEventListener(EV_DETAILBAR_SET_META, onSetMeta as EventListener);
@@ -630,7 +743,10 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
         console.debug("[detailbar] history=", sanitized.length);
       //  エリアが切り替わった（=新しい履歴が来た）ので選択状態を初期化
       setSelectedHistoryIdx(null);
+      setSelectedOwnFlightFigureId(null);
       setSelectedCandidateIdx(null);
+      // 自社タブ：エリア切替時は全カード閉じる
+      setOwnExpandedKeys(new Set());
       window.dispatchEvent(
         new CustomEvent(EV_DETAILBAR_SELECTED, {
           detail: { isSelected: false, kind: null as null },
@@ -652,8 +768,81 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   useEffect(() => {
     if (selectedHistoryIdx != null && selectedHistoryIdx >= history.length) {
       setSelectedHistoryIdx(null);
+      setSelectedOwnFlightFigureId(null);
     }
   }, [history, selectedHistoryIdx]);
+
+  // 自社タブの飛行エリア図一覧（表示専用）を履歴から構築
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadOwnFlightFigures = async () => {
+      if (!history.length) {
+        if (!cancelled) setOwnFlightFiguresByCardKey({});
+        return;
+      }
+
+      const entries = await Promise.all(
+        history.map(async (item, i) => {
+          const cardKey = getOwnCardKey(item, i);
+          const projectUuid = item.projectUuid?.trim();
+          const scheduleUuid = item.scheduleUuid?.trim();
+          const fallbackTitle = item.scheduleName?.trim() || "飛行エリア図";
+
+          if (!projectUuid || !scheduleUuid) {
+            return [cardKey, [] as OwnFlightFigureView[]] as const;
+          }
+
+          try {
+            const project = await fetchProjectIndex(projectUuid);
+            const schedules = Array.isArray(project?.schedules)
+              ? project.schedules
+              : [];
+            const schedule = schedules.find((s: any) => s?.id === scheduleUuid);
+            const normalized = normalizeScheduleFlightArea(
+              schedule?.area,
+              fallbackTitle
+            );
+
+            const list = normalized.flight_figures.map((figure: FlightFigure) => ({
+              id: figure.id,
+              title: figure.title?.trim() || fallbackTitle,
+              isConfirmed: figure.id === normalized.confirmed_figure_id,
+            }));
+
+            return [cardKey, list] as const;
+          } catch (error) {
+            console.warn(
+              "[detailbar] failed to load flight figures for history card",
+              { projectUuid, scheduleUuid, error }
+            );
+            return [cardKey, [] as OwnFlightFigureView[]] as const;
+          }
+        })
+      );
+
+      if (cancelled) return;
+      const nextMap = Object.fromEntries(entries);
+      setOwnFlightFiguresByCardKey(nextMap);
+
+      // figureId未指定の選択（URL自動選択など）では、confirmed をハイライト対象にする
+      setSelectedOwnFlightFigureId((current) => {
+        if (current) return current;
+        if (selectedHistoryIdx == null) return null;
+        const item = history[selectedHistoryIdx];
+        if (!item) return null;
+        const cardKey = getOwnCardKey(item, selectedHistoryIdx);
+        const figures = nextMap[cardKey] ?? [];
+        const confirmed = figures.find((f) => f.isConfirmed);
+        return confirmed?.id ?? figures[0]?.id ?? null;
+      });
+    };
+
+    loadOwnFlightFigures();
+    return () => {
+      cancelled = true;
+    };
+  }, [history]);
 
   // 履歴や候補が選ばれていない場合は「選択なし」にする
   useEffect(() => {
@@ -670,6 +859,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   useEffect(() => {
     const reset = () => {
       setSelectedHistoryIdx(null);
+      setSelectedOwnFlightFigureId(null);
       setSelectedCandidateIdx(null);
       window.dispatchEvent(
         new CustomEvent(EV_DETAILBAR_SELECTED, {
@@ -713,7 +903,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     if (idx < 0) return;
 
     // タブも飛行エリアに合わせる（任意だがUX的に良い）
-    setActive("history");
+    setActivePrimary("own");
 
     // 実際の選択処理（イベント dispatch → MapView 側がジオメトリ描画）
     didAutoSelectRef.current = true;
@@ -744,183 +934,160 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
         />
       </div>
 
-      {/* ヘッダー（ヒーロー / タイトル / タブ） */}
+      {/* ヘッダー（タイトル） */}
       <div
         className="detailbar-header"
         role="banner"
         aria-label="エリア詳細ヘッダー"
       >
-        <div
-          className="detailbar-hero-slot detailbar-hero-fullbleed detailbar-hero-fullbleed-top"
-          aria-hidden="true"
-        />
-
         <div className="detailbar-title" aria-live="polite" title={title}>
           <InputBox value={title} onChange={(e) => setTitle(e.target.value)} />
-        </div>
-
-        <div
-          role="tablist"
-          aria-label="詳細バータブ"
-          className="detailbar-tabs"
-        >
-          <button
-            role="tab"
-            aria-selected={active === "overview"}
-            className={`tab-btn ${active === "overview" ? "is-active" : ""}`}
-            onClick={() => setActive("overview")}
-          >
-            概要
-          </button>
-          <button
-            role="tab"
-            aria-selected={active === "detail"}
-            className={`tab-btn ${active === "detail" ? "is-active" : ""}`}
-            onClick={() => setActive("detail")}
-          >
-            詳細
-          </button>
-          <button
-            role="tab"
-            aria-selected={active === "history"}
-            className={`tab-btn ${active === "history" ? "is-active" : ""}`}
-            onClick={() => setActive("history")}
-          >
-            飛行エリア
-          </button>
         </div>
       </div>
 
       {/* 本文 */}
       <div className="detailbar-panel">
-        {/* 概要タブ */}
-        {active === "overview" && (
-          <section role="tabpanel" aria-label="概要">
-            <div className="detailbar-form">
-              <Textarea
-                label=""
+        {/* 共通情報・制限備考はメインタブより上（常時表示） */}
+        <div className="detailbar-own">
+          <div className="detailbar-own-section">
+            <div className="detailbar-own-section-title">共通情報</div>
+            <div className="detailbar-form detailbar-own-form">
+              <InputBox
+                label="施設種別"
+                value={facilityType}
+                onChange={(e) => setFacilityType(e.target.value)}
+              />
+              <InputBox
+                label="住所"
                 value={meta.address}
                 onChange={(e) =>
                   setMeta((p) => ({ ...p, address: e.target.value }))
                 }
               />
-              <InputBox
-                label="担当者"
-                value={meta.manager}
-                onChange={(e) =>
-                  setMeta((p) => ({ ...p, manager: e.target.value }))
-                }
-              />
-              <SelectBox
-                label="都道府県"
-                value={meta.prefecture}
-                options={PREFECTURES}
-                onChange={(e) =>
-                  setMeta((p) => ({ ...p, prefecture: e.target.value }))
-                }
-              />{" "}
-              <SelectBox
-                label="ドローン実績"
-                value={String(meta.droneRecord ?? 0)}
-                options={[
-                  { value: "0", label: "なし" },
-                  { value: "1", label: "あり" },
-                ]}
-                onChange={(e) =>
-                  setMeta((p) => ({
-                    ...p,
-                    droneRecord: Number(e.target.value),
-                  }))
-                }
-              />
-              <InputBox
-                label="機体数目安"
-                value={meta.aircraftCount}
-                onChange={(e) =>
-                  setMeta((p) => ({ ...p, aircraftCount: e.target.value }))
-                }
-              />
-              <InputBox
-                label="制限高(海抜高)"
-                value={meta.altitudeLimit}
-                onChange={(e) =>
-                  setMeta((p) => ({ ...p, altitudeLimit: e.target.value }))
-                }
-              />
-              <InputBox
-                label="実施可否"
-                value={meta.availability}
-                onChange={(e) =>
-                  setMeta((p) => ({ ...p, availability: e.target.value }))
-                }
-              />
+              <div className="detailbar-own-row">
+                <SelectBox
+                  label="都道府県"
+                  value={meta.prefecture}
+                  options={PREFECTURES}
+                  onChange={(e) =>
+                    setMeta((p) => ({ ...p, prefecture: e.target.value }))
+                  }
+                />
+                <InputBox
+                  label="担当者"
+                  value={meta.manager}
+                  onChange={(e) =>
+                    setMeta((p) => ({ ...p, manager: e.target.value }))
+                  }
+                />
+              </div>
             </div>
-          </section>
-        )}
-        {/* 詳細タブ */}
-        {active === "detail" && (
-          <section role="tabpanel" aria-label="詳細">
-            <div className="detailbar-form detailbar-form--lg">
-              <Textarea
-                label="ステータス"
-                value={meta.statusMemo}
-                onChange={(e) =>
-                  setMeta((p) => ({ ...p, statusMemo: e.target.value }))
-                }
-              />
-              <Textarea
-                label="許可"
-                value={meta.permitMemo}
-                onChange={(e) =>
-                  setMeta((p) => ({ ...p, permitMemo: e.target.value }))
-                }
-              />
-              <Textarea
-                label="制限"
-                value={meta.restrictionsMemo}
-                onChange={(e) =>
-                  setMeta((p) => ({ ...p, restrictionsMemo: e.target.value }))
-                }
-              />
-              <Textarea
-                label="備考"
-                value={meta.remarks}
-                onChange={(e) =>
-                  setMeta((p) => ({ ...p, remarks: e.target.value }))
-                }
-              />
-            </div>
-          </section>
-        )}
-        {/* 飛行エリア */}
-        {active === "history" && (
-          <section role="tabpanel" aria-label="案件実績と候補エリア">
-            {/* 案件実績セクション */}
-            <div className="ds-record-section">
-              <div className="ds-record-section-title">案件</div>
+          </div>
 
-              <div className="ds-record-list">
-                {history.length === 0 ? (
-                  <div className="ds-record-empty" aria-live="polite">
-                    履歴はありません
-                  </div>
-                ) : (
-                  history.map((item, i) => {
-                    const selected = selectedHistoryIdx === i;
-                    return (
-                      <div
-                        key={`${item.projectName}-${item.scheduleName}-${item.date}-${i}`}
-                        className={`ds-record-row ${
-                          selected ? "is-selected" : ""
-                        }`}
-                        role="option"
-                        aria-selected={selected}
-                        onClick={() => onSelectHistory(item, i)}
-                      >
+          <div className="detailbar-own-separator" />
+
+          <div className="detailbar-own-section">
+            <button
+              type="button"
+              className="detailbar-own-section-toggle"
+              aria-expanded={notesOpen}
+              aria-controls="detailbar-notes-panel"
+              onClick={() => setNotesOpen((v) => !v)}
+            >
+              <span className="detailbar-own-section-title">備考</span>
+              <span
+                className={`detailbar-own-section-chevron ${
+                  notesOpen ? "is-open" : ""
+                }`}
+                aria-hidden="true"
+              >
+                ▾
+              </span>
+            </button>
+            {notesOpen && (
+              <div
+                id="detailbar-notes-panel"
+                className="detailbar-form detailbar-form--lg detailbar-own-form"
+              >
+                <InputBox
+                  label="所有者"
+                  value={owner}
+                  onChange={(e) => setOwner(e.target.value)}
+                />
+                <Textarea
+                  label="制限"
+                  value={meta.restrictionsMemo}
+                  onChange={(e) =>
+                    setMeta((p) => ({
+                      ...p,
+                      restrictionsMemo: e.target.value,
+                    }))
+                  }
+                />
+                <InputBox
+                  label="備考"
+                  value={meta.remarks}
+                  onChange={(e) =>
+                    setMeta((p) => ({ ...p, remarks: e.target.value }))
+                  }
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div
+          role="tablist"
+          aria-label="詳細バータブ"
+          className="detailbar-tabs detailbar-tabs--primary"
+        >
+          {(
+            [
+              { key: "own", label: "自社" },
+              { key: "considering", label: "検討中" },
+              { key: "other", label: "他社" },
+            ] as const
+          ).map(({ key, label }) => (
+            <button
+              key={key}
+              role="tab"
+              aria-selected={activePrimary === key}
+              className={`tab-btn ${activePrimary === key ? "is-active" : ""}`}
+              onClick={() => setActivePrimary(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* 自社タブ：エリアに紐づく案件履歴（1 HistoryItem = 1カード） */}
+        {activePrimary === "own" && (
+          <section role="tabpanel" aria-label="自社" className="detailbar-own-tab">
+            <div className="detailbar-own-history-title">
+              案件履歴（{history.length}件）
+            </div>
+
+            <div className="detailbar-own-project-list">
+              {history.length === 0 ? (
+                <div className="detailbar-placeholder" aria-live="polite">
+                  履歴はありません
+                </div>
+              ) : (
+                history.map((item, i) => {
+                  const cardKey = getOwnCardKey(item, i);
+                  const expanded = ownExpandedKeys.has(cardKey);
+                  const flightSelected = selectedHistoryIdx === i;
+                  const ownFigures = ownFlightFiguresByCardKey[cardKey] ?? [];
+                  return (
+                    <div
+                      key={cardKey}
+                      className="detailbar-own-project-card"
+                    >
+                      <div className="detailbar-own-project-top">
                         <span
-                          className="ds-record-leftgap"
+                          className="detailbar-own-project-hub"
                           onClick={(e: ReactMouseEvent<HTMLSpanElement>) => {
-                            e.stopPropagation(); // 行へのバブリングを止める
+                            e.stopPropagation();
                           }}
                         >
                           <DetailIconButton
@@ -939,41 +1106,46 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                                 );
                                 return;
                               }
-
                               console.log("[detailbar] navigate to hub:", url);
-                              // RD Hubを新規タブで開く
                               window.open(url, "_blank", "noopener,noreferrer");
                             }}
-                          />{" "}
+                          />
                         </span>
-
-                        <span className="ds-record-date">
-                          {fmtDate(item.date)}
-                        </span>
-                        <span className="ds-record-name">
-                          {item.projectName}
-                        </span>
-                        <span className="ds-record-schedule">
-                          {item.scheduleName}
-                        </span>
-
+                        <button
+                          type="button"
+                          className="detailbar-own-project-header"
+                          aria-expanded={expanded}
+                          onClick={() => {
+                            setOwnExpandedKeys((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(cardKey)) next.delete(cardKey);
+                              else next.add(cardKey);
+                              return next;
+                            });
+                          }}
+                        >
+                          <span className="detailbar-own-project-title">
+                            {item.projectName}
+                          </span>
+                          <span className="detailbar-own-project-schedule">
+                            {item.scheduleName}
+                          </span>
+                          <span className="detailbar-own-project-date">
+                            {item.date}
+                          </span>
+                        </button>
                         {editable && (
                           <span
-                            className="ds-record-delete"
+                            className="detailbar-own-project-delete"
                             onClick={(e: ReactMouseEvent<HTMLSpanElement>) => {
-                              e.stopPropagation(); // 削除ボタンでも行クリックは発火させない
+                              e.stopPropagation();
                             }}
                           >
                             <DeleteIconButton
-                              className={
-                                !editable
-                                  ? "ds-record-delete--hidden"
-                                  : undefined
-                              }
                               title="この履歴を削除"
-                              tabIndex={editable ? 0 : -1}
+                              tabIndex={0}
                               onClick={() => {
-                                if (!editable) return; // 念のためガード
+                                if (!editable) return;
 
                                 const ok = window.confirm(
                                   "紐づけを解除しますか？案件情報は削除されません。"
@@ -1009,201 +1181,435 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
                           </span>
                         )}
                       </div>
+
+                      {expanded && (
+                        <div className="detailbar-own-flight">
+                          <div className="detailbar-own-flight-title">
+                            飛行エリア図（{ownFigures.length}件）
+                          </div>
+                          <div className="detailbar-own-flight-list">
+                            {ownFigures.length === 0 ? (
+                              <div className="ds-record-empty" aria-live="polite">
+                                飛行エリア図はありません
+                              </div>
+                            ) : (
+                              ownFigures.map((figure) => {
+                                const selectedFigure =
+                                  flightSelected &&
+                                  selectedOwnFlightFigureId === figure.id;
+                                return (
+                                  <button
+                                    key={figure.id}
+                                    type="button"
+                                    className={`detailbar-own-flight-item ${
+                                      selectedFigure ? "is-selected" : ""
+                                    }`}
+                                    aria-pressed={selectedFigure}
+                                    onClick={() =>
+                                      onSelectHistory(item, i, figure.id)
+                                    }
+                                  >
+                                    <span
+                                      className={`detailbar-own-flight-dot ${
+                                        selectedFigure ? "is-selected" : ""
+                                      }`}
+                                      aria-hidden="true"
+                                    />
+                                    <span className="detailbar-own-flight-label">
+                                      {figure.title}
+                                      {figure.isConfirmed ? "（確定）" : ""}
+                                    </span>
+                                  </button>
+                                );
+                              })
+                            )}
+                          </div>
+                          {editable && (
+                            <button
+                              type="button"
+                              className="detailbar-own-outline-button"
+                              onClick={() => handleAddFlightAreaFigure(item, i)}
+                            >
+                              飛行エリア図を追加
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {editable && (
+              <button
+                type="button"
+                className="detailbar-own-outline-button"
+                onClick={handleRegisterProjectInfo}
+              >
+                案件情報を紐づける
+              </button>
+            )}
+          </section>
+        )}
+
+        {/* 検討中タブ（まずはサンプルUIのみ） */}
+        {activePrimary === "considering" && (
+          <section
+            role="tabpanel"
+            aria-label="検討中"
+            className="detailbar-considering-tab"
+          >
+            <div className="detailbar-form detailbar-own-form">
+              <SelectBox
+                label="ステータス"
+                value={consideringStatus}
+                options={[...CONSIDERING_STATUS_OPTIONS]}
+                onChange={(e) => setConsideringStatus(e.target.value)}
+              />
+              <InputBox
+                label="担当者"
+                value={consideringManager}
+                onChange={(e) => setConsideringManager(e.target.value)}
+              />
+              <SelectBox
+                label="チャネル"
+                value={consideringChannel}
+                options={[...CONSIDERING_CHANNEL_OPTIONS]}
+                onChange={(e) => setConsideringChannel(e.target.value)}
+              />
+              <div className="detailbar-own-row">
+                <SelectBox
+                  label="フィジビリ"
+                  value={consideringFeasibility}
+                  options={[...CONSIDERING_FEASIBILITY_OPTIONS]}
+                  onChange={(e) => setConsideringFeasibility(e.target.value)}
+                />
+                <InputBox
+                  label="コスト目安"
+                  value={consideringCost}
+                  placeholder="未入力"
+                  onChange={(e) => setConsideringCost(e.target.value)}
+                />
+              </div>
+              <Textarea
+                label="メモ"
+                value={consideringMemo}
+                rows={4}
+                onChange={(e) => setConsideringMemo(e.target.value)}
+              />
+            </div>
+
+            <div className="detailbar-own-separator" />
+
+            <div className="detailbar-own-flight">
+              <div className="detailbar-own-flight-title">
+                飛行エリア図（{candidates.length}件）
+              </div>
+
+              <div className="detailbar-own-flight-list">
+                {candidates.length === 0 ? (
+                  <div className="ds-record-empty" aria-live="polite">
+                    飛行エリア図はありません
+                  </div>
+                ) : (
+                  candidates.map((candidate, idx) => {
+                    const selected = selectedCandidateIdx === idx;
+                    return (
+                      <div
+                        key={idx}
+                        className={`detailbar-own-flight-item ${
+                          selected ? "is-selected" : ""
+                        }`}
+                        role="option"
+                        aria-selected={selected}
+                        onClick={() => onSelectCandidate(idx)}
+                      >
+                        <span
+                          className={`detailbar-own-flight-dot ${
+                            selected ? "is-selected" : ""
+                          }`}
+                          aria-hidden="true"
+                        />
+                        <span
+                          className="detailbar-own-flight-label"
+                          onDoubleClick={(
+                            e: ReactMouseEvent<HTMLSpanElement>
+                          ) => {
+                            if (!editable) return;
+                            e.stopPropagation();
+
+                            if (
+                              editingCandidateIdx != null &&
+                              editingCandidateIdx !== idx
+                            ) {
+                              const ok = commitCandidateTitle();
+                              if (!ok) return;
+                            }
+
+                            setEditingCandidateIdx(idx);
+                            setEditingCandidateTitle(candidate.title ?? "");
+                          }}
+                        >
+                          {editable && editingCandidateIdx === idx ? (
+                            <input
+                              ref={editingCandidateInputRef}
+                              type="text"
+                              className="candidate-title-input"
+                              value={editingCandidateTitle}
+                              placeholder="飛行エリア図"
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e) =>
+                                setEditingCandidateTitle(e.target.value)
+                              }
+                              onBlur={() => {
+                                const editIdx = editingCandidateIdx;
+                                const isPendingNew =
+                                  editIdx != null &&
+                                  pendingNewCandidateIdxRef.current === editIdx;
+                                const hasInput =
+                                  editingCandidateTitle.trim().length > 0;
+
+                                if (isPendingNew && hasInput) {
+                                  commitCandidateTitle();
+                                  return;
+                                }
+
+                                cancelCandidateEdit();
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  commitCandidateTitle();
+                                } else if (e.key === "Escape") {
+                                  e.preventDefault();
+                                  cancelCandidateEdit();
+                                }
+                              }}
+                            />
+                          ) : (
+                            candidate.title || "（無題）"
+                          )}
+                        </span>
+
+                        {editable && !candidateDeletionLocked && (
+                          <span
+                            className="detailbar-own-flight-actions"
+                            onClick={(e: ReactMouseEvent<HTMLSpanElement>) => {
+                              e.stopPropagation();
+                            }}
+                          >
+                            <button
+                              type="button"
+                              className="ds-candidate-duplicate-button"
+                              title="この飛行エリア図を複製"
+                              onClick={() => duplicateCandidate(idx)}
+                            >
+                              複製
+                            </button>
+                            <DeleteIconButton
+                              title="この飛行エリア図を削除"
+                              tabIndex={0}
+                              onClick={() => {
+                                if (!editable) return;
+
+                                const ok = window.confirm(
+                                  `飛行エリア図「${
+                                    candidate.title || "（無題）"
+                                  }」を削除してもよろしいですか？`
+                                );
+                                if (!ok) return;
+
+                                setMeta((prev) => {
+                                  const list = Array.isArray(prev.candidate)
+                                    ? [...prev.candidate]
+                                    : [];
+                                  if (idx < 0 || idx >= list.length) return prev;
+                                  list.splice(idx, 1);
+                                  return {
+                                    ...prev,
+                                    candidate: list,
+                                  };
+                                });
+
+                                setSelectedCandidateIdx((current) =>
+                                  current === idx ? null : current
+                                );
+                                if (editingCandidateIdx != null) {
+                                  cancelCandidateEdit();
+                                }
+
+                                window.alert(
+                                  "飛行エリア図を削除しました。\nSAVEボタンで確定してください。"
+                                );
+                              }}
+                            />
+                          </span>
+                        )}
+                      </div>
                     );
                   })
                 )}
               </div>
 
-              {/* 案件実績を登録するボタン */}
-              {editable && (
-                <button
-                  type="button"
-                  className="add-area-button detailbar-add-button"
-                  onClick={handleRegisterProjectInfo}
-                >
-                  <span className="add-icon">＋ </span>案件情報を紐づける
-                </button>
-              )}
-            </div>
-
-            {/* セパレート横線 */}
-            <div className="ds-record-separator" />
-
-            {/* 候補地セクション */}
-            <div className="ds-record-section">
-              <div className="ds-record-section-title">候補</div>
-
-              <div className="ds-record-list">
-                {candidates.length === 0 ? (
-                  <div className="ds-record-empty" aria-live="polite">
-                    候補地はありません
-                  </div>
-                ) : (
-                  candidates.map((candidate, idx) => (
-                    <div
-                      key={idx}
-                      className={`ds-record-row ${
-                        selectedCandidateIdx === idx ? "is-selected" : ""
-                      }`}
-                      role="option"
-                      aria-selected={selectedCandidateIdx === idx}
-                      onClick={() => onSelectCandidate(idx)}
-                    >
-                      <span
-                        className="ds-record-leftgap"
-                        onClick={(e: ReactMouseEvent<HTMLSpanElement>) => {
-                          e.stopPropagation();
-                        }}
-                      >
-                        <span className="ds-candidate-dot" aria-hidden="true">
-                          ・
-                        </span>
-                      </span>
-                      {/* ダブルクリックで編集開始 */}
-                      <span
-                        className="ds-candidate-name"
-                        onDoubleClick={(
-                          e: ReactMouseEvent<HTMLSpanElement>
-                        ) => {
-                          if (!editable) return; // 編集モードでなければ何もしない
-                          e.stopPropagation(); // 行クリックへのバブリング防止
-
-                          // すでに別の候補を編集中なら一旦確定
-                          if (
-                            editingCandidateIdx != null &&
-                            editingCandidateIdx !== idx
-                          ) {
-                            const ok = commitCandidateTitle();
-                            if (!ok) {
-                              // 重複エラーなどで確定できなかった場合は
-                              // 新しい行の編集には切り替えない
-                              return;
-                            }
-                          }
-
-                          // この行を編集対象にする
-                          setEditingCandidateIdx(idx);
-                          setEditingCandidateTitle(candidate.title ?? "");
-                        }}
-                      >
-                        {editable && editingCandidateIdx === idx ? (
-                          <input
-                            ref={editingCandidateInputRef}
-                            type="text"
-                            className="candidate-title-input"
-                            value={editingCandidateTitle}
-                            placeholder="候補地ラベル"
-                            onChange={(e) =>
-                              setEditingCandidateTitle(e.target.value)
-                            }
-                            onBlur={() => {
-                              // 追加直後の仮行は、タイトルが入力済みなら blur で確定。
-                              // 未入力のままなら cancel 側で仮行ごと破棄する。
-                              const idx = editingCandidateIdx;
-                              const isPendingNew =
-                                idx != null &&
-                                pendingNewCandidateIdxRef.current === idx;
-                              const hasInput = editingCandidateTitle.trim().length > 0;
-
-                              if (isPendingNew && hasInput) {
-                                commitCandidateTitle();
-                                return;
-                              }
-
-                              // 既存行編集・未入力時は従来どおりキャンセル
-                              cancelCandidateEdit();
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                // Enter のときだけ重複チェック付きで確定
-                                commitCandidateTitle();
-                              } else if (e.key === "Escape") {
-                                e.preventDefault();
-                                cancelCandidateEdit();
-                              }
-                            }}
-                          />
-                        ) : (
-                          candidate.title
-                        )}
-                      </span>
-
-                      {editable && !candidateDeletionLocked && (
-                        <span
-                          className="ds-record-delete"
-                          onClick={(e: ReactMouseEvent<HTMLSpanElement>) => {
-                            e.stopPropagation();
-                          }}
-                        >
-                          <button
-                            type="button"
-                            className="ds-candidate-duplicate-button"
-                            title="この候補を複製"
-                            onClick={() => duplicateCandidate(idx)}
-                          >
-                            複製
-                          </button>
-                          <DeleteIconButton
-                            className={
-                              !editable ? "ds-record-delete--hidden" : undefined
-                            }
-                            title="この候補を削除"
-                            tabIndex={editable ? 0 : -1}
-                            onClick={() => {
-                              if (!editable) return;
-
-                              const ok = window.confirm(
-                                `候補「${
-                                  candidate.title || "（無題の候補）」"
-                                }」を削除してもよろしいですか？`
-                              );
-                              if (!ok) return;
-
-                              setMeta((prev) => {
-                                const list = Array.isArray(prev.candidate)
-                                  ? [...prev.candidate]
-                                  : [];
-                                if (idx < 0 || idx >= list.length) return prev;
-                                list.splice(idx, 1);
-                                return {
-                                  ...prev,
-                                  candidate: list,
-                                };
-                              });
-
-                              setSelectedCandidateIdx((current) =>
-                                current === idx ? null : current
-                              );
-                              if (editingCandidateIdx != null) {
-                                cancelCandidateEdit();
-                              }
-
-                              window.alert(
-                                "候補を削除しました。\nSAVEボタンで確定してください。"
-                              );
-                            }}
-                          />
-                        </span>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* 候補地を追加するボタン */}
               {editable && !candidateDeletionLocked && (
                 <button
                   type="button"
-                  className="add-area-button detailbar-add-button"
+                  className="detailbar-own-outline-button"
                   onClick={handleAddCandidate}
                 >
-                  <span className="add-icon">＋ </span>候補地を追加する
+                  飛行エリア図を追加
                 </button>
               )}
             </div>
           </section>
         )}
+
+        {/* 他社タブ（まずはサンプルUI。編集ONで入力可） */}
+        {activePrimary === "other" && (
+          <section
+            role="tabpanel"
+            aria-label="他社"
+            className="detailbar-other-tab"
+          >
+            <div className="detailbar-own-history-title">
+              実績一覧（{otherRecords.length}件）
+            </div>
+
+            <div className="detailbar-own-project-list">
+              {otherRecords.map((record, recordIdx) => {
+                const expanded = otherExpandedIds.has(record.id);
+                const subtitle = `${record.eventTitle} / ${record.heldOn}`;
+                const updateRecord = (
+                  patch: Partial<Omit<OtherCompanyRecord, "id" | "flightAreas">>
+                ) => {
+                  setOtherRecords((prev) =>
+                    prev.map((r, i) =>
+                      i === recordIdx ? { ...r, ...patch } : r
+                    )
+                  );
+                };
+                return (
+                  <div key={record.id} className="detailbar-own-project-card">
+                    <button
+                      type="button"
+                      className="detailbar-own-project-header"
+                      aria-expanded={expanded}
+                      onClick={() => {
+                        setOtherExpandedIds((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(record.id)) next.delete(record.id);
+                          else next.add(record.id);
+                          return next;
+                        });
+                      }}
+                    >
+                      <span className="detailbar-own-project-title">
+                        {record.companyName}
+                      </span>
+                      <span className="detailbar-own-project-date">
+                        {subtitle}
+                      </span>
+                    </button>
+
+                    {expanded && (
+                      <div className="detailbar-other-body">
+                        <div className="detailbar-form detailbar-own-form">
+                          <InputBox
+                            label="会社名"
+                            value={record.companyName}
+                            onChange={(e) =>
+                              updateRecord({ companyName: e.target.value })
+                            }
+                          />
+                          <InputBox
+                            label="イベント"
+                            value={record.eventTitle}
+                            onChange={(e) =>
+                              updateRecord({ eventTitle: e.target.value })
+                            }
+                          />
+                          <InputBox
+                            label="開催年月"
+                            value={record.heldOn}
+                            onChange={(e) =>
+                              updateRecord({ heldOn: e.target.value })
+                            }
+                          />
+                          <InputBox
+                            label="会場"
+                            value={record.venue}
+                            onChange={(e) =>
+                              updateRecord({ venue: e.target.value })
+                            }
+                          />
+                          <InputBox
+                            label="機体数"
+                            value={record.aircraftCount}
+                            onChange={(e) =>
+                              updateRecord({ aircraftCount: e.target.value })
+                            }
+                          />
+                          <InputBox
+                            label="RCアプローチ"
+                            value={record.rcApproach}
+                            onChange={(e) =>
+                              updateRecord({ rcApproach: e.target.value })
+                            }
+                          />
+                          <InputBox
+                            label="感触"
+                            value={record.impression}
+                            onChange={(e) =>
+                              updateRecord({ impression: e.target.value })
+                            }
+                          />
+                          <InputBox
+                            label="MEMO"
+                            value={record.memo}
+                            onChange={(e) =>
+                              updateRecord({ memo: e.target.value })
+                            }
+                          />
+                        </div>
+
+                        <div className="detailbar-own-flight">
+                          <div className="detailbar-own-flight-title">
+                            飛行エリア図（{record.flightAreas.length}件）
+                          </div>
+                          <div className="detailbar-own-flight-list">
+                            {record.flightAreas.map((area) => (
+                              <button
+                                key={area.id}
+                                type="button"
+                                className="detailbar-own-flight-item"
+                              >
+                                <span className="detailbar-own-flight-label">
+                                  {area.label}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                          <button
+                            type="button"
+                            className="detailbar-own-outline-button"
+                          >
+                            飛行エリア図を追加
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <button type="button" className="detailbar-own-outline-button">
+              実績を追加する
+            </button>
+          </section>
+        )}
+
       </div>
 
       {(meta.updated_at ?? meta.updated_by) && (

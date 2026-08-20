@@ -26,6 +26,8 @@ export const EV_DETAILBAR_APPLY_METRICS = "detailbar:apply-metrics";
 
 export const EV_PROJECT_MODAL_OPEN = "project:open-modal";
 export const EV_PROJECT_MODAL_SUBMIT = "project-modal:submit";
+/** 詳細バーなどから「飛行エリア作図」と同じ処理を起動する */
+export const EV_FLIGHT_AREA_CREATE_OPEN = "flight-area:create-open";
 export const EV_ADD_AREA_SELECT_RESULT = "map:add-area-select-result";
 export const EV_ADD_AREA_RESULT_COORDS = "map:add-area-result-coords";
 

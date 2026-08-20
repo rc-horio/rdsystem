@@ -3,6 +3,7 @@ import type { RefObject } from "react";
 import { MapCard, LandingAreaFigure, RightPanel } from "..";
 import type { MapCardHandle } from "../MapCard";
 import type { AreaInfo } from "../..";
+import { resolveConfirmedGeometry } from "@/features/hub/utils/flightFigures";
 
 type Props = {
   edit: boolean;
@@ -71,7 +72,7 @@ export default function DesktopPanel({
             areaName={areaName}
             projectUuid={projectUuid ?? undefined}
             scheduleUuid={scheduleUuid ?? undefined}
-            geometry={(area as any)?.geometry ?? null}
+            geometry={resolveConfirmedGeometry(area) ?? null}
             onScreenshotCaptured={onScreenshotCaptured}
           />
           <LandingAreaFigure edit={edit} area={area} onPatchArea={onPatchArea} />

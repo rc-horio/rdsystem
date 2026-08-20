@@ -57,6 +57,26 @@ export type Geometry = {
     distance_from_viewers_m?: number; // 飛行エリア中心から観客エリア中心までの距離(m)
 };
 
+/**
+ * スケジュール配下の飛行エリア図（1スケジュールに複数可）
+ * 永続化先: schedules[].area.flight_figures[]
+ */
+export type FlightFigure = {
+    id: string;
+    title: string;
+    geometry: Geometry;
+};
+
+/**
+ * schedules[].area のうち、飛行エリア図まわりの正規化後の形
+ * - confirmed_figure_id は flight_figures 内の id を指す（0件のときは null）
+ * - 旧形 area.geometry は読み取り時にここに吸収する（正本は新形のみ）
+ */
+export type NormalizedScheduleFlightArea = {
+    flight_figures: FlightFigure[];
+    confirmed_figure_id: string | null;
+};
+
 export type Props = {
     onLoaded?: (pts: Point[]) => void;
 };
@@ -70,7 +90,11 @@ export type Point = {
     areaUuid?: string;
 };
 
-export type TabKey = "overview" | "detail" | "history";
+/** 詳細バーのメインタブ */
+export type DetailPrimaryTabKey =
+  | "own"
+  | "considering"
+  | "other";
 
 export type HistoryItem = {
     date: string;
@@ -140,6 +164,7 @@ export interface Candidate {
 export type GeometryPayload = {
     projectUuid?: string;
     scheduleUuid?: string;
+    flightFigureId?: string;
     geometry?: any;
     deleted?: boolean;
 };

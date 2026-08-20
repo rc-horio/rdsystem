@@ -8,6 +8,7 @@ import {
 } from "@/components";
 import { useEffect, useState } from "react";
 import { hasBlocks, getEffectiveBlocks } from "@/features/hub/utils/areaBlocks";
+import { resolveConfirmedGeometry } from "@/features/hub/utils/flightFigures";
 import { MultiBlockEditModal } from "./MultiBlockEditModal";
 
 // 開発用のCatalogのベースURL
@@ -61,7 +62,7 @@ export function RightPanel({
   const [focusedBlockId, setFocusedBlockId] = useState<string | null>(null);
 
   const A = area ?? {};
-  const geo = A.geometry ?? {};
+  const geo = resolveConfirmedGeometry(A) ?? {};
   const flightArea = geo.flightArea ?? {};
   const safetyArea = geo.safetyArea ?? {};
   // const flight = A.flight_area ?? {};

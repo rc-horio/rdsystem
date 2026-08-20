@@ -50,7 +50,11 @@ export class MapGeometry {
     /** =========================
      *  現在のスケジュール
      *  ========================= */
-    private currentScheduleRef: { projectUuid?: string; scheduleUuid?: string } | null = null;
+    private currentScheduleRef: {
+        projectUuid?: string;
+        scheduleUuid?: string;
+        flightFigureId?: string;
+    } | null = null;
 
     /** =========================
      *  現在のジオメトリ
@@ -321,6 +325,7 @@ export class MapGeometry {
                 const detail = {
                     projectUuid: this.currentScheduleRef?.projectUuid,
                     scheduleUuid: this.currentScheduleRef?.scheduleUuid,
+                    flightFigureId: this.currentScheduleRef?.flightFigureId,
                     geometry: geometryWithDistance,
                     deleted: this.deletedRef,
                 };
@@ -343,8 +348,12 @@ export class MapGeometry {
     /** =========================
      *  現在のスケジュールを設定
      *  ========================= */
-    setCurrentSchedule(projectUuid?: string, scheduleUuid?: string) {
-        this.currentScheduleRef = { projectUuid, scheduleUuid };
+    setCurrentSchedule(
+        projectUuid?: string,
+        scheduleUuid?: string,
+        flightFigureId?: string
+    ) {
+        this.currentScheduleRef = { projectUuid, scheduleUuid, flightFigureId };
         this.deletedRef = false;
     }
 
