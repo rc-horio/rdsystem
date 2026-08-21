@@ -260,6 +260,20 @@ export default function MapToolsPanel({
                 />
                 <span>表示しない</span>
               </label>
+              {showAirportHeightRestrictionCheckbox && (
+                <label className="map-tools-panel__checkbox">
+                  <input
+                    type="radio"
+                    name="restriction-layer"
+                    value="height"
+                    checked={restrictionLayer === "height"}
+                    onChange={() => handleRestrictionLayerChange("height")}
+                    disabled={airportHeightRestrictionDisabled}
+                    aria-label="高さ制限照会"
+                  />
+                  <span>空港高さ制限</span>
+                </label>
+              )}
               {showDjiNfzSection && (
                 <label className="map-tools-panel__checkbox">
                   <input
@@ -293,20 +307,6 @@ export default function MapToolsPanel({
                   </span>
                 </label>
               )}
-              {showAirportHeightRestrictionCheckbox && (
-                <label className="map-tools-panel__checkbox">
-                  <input
-                    type="radio"
-                    name="restriction-layer"
-                    value="height"
-                    checked={restrictionLayer === "height"}
-                    onChange={() => handleRestrictionLayerChange("height")}
-                    disabled={airportHeightRestrictionDisabled}
-                    aria-label="高さ制限照会"
-                  />
-                  <span>高さ制限</span>
-                </label>
-              )}
             </div>
           )}
           {djiNfzError && (
@@ -315,6 +315,7 @@ export default function MapToolsPanel({
             </p>
           )}
           <p className="map-tools-panel__disclaimer">
+            右クリックで照会できます。<br />
             表示情報は参考です。<br />
             公式情報を確認してください。
           </p>
