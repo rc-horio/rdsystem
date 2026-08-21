@@ -31,6 +31,6 @@ export const DEFAULT_OVERLAY_VISIBILITY: OverlayVisibility = {
   arrows: true,
   labels: true,
   diameterLines: true,
-  djiNfz: true,
+  djiNfz: false,
   companyMarkers: true,
 };
