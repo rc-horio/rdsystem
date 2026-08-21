@@ -8,6 +8,10 @@ import { buildFileBaseName, formatTurnText, getSpacingBetweenDronesText } from "
 import { buildLandingFigureExportSvg } from "./buildLandingFigureExportSvg";
 import { applyDroneOrientationToPage2 } from "./applyDroneOrientation";
 import { getEffectiveBlocks, hasBlocks } from "@/features/hub/utils/areaBlocks";
+import {
+    applyPage2SpacingForExport,
+    buildUnequalSpacingExportPage,
+} from "./buildUnequalSpacingExportPage";
 
 /**
  * PPTXのスライドサイズ
@@ -289,6 +293,41 @@ function headerBandBoxInches() {
     };
 }
 
+/** 3ページ目の図領域（#page3-figure: left/right 36, top 120, bottom 36） */
+function page3FigureBoxPx() {
+    return {
+        x: GRID_LEFT_PX,
+        y: GRID_TOP_PX,
+        w: PAGE_PX_W - GRID_LEFT_PX * 2,
+        h: PAGE_PX_H - GRID_TOP_PX - GRID_BOTTOM_PX,
+    };
+}
+
+/**
+ * 3ページ目の L 字間隔図だけをキャプチャ（ヘッダー帯は含めない）。
+ * 元の #page3-figure と同じ領域サイズで中央配置する。
+ */
+async function capturePage3Figure(
+    figureInner: HTMLElement,
+    widthPx: number,
+    heightPx: number,
+    styles: (HTMLStyleElement | HTMLLinkElement)[],
+    vars?: Record<string, string>
+) {
+    const wrap = document.createElement("div");
+    wrap.style.boxSizing = "border-box";
+    wrap.style.width = `${widthPx}px`;
+    wrap.style.height = `${heightPx}px`;
+    wrap.style.background = "#ffffff";
+    wrap.style.overflow = "hidden";
+    wrap.style.display = "flex";
+    wrap.style.alignItems = "center";
+    wrap.style.justifyContent = "center";
+
+    wrap.appendChild(figureInner.cloneNode(true) as HTMLElement);
+    return captureElement(wrap, "#fff", styles, vars);
+}
+
 // 左ペインの枠を取得
 function leftPaneBoxInInches() {
     const leftXpx = GRID_LEFT_PX;
@@ -565,8 +604,11 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
     const { horizontal, vertical } = getSpacingBetweenDronesText(area);
 
     // LandingAreaFigure と同じ: 左＝縦間隔(vertical)、下＝横間隔(horizontal)
-    setText(p2clone, ".spacing-label--left", vertical);
-    setText(p2clone, ".spacing-label--bottom", horizontal);
+    const needsSpacingPage = applyPage2SpacingForExport(p2clone, area);
+    if (!needsSpacingPage) {
+        setText(p2clone, ".spacing-label--left", vertical);
+        setText(p2clone, ".spacing-label--bottom", horizontal);
+    }
 
     // 左ペイン：LandingAreaFigure 注入（slot 無ければ作る）
     const slot = ensureLandingFigureSlot(p2clone);
@@ -596,9 +638,20 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
 
     // ==== 3) キャプチャ ====
     // 2ページ目は全面を html2canvas しない（白一色のベース画像を避ける）。1ページ目＋離着陸図のみ。
-    const [c1, figCanvas] = await Promise.all([
+    const p3 = needsSpacingPage ? buildUnequalSpacingExportPage(area) : null;
+    const p3HeaderEl = p3?.querySelector("#page3-header") as HTMLElement | null;
+    const p3GradEl = p3?.querySelector(":scope > .grad") as HTMLElement | null;
+    const p3FigureInner = p3?.querySelector("#page3-figure > :first-child") as HTMLElement | null;
+    const p3FigBox = page3FigureBoxPx();
+    const [c1, figCanvas, p3HeaderCanvas, p3FigureCanvas] = await Promise.all([
         captureElement(p1clone, "#000", styleNodes, cssVars),
         captureElement(slot, "#fff", styleNodes, cssVars), // 図だけ
+        p3 && p3HeaderEl && p3GradEl
+            ? capturePage2HeaderBand(p3HeaderEl, p3GradEl, gradFrom, gradTo, styleNodes, cssVars)
+            : Promise.resolve(null),
+        p3FigureInner
+            ? capturePage3Figure(p3FigureInner, p3FigBox.w, p3FigBox.h, styleNodes, cssVars)
+            : Promise.resolve(null),
     ]);
 
     // ==== 4) PPTX生成 ====
@@ -656,6 +709,30 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
         placeImageContainBottomLeft(slide, figData, figCanvas.width, figCanvas.height, box);
 
         addRightPaneNativeText(slide, rightPaneRows);
+    }
+
+    // 3枚目：ヘッダー帯と間隔図を別画像として配置（全面ラスタは使わない）
+    if (p3HeaderCanvas && p3FigureCanvas) {
+        const slide = pptx.addSlide();
+        slide.background = { color: "FFFFFF" };
+
+        const hb = headerBandBoxInches();
+        slide.addImage({
+            data: canvasToDataUri(p3HeaderCanvas, true),
+            x: hb.x,
+            y: hb.y,
+            w: hb.w,
+            h: hb.h,
+        });
+
+        const figBox = pxRectToSlideInches(p3FigBox);
+        slide.addImage({
+            data: canvasToDataUri(p3FigureCanvas, true),
+            x: figBox.x,
+            y: figBox.y,
+            w: figBox.w,
+            h: figBox.h,
+        });
     }
 
     // ファイル名を作成

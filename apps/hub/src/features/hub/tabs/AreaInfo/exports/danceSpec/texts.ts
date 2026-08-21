@@ -146,6 +146,12 @@ export function getSpacingBetweenDronesText(areaInput: any): { horizontal: strin
     };
 }
 
+/** 畳み込み後も軸に複数値が残る＝指示書の間隔詳細ページが必要 */
+export function isUnequalSpacingForExport(areaInput: any): boolean {
+    const area = normalizeArea(areaInput);
+    return Boolean(collapseUniformSpacing(area?.spacing_between_drones_m ?? {}).unequal);
+}
+
 /** その他そのまま表示系 */
 export function getMoveText(areaInput: any): string {
     const area = normalizeArea(areaInput);

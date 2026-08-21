@@ -8,6 +8,10 @@ import { sanitize, formatTurnText, getSpacingBetweenDronesText } from "./texts";
 import { buildLandingFigureExportSvg } from "./buildLandingFigureExportSvg";
 import { applyDroneOrientationToPage2 } from "./applyDroneOrientation";
 import { getEffectiveBlocks, hasBlocks } from "@/features/hub/utils/areaBlocks";
+import {
+    applyPage2SpacingForExport,
+    buildUnequalSpacingExportPage,
+} from "./buildUnequalSpacingExportPage";
 
 /**
  * PDFを出力
@@ -144,8 +148,11 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
     setTxt("#v-anim", (w && d) ? `W${w}m × L${d}m` : (w ? `W${w}m` : (d ? `L${d}m` : "—")));
 
     // LandingAreaFigure と同じ: 左＝縦間隔(vertical)、下＝横間隔(horizontal)
-    setTxt(".spacing-label--left", vertical);
-    setTxt(".spacing-label--bottom", horizontal);
+    const needsSpacingPage = applyPage2SpacingForExport(p2clone, area);
+    if (!needsSpacingPage) {
+        setTxt(".spacing-label--left", vertical);
+        setTxt(".spacing-label--bottom", horizontal);
+    }
 
     // ■機体の向き（Drone1Icon）の回転と Antenna/Battery ラベル位置を反映
     applyDroneOrientationToPage2(p2clone, area);
@@ -166,9 +173,11 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
 
     // ==== 3) キャプチャ ====
     const cssVars = { "--grad-from": gradFrom, "--grad-to": gradTo };
-    const [c1, c2] = await Promise.all([
+    const p3 = needsSpacingPage ? buildUnequalSpacingExportPage(area) : null;
+    const [c1, c2, c3] = await Promise.all([
         captureElement(p1clone, "#000", styleNodes, cssVars),
         captureElement(p2clone, "#fff", styleNodes, cssVars),
+        p3 ? captureElement(p3, "#fff", styleNodes, cssVars) : Promise.resolve(null),
     ]);
 
     // ==== 4) PDF 出力 ====
@@ -197,6 +206,7 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
 
     addFull(c1);
     addFull(c2, true);
+    if (c3) addFull(c3, true);
 
     // ==== 5) 開発用：出力 ====
     const fileName =
