@@ -23,6 +23,13 @@ import {
 import { LandingFigureHtml } from "./LandingFigureHtml";
 import type { Block, BlockLayout, BlockLayoutRow, Area } from "@/features/hub/types/resource";
 
+const DRONE_MODEL_OPTIONS = [
+  { value: "EMO", label: "EMO" },
+  { value: "RiFF", label: "RiFF" },
+  { value: "FYLO", label: "FYLO" },
+  { value: "Hula", label: "Hula" },
+  { value: "TAKE", label: "TAKE" },
+] as const;
 const BLOCK_LABELS = "ABCDEFGHIJ".split("");
 const BLOCK_COUNT_MAX = 10;
 const BLOCK_COUNT_MAX_DIGITS = 5;
@@ -290,6 +297,9 @@ type ModalState = {
   showCornerNumbers: boolean;
   showBlockLabels: boolean;
   showRuler: boolean;
+  useTakeoffLandingBox: boolean;
+  takeoffLandingBoxYx: "4x2" | "2x4";
+  model: string;
 };
 
 function initialStateFromArea(area: Area | null | undefined): ModalState {
@@ -365,6 +375,9 @@ function initialStateFromArea(area: Area | null | undefined): ModalState {
     showBlockLabels:
       typeof savedShowBlockLabels === "boolean" ? savedShowBlockLabels : true,
     showRuler: typeof savedShowRuler === "boolean" ? savedShowRuler : true,
+    useTakeoffLandingBox: Boolean(area?.use_takeoff_landing_box),
+    takeoffLandingBoxYx: area?.takeoff_landing_box_yx === "2x4" ? "2x4" : "4x2",
+    model: ((area?.drone_count as { model?: string } | undefined)?.model ?? "").toString(),
   };
 }
 
@@ -433,12 +446,17 @@ export function MultiBlockEditModal({
     },
     drone_count: figureSource.blocks[0]
       ? {
-          model: (area?.drone_count as any)?.model ?? "",
+          model: state.model,
           count: figureSource.blocks[0].count,
           x_count: figureSource.blocks[0].x_count,
           y_count: figureSource.blocks[0].y_count,
         } as any
-      : (area?.drone_count ?? { model: "", count: 0 }),
+      : {
+          ...((area?.drone_count as object | undefined) ?? { count: 0 }),
+          model: state.model,
+        },
+    use_takeoff_landing_box: state.model === "EMO" && state.useTakeoffLandingBox,
+    takeoff_landing_box_yx: state.takeoffLandingBoxYx,
   };
 
   const m = buildLandingFigureModel(areaForPreview);
@@ -814,6 +832,7 @@ export function MultiBlockEditModal({
 
   const handleDecide = useCallback(() => {
     // 決定時は常に最新の入力値（state）から Area を組み立てて親に渡す
+    const isEmoModel = state.model === "EMO";
     const base: Area = {
       ...(area ?? ({} as Area)),
       spacing_between_drones_m: {
@@ -835,6 +854,9 @@ export function MultiBlockEditModal({
     };
 
     let nextArea: Area;
+    const preservedDroneCount = {
+      ...((area?.drone_count as Record<string, unknown> | undefined) ?? {}),
+    };
 
     if (state.blocks.length === 1) {
       // blocks が 1 件のときは単一ブロック形式に正規化（drone_count に変換し blocks / block_layout は持たない）
@@ -842,7 +864,8 @@ export function MultiBlockEditModal({
       nextArea = {
         ...base,
         drone_count: {
-          model: (area?.drone_count as any)?.model ?? "",
+          ...preservedDroneCount,
+          model: state.model,
           count: b.count,
           x_count: b.x_count,
           y_count: b.y_count,
@@ -851,9 +874,11 @@ export function MultiBlockEditModal({
         blocks: undefined,
         block_layout: undefined,
         landing_figure_display: figureDisplay as any,
+        use_takeoff_landing_box: isEmoModel && state.useTakeoffLandingBox,
+        takeoff_landing_box_yx: state.takeoffLandingBoxYx,
       } as Area;
     } else {
-      // 複数ブロック時は blocks / block_layout を正とし、従来の drone_count は無効化する
+      // 複数ブロック時は blocks / block_layout を正とする。機種など drone_count の属性は残す
       nextArea = {
         ...base,
         blocks: state.blocks,
@@ -861,8 +886,14 @@ export function MultiBlockEditModal({
           rows: state.rows,
           gaps_between_rows_m: state.gapsBetweenRowsM,
         },
-        drone_count: undefined as any,
+        drone_count: {
+          ...preservedDroneCount,
+          model: state.model,
+          count: state.blocks.reduce((s, b) => s + (Number(b.count) || 0), 0),
+        } as any,
         landing_figure_display: figureDisplay as any,
+        use_takeoff_landing_box: isEmoModel && state.useTakeoffLandingBox,
+        takeoff_landing_box_yx: state.takeoffLandingBoxYx,
       } as Area;
     }
 
@@ -1013,6 +1044,7 @@ export function MultiBlockEditModal({
     typeof rawDroneRotation === "number" && Number.isFinite(rawDroneRotation)
       ? rawDroneRotation
       : 180;
+  const isEmoModel = state.model === "EMO";
 
   return (
     <Modal
@@ -1024,8 +1056,113 @@ export function MultiBlockEditModal({
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
         {/* 左: 図 */}
-        <div className="w-full h-[26vh] min-h-[132px] max-h-[220px] shrink-0 p-3 md:h-auto md:max-h-none md:min-h-0 md:w-1/2 md:flex-1 md:p-4 flex flex-col items-center justify-start overflow-hidden">
-          <div className="w-full flex-1 flex items-center justify-center bg-slate-900/60 rounded-lg px-4 min-h-0">
+        <div className="w-full h-auto max-h-[42vh] min-h-[160px] shrink-0 p-3 md:h-auto md:max-h-none md:min-h-0 md:w-1/2 md:flex-1 md:p-4 flex flex-col items-stretch justify-start overflow-hidden">
+          <div className="w-full shrink-0 mb-2 px-1">
+            <div className="flex items-center gap-2">
+              <span className="shrink-0 text-sm text-slate-200">機種:</span>
+              {edit ? (
+                <select
+                  value={state.model}
+                  onChange={(e) => {
+                    const model = e.target.value;
+                    setState((prev) => ({
+                      ...prev,
+                      model,
+                      useTakeoffLandingBox:
+                        model === "EMO" ? prev.useTakeoffLandingBox : false,
+                    }));
+                  }}
+                  className={`${inputBase} w-[140px] px-2 py-1 text-sm`}
+                >
+                  <option value="">未設定</option>
+                  {DRONE_MODEL_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                  {state.model &&
+                    !DRONE_MODEL_OPTIONS.some((opt) => opt.value === state.model) && (
+                      <option value={state.model}>{state.model}</option>
+                    )}
+                </select>
+              ) : (
+                <span
+                  className={`${inputBase} inline-flex h-8 w-[140px] items-center justify-center px-2 text-sm`}
+                >
+                  {state.model || "未設定"}
+                </span>
+              )}
+            </div>
+            {isEmoModel && (
+              <>
+                <label
+                  className={`mt-2 flex items-center gap-2 text-sm text-slate-200 select-none ${
+                    edit ? "cursor-pointer" : "cursor-default"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    disabled={!edit}
+                    checked={state.useTakeoffLandingBox}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setState((prev) => ({
+                        ...prev,
+                        useTakeoffLandingBox: checked,
+                        takeoffLandingBoxYx:
+                          checked &&
+                          prev.takeoffLandingBoxYx !== "4x2" &&
+                          prev.takeoffLandingBoxYx !== "2x4"
+                            ? "4x2"
+                            : prev.takeoffLandingBoxYx,
+                      }));
+                    }}
+                    className="accent-red-600 h-4 w-4 shrink-0 disabled:opacity-50"
+                  />
+                  離発着ボックス
+                </label>
+                {state.useTakeoffLandingBox && (
+                  <div className="mt-1.5 flex flex-col items-start gap-1">
+                    <label
+                      className={`flex items-center gap-2 text-sm text-slate-200 select-none ${
+                        edit ? "cursor-pointer" : "cursor-default"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="mb-takeoff-landing-box-yx"
+                        disabled={!edit}
+                        checked={state.takeoffLandingBoxYx === "4x2"}
+                        onChange={() =>
+                          setState((prev) => ({ ...prev, takeoffLandingBoxYx: "4x2" }))
+                        }
+                        className="accent-red-600 h-4 w-4 shrink-0 disabled:opacity-50"
+                      />
+                      Y４機×X２機
+                    </label>
+                    <label
+                      className={`flex items-center gap-2 text-sm text-slate-200 select-none ${
+                        edit ? "cursor-pointer" : "cursor-default"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="mb-takeoff-landing-box-yx"
+                        disabled={!edit}
+                        checked={state.takeoffLandingBoxYx === "2x4"}
+                        onChange={() =>
+                          setState((prev) => ({ ...prev, takeoffLandingBoxYx: "2x4" }))
+                        }
+                        className="accent-red-600 h-4 w-4 shrink-0 disabled:opacity-50"
+                      />
+                      Y２機×X４機
+                    </label>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          <div className="w-full flex-1 flex items-center justify-center bg-slate-900/60 rounded-lg px-4 min-h-[120px] overflow-hidden">
             {hasBlockContradiction ? (
               <div className="space-y-1 text-xs text-amber-300">
                 {blockContradictionMessages.map((msg, idx) => (
