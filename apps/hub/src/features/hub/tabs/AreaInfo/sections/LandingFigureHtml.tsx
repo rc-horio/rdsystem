@@ -38,10 +38,20 @@ export function LandingFigureHtml({ html, className }: Props) {
   return (
     <div
       ref={wrapRef}
-      className={clsx("relative", className)}
+      className={clsx("landing-figure-html relative", className)}
       onMouseMove={move}
       onMouseLeave={() => setTip(null)}
     >
+      <style>{`
+        .landing-figure-html rect[data-box-count] {
+          transition: fill-opacity 120ms ease, stroke-opacity 120ms ease, stroke-width 120ms ease;
+        }
+        .landing-figure-html rect[data-box-count]:hover {
+          fill-opacity: 0.55;
+          stroke-opacity: 1;
+          stroke-width: 2.25;
+        }
+      `}</style>
       <div
         className="h-full w-full"
         dangerouslySetInnerHTML={{ __html: html }}
