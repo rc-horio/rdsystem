@@ -53,7 +53,7 @@ export function Modal({
             />
           </div>
         )}
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden pt-14">
+        <div className={clsx("flex min-h-0 flex-1 flex-col overflow-hidden", showCloseButton && "pt-14")}>
           {children}
         </div>
       </div>

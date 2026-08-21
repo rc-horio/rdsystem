@@ -124,7 +124,9 @@ export function DroneCountSection({
         </div>
 
         {isEmoModel && (
-          <div className={`${rowCls} w-full justify-end`}>
+          <div className={rowCls}>
+            <span className={`${MODEL_LABEL_W} shrink-0`} aria-hidden />
+            <span className={COLON_CLS} aria-hidden />
             <label
               className={`flex items-center gap-2 text-sm text-slate-200 select-none ${
                 edit ? "cursor-pointer" : "cursor-default"
@@ -156,11 +158,10 @@ export function DroneCountSection({
         )}
 
         {isEmoModel && Boolean(A.use_takeoff_landing_box) && (
-          <div
-            className={`${
-              embedded ? "mt-2" : "mt-2 pl-4 md:pl-6"
-            } flex w-full flex-col items-end gap-1`}
-          >
+          <div className={rowCls}>
+            <span className={`${MODEL_LABEL_W} shrink-0`} aria-hidden />
+            <span className={COLON_CLS} aria-hidden />
+            <div className="flex flex-col items-start gap-1 pl-3">
             <label
               className={`flex items-center gap-2 text-sm text-slate-200 select-none ${
                 edit ? "cursor-pointer" : "cursor-default"
@@ -193,12 +194,13 @@ export function DroneCountSection({
               />
               Y２機×X４機
             </label>
+            </div>
           </div>
         )}
 
         {hasBlocks(area) ? (
           <>
-            <div className={rowCls}>
+            <div className={`${rowCls} pt-3`}>
               <span className={`${MODEL_LABEL_W} text-sm font-medium`}>総機体数</span>
               <span className={COLON_CLS}>:</span>
               <span className="w-[4.75rem] text-right text-sm font-medium tabular-nums text-slate-100">
@@ -224,7 +226,7 @@ export function DroneCountSection({
           </>
         ) : (
           <>
-            <div className={rowCls}>
+            <div className={`${rowCls} pt-3`}>
               <span className={`${MODEL_LABEL_W} text-sm`}>総機体数</span>
               <span className={COLON_CLS}>:</span>
               <DisplayOrInput

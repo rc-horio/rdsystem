@@ -1024,7 +1024,7 @@ export function MultiBlockEditModal({
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
         {/* 左: 図 */}
-        <div className="w-full md:w-1/2 shrink-0 p-4 flex flex-col items-center justify-start min-h-0 overflow-hidden">
+        <div className="w-full h-[26vh] min-h-[132px] max-h-[220px] shrink-0 p-3 md:h-auto md:max-h-none md:min-h-0 md:w-1/2 md:flex-1 md:p-4 flex flex-col items-center justify-start overflow-hidden">
           <div className="w-full flex-1 flex items-center justify-center bg-slate-900/60 rounded-lg px-4 min-h-0">
             {hasBlockContradiction ? (
               <div className="space-y-1 text-xs text-amber-300">
@@ -1049,8 +1049,8 @@ export function MultiBlockEditModal({
         </div>
 
         {/* 右: 入力 */}
-        <div className="w-full md:w-1/2 flex flex-col min-h-0 min-w-0">
-          <div className="flex-1 overflow-y-auto p-5">
+        <div className="w-full md:w-1/2 flex-1 flex flex-col min-h-0 min-w-0">
+          <div className="flex-1 overflow-y-auto p-4 md:p-5">
             <fieldset
               disabled={!edit}
               className="m-0 min-w-0 space-y-6 border-0 p-0"
@@ -1058,7 +1058,7 @@ export function MultiBlockEditModal({
             {/* ① 機体間隔 */}
             <section>
               <h3 className="text-sm font-medium text-slate-200 mb-3">機体間隔</h3>
-              <div className="flex flex-col items-start gap-3 min-w-0 overflow-x-auto pb-1">
+              <div className="flex flex-col items-start gap-3 min-w-0 overflow-x-auto pb-1 pr-16">
                     <label
                       className={`flex items-center gap-2 text-sm text-slate-200 select-none ${
                         edit ? "cursor-pointer" : "cursor-default"
@@ -1349,7 +1349,7 @@ export function MultiBlockEditModal({
                     const el = (
                       <div
                         key={`row-${rowIndex}`}
-                        className="relative flex items-start gap-3 p-3 rounded-lg bg-slate-800/40 border border-slate-700"
+                        className="relative flex flex-col gap-2 p-3 pr-7 rounded-lg bg-slate-800/40 border border-slate-700"
                       >
                         {edit && canRemoveRow && (
                           <button
@@ -1360,6 +1360,7 @@ export function MultiBlockEditModal({
                             ー
                           </button>
                         )}
+                        <div className="flex items-center gap-2 flex-wrap min-w-0">
                         <div className="flex items-center gap-2 shrink-0">
                           <span className="text-slate-200 text-xs w-6">行{rowIndex + 1}</span>
                           <input
@@ -1450,10 +1451,11 @@ export function MultiBlockEditModal({
                             );
                           })}
                         </div>
+                        </div>
                         {!spacingPatternIncomplete &&
                           row.gaps_m.length > 0 &&
                           row.gaps_m.some((_, bi) => rowGapOffPattern[`${rowIndex}-${bi}`]) && (
-                            <div className="mt-1 text-[10px] text-amber-300">
+                            <div className="text-[10px] text-amber-300 leading-snug">
                               この位置の機体間隔パターンから外れています。
                             </div>
                           )}
@@ -1467,7 +1469,7 @@ export function MultiBlockEditModal({
                           key={`gap-${gapIndex}`}
                           className="flex flex-col gap-1 py-1.5 px-3 border-l-2 border-slate-600 ml-6 text-slate-200"
                         >
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-col items-start gap-1">
                             <GapMetersInput
                               value={state.gapsBetweenRowsM[gapIndex]!}
                               options={gapOptionsFrom(
@@ -1483,7 +1485,7 @@ export function MultiBlockEditModal({
                               unitClassName="text-slate-200 text-sm"
                             />
                             {!spacingPatternIncomplete && betweenRowGapOffPattern[gapIndex] && (
-                              <span className="text-[10px] text-amber-300">
+                              <span className="text-[10px] text-amber-300 leading-snug">
                                 この位置の機体間隔パターンから外れています。
                               </span>
                             )}
@@ -1513,14 +1515,14 @@ export function MultiBlockEditModal({
 
         <div className="relative shrink-0">
           <div
-            className={`absolute left-0 right-0 bottom-full z-20 overflow-hidden transition-all duration-300 ${
+            className={`absolute left-0 right-0 bottom-full z-20 overflow-y-auto transition-all duration-300 ${
               edit && isDisplayPanelOpen
-                ? "max-h-[430px] opacity-100 pointer-events-auto"
-                : "max-h-0 opacity-0 pointer-events-none"
+                ? "max-h-[min(60dvh,430px)] opacity-100 pointer-events-auto"
+                : "max-h-0 opacity-0 pointer-events-none overflow-hidden"
             }`}
           >
             <div
-              className={`flex justify-end px-5 py-3 md:px-6 transition-all duration-300 ${
+              className={`flex justify-end px-3 py-3 md:px-6 transition-all duration-300 ${
                 isDisplayPanelOpen ? "translate-y-0" : "translate-y-5"
               }`}
             >
@@ -1529,8 +1531,8 @@ export function MultiBlockEditModal({
                   disabled={!edit}
                   className="m-0 min-w-0 border-0 p-0"
                 >
-                <div className="flex items-start gap-3">
-                  <div className="w-full max-w-[340px] p-3">
+                <div className="flex flex-col md:flex-row md:items-start gap-4 min-w-0">
+                  <div className="w-full md:max-w-[340px] min-w-0">
                     <div className="space-y-4">
                       <select
                         className="block w-fit max-w-full rounded border border-slate-500 bg-slate-800 text-slate-100 text-xs py-0.5 pl-2 pr-7 leading-tight"
@@ -1549,7 +1551,7 @@ export function MultiBlockEditModal({
                       </select>
 
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-xs text-slate-200 w-28 shrink-0">
+                        <span className="text-xs text-slate-200 shrink-0">
                           フォントサイズ
                         </span>
                         <input
@@ -1651,9 +1653,9 @@ export function MultiBlockEditModal({
                     </div>
                   </div>
 
-                  <div className="flex-1 min-w-0 p-3 space-y-3">
+                  <div className="w-full md:flex-1 min-w-0 space-y-3">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-xs text-slate-200">機体番号表示</span>
+                      <span className="text-xs text-slate-200 whitespace-nowrap">機体番号表示</span>
                       <button
                         type="button"
                         role="switch"
@@ -1673,7 +1675,7 @@ export function MultiBlockEditModal({
                       </button>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-xs text-slate-200">ブロックラベル</span>
+                      <span className="text-xs text-slate-200 whitespace-nowrap">ブロックラベル</span>
                       <button
                         type="button"
                         role="switch"
@@ -1693,7 +1695,7 @@ export function MultiBlockEditModal({
                       </button>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-xs text-slate-200">メモリ表示</span>
+                      <span className="text-xs text-slate-200 whitespace-nowrap">メモリ表示</span>
                       <button
                         type="button"
                         role="switch"
@@ -1715,7 +1717,7 @@ export function MultiBlockEditModal({
 
                     <div className="pt-1 space-y-3">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-xs text-slate-200 w-14 shrink-0">
+                        <span className="text-xs text-slate-200 w-6 shrink-0">
                           左
                         </span>
                         <input
@@ -1741,7 +1743,7 @@ export function MultiBlockEditModal({
                       </div>
 
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-xs text-slate-200 w-14 shrink-0">
+                        <span className="text-xs text-slate-200 w-6 shrink-0">
                           下
                         </span>
                         <input
@@ -1776,14 +1778,12 @@ export function MultiBlockEditModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 items-center gap-4 border-t border-slate-700 bg-transparent px-5 py-3 md:px-6">
-            <div />
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-700 bg-slate-900/95 px-3 py-3 md:px-6">
               {edit && (
               <button
                 type="button"
                 onClick={() => setIsDisplayPanelOpen((prev) => !prev)}
-                className={`h-10 px-4 py-2 rounded text-sm border transition-colors ${
+                className={`h-9 md:h-10 px-3 md:px-4 py-2 rounded text-sm whitespace-nowrap border transition-colors ${
                   isDisplayPanelOpen
                     ? "bg-slate-700 text-slate-100 border-slate-500"
                     : "text-slate-300 border-slate-600 hover:bg-slate-700 hover:text-slate-100"
@@ -1799,16 +1799,15 @@ export function MultiBlockEditModal({
                 setCommittedForFigure(JSON.parse(JSON.stringify(state)));
               }}
               disabled={layoutCountsMismatch || hasRowWithZeroBlocks}
-              className="h-10 px-4 py-2 rounded border border-slate-600 text-sm text-slate-200 hover:bg-slate-700 hover:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="h-9 md:h-10 px-3 md:px-4 py-2 rounded border border-slate-600 text-sm whitespace-nowrap text-slate-200 hover:bg-slate-700 hover:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               図を更新
             </button>
             )}
-            <div className="flex items-center gap-2 ml-auto">
               <button
                 type="button"
                 onClick={onClose}
-                className="h-10 px-4 py-2 rounded text-sm text-slate-200 hover:bg-slate-700 border border-slate-600"
+                className="h-9 md:h-10 px-3 md:px-4 py-2 rounded text-sm whitespace-nowrap text-slate-200 hover:bg-slate-700 border border-slate-600"
               >
                 {edit ? "キャンセル" : "閉じる"}
               </button>
@@ -1817,13 +1816,11 @@ export function MultiBlockEditModal({
                 type="button"
                 onClick={handleDecide}
                 disabled={hasHardError || layoutCountsMismatch || hasRowWithZeroBlocks}
-                className="h-10 px-4 py-2 rounded text-sm text-white bg-red-600 hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="h-9 md:h-10 px-3 md:px-4 py-2 rounded text-sm whitespace-nowrap text-white bg-red-600 hover:bg-red-500 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 決定
               </button>
               )}
-            </div>
-          </div>
           </div>
         </div>
       </div>

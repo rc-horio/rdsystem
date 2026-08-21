@@ -210,7 +210,7 @@ export function LandingAreaFigure({ edit, area, onPatchArea, spacingBoxRef }: Pr
         <div className="w-full min-w-0">
           <div
             data-export-orientation-figure
-            className="w-full min-w-0 grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] items-start justify-items-start gap-x-8 border border-slate-600 py-4 px-8 overflow-visible"
+            className="w-full min-w-0 grid grid-cols-1 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] items-start justify-items-start gap-x-8 gap-y-6 border border-slate-600 py-4 px-4 md:px-8 overflow-visible"
           >
             <div className="relative min-w-0 w-full pt-8">
               <span className="absolute top-0 left-0 text-white text-base font-bold tracking-wide">
