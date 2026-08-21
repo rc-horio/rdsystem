@@ -10,6 +10,7 @@ import {
   normalizeIndexJsonForProjectLostDeal,
 } from "./builders";
 import { v4 as uuid } from "uuid";
+import { collapseUniformSpacing } from "@/features/hub/utils/spacing";
 
 // 環境変数からCatalogのベースURLを取得
 const CATALOG = String(import.meta.env.VITE_CATALOG_BASE_URL || "").replace(/\/+$/, "");
@@ -27,6 +28,21 @@ const DELETE_API = String(import.meta.env.VITE_HUB_PHOTO_DELETE_URL || "").repla
 const AREAS_BASE_URL = `${CATALOG}/areas`;
 
 const deepClone = <T>(v: T): T => JSON.parse(JSON.stringify(v));
+
+function collapseSpacingOnSchedules(list: ScheduleDetail[]): ScheduleDetail[] {
+  return list.map((s) => {
+    if (!s.area) return s;
+    return {
+      ...s,
+      area: {
+        ...s.area,
+        spacing_between_drones_m: collapseUniformSpacing(
+          s.area.spacing_between_drones_m
+        ) as ScheduleDetail["area"]["spacing_between_drones_m"],
+      },
+    };
+  });
+}
 
 export function useDataSource(id?: string) {
   const { search } = useLocation();
@@ -601,13 +617,15 @@ export function useHubPageState() {
     if (!schedules.length) return;
 
     // 🟢 新しいスケジュール（idが未設定 or 空）のUUID自動生成
-    const normalizedSchedules = schedules.map((s) => ({
-      ...s,
-      id:
-        typeof s.id === "string" && s.id.trim().length > 0
-          ? s.id
-          : uuid(),
-    }));
+    const normalizedSchedules = collapseSpacingOnSchedules(
+      schedules.map((s) => ({
+        ...s,
+        id:
+          typeof s.id === "string" && s.id.trim().length > 0
+            ? s.id
+            : uuid(),
+      }))
+    );
 
     const currentUuid = id || projectData?.project?.uuid || "";
     const currentProjectId = projectData?.project?.id || "";
@@ -655,6 +673,7 @@ export function useHubPageState() {
           },
           schedules: body.schedules,
         }));
+        setSchedules(normalizedSchedules);
 
         // ✅ ローカル保存成功時のトースト
         toast.showToast("保存しました。");
@@ -672,7 +691,9 @@ export function useHubPageState() {
     setIsSaving(true);
     try {
       // ① blob 画像をまとめて S3 へ（S3 URL に置換済みの schedules を得る）
-      const schedulesAfterUpload = await uploadStagedPhotosIfAny(schedules);
+      const schedulesAfterUpload = collapseSpacingOnSchedules(
+        await uploadStagedPhotosIfAny(schedules)
+      );
 
       // ② JSON を構築（置換後の schedules を使う）
       const body = buildIndexJsonFromState(

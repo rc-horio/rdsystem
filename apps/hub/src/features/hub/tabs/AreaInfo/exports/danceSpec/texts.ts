@@ -1,4 +1,6 @@
 // src/features/hub/tabs/AreaInfo/exports/danceSpec/texts.ts
+import { collapseUniformSpacing } from "@/features/hub/utils/spacing";
+
 /** ファイル名に使えない文字を安全化 */
 export const sanitize = (name: string) =>
     (name || "").replace(/[\\/:*?"<>|\n\r]/g, "_").trim();
@@ -137,10 +139,10 @@ const meterText = (v: any) => {
 
 export function getSpacingBetweenDronesText(areaInput: any): { horizontal: string; vertical: string } {
     const area = normalizeArea(areaInput);
-    const spacing = area?.spacing_between_drones_m ?? {};
+    const spacing = collapseUniformSpacing(area?.spacing_between_drones_m ?? {});
     return {
-        horizontal: meterText(spacing?.horizontal),
-        vertical: meterText(spacing?.vertical),
+        horizontal: meterText(spacing.horizontal),
+        vertical: meterText(spacing.vertical),
     };
 }
 

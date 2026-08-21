@@ -105,3 +105,61 @@ export const adjacentGapM = (
     if (!Number.isFinite(d) || d <= 0) return seq[0] ?? fallback;
     return Math.round(d * 10) / 10;
 };
+
+const SPACING_EQ_EPS = 1e-6;
+
+type SpacingFields = {
+    horizontal?: string;
+    vertical?: string;
+    unequal?: boolean;
+};
+
+function spacingTokens(raw: unknown): string[] {
+    if (typeof raw !== "string" || raw.trim() === "") return [];
+    return raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s !== "");
+}
+
+/** 軸の入力がすべて揃い、かつ同じ正の値。空・途中入力は false */
+function isCompleteUniformAxis(raw: unknown): boolean {
+    const tokens = spacingTokens(raw);
+    if (tokens.length === 0) return false;
+    const nums = tokens.map((t) => Number(t));
+    if (nums.some((n) => !Number.isFinite(n) || n <= 0)) return false;
+    const first = nums[0]!;
+    return nums.every((n) => Math.abs(n - first) < SPACING_EQ_EPS);
+}
+
+/** 横・縦それぞれが1種類の値なら等間隔（横と縦は違ってよい） */
+export function isEffectivelyEqualSpacing(spacing: SpacingFields | null | undefined): boolean {
+    return (
+        isCompleteUniformAxis(spacing?.horizontal) &&
+        isCompleteUniformAxis(spacing?.vertical)
+    );
+}
+
+function collapseAxis(raw: string): string {
+    if (!isCompleteUniformAxis(raw)) return raw;
+    return fmtMeters(Number(spacingTokens(raw)[0]));
+}
+
+/**
+ * 軸ごとに、値が全部同じなら CSV を1件に畳む。
+ * 両軸とも1件になったときだけ unequal を外す。
+ */
+export function collapseUniformSpacing(
+    spacing: SpacingFields | null | undefined
+): SpacingFields {
+    const horizontal = collapseAxis(spacing?.horizontal ?? "");
+    const vertical = collapseAxis(spacing?.vertical ?? "");
+    const stillUnequal =
+        spacingTokens(horizontal).length > 1 ||
+        spacingTokens(vertical).length > 1;
+    return {
+        horizontal,
+        vertical,
+        unequal: stillUnequal,
+    };
+}

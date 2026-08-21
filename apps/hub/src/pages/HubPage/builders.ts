@@ -6,6 +6,7 @@ import type {
   Person,
   PhotoItem,
 } from "@/features/hub/types/resource";
+import { collapseUniformSpacing } from "@/features/hub/utils/spacing";
 
 /** 旧形式: スケジュール単位の lostDeal を案件へ寄せる（読み込み時に1回） */
 export function normalizeIndexJsonForProjectLostDeal(data: any): any {
@@ -253,6 +254,9 @@ export function buildIndexJsonFromState(
       area: s.area
         ? {
           ...s.area,
+          spacing_between_drones_m: collapseUniformSpacing(
+            s.area.spacing_between_drones_m
+          ),
           drone_count: {
             ...(s as any)?.area?.drone_count,
             x_count: (s as any)?.area?.drone_count?.x_count ?? null,
