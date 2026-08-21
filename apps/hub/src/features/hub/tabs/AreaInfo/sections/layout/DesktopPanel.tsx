@@ -56,10 +56,10 @@ export default function DesktopPanel({
           : 260;
       const defaultLeft = Math.max(0, parentW - rightW - COL_GAP_PX);
       const spacingW = Math.ceil(spacing.scrollWidth);
-      // カード内 1:2 なので、間隔図は左ペインの約 2/3。足りないときだけ行を広げる
+      // カード内 2:3 なので、間隔図は左ペインの約 3/5。足りないときだけ行を広げる
       const CARD_PAD_X = 64;
       const CARD_GAP_X = 32;
-      const neededCard = Math.ceil(spacingW * 1.5 + CARD_PAD_X + CARD_GAP_X);
+      const neededCard = Math.ceil((spacingW * 5) / 3 + CARD_PAD_X + CARD_GAP_X);
       if (neededCard > defaultLeft + 1) {
         setRowMinWidthPx(neededCard + rightW + COL_GAP_PX);
       } else {

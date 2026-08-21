@@ -184,7 +184,7 @@ export function LandingAreaFigure({ edit, area, onPatchArea, spacingBoxRef }: Pr
         {/* 配置図：左カラム幅に収め、中身で親を広げない */}
         <div className="w-full min-w-0 overflow-hidden [contain:inline-size]">
           <div className="h-120 w-full min-w-0 relative border border-slate-600 overflow-hidden">
-            <span className="absolute top-2 left-3 z-10 text-white text-sm font-semibold">
+            <span className="absolute top-2 left-3 z-10 text-white text-base font-bold tracking-wide">
               配置図
             </span>
             <div
@@ -198,10 +198,10 @@ export function LandingAreaFigure({ edit, area, onPatchArea, spacingBoxRef }: Pr
         <div className="w-full min-w-0">
           <div
             data-export-orientation-figure
-            className="w-full min-w-0 grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-start justify-items-start gap-x-8 border border-slate-600 py-4 px-8 overflow-visible"
+            className="w-full min-w-0 grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] items-start justify-items-start gap-x-8 border border-slate-600 py-4 px-8 overflow-visible"
           >
             <div className="relative min-w-0 w-full pt-8">
-              <span className="absolute top-0 left-0 text-white text-sm font-semibold">
+              <span className="absolute top-0 left-0 text-white text-base font-bold tracking-wide">
                 機体数
               </span>
               <DroneCountSection
@@ -213,8 +213,8 @@ export function LandingAreaFigure({ edit, area, onPatchArea, spacingBoxRef }: Pr
             </div>
 
             <div className="relative min-w-0 w-full pt-8 pb-2">
-              <span className="absolute top-0 left-0 text-white text-sm font-semibold">
-                機体の間隔
+              <span className="absolute top-0 left-0 text-white text-base font-bold tracking-wide">
+                間隔
               </span>
               <div
                 ref={spacingBoxRef}

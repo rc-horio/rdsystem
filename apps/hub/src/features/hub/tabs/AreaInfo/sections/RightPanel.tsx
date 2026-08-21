@@ -211,23 +211,27 @@ export function RightPanel({
       {/* 離着陸演出 */}
       <div className="mt-5">
         <SectionTitle title="離着陸演出" />
-        <div className={rowCls}>
-          <span className="w-7 text-sm shrink-0">離陸</span>
-          <DisplayOrInput
-            edit={edit}
-            value={A?.lights?.takeoff ?? ""}
-            onChange={(e) => patch(["lights", "takeoff"], e.target.value)}
-            className="max-w-[260px]"
-          />
+        <div className="mt-2 pl-4 md:pl-6">
+          <div className="flex items-center gap-2 max-w-[260px]">
+            <span className="w-7 text-sm shrink-0">離陸</span>
+            <DisplayOrInput
+              edit={edit}
+              value={A?.lights?.takeoff ?? ""}
+              onChange={(e) => patch(["lights", "takeoff"], e.target.value)}
+              className="min-w-0 flex-1"
+            />
+          </div>
         </div>
-        <div className={`${rowCls} mb-2`}>
-          <span className="w-7 text-sm shrink-0">着陸</span>
-          <DisplayOrInput
-            edit={edit}
-            value={A?.lights?.landing ?? ""}
-            onChange={(e) => patch(["lights", "landing"], e.target.value)}
-            className="max-w-[260px]"
-          />
+        <div className="mt-2 mb-2 pl-4 md:pl-6">
+          <div className="flex items-center gap-2 max-w-[260px]">
+            <span className="w-7 text-sm shrink-0">着陸</span>
+            <DisplayOrInput
+              edit={edit}
+              value={A?.lights?.landing ?? ""}
+              onChange={(e) => patch(["lights", "landing"], e.target.value)}
+              className="min-w-0 flex-1"
+            />
+          </div>
         </div>
         <div className="pl-4 md:pl-6">
           <DisplayOrTextarea
