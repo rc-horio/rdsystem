@@ -24,6 +24,8 @@ import {
   WIDTH_OF_LANDING_AREA_B as KANSAI_WIDTH_B,
   HEIGHT_OF_LANDING_AREA_B_1 as KANSAI_HEIGHT_B_1,
   HEIGHT_OF_LANDING_AREA_B_2 as KANSAI_HEIGHT_B_2,
+  conicalCutPath as kansaiConicalCutPath,
+  outerCutPath as kansaiOuterCutPath,
 } from "../data/kansai";
 import type { Coord } from "../data/kansai";
 import {
@@ -200,9 +202,11 @@ function calcKansaiConicalSurface(
   lng: number
 ): { surfaceType: SurfaceType; heightM: number } | null {
   const conicalHeight = KANSAI_REF_HEIGHT + KANSAI_HORIZ_HEIGHT + (distance - KANSAI_HORIZ_RADIUS) * (1 / 50);
-  const height: HeightEntry[] = [{ val: conicalHeight, str: "円錐表面" }];
-
   const inPoly = (path: Coord[]) => isKansaiPointInPolygon(g, lat, lng, path);
+  const height: HeightEntry[] = [];
+  if (inPoly(kansaiConicalCutPath)) {
+    height.push({ val: conicalHeight, str: "円錐表面" });
+  }
 
   if (inPoly([kA.cd12, kA.cd04, kA.cd06, kA.cd14])) {
     height.push({ val: mathSinnyu(g, kA.cd13, kA.cd05, latLng, KANSAI_HEIGHT_A_1), str: "進入表面" });
@@ -229,6 +233,8 @@ function calcKansaiConicalSurface(
     height.push({ val: mathSinnyu(g, kB.cd19, kB.cd30, latLng, KANSAI_HEIGHT_B_2), str: "延長進入表面" });
   }
 
+  if (height.length === 0) return null;
+
   height.sort((a, b) => a.val - b.val);
   const d = height[0];
   let reStr = d.str;
@@ -252,9 +258,11 @@ function calcKansaiOuterHorizontalSurface(
   lng: number
 ): { surfaceType: SurfaceType; heightM: number } | null {
   const outerHeight = KANSAI_REF_HEIGHT + KANSAI_OUTER_HEIGHT;
-  const height: HeightEntry[] = [{ val: outerHeight, str: "外側水平表面" }];
-
   const inPoly = (path: Coord[]) => isKansaiPointInPolygon(g, lat, lng, path);
+  const height: HeightEntry[] = [];
+  if (inPoly(kansaiOuterCutPath)) {
+    height.push({ val: outerHeight, str: "外側水平表面" });
+  }
 
   if (inPoly([kA.cd04, kA.cd06, kA.cd03, kA.cd01])) {
     height.push({ val: mathSinnyu(g, kA.cd13, kA.cd02, latLng, KANSAI_HEIGHT_A_1), str: "延長進入表面" });
@@ -268,6 +276,8 @@ function calcKansaiOuterHorizontalSurface(
   if (inPoly([kB.cd26, kB.cd28, kB.cd31, kB.cd29])) {
     height.push({ val: mathSinnyu(g, kB.cd19, kB.cd30, latLng, KANSAI_HEIGHT_B_2), str: "延長進入表面" });
   }
+
+  if (height.length === 0) return null;
 
   height.sort((a, b) => a.val - b.val);
   const d = height[0];
