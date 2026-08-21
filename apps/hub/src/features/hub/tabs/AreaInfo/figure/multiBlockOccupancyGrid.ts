@@ -1,5 +1,5 @@
 import type { Area } from "@/features/hub/types/resource";
-import { cumDist, parseSpacingSeq } from "@/features/hub/utils/spacing";
+import { emptyCellsForGapFrom, parseSpacingSeq } from "@/features/hub/utils/spacing";
 
 type OccupiedInterval = {
   start: number;
@@ -20,7 +20,8 @@ type BlockOccMeta = {
 /**
  * オペレーションタブのテーブル／離着陸図と整合する「占有セルのみ採番」の仮想グリッド。
  * - グローバル行 0 = 最下段（図と同じ）
- * - 列は行内の x_count の合算で詰める（ブロック間の物理ギャップは列には含めない）
+ * - 列は行内の x_count に、ブロック間隔に応じた空きマスを足した仮想グリッド
+ * - ブロック間隔の空きマスは、その列位置から機体間隔パターンを続けた距離で決める
  */
 export type MultiBlockOccupancyGrid = {
   gridCols: number;
@@ -56,26 +57,6 @@ export function buildMultiBlockOccupancyGrid(
   const spacingY = parseSpacingSeq(area?.spacing_between_drones_m?.vertical ?? "");
   if (!spacingX.length || !spacingY.length) return null;
   const fallback = 1;
-
-  const stepsForGapOnSeq = (gapM: number, seq: number[]): number => {
-    if (!Number.isFinite(gapM) || gapM <= 0) return 0;
-    const eps = 1e-6;
-    // モーダル側で「累積和パターンに一致」へ制約している前提
-    for (let steps = 1; steps <= 1000; steps++) {
-      const d = cumDist(steps, seq, fallback);
-      if (Math.abs(d - gapM) <= eps) return steps;
-      if (d > gapM + eps) break;
-    }
-    return 0;
-  };
-
-  // 「gap(m)」は隣接する機体中心間の距離なので、
-  // 仮想グリッド上の空白セル数は (必要ステップ - 1) になる。
-  // 例: gap=1m, spacing=1m -> steps=1 -> empty=0
-  const emptyCellsForGapOnSeq = (gapM: number, seq: number[]): number => {
-    const steps = stepsForGapOnSeq(gapM, seq);
-    return Math.max(0, steps - 1);
-  };
 
   const metas: BlockOccMeta[] = [];
   layout.rows.forEach((row, layoutRowIndex) => {
@@ -121,7 +102,14 @@ export function buildMultiBlockOccupancyGrid(
       colStartByBlockId.set(b.blockId, col);
       col += countX;
       if (bi < rowSpec.block_ids.length - 1) {
-        col += emptyCellsForGapOnSeq(Number(rowSpec.gaps_m?.[bi]) || 0, spacingX);
+        // 直前ブロック右端の次の間隔から数える（先頭からの累積ではない）
+        const fromIndex = Math.max(0, col - 1);
+        col += emptyCellsForGapFrom(
+          Number(rowSpec.gaps_m?.[bi]) || 0,
+          spacingX,
+          fromIndex,
+          fallback
+        );
       }
       if (countX > 0 && totalCount > 0) {
         const actualRows = Math.ceil(totalCount / countX);
@@ -138,9 +126,12 @@ export function buildMultiBlockOccupancyGrid(
     rowBaseByRowIndex.set(rowIndex, runningRowBase);
     runningRowBase += rowHeightCells.get(rowIndex) ?? 1;
     if (ri < rowIndices.length - 1) {
-      runningRowBase += emptyCellsForGapOnSeq(
+      const fromIndex = Math.max(0, runningRowBase - 1);
+      runningRowBase += emptyCellsForGapFrom(
         Number(layout.gaps_between_rows_m?.[rowIndex]) || 0,
-        spacingY
+        spacingY,
+        fromIndex,
+        fallback
       );
     }
   }

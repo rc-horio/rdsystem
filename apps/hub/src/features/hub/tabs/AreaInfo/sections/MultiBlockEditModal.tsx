@@ -1,7 +1,7 @@
 // features/hub/tabs/AreaInfo/sections/MultiBlockEditModal.tsx
 // 複数ブロック編集モーダル（Phase 2-1: UI 構築）
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Modal,
   Drone2Icon,
@@ -10,7 +10,16 @@ import { buildLandingFigureModel } from "@/features/hub/tabs/AreaInfo/figure/lan
 import { buildLandingFigureSvg } from "@/features/hub/tabs/AreaInfo/figure/buildLandingFigureSvg";
 import { buildMultiBlockLandingFigureSvg } from "@/features/hub/tabs/AreaInfo/figure/multiBlockLandingFigureSvg";
 import { getEffectiveBlocks } from "@/features/hub/utils/areaBlocks";
-import { cumDist } from "@/features/hub/utils/spacing";
+import {
+  fmtMeters,
+  gapOptionsFrom,
+  isValidGapFrom,
+} from "@/features/hub/utils/spacing";
+import {
+  adjacentBetweenRowGapM,
+  adjacentRowGapM,
+  computeLayoutGapAnchors,
+} from "@/features/hub/utils/blockGapPattern";
 import { LandingFigureHtml } from "./LandingFigureHtml";
 import type { Block, BlockLayout, BlockLayoutRow, Area } from "@/features/hub/types/resource";
 
@@ -48,12 +57,14 @@ function reassignBlocksFromCounts(
   blocks: Block[],
   rows: BlockLayoutRow[],
   prevGapsBetweenRowsM: number[],
-  defaultRowGapM: number,
-  defaultBetweenRowsGapM: number
+  seqX: number[],
+  seqY: number[]
 ): { rows: BlockLayoutRow[]; gapsBetweenRowsM: number[] } {
   const blockIdsInOrder = blocks.map((b) => b.id);
   const counts = rows.map((r) => r.block_ids.length);
   const totalBlocks = blockIdsInOrder.length;
+  const seqXeff = seqX.length ? seqX : [1];
+  const seqYeff = seqY.length ? seqY : [1];
 
   // 合計個数が blocks の長さと異なる場合は、最後の行で調整
   const sumCounts = counts.reduce((a, b) => a + b, 0);
@@ -69,20 +80,39 @@ function reassignBlocksFromCounts(
     idx += n;
     const prevGaps = rows[rowIndex]?.gaps_m ?? [];
     const neededGaps = Math.max(0, ids.length - 1);
-    const gaps =
-      neededGaps > 0
-        ? Array.from({ length: neededGaps }, (_, i) => prevGaps[i] ?? defaultRowGapM)
-        : [];
+    const gaps: number[] = [];
+    let col = 0;
+    for (let i = 0; i < ids.length; i++) {
+      const b = blocks.find((x) => x.id === ids[i]);
+      col += Math.max(0, Math.trunc(Number(b?.x_count) || 0));
+      if (i < neededGaps) {
+        const fromIndex = Math.max(0, col - 1);
+        const prev = prevGaps[i];
+        gaps.push(
+          Number.isFinite(prev) ? prev : adjacentRowGapM(seqXeff, fromIndex)
+        );
+      }
+    }
     return { block_ids: ids, gaps_m: gaps };
   });
 
   const neededBetween = Math.max(0, newRows.length - 1);
+  const anchors = computeLayoutGapAnchors(
+    newRows,
+    blocks,
+    seqXeff,
+    seqYeff,
+    prevGapsBetweenRowsM,
+    1
+  );
   const gapsBetweenRowsM =
     neededBetween > 0
-      ? Array.from(
-          { length: neededBetween },
-          (_, i) => prevGapsBetweenRowsM[i] ?? defaultBetweenRowsGapM
-        )
+      ? Array.from({ length: neededBetween }, (_, i) => {
+          const prev = prevGapsBetweenRowsM[i];
+          if (Number.isFinite(prev)) return prev;
+          const fromIndex = anchors.betweenRowFromIndex[i] ?? anchors.appendRowFromIndex;
+          return adjacentBetweenRowGapM(seqYeff, fromIndex);
+        })
       : [];
 
   return { rows: newRows, gapsBetweenRowsM };
@@ -95,21 +125,131 @@ function isValidSpacingValue(v: number): boolean {
   return Math.round(v * 10) === v * 10;
 }
 
-function isValidGapOnPattern(gap: number, seq: number[]): boolean {
-  if (!Number.isFinite(gap) || gap < 0) return false;
-  if (gap === 0) return true;
-  if (!seq.length || seq.some((s) => !Number.isFinite(s) || s <= 0)) return false;
-
-  const fallback = 1;
-  // gap を超えるまで累積距離を増やしていき、一致する値があれば OK
-  let dist = 0;
-  const maxSteps = 1000;
-  for (let steps = 1; steps <= maxSteps; steps++) {
-    dist = cumDist(steps, seq, fallback);
-    if (Math.abs(dist - gap) < 1e-6) return true;
-    if (dist > gap + 1e-6) return false;
-  }
+function isGapValueHardError(gap: number): boolean {
+  if (!Number.isFinite(gap)) return true;
+  if (gap < 0 || gap > 999) return true;
   return false;
+}
+
+function GapMetersInput({
+  value,
+  options,
+  onChange,
+  warn,
+  className,
+  unitClassName,
+}: {
+  value: number;
+  options: number[];
+  onChange: (n: number) => void;
+  warn: boolean;
+  className: string;
+  unitClassName: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<string | null>(null);
+  const rootRef = useRef<HTMLSpanElement>(null);
+  const current = Number.isFinite(value) ? String(value) : "";
+  const display = draft ?? current;
+
+  const closeAndCommit = () => {
+    setOpen(false);
+    if (draft === null) return;
+    if (draft === "") {
+      onChange(NaN);
+    } else {
+      const num = Number(draft);
+      if (Number.isFinite(num)) onChange(num);
+    }
+    setDraft(null);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) closeAndCommit();
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [open, draft]);
+
+  return (
+    <span ref={rootRef} className="relative flex items-center gap-0.5">
+      <input
+        type="text"
+        inputMode="decimal"
+        value={display}
+        onChange={(e) => {
+          const raw = e.target.value;
+          if (hasMinusSign(raw) || isOverCharLimit(raw, 5)) return;
+          setDraft(raw);
+          if (raw === "") {
+            onChange(NaN);
+            return;
+          }
+          // "0." など入力途中は数値化せず、小数点を残す
+          if (raw === "." || /\.$/.test(raw)) return;
+          const num = Number(raw);
+          if (Number.isFinite(num)) onChange(num);
+        }}
+        onFocus={() => {
+          setDraft(current);
+          setOpen(true);
+        }}
+        onBlur={() => {
+          // 候補クリックは preventDefault 済み。フォーカスが外れたときだけ確定
+          if (draft !== null) {
+            if (draft === "") onChange(NaN);
+            else {
+              const num = Number(draft);
+              if (Number.isFinite(num)) onChange(num);
+            }
+            setDraft(null);
+          }
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") closeAndCommit();
+        }}
+        className={`${className} ${warn ? "border-red-500" : ""}`}
+        autoComplete="off"
+        autoCorrect="off"
+        spellCheck={false}
+        title="候補から選ぶか、直接入力できます"
+      />
+      {open && options.length > 0 && (
+        <ul
+          className="absolute left-0 top-full z-30 mt-0.5 max-h-48 min-w-full overflow-y-auto rounded border border-slate-500 bg-slate-800 py-0.5 shadow-lg"
+          role="listbox"
+        >
+          {options.map((m) => {
+            const label = fmtMeters(m);
+            const selected = display === label || display === String(m);
+            return (
+              <li key={label}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  className={`block w-full px-2 py-0.5 text-left text-xs text-slate-100 hover:bg-slate-600 ${
+                    selected ? "bg-slate-700" : ""
+                  }`}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    onChange(m);
+                    setDraft(null);
+                    setOpen(false);
+                  }}
+                >
+                  {label}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <span className={unitClassName}>m</span>
+    </span>
+  );
 }
 
 function generateBlockId(): string {
@@ -372,29 +512,25 @@ export function MultiBlockEditModal({
         rows.push({ block_ids: [id], gaps_m: [] });
       } else {
         const last = rows[rows.length - 1];
-        const defaultRowGapM =
-          Number.isFinite(prev.spacingHorizontal[0]) && prev.spacingHorizontal[0] > 0
-            ? prev.spacingHorizontal[0]
-            : 1;
+        const anchors = computeLayoutGapAnchors(
+          prev.rows,
+          prev.blocks,
+          prev.spacingHorizontal,
+          prev.spacingVertical,
+          prev.gapsBetweenRowsM
+        );
+        const fromIndex = anchors.rowAppendFromIndex[prev.rows.length - 1] ?? 0;
         rows[rows.length - 1] = {
           block_ids: [...last.block_ids, id],
-          gaps_m: [...last.gaps_m, defaultRowGapM],
+          gaps_m: [...last.gaps_m, adjacentRowGapM(prev.spacingHorizontal, fromIndex)],
         };
       }
-      const defaultRowGapM =
-        Number.isFinite(prev.spacingHorizontal[0]) && prev.spacingHorizontal[0] > 0
-          ? prev.spacingHorizontal[0]
-          : 1;
-      const defaultBetweenRowsGapM =
-        Number.isFinite(prev.spacingVertical[0]) && prev.spacingVertical[0] > 0
-          ? prev.spacingVertical[0]
-          : 1;
       const { rows: normalizedRows, gapsBetweenRowsM } = reassignBlocksFromCounts(
         blocks,
         rows,
         prev.gapsBetweenRowsM,
-        defaultRowGapM,
-        defaultBetweenRowsGapM
+        prev.spacingHorizontal,
+        prev.spacingVertical
       );
       const template =
         prev.blocks.length > 0
@@ -427,20 +563,12 @@ export function MultiBlockEditModal({
         rows.length < prev.rows.length
           ? prev.gapsBetweenRowsM.slice(0, Math.max(0, rows.length - 1))
           : prev.gapsBetweenRowsM;
-      const defaultRowGapM =
-        Number.isFinite(prev.spacingHorizontal[0]) && prev.spacingHorizontal[0] > 0
-          ? prev.spacingHorizontal[0]
-          : 1;
-      const defaultBetweenRowsGapM =
-        Number.isFinite(prev.spacingVertical[0]) && prev.spacingVertical[0] > 0
-          ? prev.spacingVertical[0]
-          : 1;
       const { rows: normalizedRows, gapsBetweenRowsM } = reassignBlocksFromCounts(
         blocks,
         rows,
         baseGaps,
-        defaultRowGapM,
-        defaultBetweenRowsGapM
+        prev.spacingHorizontal,
+        prev.spacingVertical
       );
       const cornerDisplayByBlockId = { ...prev.cornerDisplayByBlockId };
       delete cornerDisplayByBlockId[blockId];
@@ -462,11 +590,17 @@ export function MultiBlockEditModal({
         .filter((id) => !assigned.has(id));
 
       let rows = [...prev.rows];
-      const defaultBetweenRowsGapM =
-        Number.isFinite(prev.spacingVertical[0]) && prev.spacingVertical[0] > 0
-          ? prev.spacingVertical[0]
-          : 1;
-      let gapsBetweenRowsM = [...prev.gapsBetweenRowsM, defaultBetweenRowsGapM];
+      const anchors = computeLayoutGapAnchors(
+        prev.rows,
+        prev.blocks,
+        prev.spacingHorizontal,
+        prev.spacingVertical,
+        prev.gapsBetweenRowsM
+      );
+      let gapsBetweenRowsM = [
+        ...prev.gapsBetweenRowsM,
+        adjacentBetweenRowGapM(prev.spacingVertical, anchors.appendRowFromIndex),
+      ];
 
       if (unassigned.length > 0) {
         // 未割り当てブロックがあれば、それを新しい行に配置
@@ -502,12 +636,8 @@ export function MultiBlockEditModal({
           prev.blocks,
           rows,
           gapsBetweenRowsM,
-          Number.isFinite(prev.spacingHorizontal[0]) && prev.spacingHorizontal[0] > 0
-            ? prev.spacingHorizontal[0]
-            : 1,
-          Number.isFinite(prev.spacingVertical[0]) && prev.spacingVertical[0] > 0
-            ? prev.spacingVertical[0]
-            : 1
+          prev.spacingHorizontal,
+          prev.spacingVertical
         );
       return { ...prev, rows: normalizedRows, gapsBetweenRowsM: normalizedGaps };
     });
@@ -520,32 +650,17 @@ export function MultiBlockEditModal({
       const rows = prev.rows.filter((_, i) => i !== rowIndex);
       const gaps = prev.gapsBetweenRowsM.filter((_, i) => i !== rowIndex);
       if (removedRow.block_ids.length > 0 && rows.length > 0) {
-        const defaultRowGapM =
-          Number.isFinite(prev.spacingHorizontal[0]) && prev.spacingHorizontal[0] > 0
-            ? prev.spacingHorizontal[0]
-            : 1;
         rows[0] = {
           block_ids: [...rows[0].block_ids, ...removedRow.block_ids],
-          gaps_m: [
-            ...rows[0].gaps_m,
-            ...Array(removedRow.block_ids.length).fill(defaultRowGapM),
-          ],
+          gaps_m: rows[0].gaps_m,
         };
       }
-      const defaultRowGapM =
-        Number.isFinite(prev.spacingHorizontal[0]) && prev.spacingHorizontal[0] > 0
-          ? prev.spacingHorizontal[0]
-          : 1;
-      const defaultBetweenRowsGapM =
-        Number.isFinite(prev.spacingVertical[0]) && prev.spacingVertical[0] > 0
-          ? prev.spacingVertical[0]
-          : 1;
       const { rows: normalizedRows, gapsBetweenRowsM } = reassignBlocksFromCounts(
         prev.blocks,
         rows,
         gaps,
-        defaultRowGapM,
-        defaultBetweenRowsGapM
+        prev.spacingHorizontal,
+        prev.spacingVertical
       );
       return { ...prev, rows: normalizedRows, gapsBetweenRowsM };
     });
@@ -795,23 +910,44 @@ export function MultiBlockEditModal({
     invalidSpacingHorizontal.some(Boolean) ||
     invalidSpacingVertical.some(Boolean);
 
-  // ブロック間隔（横・縦）の累積和パターンチェック
-  const rowGapErrors: Record<string, boolean> = {};
-  figureSource.rows.forEach((row, rowIndex) => {
+  // ブロック間隔：入力値の不正は決定不可。パターン外れは警告のみ（自由入力を許容）
+  const layoutAnchors = computeLayoutGapAnchors(
+    state.rows,
+    state.blocks,
+    state.spacingHorizontal,
+    state.spacingVertical,
+    state.gapsBetweenRowsM
+  );
+  const rowGapHardErrors: Record<string, boolean> = {};
+  const rowGapOffPattern: Record<string, boolean> = {};
+  state.rows.forEach((row, rowIndex) => {
     row.gaps_m.forEach((gap, gapIndex) => {
       const key = `${rowIndex}-${gapIndex}`;
-      rowGapErrors[key] = !isValidGapOnPattern(gap, state.spacingHorizontal);
+      rowGapHardErrors[key] = isGapValueHardError(gap);
+      const fromIndex = layoutAnchors.rowGapFromIndex[rowIndex]?.[gapIndex] ?? 0;
+      rowGapOffPattern[key] =
+        !rowGapHardErrors[key] &&
+        !spacingPatternIncomplete &&
+        !isValidGapFrom(gap, state.spacingHorizontal, fromIndex);
     });
   });
 
-  const betweenRowGapErrors = figureSource.gapsBetweenRowsM.map((gap) => !isValidGapOnPattern(gap, figureSource.spacingVertical));
+  const betweenRowGapHardErrors = state.gapsBetweenRowsM.map((gap) =>
+    isGapValueHardError(gap)
+  );
+  const betweenRowGapOffPattern = state.gapsBetweenRowsM.map((gap, gapIndex) => {
+    if (betweenRowGapHardErrors[gapIndex]) return false;
+    if (spacingPatternIncomplete) return false;
+    const fromIndex = layoutAnchors.betweenRowFromIndex[gapIndex] ?? 0;
+    return !isValidGapFrom(gap, state.spacingVertical, fromIndex);
+  });
 
   const hasHardError =
     blockErrors.some((e) => !e.xOk || !e.yOk || !e.cOk) ||
     invalidSpacingHorizontal.some(Boolean) ||
     invalidSpacingVertical.some(Boolean) ||
-    Object.values(rowGapErrors).some(Boolean) ||
-    betweenRowGapErrors.some(Boolean);
+    Object.values(rowGapHardErrors).some(Boolean) ||
+    betweenRowGapHardErrors.some(Boolean);
 
   // 各ブロックの x*y と count の整合性チェック（左パネルの警告用）
   const blockContradictionMessages = figureSource.blocks
@@ -1237,11 +1373,6 @@ export function MultiBlockEditModal({
                                 : row.block_ids.length;
                               if (v === row.block_ids.length) return;
                               setState((prev) => {
-                                const defaultRowGapM =
-                                  Number.isFinite(prev.spacingHorizontal[0]) &&
-                                  prev.spacingHorizontal[0] > 0
-                                    ? prev.spacingHorizontal[0]
-                                    : 1;
                                 // 左→右、下→上の順（blocks の並び）で再配分
                                 const blocksInOrder = prev.blocks.map((b) => b.id);
                                 const newCounts = prev.rows.map((r, i) =>
@@ -1261,43 +1392,26 @@ export function MultiBlockEditModal({
                                 const rows = newCounts.map((n, i) => {
                                   const ids = blocksInOrder.slice(idx, idx + n);
                                   idx += n;
-                                  const gaps =
-                                    ids.length > 1
-                                      ? (prev.rows[i]?.gaps_m?.slice(0, ids.length - 1) ??
-                                        Array(ids.length - 1).fill(defaultRowGapM))
-                                      : [];
                                   return {
                                     block_ids: ids,
-                                    gaps_m:
-                                      gaps.length === ids.length - 1
-                                        ? gaps
-                                        : Array(Math.max(0, ids.length - 1)).fill(defaultRowGapM),
+                                    gaps_m: prev.rows[i]?.gaps_m?.slice(
+                                      0,
+                                      Math.max(0, ids.length - 1)
+                                    ) ?? [],
                                   };
                                 });
-                                const gapsBetweenRowsM =
-                                  prev.gapsBetweenRowsM?.length
-                                    ? prev.gapsBetweenRowsM.slice(0, Math.max(0, rows.length - 1))
-                                    : Array(Math.max(0, rows.length - 1)).fill(
-                                        Number.isFinite(prev.spacingVertical[0]) &&
-                                          prev.spacingVertical[0] > 0
-                                          ? prev.spacingVertical[0]
-                                          : 1
-                                      );
+                                const { rows: normalizedRows, gapsBetweenRowsM } =
+                                  reassignBlocksFromCounts(
+                                    prev.blocks,
+                                    rows,
+                                    prev.gapsBetweenRowsM,
+                                    prev.spacingHorizontal,
+                                    prev.spacingVertical
+                                  );
                                 return {
                                   ...prev,
-                                  rows,
-                                  gapsBetweenRowsM:
-                                    gapsBetweenRowsM.length >= rows.length - 1
-                                      ? gapsBetweenRowsM
-                                      : [
-                                          ...gapsBetweenRowsM,
-                                          ...Array(rows.length - 1 - gapsBetweenRowsM.length).fill(
-                                            Number.isFinite(prev.spacingVertical[0]) &&
-                                              prev.spacingVertical[0] > 0
-                                              ? prev.spacingVertical[0]
-                                              : 1
-                                          ),
-                                        ],
+                                  rows: normalizedRows,
+                                  gapsBetweenRowsM,
                                 };
                               });
                             }}
@@ -1317,30 +1431,20 @@ export function MultiBlockEditModal({
                                   {L}
                                 </span>
                                 {bi < row.block_ids.length - 1 && (
-                                  <span className="flex items-center gap-0.5">
-                                    <input
-                                      type="number"
-                                      value={
-                                        Number.isFinite(row.gaps_m[bi])
-                                          ? row.gaps_m[bi]
-                                          : ""
-                                      }
-                                      onChange={(e) => {
-                                        const raw = e.target.value;
-                                        if (hasMinusSign(raw) || isOverCharLimit(raw, 5)) return;
-                                        const num =
-                                          raw === "" ? NaN : Number(raw);
-                                        updateRowGap(rowIndex, bi, num);
-                                      }}
-                                      className={`${inputBase} w-10 px-1 py-0.5 text-xs ${
-                                        rowGapErrors[`${rowIndex}-${bi}`] ? "border-red-500" : ""
-                                      }`}
-                                      inputMode="decimal"
-                                      step="0.1"
-                                      min="0"
-                                    />
-                                    <span className="text-slate-200 text-xs">m</span>
-                                  </span>
+                                  <GapMetersInput
+                                    value={row.gaps_m[bi]!}
+                                    options={gapOptionsFrom(
+                                      state.spacingHorizontal,
+                                      layoutAnchors.rowGapFromIndex[rowIndex]?.[bi] ?? 0
+                                    )}
+                                    onChange={(num) => updateRowGap(rowIndex, bi, num)}
+                                    warn={
+                                      !!rowGapHardErrors[`${rowIndex}-${bi}`] ||
+                                      !!rowGapOffPattern[`${rowIndex}-${bi}`]
+                                    }
+                                    className={`${inputBase} w-14 px-1 py-0.5 text-xs`}
+                                    unitClassName="text-slate-200 text-xs"
+                                  />
                                 )}
                               </span>
                             );
@@ -1348,9 +1452,9 @@ export function MultiBlockEditModal({
                         </div>
                         {!spacingPatternIncomplete &&
                           row.gaps_m.length > 0 &&
-                          row.gaps_m.some((_, bi) => rowGapErrors[`${rowIndex}-${bi}`]) && (
+                          row.gaps_m.some((_, bi) => rowGapOffPattern[`${rowIndex}-${bi}`]) && (
                             <div className="mt-1 text-[10px] text-amber-300">
-                              機体間隔の累積和パターンから外れています。
+                              この位置の機体間隔パターンから外れています。
                             </div>
                           )}
                       </div>
@@ -1364,30 +1468,23 @@ export function MultiBlockEditModal({
                           className="flex flex-col gap-1 py-1.5 px-3 border-l-2 border-slate-600 ml-6 text-slate-200"
                         >
                           <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              value={
-                                Number.isFinite(state.gapsBetweenRowsM[gapIndex])
-                                  ? state.gapsBetweenRowsM[gapIndex]
-                                  : ""
+                            <GapMetersInput
+                              value={state.gapsBetweenRowsM[gapIndex]!}
+                              options={gapOptionsFrom(
+                                state.spacingVertical,
+                                layoutAnchors.betweenRowFromIndex[gapIndex] ?? 0
+                              )}
+                              onChange={(num) => updateGapBetweenRows(gapIndex, num)}
+                              warn={
+                                !!betweenRowGapHardErrors[gapIndex] ||
+                                !!betweenRowGapOffPattern[gapIndex]
                               }
-                              onChange={(e) => {
-                                const raw = e.target.value;
-                                if (hasMinusSign(raw) || isOverCharLimit(raw, 5)) return;
-                                const num = raw === "" ? NaN : Number(raw);
-                                updateGapBetweenRows(gapIndex, num);
-                              }}
-                              className={`${inputBase} ${inputSm} ${
-                                betweenRowGapErrors[gapIndex] ? "border-red-500" : ""
-                              }`}
-                              inputMode="decimal"
-                              step="0.1"
-                              min="0"
+                              className={`${inputBase} w-20 px-2 py-1 text-sm`}
+                              unitClassName="text-slate-200 text-sm"
                             />
-                            <span className="text-slate-200 text-sm">m</span>
-                            {!spacingPatternIncomplete && betweenRowGapErrors[gapIndex] && (
+                            {!spacingPatternIncomplete && betweenRowGapOffPattern[gapIndex] && (
                               <span className="text-[10px] text-amber-300">
-                                機体間隔の累積和パターンから外れています。
+                                この位置の機体間隔パターンから外れています。
                               </span>
                             )}
                           </div>
