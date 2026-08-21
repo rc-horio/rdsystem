@@ -93,7 +93,7 @@ export default function DesktopLayout(props: any) {
             "absolute left-full items-center justify-center flex w-7 h-14 rounded-r-md",
             "border border-l-0 border-red-600 bg-[#000A1B] text-white text-lg font-semibold leading-none",
             "shadow-[0_0_10px_rgba(220,38,38,0.35)]",
-            "hover:bg-red-900/30 hover:border-red-500"
+            "hover:bg-red-900/30 hover:border-red-500 cursor-pointer"
           )}
           style={{ top: "calc(var(--safe-top) + 5.5rem)" }}
         >

@@ -10,13 +10,14 @@ export type SelectOption = {
 };
 
 const createSelectStyles = (menuMaxHeight?: number | string) => ({
-  control: (base: object, state: { isFocused?: boolean }) => ({
+  control: (base: object, state: { isFocused?: boolean; isDisabled?: boolean }) => ({
     ...base,
     minHeight: 36,
     height: 36,
     backgroundColor: "#211C1C",
     borderColor: state.isFocused ? "#dc2626" : "#707070",
     boxShadow: state.isFocused ? "0 0 0 1px #dc2626" : "none",
+    cursor: state.isDisabled ? "default" : "pointer",
     "&:hover": { borderColor: "#dc2626" },
     fontSize: "14px",
     lineHeight: 1,
@@ -41,6 +42,10 @@ const createSelectStyles = (menuMaxHeight?: number | string) => ({
     fontSize: "14px",
     lineHeight: 1,
   }),
+  dropdownIndicator: (base: object) => ({
+    ...base,
+    cursor: "pointer",
+  }),
   menu: (base: object) => ({
     ...base,
     backgroundColor: "#211C1C",
@@ -58,6 +63,7 @@ const createSelectStyles = (menuMaxHeight?: number | string) => ({
     color: "#e5e7eb",
     fontSize: "14px",
     lineHeight: 1,
+    cursor: "pointer",
   }),
 });
 

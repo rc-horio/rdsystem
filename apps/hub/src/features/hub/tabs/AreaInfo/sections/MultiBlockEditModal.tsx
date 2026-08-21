@@ -1417,17 +1417,17 @@ export function MultiBlockEditModal({
         <div className="relative shrink-0">
           <div
             className={`absolute left-0 right-0 bottom-full z-20 overflow-hidden transition-all duration-300 ${
-              isDisplayPanelOpen
+              edit && isDisplayPanelOpen
                 ? "max-h-[430px] opacity-100 pointer-events-auto"
                 : "max-h-0 opacity-0 pointer-events-none"
             }`}
           >
             <div
-              className={`px-5 py-3 transition-all duration-300 ${
+              className={`flex justify-end px-5 py-3 md:px-6 transition-all duration-300 ${
                 isDisplayPanelOpen ? "translate-y-0" : "translate-y-5"
               }`}
             >
-              <section className="w-full max-w-[50vw] rounded-lg border border-slate-700/90 bg-slate-900 p-3">
+              <section className="w-full md:w-1/2 rounded-lg border border-slate-700/90 bg-slate-900 p-3">
                 <fieldset
                   disabled={!edit}
                   className="m-0 min-w-0 border-0 p-0"
@@ -1680,7 +1680,9 @@ export function MultiBlockEditModal({
           </div>
 
           <div className="grid grid-cols-2 items-center gap-4 border-t border-slate-700 bg-transparent px-5 py-3 md:px-6">
+            <div />
             <div className="flex items-center gap-2">
+              {edit && (
               <button
                 type="button"
                 onClick={() => setIsDisplayPanelOpen((prev) => !prev)}
@@ -1692,8 +1694,7 @@ export function MultiBlockEditModal({
               >
                 表示切替
               </button>
-            </div>
-          <div className="flex items-center gap-2">
+              )}
             {edit && (
             <button
               type="button"

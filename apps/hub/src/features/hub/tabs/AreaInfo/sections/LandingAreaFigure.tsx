@@ -11,7 +11,9 @@ import {
   DRONE_SPACING_GAP_PX,
 } from "@/components";
 import { DroneCountSection } from "./DroneCountSection";
-import type { Ref } from "react";
+import { MultiBlockEditModal } from "./MultiBlockEditModal";
+import { ButtonRed } from "@/components/atoms/buttons/RedButton";
+import { useState, type Ref } from "react";
 
 type Props = {
   edit: boolean;
@@ -32,6 +34,7 @@ function splitSpacingFields(v: string): string[] {
 }
 
 export function LandingAreaFigure({ edit, area, onPatchArea, spacingBoxRef }: Props) {
+  const [showMultiBlockModal, setShowMultiBlockModal] = useState(false);
   const figureDisplay = (area as any)?.landing_figure_display ?? {};
   const cornerByBlockId =
     (figureDisplay.corner_by_block_id as Record<
@@ -177,8 +180,16 @@ export function LandingAreaFigure({ edit, area, onPatchArea, spacingBoxRef }: Pr
       : 180;
 
   return (
-    <div className="p-0 w-full min-w-0">
-      <SectionTitle title="離着陸エリア" />
+    <div className="p-0 w-full min-w-0 pt-8">
+      <div className="flex items-center justify-between">
+        <SectionTitle title="離着陸エリア" />
+        <ButtonRed
+          type="button"
+          onClick={() => setShowMultiBlockModal(true)}
+        >
+          配置の詳細設定
+        </ButtonRed>
+      </div>
 
       <div className="my-4 flex flex-col gap-4 w-full min-w-0">
         {/* 配置図：左カラム幅に収め、中身で親を広げない */}
@@ -188,7 +199,7 @@ export function LandingAreaFigure({ edit, area, onPatchArea, spacingBoxRef }: Pr
               配置図
             </span>
             <div
-              className="w-full h-full min-w-0 overflow-hidden [&_svg]:max-w-full [&_svg]:max-h-full [&_svg]:h-full"
+              className="box-border w-full h-full min-w-0 overflow-hidden px-8 py-6 pt-10 [&_svg]:max-w-full [&_svg]:max-h-full [&_svg]:h-full"
               dangerouslySetInnerHTML={{ __html: svgMarkup }}
             />
           </div>
@@ -369,6 +380,21 @@ export function LandingAreaFigure({ edit, area, onPatchArea, spacingBoxRef }: Pr
           </div>
         </div>
       </div>
+
+      <MultiBlockEditModal
+        show={showMultiBlockModal}
+        onClose={() => setShowMultiBlockModal(false)}
+        onDecide={(nextArea) => {
+          const merged = {
+            ...(area ?? {}),
+            ...nextArea,
+          };
+          onPatchArea(merged);
+          setShowMultiBlockModal(false);
+        }}
+        area={area}
+        edit={edit}
+      />
     </div>
   );
 }

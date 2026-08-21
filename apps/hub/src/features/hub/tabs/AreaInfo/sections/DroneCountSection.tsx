@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { DisplayOrInput, DisplayOrSelect, SectionTitle, type SelectOption } from "@/components";
 import { getEffectiveBlocks, hasBlocks } from "@/features/hub/utils/areaBlocks";
-import { MultiBlockEditModal } from "./MultiBlockEditModal";
 
 const DRONE_MODEL_OPTIONS: SelectOption[] = [
   { value: "EMO", label: "EMO" },
@@ -43,7 +42,6 @@ export function DroneCountSection({
     ? "mt-3"
     : "mt-3 pl-4 md:pl-6";
 
-  const [showMultiBlockModal, setShowMultiBlockModal] = useState(false);
   const [localCount, setLocalCount] = useState("");
   const [localXCount, setLocalXCount] = useState("");
   const [localYCount, setLocalYCount] = useState("");
@@ -106,13 +104,8 @@ export function DroneCountSection({
     onPatchArea(next);
   };
 
-  const openMultiBlockModal = () => {
-    setShowMultiBlockModal(true);
-  };
-
   return (
-    <>
-      <div className={embedded ? "w-fit shrink-0" : "mt-5 w-fit"}>
+    <div className={embedded ? "w-fit shrink-0" : "mt-5 w-fit"}>
         {!embedded && <SectionTitle title="機体数" />}
 
         <div className={rowCls}>
@@ -235,32 +228,6 @@ export function DroneCountSection({
             )}
           </>
         )}
-
-        <div className={actionRowCls}>
-          <button
-            type="button"
-            onClick={() => openMultiBlockModal()}
-            className="px-3 py-1.5 rounded-md border border-slate-600 text-sm text-slate-200 hover:bg-slate-700"
-          >
-            配置の詳細設定
-          </button>
-        </div>
       </div>
-
-      <MultiBlockEditModal
-        show={showMultiBlockModal}
-        onClose={() => setShowMultiBlockModal(false)}
-        onDecide={(nextArea) => {
-          const merged = {
-            ...(area ?? {}),
-            ...nextArea,
-          };
-          onPatchArea(merged);
-          setShowMultiBlockModal(false);
-        }}
-        area={area}
-        edit={edit}
-      />
-    </>
   );
 }

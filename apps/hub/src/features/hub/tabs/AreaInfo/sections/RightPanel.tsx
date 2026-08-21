@@ -247,7 +247,12 @@ export function RightPanel({
 
       {/* 旋回 */}
       <div className="mt-5">
-        <SectionTitle title="旋回" />
+        <div className="mb-2 flex items-baseline justify-between max-w-[calc(1rem+260px)] md:max-w-[calc(1.5rem+260px)] gap-2">
+          <SectionTitle title="旋回" compact />
+          <span className="text-[11px] text-slate-400 whitespace-nowrap">
+            以降はRD Map連動（編集不可）
+          </span>
+        </div>
         <div className="pl-4 md:pl-6">
           <DisplayOrInput
             edit={false}
