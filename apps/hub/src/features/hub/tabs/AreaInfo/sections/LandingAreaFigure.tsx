@@ -5,17 +5,20 @@ import { buildMultiBlockLandingFigureSvg } from "@/features/hub/tabs/AreaInfo/fi
 import { hasBlocks, getEffectiveBlocks } from "@/features/hub/utils/areaBlocks";
 import {
   SectionTitle,
-  Drone1Icon,
   Drone2Icon,
   DisplayOrInput,
   DRONE_SPACING_ICON_PX,
   DRONE_SPACING_GAP_PX,
 } from "@/components";
+import { DroneCountSection } from "./DroneCountSection";
+import type { Ref } from "react";
 
 type Props = {
   edit: boolean;
   area: any | null;
   onPatchArea: (patch: any) => void;
+  /** 間隔図の実幅計測用。広いときだけ左ペインを広げる */
+  spacingBoxRef?: Ref<HTMLDivElement>;
 };
 
 const MAX_SPACING_GAPS = 8;
@@ -28,7 +31,7 @@ function splitSpacingFields(v: string): string[] {
   return parts.length > 0 ? parts : [""];
 }
 
-export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
+export function LandingAreaFigure({ edit, area, onPatchArea, spacingBoxRef }: Props) {
   const figureDisplay = (area as any)?.landing_figure_display ?? {};
   const cornerByBlockId =
     (figureDisplay.corner_by_block_id as Record<
@@ -167,127 +170,56 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
     });
   };
 
-  // 機体向きUI
   const rotation =
     typeof area?.drone_orientation_deg === "number" &&
       Number.isFinite(area.drone_orientation_deg)
       ? (area.drone_orientation_deg as number)
       : 180;
 
-  // 機体向き
-  const rotateBy = (delta: number) => {
-    const current =
-      typeof rotation === "number" && Number.isFinite(rotation) ? rotation : 0;
-    const next = current + delta;
-    const patched = { ...(area ?? {}), drone_orientation_deg: next };
-    onPatchArea(patched);
-  };
-
-  // アンテナ位置
-  const antennaPosition = () => {
-    const radius = 65;
-    const angleInRadians = ((rotation + 90) % 360) * (Math.PI / 180);
-    const x = radius * Math.cos(angleInRadians);
-    const y = radius * Math.sin(angleInRadians);
-    const yOffset = 30;
-    return { x, y: y + yOffset };
-  };
-  const { x, y } = antennaPosition();
-
-  // バッテリー位置
-  const batteryPosition = () => {
-    const radius = 62;
-    const angleInRadians = ((rotation + 270) % 360) * (Math.PI / 180);
-    const x = radius * Math.cos(angleInRadians);
-    const y = radius * Math.sin(angleInRadians);
-    const yOffset = 25;
-    return { x, y: y + yOffset };
-  };
-  const { x: batteryX, y: batteryY } = batteryPosition();
-
   return (
-    <div className="p-0 min-w-0">
+    <div className="p-0 w-full min-w-0">
       <SectionTitle title="離着陸エリア" />
 
-      <div className="my-4 flex flex-col gap-4">
-        {/* 配置図 */}
-        <div className="w-full">
-          <div className="h-120 w-full relative border border-slate-600">
+      <div className="my-4 flex flex-col gap-4 w-full min-w-0">
+        {/* 配置図：左カラム幅に収め、中身で親を広げない */}
+        <div className="w-full min-w-0 overflow-hidden [contain:inline-size]">
+          <div className="h-120 w-full min-w-0 relative border border-slate-600 overflow-hidden">
             <span className="absolute top-2 left-3 z-10 text-white text-sm font-semibold">
               配置図
             </span>
             <div
-              className="w-full h-full"
+              className="w-full h-full min-w-0 overflow-hidden [&_svg]:max-w-full [&_svg]:max-h-full [&_svg]:h-full"
               dangerouslySetInnerHTML={{ __html: svgMarkup }}
             />
           </div>
         </div>
 
-        {/* 機体の向き図：カラム幅に合わせ、はみ出しは横スクロール */}
-        <div className="w-full min-w-0 overflow-x-auto">
+        {/* 機体数 + 間隔図。実幅は spacingBoxRef で計測し、定幅超過時だけ行を広げる */}
+        <div className="w-full min-w-0">
           <div
             data-export-orientation-figure
-            className="min-h-80 min-w-full w-max relative flex flex-row items-center justify-evenly gap-32 border border-slate-600 py-10 pl-8 pr-20 overflow-visible"
+            className="w-full min-w-0 grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-start justify-items-start gap-x-8 border border-slate-600 py-4 px-8 overflow-visible"
           >
-            <span className="absolute top-2 left-3 text-white text-sm font-semibold">
-              機体の向き
-            </span>
-
-            <div className="relative flex flex-col items-center justify-center">
-              <div className="flex flex-col items-center gap-1">
-                <Drone1Icon
-                  className="w-20 h-20 drone1-img"
-                  rotationDeg={rotation}
-                />
-
-                {/* 回転操作は一旦非表示。必要になったら復帰する
-                <div className="mt-10 flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => rotateBy(-90)}
-                    disabled={!edit}
-                    className="px-2 py-1 rounded-md border border-slate-600 text-xs text-slate-100 hover:bg-slate-700 disabled:opacity-50"
-                    aria-label="左へ90度回転"
-                    title="左へ90°"
-                  >
-                    ↶
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => rotateBy(90)}
-                    disabled={!edit}
-                    className="px-2 py-1 rounded-md border border-slate-600 text-xs text-slate-100 hover:bg-slate-700 disabled:opacity-50"
-                    aria-label="右へ90度回転"
-                    title="右へ90°"
-                  >
-                    ↷
-                  </button>
-                </div>
-                */}
-
-                <div
-                  className="absolute"
-                  style={{
-                    transform: `translate(${x}px, ${y}px)`,
-                    transition: "transform 0.2s ease-out",
-                  }}
-                >
-                  <span className="text-sm text-red-500">Antenna</span>
-                </div>
-
-                <div
-                  className="absolute"
-                  style={{
-                    transform: `translate(${batteryX}px, ${batteryY}px)`,
-                    transition: "transform 0.2s ease-out",
-                  }}
-                >
-                  <span className="text-sm text-white">Battery</span>
-                </div>
-              </div>
+            <div className="relative min-w-0 w-full pt-8">
+              <span className="absolute top-0 left-0 text-white text-sm font-semibold">
+                機体数
+              </span>
+              <DroneCountSection
+                edit={edit}
+                area={area}
+                onPatchArea={onPatchArea}
+                embedded
+              />
             </div>
 
-            <div className="relative flex flex-col items-center gap-3 pb-2">
+            <div className="relative min-w-0 w-full pt-8 pb-2">
+              <span className="absolute top-0 left-0 text-white text-sm font-semibold">
+                機体の間隔
+              </span>
+              <div
+                ref={spacingBoxRef}
+                className="w-max flex flex-col items-start gap-3"
+              >
               <label
                 className={`flex items-center gap-2 text-sm text-slate-200 select-none self-start ${
                   edit ? "cursor-pointer" : "cursor-default"
@@ -431,6 +363,7 @@ export function LandingAreaFigure({ edit, area, onPatchArea }: Props) {
                     </button>
                   </div>
                 </div>
+              </div>
               </div>
             </div>
           </div>

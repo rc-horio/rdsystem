@@ -108,7 +108,7 @@ export default function AreaInfoTab({
         />
       </div>
       {/* PC */}
-      <div className="hidden md:block">
+      <div className="hidden md:block w-full min-w-0">
         <DesktopPanel
           edit={edit}
           setEdit={setEdit}

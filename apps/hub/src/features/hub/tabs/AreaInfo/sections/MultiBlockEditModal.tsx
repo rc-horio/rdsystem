@@ -233,6 +233,8 @@ type Props = {
   onDecide?: (area: Area) => void;
   area: Area | null;
   focusedBlockId?: string | null;
+  /** false のときは閲覧のみ（入力・決定不可） */
+  edit?: boolean;
 };
 
 export function MultiBlockEditModal({
@@ -241,6 +243,7 @@ export function MultiBlockEditModal({
   onDecide,
   area,
   focusedBlockId,
+  edit = true,
 }: Props) {
   const [state, setState] = useState<ModalState>(() => initialStateFromArea(area));
   /** 図用スナップショット。「図を更新」押下時のみ更新。入力中は即時反映せずフリーズ防止 */
@@ -911,12 +914,20 @@ export function MultiBlockEditModal({
 
         {/* 右: 入力 */}
         <div className="w-full md:w-1/2 flex flex-col min-h-0 min-w-0">
-          <div className="flex-1 overflow-y-auto p-5 space-y-6">
+          <div className="flex-1 overflow-y-auto p-5">
+            <fieldset
+              disabled={!edit}
+              className="m-0 min-w-0 space-y-6 border-0 p-0"
+            >
             {/* ① 機体間隔 */}
             <section>
               <h3 className="text-sm font-medium text-slate-200 mb-3">機体間隔</h3>
               <div className="flex flex-col items-start gap-3 min-w-0 overflow-x-auto pb-1">
-                    <label className="flex items-center gap-2 text-sm text-slate-200 select-none cursor-pointer">
+                    <label
+                      className={`flex items-center gap-2 text-sm text-slate-200 select-none ${
+                        edit ? "cursor-pointer" : "cursor-default"
+                      }`}
+                    >
                       <input
                         type="checkbox"
                         checked={spacingUnequalActive}
@@ -930,7 +941,7 @@ export function MultiBlockEditModal({
                       <div className="relative shrink-0 mr-4">
                         <div
                           className={`absolute top-0 z-10 flex items-center gap-1 ${
-                            spacingUnequalActive ? "" : "invisible"
+                            spacingUnequalActive && edit ? "" : "invisible"
                           }`}
                           style={{ left: -5 }}
                         >
@@ -1050,7 +1061,7 @@ export function MultiBlockEditModal({
                         </div>
                         <div
                           className={`absolute flex items-center gap-1 ${
-                            spacingUnequalActive ? "" : "invisible"
+                            spacingUnequalActive && edit ? "" : "invisible"
                           }`}
                           style={{ left: "100%", bottom: 12, marginLeft: 12 }}
                         >
@@ -1099,7 +1110,7 @@ export function MultiBlockEditModal({
                       key={block.id}
                       className="relative rounded-lg p-4 bg-slate-800/60 border border-slate-700 min-h-[120px]"
                     >
-                      {canRemoveBlock && (
+                      {edit && canRemoveBlock && (
                         <button
                           type="button"
                           onClick={() => removeBlock(block.id)}
@@ -1174,6 +1185,7 @@ export function MultiBlockEditModal({
                   );
                 })}
               </div>
+              {edit && (
               <button
                 type="button"
                 onClick={addBlock}
@@ -1182,6 +1194,7 @@ export function MultiBlockEditModal({
               >
                 ＋ブロック
               </button>
+              )}
             </section>
 
             {/* ③ 配置（行は上に追加。行4→行1の順で、行間隔を各間に表示） */}
@@ -1202,7 +1215,7 @@ export function MultiBlockEditModal({
                         key={`row-${rowIndex}`}
                         className="relative flex items-start gap-3 p-3 rounded-lg bg-slate-800/40 border border-slate-700"
                       >
-                        {canRemoveRow && (
+                        {edit && canRemoveRow && (
                           <button
                             type="button"
                             onClick={() => removeRow(rowIndex)}
@@ -1384,6 +1397,7 @@ export function MultiBlockEditModal({
                     return [el];
                   })}
               </div>
+              {edit && (
               <button
                 type="button"
                 onClick={addRow}
@@ -1392,8 +1406,10 @@ export function MultiBlockEditModal({
               >
                 ＋行
               </button>
+              )}
             </section>
 
+            </fieldset>
           </div>
         </div>
         </div>
@@ -1412,6 +1428,10 @@ export function MultiBlockEditModal({
               }`}
             >
               <section className="w-full max-w-[50vw] rounded-lg border border-slate-700/90 bg-slate-900 p-3">
+                <fieldset
+                  disabled={!edit}
+                  className="m-0 min-w-0 border-0 p-0"
+                >
                 <div className="flex items-start gap-3">
                   <div className="w-full max-w-[340px] p-3">
                     <div className="space-y-4">
@@ -1654,6 +1674,7 @@ export function MultiBlockEditModal({
                     </div>
                   </div>
                 </div>
+                </fieldset>
               </section>
             </div>
           </div>
@@ -1673,11 +1694,10 @@ export function MultiBlockEditModal({
               </button>
             </div>
           <div className="flex items-center gap-2">
+            {edit && (
             <button
               type="button"
               onClick={() => {
-                console.log("★")
-                // 現在の入力内容を図用スナップショットに反映（「図を更新」押下時のみ）
                 setCommittedForFigure(JSON.parse(JSON.stringify(state)));
               }}
               disabled={layoutCountsMismatch || hasRowWithZeroBlocks}
@@ -1685,14 +1705,16 @@ export function MultiBlockEditModal({
             >
               図を更新
             </button>
+            )}
             <div className="flex items-center gap-2 ml-auto">
               <button
                 type="button"
                 onClick={onClose}
                 className="h-10 px-4 py-2 rounded text-sm text-slate-200 hover:bg-slate-700 border border-slate-600"
               >
-                キャンセル
+                {edit ? "キャンセル" : "閉じる"}
               </button>
+              {edit && (
               <button
                 type="button"
                 onClick={handleDecide}
@@ -1701,6 +1723,7 @@ export function MultiBlockEditModal({
               >
                 決定
               </button>
+              )}
             </div>
           </div>
           </div>
