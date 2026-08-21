@@ -134,12 +134,64 @@ export function DroneCountSection({
                 type="checkbox"
                 disabled={!edit}
                 checked={Boolean(A.use_takeoff_landing_box)}
-                onChange={(e) =>
-                  patch(["use_takeoff_landing_box"], e.target.checked)
-                }
+                onChange={(e) => {
+                  const next = {
+                    ...(A ?? {}),
+                    use_takeoff_landing_box: e.target.checked,
+                  };
+                  if (
+                    e.target.checked &&
+                    next.takeoff_landing_box_yx !== "4x2" &&
+                    next.takeoff_landing_box_yx !== "2x4"
+                  ) {
+                    next.takeoff_landing_box_yx = "4x2";
+                  }
+                  onPatchArea(next);
+                }}
                 className="accent-red-600 h-4 w-4 shrink-0 disabled:opacity-50"
               />
               離発着ボックス
+            </label>
+          </div>
+        )}
+
+        {isEmoModel && Boolean(A.use_takeoff_landing_box) && (
+          <div
+            className={`${
+              embedded ? "mt-2" : "mt-2 pl-4 md:pl-6"
+            } flex w-full flex-col items-end gap-1`}
+          >
+            <label
+              className={`flex items-center gap-2 text-sm text-slate-200 select-none ${
+                edit ? "cursor-pointer" : "cursor-default"
+              }`}
+            >
+              <input
+                type="radio"
+                name="takeoff-landing-box-yx"
+                disabled={!edit}
+                checked={
+                  (A.takeoff_landing_box_yx ?? "4x2") === "4x2"
+                }
+                onChange={() => patch(["takeoff_landing_box_yx"], "4x2")}
+                className="accent-red-600 h-4 w-4 shrink-0 disabled:opacity-50"
+              />
+              Y４機×X２機
+            </label>
+            <label
+              className={`flex items-center gap-2 text-sm text-slate-200 select-none ${
+                edit ? "cursor-pointer" : "cursor-default"
+              }`}
+            >
+              <input
+                type="radio"
+                name="takeoff-landing-box-yx"
+                disabled={!edit}
+                checked={A.takeoff_landing_box_yx === "2x4"}
+                onChange={() => patch(["takeoff_landing_box_yx"], "2x4")}
+                className="accent-red-600 h-4 w-4 shrink-0 disabled:opacity-50"
+              />
+              Y２機×X４機
             </label>
           </div>
         )}

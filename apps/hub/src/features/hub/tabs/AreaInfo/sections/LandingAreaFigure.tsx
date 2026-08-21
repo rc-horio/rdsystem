@@ -12,6 +12,7 @@ import {
 } from "@/components";
 import { DroneCountSection } from "./DroneCountSection";
 import { MultiBlockEditModal } from "./MultiBlockEditModal";
+import { LandingFigureHtml } from "./LandingFigureHtml";
 import { ButtonRed } from "@/components/atoms/buttons/RedButton";
 import { useState, type Ref } from "react";
 
@@ -198,9 +199,9 @@ export function LandingAreaFigure({ edit, area, onPatchArea, spacingBoxRef }: Pr
             <span className="absolute top-2 left-3 z-10 text-white text-base font-bold tracking-wide">
               配置図
             </span>
-            <div
+            <LandingFigureHtml
+              html={svgMarkup}
               className="box-border w-full h-full min-w-0 overflow-hidden px-8 py-6 pt-10 [&_svg]:max-w-full [&_svg]:max-h-full [&_svg]:h-full"
-              dangerouslySetInnerHTML={{ __html: svgMarkup }}
             />
           </div>
         </div>

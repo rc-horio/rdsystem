@@ -2,6 +2,11 @@
 
 import { fmtMeters } from "@/features/hub/utils/spacing";
 import { buildLandingFigureModel } from "@/features/hub/tabs/AreaInfo/figure/landingFigureModel";
+import {
+  collectSingleBlockBoxTiles,
+  landingBoxRectSvg,
+  parseTakeoffLandingBoxYx,
+} from "@/features/hub/tabs/AreaInfo/figure/landingBoxTiles";
 
 type Theme = "ui" | "export";
 
@@ -151,6 +156,54 @@ export function buildLandingFigureSvg(
     const rectStroke = "#ed1b24";
     const rectFill = "#ed1b24";
 
+    const useBoxes = Boolean(area?.use_takeoff_landing_box);
+    const actualRows =
+      m.countX > 0 && m.totalCount > 0 ? Math.ceil(m.totalCount / m.countX) : 0;
+    const blockShape =
+      m.canRenderFigure && useBoxes && m.countX > 0 && actualRows > 0
+        ? collectSingleBlockBoxTiles(
+            m.countX,
+            m.totalCount,
+            parseTakeoffLandingBoxYx(area?.takeoff_landing_box_yx)
+          )
+            .map((t) => {
+              const cellW = m.rectW / m.countX;
+              const cellH = m.rectH / actualRows;
+              return landingBoxRectSvg({
+                x: m.rx + t.col0 * cellW,
+                y: m.ry + (actualRows - 1 - t.row1) * cellH,
+                w: (t.col1 - t.col0 + 1) * cellW,
+                h: (t.row1 - t.row0 + 1) * cellH,
+                count: t.count,
+                isFull: t.isFull,
+                stroke: rectStroke,
+                fill: rectFill,
+              });
+            })
+            .join("\n")
+        : m.canRenderFigure
+          ? m.polygonPoints
+            ? `<polygon
+            points="${m.polygonPoints.map(([x, y]) => `${x},${y}`).join(" ")}"
+            stroke="${rectStroke}"
+            stroke-width="2"
+            stroke-opacity="0.9"
+            fill="${rectFill}"
+            fill-opacity="0.35"
+            />`
+            : `<rect
+            x="${m.rx}"
+            y="${m.ry}"
+            width="${m.rectW}"
+            height="${m.rectH}"
+            stroke="${rectStroke}"
+            stroke-width="2"
+            stroke-opacity="0.9"
+            fill="${rectFill}"
+            fill-opacity="0.35"
+            />`
+          : "";
+
     const markerId = `arrow-${uid()}`;
     const msg =
         m.cannotRenderReason === "contradiction" && m.contradictionMessage
@@ -183,27 +236,7 @@ export function buildLandingFigureSvg(
 
         ${m.canRenderFigure
             ? `
-            ${m.polygonPoints
-                ? `<polygon
-            points="${m.polygonPoints.map(([x, y]) => `${x},${y}`).join(" ")}"
-            stroke="${rectStroke}"
-            stroke-width="2"
-            stroke-opacity="0.9"
-            fill="${rectFill}"
-            fill-opacity="0.35"
-            />`
-                : `<rect
-            x="${m.rx}"
-            y="${m.ry}"
-            width="${m.rectW}"
-            height="${m.rectH}"
-            stroke="${rectStroke}"
-            stroke-width="2"
-            stroke-opacity="0.9"
-            fill="${rectFill}"
-            fill-opacity="0.35"
-            />`
-            }
+            ${blockShape}
 
             ${cornerNumberTexts}
 

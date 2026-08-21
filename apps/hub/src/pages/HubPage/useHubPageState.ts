@@ -154,6 +154,7 @@ export function useHubPageState() {
         area_name: "",
         drone_count: { model: "", count: 0, x_count: null, y_count: null },
         use_takeoff_landing_box: false,
+        takeoff_landing_box_yx: "4x2",
         actions: { liftoff: "", turn: "" },
         obstacle_note: "",
         lights: { takeoff: "", landing: "" },

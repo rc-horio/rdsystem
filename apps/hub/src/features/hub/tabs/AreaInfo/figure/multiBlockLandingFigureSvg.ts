@@ -2,6 +2,11 @@ import type { Area } from "@/features/hub/types/resource";
 import { fmtMeters, parseSpacingSeq, cumDist } from "@/features/hub/utils/spacing";
 import { buildMultiBlockLayoutModel } from "@/features/hub/tabs/AreaInfo/figure/multiBlockLayoutModel";
 import { buildMultiBlockOccupancyGrid } from "@/features/hub/tabs/AreaInfo/figure/multiBlockOccupancyGrid";
+import {
+  collectLandingBoxTiles,
+  landingBoxRectSvg,
+  parseTakeoffLandingBoxYx,
+} from "@/features/hub/tabs/AreaInfo/figure/landingBoxTiles";
 
 type Theme = "ui" | "export";
 
@@ -51,6 +56,11 @@ export function buildMultiBlockLandingFigureSvg(
 
   const model = buildMultiBlockLayoutModel(area);
   const occ = buildMultiBlockOccupancyGrid(area);
+  const useBoxes = Boolean(area.use_takeoff_landing_box);
+  const boxTiles =
+    useBoxes && occ
+      ? collectLandingBoxTiles(occ, parseTakeoffLandingBoxYx(area.takeoff_landing_box_yx))
+      : [];
 
   const viewW = 460;
   const calcUiViewH = (aspect: number) => {
@@ -328,6 +338,30 @@ export function buildMultiBlockLandingFigureSvg(
     const rightInsetX = Math.min(rightInsetRaw, maxInsetX);
 
     const shape = (() => {
+      if (useBoxes && occ && occ.gridCols > 0 && occ.gridRows > 0) {
+        const cellW = figureW / occ.gridCols;
+        const cellH = figureH / occ.gridRows;
+        return boxTiles
+          .filter((t) => t.blockId === b.blockId)
+          .map((t) => {
+            const bw = (t.col1 - t.col0 + 1) * cellW;
+            const bh = (t.row1 - t.row0 + 1) * cellH;
+            const bx = figureLeft + t.col0 * cellW;
+            const by = figureTop + (occ.gridRows - 1 - t.row1) * cellH;
+            return landingBoxRectSvg({
+              x: bx,
+              y: by,
+              w: bw,
+              h: bh,
+              count: t.count,
+              isFull: t.isFull,
+              stroke: rectStroke,
+              fill: rectFill,
+            });
+          })
+          .join("\n");
+      }
+
       if (!isHexagon) {
         return `
   <rect

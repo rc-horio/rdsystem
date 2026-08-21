@@ -11,6 +11,7 @@ import { buildLandingFigureSvg } from "@/features/hub/tabs/AreaInfo/figure/build
 import { buildMultiBlockLandingFigureSvg } from "@/features/hub/tabs/AreaInfo/figure/multiBlockLandingFigureSvg";
 import { getEffectiveBlocks } from "@/features/hub/utils/areaBlocks";
 import { cumDist } from "@/features/hub/utils/spacing";
+import { LandingFigureHtml } from "./LandingFigureHtml";
 import type { Block, BlockLayout, BlockLayoutRow, Area } from "@/features/hub/types/resource";
 
 const BLOCK_LABELS = "ABCDEFGHIJ".split("");
@@ -896,10 +897,9 @@ export function MultiBlockEditModal({
                 ))}
               </div>
             ) : m.canRenderFigure ? (
-              <div
+              <LandingFigureHtml
+                html={svgForPreview}
                 className="w-full h-full"
-                // Phase 2: モーダル内プレビュー用。入力中はスナップショットのみ更新し、ボタン押下時にだけ再描画される
-                dangerouslySetInnerHTML={{ __html: svgForPreview }}
               />
             ) : (
               <span className="text-slate-200 text-sm text-center">
