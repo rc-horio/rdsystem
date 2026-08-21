@@ -1,9 +1,5 @@
-/**
- * 関西国際空港 制限表面の地図描画
- * 全空港描画は overlays/all.ts を使う。
- */
-
 export {
+  createAllAirportRestrictionOverlays,
   createKansaiRestrictionOverlays,
 } from "./all";
 export {

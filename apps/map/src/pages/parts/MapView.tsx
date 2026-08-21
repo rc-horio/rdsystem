@@ -72,10 +72,10 @@ import {
   buildAirportHeightRestrictionPopupHtml,
 } from "./airportRestriction";
 import {
-  createKansaiRestrictionOverlays,
+  createAllAirportRestrictionOverlays,
   setRestrictionOverlaysMap,
   type RestrictionOverlay,
-} from "./airportRestriction/overlays/kansai";
+} from "./airportRestriction/overlays";
 
 /** Data.Feature のポリゴン内に point が含まれるか */
 function isPointInDataFeature(
@@ -445,7 +445,7 @@ export default function MapView({ onLoaded }: Props) {
   const djiNfzInfoRef = useRef<google.maps.InfoWindow | null>(null);
   const djiNfzClickedRef = useRef(false);
   const airportHeightRestrictionInfoRef = useRef<google.maps.InfoWindow | null>(null);
-  const kansaiRestrictionOverlaysRef = useRef<RestrictionOverlay[]>([]);
+  const airportRestrictionOverlaysRef = useRef<RestrictionOverlay[]>([]);
 
   const currentAreaUuidRef = useRef<string | undefined>(undefined);
   const currentProjectUuidRef = useRef<string | undefined>(undefined);
@@ -2711,8 +2711,8 @@ export default function MapView({ onLoaded }: Props) {
       djiNfzInfoRef.current = null;
       airportHeightRestrictionInfoRef.current?.close();
       airportHeightRestrictionInfoRef.current = null;
-      setRestrictionOverlaysMap(kansaiRestrictionOverlaysRef.current, null);
-      kansaiRestrictionOverlaysRef.current = [];
+      setRestrictionOverlaysMap(airportRestrictionOverlaysRef.current, null);
+      airportRestrictionOverlaysRef.current = [];
 
       clearGeometryOverlays();
       // DJI NFZ Data レイヤーの後始末
@@ -3175,23 +3175,22 @@ export default function MapView({ onLoaded }: Props) {
     };
   }, [measurementMode, cancelMeasurementMode]);
 
-  // 空港高さ制限モード: 吹き出しクリアと関西制限表面の表示
+  // 空港高さ制限モード: 吹き出しクリアと全空港制限表面の表示
   useEffect(() => {
     const map = mapRef.current;
     if (!airportHeightRestrictionMode) {
       airportHeightRestrictionInfoRef.current?.close();
-      setRestrictionOverlaysMap(kansaiRestrictionOverlaysRef.current, null);
+      setRestrictionOverlaysMap(airportRestrictionOverlaysRef.current, null);
       return;
     }
     if (!map || !mapReady) return;
-    if (kansaiRestrictionOverlaysRef.current.length === 0) {
-      kansaiRestrictionOverlaysRef.current = createKansaiRestrictionOverlays(
-        getGMaps()
-      );
+    if (airportRestrictionOverlaysRef.current.length === 0) {
+      airportRestrictionOverlaysRef.current =
+        createAllAirportRestrictionOverlays(getGMaps());
     }
-    setRestrictionOverlaysMap(kansaiRestrictionOverlaysRef.current, map);
+    setRestrictionOverlaysMap(airportRestrictionOverlaysRef.current, map);
     return () => {
-      setRestrictionOverlaysMap(kansaiRestrictionOverlaysRef.current, null);
+      setRestrictionOverlaysMap(airportRestrictionOverlaysRef.current, null);
     };
   }, [airportHeightRestrictionMode, mapReady]);
 
