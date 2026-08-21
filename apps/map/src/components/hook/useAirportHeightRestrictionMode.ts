@@ -2,8 +2,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export function useAirportHeightRestrictionMode() {
-  const [airportHeightRestrictionMode, setAirportHeightRestrictionMode] = useState(true);
-  const airportHeightRestrictionModeRef = useRef(true);
+  const [airportHeightRestrictionMode, setAirportHeightRestrictionMode] = useState(false);
+  const airportHeightRestrictionModeRef = useRef(false);
 
   useEffect(() => {
     airportHeightRestrictionModeRef.current = airportHeightRestrictionMode;

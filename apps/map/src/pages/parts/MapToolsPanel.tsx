@@ -46,6 +46,9 @@ const AREA_LABELS: Record<AreaColorKey, string> = {
   audienceArea: "観客",
 };
 
+/** 制限レイヤーの3択（同時表示しない） */
+type RestrictionLayer = "none" | "dji" | "height";
+
 export default function MapToolsPanel({
   overlayVisibility,
   onOverlayVisibilityChange,
@@ -94,6 +97,22 @@ export default function MapToolsPanel({
 
   const hasGeometry = !!currentGeometry;
   const showDjiNfzSection = typeof window !== "undefined";
+  const restrictionLayer: RestrictionLayer = airportHeightRestrictionMode
+    ? "height"
+    : overlayVisibility.djiNfz
+      ? "dji"
+      : "none";
+
+  const handleRestrictionLayerChange = (value: RestrictionLayer) => {
+    const nextDji = value === "dji";
+    const nextHeight = value === "height";
+    if (overlayVisibility.djiNfz !== nextDji) {
+      onOverlayVisibilityChange({ ...overlayVisibility, djiNfz: nextDji });
+    }
+    if (airportHeightRestrictionMode !== nextHeight) {
+      onAirportHeightRestrictionChange?.(nextHeight);
+    }
+  };
   const hasContent =
     showCompanyMarkersToggle ||
     showOverlaySection ||
@@ -227,53 +246,73 @@ export default function MapToolsPanel({
               <span>RCマーカー</span>
             </label>
           )}
-          {showDjiNfzSection && (
-            <label className="map-tools-panel__checkbox">
-              <input
-                type="checkbox"
-                checked={overlayVisibility.djiNfz}
-                onChange={handleOverlayChange("djiNfz")}
-                disabled={djiNfzLoading}
-                aria-label="DJI 飛行制限区域"
-              />
-              <span>
-                飛行制限区域
-                <a
-                  href="https://fly-safe.dji.com/nfz/nfz-query"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="map-tools-panel__ext-link"
-                  aria-label="DJI FlySafe Geo Zone Map（外部サイト）"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <span className="map-tools-panel__ext-link-icon" aria-hidden="true">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                      <polyline points="15 3 21 3 21 9" />
-                      <line x1="10" y1="14" x2="21" y2="3" />
-                    </svg>
+          {(showDjiNfzSection || showAirportHeightRestrictionCheckbox) && (
+            <div className="map-tools-panel__radios" role="radiogroup" aria-label="制限表示">
+              <div className="map-tools-panel__title">制限</div>
+              <label className="map-tools-panel__checkbox">
+                <input
+                  type="radio"
+                  name="restriction-layer"
+                  value="none"
+                  checked={restrictionLayer === "none"}
+                  onChange={() => handleRestrictionLayerChange("none")}
+                  aria-label="制限を表示しない"
+                />
+                <span>表示しない</span>
+              </label>
+              {showDjiNfzSection && (
+                <label className="map-tools-panel__checkbox">
+                  <input
+                    type="radio"
+                    name="restriction-layer"
+                    value="dji"
+                    checked={restrictionLayer === "dji"}
+                    onChange={() => handleRestrictionLayerChange("dji")}
+                    disabled={djiNfzLoading && restrictionLayer !== "dji"}
+                    aria-label="DJI 飛行制限区域"
+                  />
+                  <span>
+                    飛行制限区域
+                    <a
+                      href="https://fly-safe.dji.com/nfz/nfz-query"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="map-tools-panel__ext-link"
+                      aria-label="DJI FlySafe Geo Zone Map（外部サイト）"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span className="map-tools-panel__ext-link-icon" aria-hidden="true">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                          <polyline points="15 3 21 3 21 9" />
+                          <line x1="10" y1="14" x2="21" y2="3" />
+                        </svg>
+                      </span>
+                    </a>
+                    <span className="map-tools-panel__loading-suffix">{djiNfzLoading ? " (読込中…)" : ""}</span>
                   </span>
-                </a>
-                <span className="map-tools-panel__loading-suffix">{djiNfzLoading ? " (読込中…)" : ""}</span>
-              </span>
-            </label>
+                </label>
+              )}
+              {showAirportHeightRestrictionCheckbox && (
+                <label className="map-tools-panel__checkbox">
+                  <input
+                    type="radio"
+                    name="restriction-layer"
+                    value="height"
+                    checked={restrictionLayer === "height"}
+                    onChange={() => handleRestrictionLayerChange("height")}
+                    disabled={airportHeightRestrictionDisabled}
+                    aria-label="高さ制限照会"
+                  />
+                  <span>高さ制限</span>
+                </label>
+              )}
+            </div>
           )}
           {djiNfzError && (
             <p className="map-tools-panel__error" role="alert">
               {djiNfzError}
             </p>
-          )}
-          {showAirportHeightRestrictionCheckbox && (
-            <label className="map-tools-panel__checkbox">
-              <input
-                type="checkbox"
-                checked={airportHeightRestrictionMode}
-                onChange={(e) => onAirportHeightRestrictionChange?.(e.target.checked)}
-                disabled={airportHeightRestrictionDisabled}
-                aria-label="高さ制限照会"
-              />
-              <span>高さ制限</span>
-            </label>
           )}
           <p className="map-tools-panel__disclaimer">
             表示情報は参考です。<br />

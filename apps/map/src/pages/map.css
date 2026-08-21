@@ -1831,6 +1831,20 @@ select.rc-inp-input optgroup {
   cursor: not-allowed;
 }
 
+.map-tools-panel__radios {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.map-tools-panel__checkbox + .map-tools-panel__radios {
+  margin-top: 6px;
+}
+
+.map-tools-panel__radios .map-tools-panel__title {
+  margin-bottom: 2px;
+}
+
 .map-tools-panel__checkbox input[type="checkbox"] {
   width: 12px;
   height: 12px;
@@ -1842,7 +1856,32 @@ select.rc-inp-input optgroup {
   accent-color: rgba(255, 255, 255, 0.8);
 }
 
-.map-tools-panel__checkbox input[type="checkbox"]:disabled {
+.map-tools-panel__checkbox input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  min-width: 12px;
+  min-height: 12px;
+  margin: 0;
+  flex-shrink: 0;
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  background-color: #fff;
+  cursor: pointer;
+}
+
+.map-tools-panel__checkbox input[type="radio"]:checked {
+  background-image: radial-gradient(circle, #e53935 0 3px, #fff 3.5px);
+}
+
+.map-tools-panel__checkbox input[type="radio"]:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.85);
+  outline-offset: 2px;
+}
+
+.map-tools-panel__checkbox input[type="checkbox"]:disabled,
+.map-tools-panel__checkbox input[type="radio"]:disabled {
   cursor: not-allowed;
 }
 
