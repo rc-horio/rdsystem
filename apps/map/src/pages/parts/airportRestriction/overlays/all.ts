@@ -101,10 +101,10 @@ import {
 } from "../data/naha";
 import {
   surfacePoints as matsuyamaPts,
+  conicalCutPath as matsuyamaConicalCut,
+  outerCutPath as matsuyamaOuterCut,
   MATSUYAMA_REFERENCE_POINT,
   RADIUS_OF_HORIZONTAL_SURFACE as MATSUYAMA_HORIZ,
-  RADIUS_OF_CONICAL_SURFACE as MATSUYAMA_CONICAL,
-  RADIUS_OF_OUTER_HORIZONTAL_SURFACE as MATSUYAMA_OUTER,
 } from "../data/matsuyama";
 import {
   surfacePoints as miyazakiPts,
@@ -444,12 +444,12 @@ const SPECS: AirportOverlaySpec[] = [
     quads: [...kansaiLikeShapes(nahaA), ...kansaiLikeShapes(nahaB)],
   },
   {
-    ...fullRings(
-      MATSUYAMA_REFERENCE_POINT,
-      MATSUYAMA_HORIZ,
-      MATSUYAMA_CONICAL,
-      MATSUYAMA_OUTER
-    ),
+    horizontalCircle: {
+      center: MATSUYAMA_REFERENCE_POINT,
+      radius: MATSUYAMA_HORIZ,
+    },
+    conicalPolygon: matsuyamaConicalCut,
+    outerPolygon: matsuyamaOuterCut,
     quads: kansaiLikeShapes(matsuyamaPts, { ext2: false }),
   },
   {
