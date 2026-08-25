@@ -45,10 +45,11 @@ import {
 import {
   mpA as fukuokaA,
   mpB as fukuokaB,
+  landingKiE as fukuokaConicalCut,
+  landingKiN as fukuokaOuterN,
+  landingKiS as fukuokaOuterS,
   FUKUOKA_REFERENCE_POINT,
   RADIUS_OF_HORIZONTAL_SURFACE as FUKUOKA_HORIZ,
-  RADIUS_OF_CONICAL_SURFACE as FUKUOKA_CONICAL,
-  RADIUS_OF_OUTER_HORIZONTAL_SURFACE as FUKUOKA_OUTER,
 } from "../data/fukuoka";
 import {
   runwayA as sendaiA,
@@ -332,12 +333,12 @@ const SPECS: AirportOverlaySpec[] = [
     quads: kansaiLikeShapes(centrairPts),
   },
   {
-    ...fullRings(
-      FUKUOKA_REFERENCE_POINT,
-      FUKUOKA_HORIZ,
-      FUKUOKA_CONICAL,
-      FUKUOKA_OUTER
-    ),
+    horizontalCircle: {
+      center: FUKUOKA_REFERENCE_POINT,
+      radius: FUKUOKA_HORIZ,
+    },
+    conicalPolygon: fukuokaConicalCut,
+    outerPolygon: fukuokaOuterN,
     quads: [
       [fukuokaA.cd21, fukuokaA.cd22, fukuokaA.cd24, fukuokaA.cd23],
       [fukuokaA.cd7, fukuokaA.cd8, fukuokaA.cd22, fukuokaA.cd21],
@@ -360,6 +361,10 @@ const SPECS: AirportOverlaySpec[] = [
       [fukuokaB.cd4, fukuokaB.cd7, fukuokaB.cd6],
       [fukuokaB.cd10, fukuokaB.cd12, fukuokaB.cd9],
     ],
+  },
+  {
+    outerPolygon: fukuokaOuterS,
+    quads: [],
   },
   {
     horizontalCircle: {
