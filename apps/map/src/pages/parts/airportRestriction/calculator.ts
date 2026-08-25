@@ -255,11 +255,12 @@ import {
 } from "./data/niigata";
 import {
   surfacePoints as cM,
+  conicalCutPath as centrairConicalCutPath,
+  outerCutPath as centrairOuterCutPath,
   CENTRAIR_REFERENCE_POINT,
   HEIGHT_OF_AIRPORT_REFERENCE_POINT as CENTRAIR_REF_HEIGHT,
   RADIUS_OF_HORIZONTAL_SURFACE as CENTRAIR_HORIZ_RADIUS,
   HEIGHT_OF_HORIZONTAL_SURFACE as CENTRAIR_HORIZ_HEIGHT,
-  RADIUS_OF_CONICAL_SURFACE as CENTRAIR_CONICAL_RADIUS,
   RADIUS_OF_OUTER_HORIZONTAL_SURFACE as CENTRAIR_OUTER_RADIUS,
   HEIGHT_OF_OUTER_HORIZONTAL_SURFACE as CENTRAIR_OUTER_HEIGHT,
   LENGTH_OF_LANDING_AREA as CENTRAIR_LENGTH,
@@ -267,6 +268,8 @@ import {
   HEIGHT_OF_LANDING_AREA_1 as CENTRAIR_HEIGHT_1,
   HEIGHT_OF_LANDING_AREA_2 as CENTRAIR_HEIGHT_2,
   PITCH_OF_APPROACH_SURFACE as CENTRAIR_PITCH,
+  PITCH_OF_TRANSITIONAL_SURFACE as CENTRAIR_PITCH_TRANS,
+  PITCH_OF_CONICAL_SURFACE as CENTRAIR_PITCH_CONICAL,
 } from "./data/centrair";
 import {
   mp as ngsMp,
@@ -4254,54 +4257,61 @@ function isCentrairPointInPolygon(
   return isPointInPolygon(g, lat, lng, path);
 }
 
-/** 中部国際: 水平表面ゾーン（半径4000m以内） */
-function calcCentrairHorizontalSurface(
+/**
+ * 中部国際: 公式どおり進入・転移・延長は距離帯に関係なくポリゴン判定。
+ * 進入内では水平を除外、延長進入内では円錐を除外（公式 ClickSurface の flg）。
+ * 円錐は切り欠き内かつ 4000m 超。外側水平は切り欠き内（inner_radius は見ない）。
+ */
+function calcCentrairSurfaces(
   g: typeof google.maps,
   latLng: google.maps.LatLng,
   lat: number,
-  lng: number
+  lng: number,
+  distance: number
 ): { surfaceType: SurfaceType; heightM: number } | null {
   const height: HeightEntry[] = [];
-  let hSuiheiStr = "水平表面";
-  const horizHeight = CENTRAIR_REF_HEIGHT + CENTRAIR_HORIZ_HEIGHT;
-
   const inPoly = (path: { lat: number; lng: number }[]) =>
     isCentrairPointInPolygon(g, lat, lng, path);
+  const pitchT = CENTRAIR_PITCH_TRANS;
 
-  if (inPoly([cM.cd12, cM.cd14, cM.cd20, cM.cd18])) {
+  const inLanding = inPoly([cM.cd12, cM.cd14, cM.cd20, cM.cd18]);
+  const inApproachNw = inPoly([cM.cd12, cM.cd04, cM.cd06, cM.cd14]);
+  const inApproachSe = inPoly([cM.cd18, cM.cd20, cM.cd28, cM.cd26]);
+  const inExtNw = inPoly([cM.cd04, cM.cd06, cM.cd03, cM.cd01]);
+  const inExtSe = inPoly([cM.cd26, cM.cd28, cM.cd31, cM.cd29]);
+  const inApproach = inApproachNw || inApproachSe;
+  const inExtended = inExtNw || inExtSe;
+
+  if (inLanding) {
     height.push({ val: 0, str: "着陸帯" });
   }
-  if (inPoly([cM.cd12, cM.cd04, cM.cd06, cM.cd14])) {
+  if (inApproachNw) {
     height.push({
-      val: mathSinnyuWithPitch(g, cM.cd13, cM.cd05, latLng, CENTRAIR_HEIGHT_1, CENTRAIR_PITCH),
+      val: hakodateApproachHeight(g, cM.cd13, cM.cd05, latLng, CENTRAIR_HEIGHT_1, CENTRAIR_PITCH),
       str: "進入表面",
     });
-    hSuiheiStr = "進入表面";
   }
-  if (inPoly([cM.cd18, cM.cd20, cM.cd28, cM.cd26])) {
+  if (inApproachSe) {
     height.push({
-      val: mathSinnyuWithPitch(g, cM.cd19, cM.cd27, latLng, CENTRAIR_HEIGHT_2, CENTRAIR_PITCH),
+      val: hakodateApproachHeight(g, cM.cd19, cM.cd27, latLng, CENTRAIR_HEIGHT_2, CENTRAIR_PITCH),
       str: "進入表面",
     });
-    hSuiheiStr = "進入表面";
   }
-  if (inPoly([cM.cd04, cM.cd06, cM.cd03, cM.cd01])) {
+  if (inExtNw) {
     height.push({
-      val: mathSinnyuWithPitch(g, cM.cd13, cM.cd02, latLng, CENTRAIR_HEIGHT_1, CENTRAIR_PITCH),
+      val: hakodateApproachHeight(g, cM.cd13, cM.cd02, latLng, CENTRAIR_HEIGHT_1, CENTRAIR_PITCH),
       str: "延長進入表面",
     });
-    hSuiheiStr = "延長進入表面";
   }
-  if (inPoly([cM.cd26, cM.cd28, cM.cd31, cM.cd29])) {
+  if (inExtSe) {
     height.push({
-      val: mathSinnyuWithPitch(g, cM.cd19, cM.cd30, latLng, CENTRAIR_HEIGHT_2, CENTRAIR_PITCH),
+      val: hakodateApproachHeight(g, cM.cd19, cM.cd30, latLng, CENTRAIR_HEIGHT_2, CENTRAIR_PITCH),
       str: "延長進入表面",
     });
-    hSuiheiStr = "延長進入表面";
   }
   if (inPoly([cM.cd11, cM.cd12, cM.cd18, cM.cd17])) {
     height.push({
-      val: mathTennia(
+      val: hakodateTransQuadHeight(
         g,
         cM.cd13,
         cM.cd19,
@@ -4309,15 +4319,15 @@ function calcCentrairHorizontalSurface(
         CENTRAIR_HEIGHT_2,
         latLng,
         CENTRAIR_LENGTH,
-        CENTRAIR_WIDTH
+        CENTRAIR_WIDTH,
+        pitchT
       ),
       str: "転移表面",
     });
-    hSuiheiStr = "転移表面";
   }
   if (inPoly([cM.cd14, cM.cd15, cM.cd21, cM.cd20])) {
     height.push({
-      val: mathTennia(
+      val: hakodateTransQuadHeight(
         g,
         cM.cd13,
         cM.cd19,
@@ -4325,142 +4335,116 @@ function calcCentrairHorizontalSurface(
         CENTRAIR_HEIGHT_2,
         latLng,
         CENTRAIR_LENGTH,
-        CENTRAIR_WIDTH
+        CENTRAIR_WIDTH,
+        pitchT
       ),
       str: "転移表面",
     });
-    hSuiheiStr = "転移表面";
   }
   if (inPoly([cM.cd07, cM.cd12, cM.cd11])) {
-    const hm0 = mathSinnyuWithPitch(g, cM.cd13, cM.cd05, latLng, CENTRAIR_HEIGHT_1, CENTRAIR_PITCH);
-    height.push({ val: mathTennib(g, cM.cd13, cM.cd12, cM.cd12, cM.cd04, latLng, hm0), str: "転移表面" });
-    hSuiheiStr = "転移表面";
+    height.push({
+      val: hakodateTransTriHeight(
+        g,
+        cM.cd13,
+        cM.cd12,
+        cM.cd05,
+        cM.cd04,
+        latLng,
+        CENTRAIR_HEIGHT_1,
+        CENTRAIR_PITCH,
+        pitchT
+      ),
+      str: "転移表面",
+    });
   }
   if (inPoly([cM.cd08, cM.cd15, cM.cd14])) {
-    const hm0 = mathSinnyuWithPitch(g, cM.cd13, cM.cd05, latLng, CENTRAIR_HEIGHT_1, CENTRAIR_PITCH);
-    height.push({ val: mathTennib(g, cM.cd13, cM.cd14, cM.cd14, cM.cd06, latLng, hm0), str: "転移表面" });
-    hSuiheiStr = "転移表面";
+    height.push({
+      val: hakodateTransTriHeight(
+        g,
+        cM.cd13,
+        cM.cd14,
+        cM.cd05,
+        cM.cd06,
+        latLng,
+        CENTRAIR_HEIGHT_1,
+        CENTRAIR_PITCH,
+        pitchT
+      ),
+      str: "転移表面",
+    });
   }
   if (inPoly([cM.cd17, cM.cd18, cM.cd24])) {
-    const hm0 = mathSinnyuWithPitch(g, cM.cd19, cM.cd27, latLng, CENTRAIR_HEIGHT_2, CENTRAIR_PITCH);
-    height.push({ val: mathTennib(g, cM.cd19, cM.cd18, cM.cd18, cM.cd26, latLng, hm0), str: "転移表面" });
-    hSuiheiStr = "転移表面";
+    height.push({
+      val: hakodateTransTriHeight(
+        g,
+        cM.cd19,
+        cM.cd18,
+        cM.cd27,
+        cM.cd26,
+        latLng,
+        CENTRAIR_HEIGHT_2,
+        CENTRAIR_PITCH,
+        pitchT
+      ),
+      str: "転移表面",
+    });
   }
   if (inPoly([cM.cd20, cM.cd21, cM.cd25])) {
-    const hm0 = mathSinnyuWithPitch(g, cM.cd19, cM.cd27, latLng, CENTRAIR_HEIGHT_2, CENTRAIR_PITCH);
-    height.push({ val: mathTennib(g, cM.cd19, cM.cd20, cM.cd20, cM.cd28, latLng, hm0), str: "転移表面" });
-    hSuiheiStr = "転移表面";
-  }
-
-  height.push({ val: horizHeight, str: hSuiheiStr });
-  height.sort((a, b) => a.val - b.val);
-  const d = height[0];
-  let reStr = d.str;
-  if (inPoly([cM.cd04, cM.cd06, cM.cd03, cM.cd01]) || inPoly([cM.cd26, cM.cd28, cM.cd31, cM.cd29])) {
-    reStr = "延長進入表面";
-  } else if (inPoly([cM.cd12, cM.cd04, cM.cd06, cM.cd14]) || inPoly([cM.cd18, cM.cd20, cM.cd28, cM.cd26])) {
-    reStr = "進入表面";
-  }
-  if (inPoly([cM.cd12, cM.cd14, cM.cd20, cM.cd18])) {
-    reStr = "着陸帯";
-  }
-
-  const st = STR_TO_SURFACE[reStr];
-  return st ? { surfaceType: st, heightM: d.val } : null;
-}
-
-/** 中部国際: 円錐表面ゾーン（4000m超〜16500m） */
-function calcCentrairConicalSurface(
-  g: typeof google.maps,
-  latLng: google.maps.LatLng,
-  distance: number,
-  lat: number,
-  lng: number
-): { surfaceType: SurfaceType; heightM: number } | null {
-  const conicalHeight =
-    CENTRAIR_REF_HEIGHT + CENTRAIR_HORIZ_HEIGHT + (distance - CENTRAIR_HORIZ_RADIUS) * (1 / 50);
-  const height: HeightEntry[] = [{ val: conicalHeight, str: "円錐表面" }];
-
-  const inPoly = (path: { lat: number; lng: number }[]) =>
-    isCentrairPointInPolygon(g, lat, lng, path);
-
-  if (inPoly([cM.cd12, cM.cd04, cM.cd06, cM.cd14])) {
     height.push({
-      val: mathSinnyuWithPitch(g, cM.cd13, cM.cd05, latLng, CENTRAIR_HEIGHT_1, CENTRAIR_PITCH),
-      str: "進入表面",
-    });
-  }
-  if (inPoly([cM.cd18, cM.cd20, cM.cd28, cM.cd26])) {
-    height.push({
-      val: mathSinnyuWithPitch(g, cM.cd19, cM.cd27, latLng, CENTRAIR_HEIGHT_2, CENTRAIR_PITCH),
-      str: "進入表面",
-    });
-  }
-  if (inPoly([cM.cd04, cM.cd06, cM.cd03, cM.cd01])) {
-    height.push({
-      val: mathSinnyuWithPitch(g, cM.cd13, cM.cd02, latLng, CENTRAIR_HEIGHT_1, CENTRAIR_PITCH),
-      str: "延長進入表面",
-    });
-  }
-  if (inPoly([cM.cd26, cM.cd28, cM.cd31, cM.cd29])) {
-    height.push({
-      val: mathSinnyuWithPitch(g, cM.cd19, cM.cd30, latLng, CENTRAIR_HEIGHT_2, CENTRAIR_PITCH),
-      str: "延長進入表面",
+      val: hakodateTransTriHeight(
+        g,
+        cM.cd19,
+        cM.cd20,
+        cM.cd27,
+        cM.cd28,
+        latLng,
+        CENTRAIR_HEIGHT_2,
+        CENTRAIR_PITCH,
+        pitchT
+      ),
+      str: "転移表面",
     });
   }
 
-  height.sort((a, b) => a.val - b.val);
-  const d = height[0];
-  let reStr = d.str;
-  if (inPoly([cM.cd04, cM.cd06, cM.cd03, cM.cd01]) || inPoly([cM.cd26, cM.cd28, cM.cd31, cM.cd29])) {
-    reStr = "延長進入表面";
-  } else if (inPoly([cM.cd12, cM.cd04, cM.cd06, cM.cd14]) || inPoly([cM.cd18, cM.cd20, cM.cd28, cM.cd26])) {
-    reStr = "進入表面";
-  }
-
-  const st = STR_TO_SURFACE[reStr];
-  return st ? { surfaceType: st, heightM: d.val } : null;
-}
-
-/** 中部国際: 外側水平表面ゾーン（16500m超〜24000m） */
-function calcCentrairOuterHorizontalSurface(
-  g: typeof google.maps,
-  latLng: google.maps.LatLng,
-  lat: number,
-  lng: number
-): { surfaceType: SurfaceType; heightM: number } | null {
-  const outerHeight = CENTRAIR_REF_HEIGHT + CENTRAIR_OUTER_HEIGHT;
-  const height: HeightEntry[] = [{ val: outerHeight, str: "外側水平表面" }];
-
-  const inPoly = (path: { lat: number; lng: number }[]) =>
-    isCentrairPointInPolygon(g, lat, lng, path);
-
-  if (inPoly([cM.cd04, cM.cd06, cM.cd03, cM.cd01])) {
+  if (!inApproach && distance > 0 && distance <= CENTRAIR_HORIZ_RADIUS) {
     height.push({
-      val: mathSinnyuWithPitch(g, cM.cd13, cM.cd02, latLng, CENTRAIR_HEIGHT_1, CENTRAIR_PITCH),
-      str: "延長進入表面",
-    });
-  }
-  if (inPoly([cM.cd26, cM.cd28, cM.cd31, cM.cd29])) {
-    height.push({
-      val: mathSinnyuWithPitch(g, cM.cd19, cM.cd30, latLng, CENTRAIR_HEIGHT_2, CENTRAIR_PITCH),
-      str: "延長進入表面",
+      val: CENTRAIR_REF_HEIGHT + CENTRAIR_HORIZ_HEIGHT,
+      str: "水平表面",
     });
   }
 
-  height.sort((a, b) => a.val - b.val);
-  const d = height[0];
-  let reStr = d.str;
-  if (inPoly([cM.cd04, cM.cd06, cM.cd03, cM.cd01]) || inPoly([cM.cd26, cM.cd28, cM.cd31, cM.cd29])) {
-    reStr = "延長進入表面";
+  if (
+    !inExtended &&
+    inPoly(centrairConicalCutPath) &&
+    distance > CENTRAIR_HORIZ_RADIUS
+  ) {
+    const addHeight = decimalsMultiplication(
+      decimalsSubstract(distance, CENTRAIR_HORIZ_RADIUS),
+      CENTRAIR_PITCH_CONICAL
+    );
+    height.push({
+      val: decimalsAddition(CENTRAIR_REF_HEIGHT + CENTRAIR_HORIZ_HEIGHT, addHeight),
+      str: "円錐表面",
+    });
   }
 
-  const st = STR_TO_SURFACE[reStr];
-  return st ? { surfaceType: st, heightM: d.val } : null;
+  if (inPoly(centrairOuterCutPath)) {
+    height.push({
+      val: CENTRAIR_REF_HEIGHT + CENTRAIR_OUTER_HEIGHT,
+      str: "外側水平表面",
+    });
+  }
+
+  if (height.length === 0) return null;
+
+  const picked = pickSendaiSurfaceName(height);
+  const st = STR_TO_SURFACE[picked.name];
+  return st ? { surfaceType: st, heightM: picked.heightM } : null;
 }
 
 /**
- * 中部国際空港（セントレア）の高さ制限を計算する
+ * 中部国際空港（セントレア）の高さ制限を計算する。
+ * 公式 GetCirclePaths(CDA〜CDG) の切り欠きを円錐・外側水平に使う。
  */
 export function calculateCentrairRestriction(
   lat: number,
@@ -4476,16 +4460,7 @@ export function calculateCentrairRestriction(
     const point = new g.LatLng(lat, lng);
     const distance = g.geometry.spherical.computeDistanceBetween(ref, point);
 
-    let result: { surfaceType: SurfaceType; heightM: number } | null = null;
-
-    if (distance <= CENTRAIR_HORIZ_RADIUS) {
-      result = calcCentrairHorizontalSurface(g, point, lat, lng);
-    } else if (distance <= CENTRAIR_CONICAL_RADIUS) {
-      result = calcCentrairConicalSurface(g, point, distance, lat, lng);
-    } else if (distance <= CENTRAIR_OUTER_RADIUS) {
-      result = calcCentrairOuterHorizontalSurface(g, point, lat, lng);
-    }
-
+    const result = calcCentrairSurfaces(g, point, lat, lng, distance);
     if (!result) {
       return { items: [] };
     }
@@ -5399,7 +5374,8 @@ export function calculateAirportRestriction(
     return calculateItamiRestriction(lat, lng, gmaps);
   }
   if (distToCentrair <= CENTRAIR_OUTER_RADIUS) {
-    return calculateCentrairRestriction(lat, lng, gmaps);
+    const centrair = calculateCentrairRestriction(lat, lng, gmaps);
+    if (centrair.error || centrair.items.length > 0) return centrair;
   }
   if (distToFukuoka <= FUKUOKA_OUTER_RADIUS) {
     return calculateFukuokaRestriction(lat, lng, gmaps);

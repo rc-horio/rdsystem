@@ -37,10 +37,10 @@ import {
 } from "../data/itami";
 import {
   surfacePoints as centrairPts,
+  conicalCutPath as centrairConicalCut,
+  outerCutPath as centrairOuterCut,
   CENTRAIR_REFERENCE_POINT,
   RADIUS_OF_HORIZONTAL_SURFACE as CENTRAIR_HORIZ,
-  RADIUS_OF_CONICAL_SURFACE as CENTRAIR_CONICAL,
-  RADIUS_OF_OUTER_HORIZONTAL_SURFACE as CENTRAIR_OUTER,
 } from "../data/centrair";
 import {
   mpA as fukuokaA,
@@ -323,12 +323,12 @@ const SPECS: AirportOverlaySpec[] = [
     ],
   },
   {
-    ...fullRings(
-      CENTRAIR_REFERENCE_POINT,
-      CENTRAIR_HORIZ,
-      CENTRAIR_CONICAL,
-      CENTRAIR_OUTER
-    ),
+    horizontalCircle: {
+      center: CENTRAIR_REFERENCE_POINT,
+      radius: CENTRAIR_HORIZ,
+    },
+    conicalPolygon: centrairConicalCut,
+    outerPolygon: centrairOuterCut,
     quads: kansaiLikeShapes(centrairPts),
   },
   {
