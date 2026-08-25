@@ -107,3 +107,84 @@ export const WIDTH_OF_LANDING_AREA_B = 300;
 export const HEIGHT_OF_LANDING_AREA_B_1 = 3.5; // 北西
 export const HEIGHT_OF_LANDING_AREA_B_2 = 4.6; // 南東
 export const PITCH_OF_APPROACH_B = 1 / 50;
+
+/** 転移表面の勾配（公式 PITCH_OF_TRANSITIONAL_SURFACE） */
+export const PITCH_OF_TRANSITIONAL_SURFACE = 1 / 7;
+
+/** 円錐表面の勾配（公式 PITCH_OF_CONICAL_SURFACE） */
+export const PITCH_OF_CONICAL_SURFACE = 1 / 50;
+
+/**
+ * 円錐・外側水平の切り欠き（公式 circleSurface cd01〜cd05）
+ * 円錐: center=cd01, right=cd03, left=cd02
+ * 外側水平: center=cd01, right=cd04, left=cd05
+ */
+export const interceptPoints = {
+  cd01: { lat: 38.17027778, lng: 140.84777778 },
+  cd02: { lat: 38.04027778, lng: 140.77694444 },
+  cd03: { lat: 38.22583333, lng: 141.07083333 },
+  cd04: { lat: 38.24694444, lng: 141.15555556 },
+  cd05: { lat: 37.97416667, lng: 140.74083333 },
+} as const satisfies Record<string, Coord>;
+
+/** 公式 destinationPoint（地球半径 6371 km） */
+function destinationPoint(from: Coord, headingDeg: number, distKm: number): Coord | null {
+  const dist = distKm / 6371;
+  const brng = (headingDeg * Math.PI) / 180;
+  const lat1 = (from.lat * Math.PI) / 180;
+  const lon1 = (from.lng * Math.PI) / 180;
+  const lat2 = Math.asin(
+    Math.sin(lat1) * Math.cos(dist) +
+      Math.cos(lat1) * Math.sin(dist) * Math.cos(brng)
+  );
+  const lon2 =
+    lon1 +
+    Math.atan2(
+      Math.sin(brng) * Math.sin(dist) * Math.cos(lat1),
+      Math.cos(dist) - Math.sin(lat1) * Math.sin(lat2)
+    );
+  if (Number.isNaN(lat2) || Number.isNaN(lon2)) return null;
+  return { lat: (lat2 * 180) / Math.PI, lng: (lon2 * 180) / Math.PI };
+}
+
+/**
+ * 公式 GetCirclePaths。5°刻み。
+ * 弧点は lat < right.lat かつ lng > left.lng のときだけ積む。
+ */
+function getCirclePaths(
+  arp: Coord,
+  radiusM: number,
+  interceptCenter: Coord,
+  interceptRight: Coord,
+  interceptLeft: Coord
+): Coord[] {
+  const paths: Coord[] = [interceptCenter, interceptRight];
+  const distKm = radiusM / 1000;
+  for (let i = 0; i < 360; i += 5) {
+    const point = destinationPoint(arp, i, distKm);
+    if (!point) continue;
+    if (point.lat < interceptRight.lat && point.lng > interceptLeft.lng) {
+      paths.push(point);
+    }
+  }
+  paths.push(interceptLeft);
+  return paths;
+}
+
+/** 円錐表面の切り欠きポリゴン（半径 16500 m） */
+export const conicalCutPath: Coord[] = getCirclePaths(
+  SENDAI_REFERENCE_POINT,
+  RADIUS_OF_CONICAL_SURFACE,
+  interceptPoints.cd01,
+  interceptPoints.cd03,
+  interceptPoints.cd02
+);
+
+/** 外側水平表面の切り欠きポリゴン（半径 24000 m） */
+export const outerCutPath: Coord[] = getCirclePaths(
+  SENDAI_REFERENCE_POINT,
+  RADIUS_OF_OUTER_HORIZONTAL_SURFACE,
+  interceptPoints.cd01,
+  interceptPoints.cd04,
+  interceptPoints.cd05
+);

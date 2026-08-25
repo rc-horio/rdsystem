@@ -53,10 +53,10 @@ import {
 import {
   runwayA as sendaiA,
   runwayB as sendaiB,
+  conicalCutPath as sendaiConicalCut,
+  outerCutPath as sendaiOuterCut,
   SENDAI_REFERENCE_POINT,
   RADIUS_OF_HORIZONTAL_SURFACE as SENDAI_HORIZ,
-  RADIUS_OF_CONICAL_SURFACE as SENDAI_CONICAL,
-  RADIUS_OF_OUTER_HORIZONTAL_SURFACE as SENDAI_OUTER,
 } from "../data/sendai";
 import {
   runwayA as shinchitoseA,
@@ -362,12 +362,12 @@ const SPECS: AirportOverlaySpec[] = [
     ],
   },
   {
-    ...fullRings(
-      SENDAI_REFERENCE_POINT,
-      SENDAI_HORIZ,
-      SENDAI_CONICAL,
-      SENDAI_OUTER
-    ),
+    horizontalCircle: {
+      center: SENDAI_REFERENCE_POINT,
+      radius: SENDAI_HORIZ,
+    },
+    conicalPolygon: sendaiConicalCut,
+    outerPolygon: sendaiOuterCut,
     quads: [
       ...sendaiRunwayShapes(sendaiA, false),
       ...sendaiRunwayShapes(sendaiB, true),
