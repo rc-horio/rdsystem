@@ -80,10 +80,10 @@ import {
 } from "../data/niigata";
 import {
   surfacePoints as kumamotoPts,
+  conicalCutPath as kumamotoConicalCut,
+  outerCutPath as kumamotoOuterCut,
   KUMAMOTO_REFERENCE_POINT,
   RADIUS_OF_HORIZONTAL_SURFACE as KUMAMOTO_HORIZ,
-  RADIUS_OF_CONICAL_SURFACE as KUMAMOTO_CONICAL,
-  RADIUS_OF_OUTER_HORIZONTAL_SURFACE as KUMAMOTO_OUTER,
 } from "../data/kumamoto";
 import {
   mp as nagasakiMp,
@@ -412,12 +412,12 @@ const SPECS: AirportOverlaySpec[] = [
     ],
   },
   {
-    ...fullRings(
-      KUMAMOTO_REFERENCE_POINT,
-      KUMAMOTO_HORIZ,
-      KUMAMOTO_CONICAL,
-      KUMAMOTO_OUTER
-    ),
+    horizontalCircle: {
+      center: KUMAMOTO_REFERENCE_POINT,
+      radius: KUMAMOTO_HORIZ,
+    },
+    conicalPolygon: kumamotoConicalCut,
+    outerPolygon: kumamotoOuterCut,
     quads: kansaiLikeShapes(kumamotoPts),
   },
   {

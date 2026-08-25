@@ -292,17 +292,21 @@ import {
 } from "./data/nagasaki";
 import {
   surfacePoints as kmPoints,
+  conicalCutPath as kumamotoConicalCutPath,
+  outerCutPath as kumamotoOuterCutPath,
   KUMAMOTO_REFERENCE_POINT,
   HEIGHT_OF_AIRPORT_REFERENCE_POINT as KUMAMOTO_REF_HEIGHT,
   RADIUS_OF_HORIZONTAL_SURFACE as KUMAMOTO_HORIZ_RADIUS,
   HEIGHT_OF_HORIZONTAL_SURFACE as KUMAMOTO_HORIZ_HEIGHT,
-  RADIUS_OF_CONICAL_SURFACE as KUMAMOTO_CONICAL_RADIUS,
   RADIUS_OF_OUTER_HORIZONTAL_SURFACE as KUMAMOTO_OUTER_RADIUS,
   HEIGHT_OF_OUTER_HORIZONTAL_SURFACE as KUMAMOTO_OUTER_HEIGHT,
   LENGTH_OF_LANDING_AREA as KUMAMOTO_LENGTH,
   WIDTH_OF_LANDING_AREA as KUMAMOTO_WIDTH,
   HEIGHT_OF_LANDING_AREA_1 as KUMAMOTO_HEIGHT_1,
   HEIGHT_OF_LANDING_AREA_2 as KUMAMOTO_HEIGHT_2,
+  PITCH_OF_APPROACH_SURFACE as KUMAMOTO_PITCH,
+  PITCH_OF_TRANSITIONAL_SURFACE as KUMAMOTO_PITCH_TRANS,
+  PITCH_OF_CONICAL_SURFACE as KUMAMOTO_PITCH_CONICAL,
 } from "./data/kumamoto";
 
 /** 表面タイプ文字列から SurfaceType へのマッピング */
@@ -5125,238 +5129,205 @@ export function calculateNagasakiRestriction(
   }
 }
 
-/** 熊本: 円錐表面の高さ計算 */
-function mathEnsuiKumamoto(kyori: number): number {
-  return (
-    KUMAMOTO_REF_HEIGHT +
-    (kyori - KUMAMOTO_HORIZ_RADIUS) * (1 / 50) +
-    KUMAMOTO_HORIZ_HEIGHT
-  );
-}
-
-/** 熊本: 水平表面ゾーン（半径4000m以内） */
-function calcKumamotoHorizontalSurface(
+function isKumamotoPointInPolygon(
   g: typeof google.maps,
-  latLng: google.maps.LatLng
-): { surfaceType: SurfaceType; heightM: number } | null {
-  const p = kmPoints;
-  const height: HeightEntry[] = [];
-  let hSuiheiStr = "水平表面";
-  const horizHeight = KUMAMOTO_REF_HEIGHT + KUMAMOTO_HORIZ_HEIGHT;
-
-  const chk = (p1: Coord, p2: Coord, p3: Coord) => chkInclusion(p1, p2, p3, latLng);
-
-  if (chk(p.cd12, p.cd14, p.cd20) || chk(p.cd14, p.cd20, p.cd18)) {
-    height.push({ val: 0, str: "着陸帯" });
-  }
-  if (chk(p.cd12, p.cd04, p.cd06) || chk(p.cd12, p.cd06, p.cd14)) {
-    height.push({
-      val: mathSinnyu(g, p.cd13, p.cd05, latLng, KUMAMOTO_HEIGHT_1),
-      str: "進入表面",
-    });
-    hSuiheiStr = "進入表面";
-  }
-  if (chk(p.cd18, p.cd20, p.cd28) || chk(p.cd18, p.cd28, p.cd26)) {
-    height.push({
-      val: mathSinnyu(g, p.cd19, p.cd27, latLng, KUMAMOTO_HEIGHT_2),
-      str: "進入表面",
-    });
-    hSuiheiStr = "進入表面";
-  }
-  if (chk(p.cd04, p.cd06, p.cd03) || chk(p.cd04, p.cd03, p.cd01)) {
-    height.push({
-      val: mathSinnyu(g, p.cd13, p.cd02, latLng, KUMAMOTO_HEIGHT_1),
-      str: "延長進入表面",
-    });
-    hSuiheiStr = "延長進入表面";
-  }
-  if (chk(p.cd26, p.cd28, p.cd31) || chk(p.cd26, p.cd31, p.cd29)) {
-    height.push({
-      val: mathSinnyu(g, p.cd19, p.cd30, latLng, KUMAMOTO_HEIGHT_2),
-      str: "延長進入表面",
-    });
-    hSuiheiStr = "延長進入表面";
-  }
-  if (chk(p.cd11, p.cd12, p.cd18) || chk(p.cd12, p.cd18, p.cd17)) {
-    height.push({
-      val: mathTennia(
-        g,
-        p.cd13,
-        p.cd19,
-        KUMAMOTO_HEIGHT_1,
-        KUMAMOTO_HEIGHT_2,
-        latLng,
-        KUMAMOTO_LENGTH,
-        KUMAMOTO_WIDTH
-      ),
-      str: "転移表面",
-    });
-    hSuiheiStr = "転移表面";
-  }
-  if (chk(p.cd14, p.cd15, p.cd21) || chk(p.cd15, p.cd21, p.cd20)) {
-    height.push({
-      val: mathTennia(
-        g,
-        p.cd13,
-        p.cd19,
-        KUMAMOTO_HEIGHT_1,
-        KUMAMOTO_HEIGHT_2,
-        latLng,
-        KUMAMOTO_LENGTH,
-        KUMAMOTO_WIDTH
-      ),
-      str: "転移表面",
-    });
-    hSuiheiStr = "転移表面";
-  }
-  if (chk(p.cd07, p.cd12, p.cd11)) {
-    const hm0 = mathSinnyu(g, p.cd13, p.cd05, latLng, KUMAMOTO_HEIGHT_1);
-    height.push({
-      val: mathTennib(g, p.cd13, p.cd05, p.cd12, p.cd04, latLng, hm0),
-      str: "転移表面",
-    });
-    hSuiheiStr = "転移表面";
-  }
-  if (chk(p.cd08, p.cd15, p.cd14)) {
-    const hm0 = mathSinnyu(g, p.cd13, p.cd05, latLng, KUMAMOTO_HEIGHT_1);
-    height.push({
-      val: mathTennib(g, p.cd13, p.cd05, p.cd14, p.cd06, latLng, hm0),
-      str: "転移表面",
-    });
-    hSuiheiStr = "転移表面";
-  }
-  if (chk(p.cd17, p.cd18, p.cd24)) {
-    const hm0 = mathSinnyu(g, p.cd19, p.cd27, latLng, KUMAMOTO_HEIGHT_2);
-    height.push({
-      val: mathTennib(g, p.cd19, p.cd27, p.cd18, p.cd26, latLng, hm0),
-      str: "転移表面",
-    });
-    hSuiheiStr = "転移表面";
-  }
-  if (chk(p.cd20, p.cd21, p.cd25)) {
-    const hm0 = mathSinnyu(g, p.cd19, p.cd27, latLng, KUMAMOTO_HEIGHT_2);
-    height.push({
-      val: mathTennib(g, p.cd19, p.cd27, p.cd20, p.cd28, latLng, hm0),
-      str: "転移表面",
-    });
-    hSuiheiStr = "転移表面";
-  }
-
-  height.push({ val: horizHeight, str: hSuiheiStr });
-  height.sort((a, b) => a.val - b.val);
-  const d = height[0];
-  let reStr = d.str;
-  if (
-    chk(p.cd04, p.cd06, p.cd03) ||
-    chk(p.cd04, p.cd03, p.cd01) ||
-    chk(p.cd26, p.cd28, p.cd31) ||
-    chk(p.cd26, p.cd31, p.cd29)
-  ) {
-    reStr = "延長進入表面";
-  } else if (
-    chk(p.cd12, p.cd04, p.cd06) ||
-    chk(p.cd12, p.cd06, p.cd14) ||
-    chk(p.cd18, p.cd20, p.cd28) ||
-    chk(p.cd18, p.cd28, p.cd26)
-  ) {
-    reStr = "進入表面";
-  }
-  if (chk(p.cd12, p.cd14, p.cd20) || chk(p.cd14, p.cd20, p.cd18)) {
-    reStr = "着陸帯";
-  }
-
-  const st = STR_TO_SURFACE[reStr];
-  return st ? { surfaceType: st, heightM: d.val } : null;
-}
-
-/** 熊本: 円錐表面ゾーン（4000m超〜16500m） */
-function calcKumamotoConicalSurface(
-  g: typeof google.maps,
-  latLng: google.maps.LatLng,
-  kyori: number
-): { surfaceType: SurfaceType; heightM: number } | null {
-  const p = kmPoints;
-  const height: HeightEntry[] = [];
-  const hEnsui = mathEnsuiKumamoto(kyori);
-  height.push({ val: hEnsui, str: "円錐表面" });
-
-  const chk = (p1: Coord, p2: Coord, p3: Coord) => chkInclusion(p1, p2, p3, latLng);
-
-  if (chk(p.cd04, p.cd06, p.cd03) || chk(p.cd04, p.cd03, p.cd01)) {
-    height.push({
-      val: mathSinnyu(g, p.cd13, p.cd02, latLng, KUMAMOTO_HEIGHT_1),
-      str: "延長進入表面",
-    });
-  }
-  if (chk(p.cd26, p.cd28, p.cd31) || chk(p.cd26, p.cd31, p.cd29)) {
-    height.push({
-      val: mathSinnyu(g, p.cd19, p.cd30, latLng, KUMAMOTO_HEIGHT_2),
-      str: "延長進入表面",
-    });
-  }
-
-  height.sort((a, b) => a.val - b.val);
-  const d = height[0];
-  let reStr = d.str;
-  if (
-    chk(p.cd04, p.cd06, p.cd03) ||
-    chk(p.cd04, p.cd03, p.cd01) ||
-    chk(p.cd26, p.cd28, p.cd31) ||
-    chk(p.cd26, p.cd31, p.cd29)
-  ) {
-    reStr = "延長進入表面";
-  }
-
-  const st = STR_TO_SURFACE[reStr];
-  return st ? { surfaceType: st, heightM: d.val } : null;
-}
-
-/** 熊本: 外側水平表面ゾーン（16500m超〜24000m） */
-function calcKumamotoOuterHorizontalSurface(
-  g: typeof google.maps,
-  latLng: google.maps.LatLng
-): { surfaceType: SurfaceType; heightM: number } | null {
-  const p = kmPoints;
-  const height: HeightEntry[] = [
-    {
-      val: KUMAMOTO_REF_HEIGHT + KUMAMOTO_OUTER_HEIGHT,
-      str: "外側水平表面",
-    },
-  ];
-
-  const chk = (p1: Coord, p2: Coord, p3: Coord) => chkInclusion(p1, p2, p3, latLng);
-
-  if (chk(p.cd04, p.cd06, p.cd03) || chk(p.cd04, p.cd03, p.cd01)) {
-    height.push({
-      val: mathSinnyu(g, p.cd13, p.cd02, latLng, KUMAMOTO_HEIGHT_1),
-      str: "延長進入表面",
-    });
-  }
-  if (chk(p.cd26, p.cd28, p.cd31) || chk(p.cd26, p.cd31, p.cd29)) {
-    height.push({
-      val: mathSinnyu(g, p.cd19, p.cd30, latLng, KUMAMOTO_HEIGHT_2),
-      str: "延長進入表面",
-    });
-  }
-
-  height.sort((a, b) => a.val - b.val);
-  const d = height[0];
-  let reStr = d.str;
-  if (
-    chk(p.cd04, p.cd06, p.cd03) ||
-    chk(p.cd04, p.cd03, p.cd01) ||
-    chk(p.cd26, p.cd28, p.cd31) ||
-    chk(p.cd26, p.cd31, p.cd29)
-  ) {
-    reStr = "延長進入表面";
-  }
-
-  const st = STR_TO_SURFACE[reStr];
-  return st ? { surfaceType: st, heightM: d.val } : null;
+  lat: number,
+  lng: number,
+  path: { lat: number; lng: number }[]
+): boolean {
+  return isPointInPolygon(g, lat, lng, path);
 }
 
 /**
- * 熊本空港の高さ制限を計算する
+ * 熊本: 公式どおり進入・転移・延長は距離帯に関係なくポリゴン判定。
+ * ClickSurface の continue はコメントアウト済みのため、進入内でも水平、延長内でも円錐を残す。
+ * 円錐は切り欠き内かつ 4000m 超。外側水平は切り欠き内（inner_radius は見ない）。
+ * 円錐内なのに名称が外側水平になった場合は円錐に差し替える（公式 flg55）。
+ */
+function calcKumamotoSurfaces(
+  g: typeof google.maps,
+  latLng: google.maps.LatLng,
+  lat: number,
+  lng: number,
+  distance: number
+): { surfaceType: SurfaceType; heightM: number } | null {
+  const height: HeightEntry[] = [];
+  const inPoly = (path: { lat: number; lng: number }[]) =>
+    isKumamotoPointInPolygon(g, lat, lng, path);
+  const pitchT = KUMAMOTO_PITCH_TRANS;
+  const p = kmPoints;
+
+  const inLanding = inPoly([p.cd12, p.cd14, p.cd20, p.cd18]);
+  const inApproachW = inPoly([p.cd12, p.cd04, p.cd06, p.cd14]);
+  const inApproachE = inPoly([p.cd18, p.cd20, p.cd28, p.cd26]);
+  const inExtW = inPoly([p.cd04, p.cd06, p.cd03, p.cd01]);
+  const inExtE = inPoly([p.cd26, p.cd28, p.cd31, p.cd29]);
+
+  if (inLanding) {
+    height.push({ val: 0, str: "着陸帯" });
+  }
+  if (inApproachW) {
+    height.push({
+      val: hakodateApproachHeight(g, p.cd13, p.cd05, latLng, KUMAMOTO_HEIGHT_1, KUMAMOTO_PITCH),
+      str: "進入表面",
+    });
+  }
+  if (inApproachE) {
+    height.push({
+      val: hakodateApproachHeight(g, p.cd19, p.cd27, latLng, KUMAMOTO_HEIGHT_2, KUMAMOTO_PITCH),
+      str: "進入表面",
+    });
+  }
+  if (inExtW) {
+    height.push({
+      val: hakodateApproachHeight(g, p.cd13, p.cd02, latLng, KUMAMOTO_HEIGHT_1, KUMAMOTO_PITCH),
+      str: "延長進入表面",
+    });
+  }
+  if (inExtE) {
+    height.push({
+      val: hakodateApproachHeight(g, p.cd19, p.cd30, latLng, KUMAMOTO_HEIGHT_2, KUMAMOTO_PITCH),
+      str: "延長進入表面",
+    });
+  }
+  if (inPoly([p.cd11, p.cd12, p.cd18, p.cd17])) {
+    height.push({
+      val: hakodateTransQuadHeight(
+        g,
+        p.cd13,
+        p.cd19,
+        KUMAMOTO_HEIGHT_1,
+        KUMAMOTO_HEIGHT_2,
+        latLng,
+        KUMAMOTO_LENGTH,
+        KUMAMOTO_WIDTH,
+        pitchT
+      ),
+      str: "転移表面",
+    });
+  }
+  if (inPoly([p.cd14, p.cd15, p.cd21, p.cd20])) {
+    height.push({
+      val: hakodateTransQuadHeight(
+        g,
+        p.cd13,
+        p.cd19,
+        KUMAMOTO_HEIGHT_1,
+        KUMAMOTO_HEIGHT_2,
+        latLng,
+        KUMAMOTO_LENGTH,
+        KUMAMOTO_WIDTH,
+        pitchT
+      ),
+      str: "転移表面",
+    });
+  }
+  if (inPoly([p.cd07, p.cd12, p.cd11])) {
+    height.push({
+      val: hakodateTransTriHeight(
+        g,
+        p.cd13,
+        p.cd12,
+        p.cd05,
+        p.cd04,
+        latLng,
+        KUMAMOTO_HEIGHT_1,
+        KUMAMOTO_PITCH,
+        pitchT
+      ),
+      str: "転移表面",
+    });
+  }
+  if (inPoly([p.cd08, p.cd15, p.cd14])) {
+    height.push({
+      val: hakodateTransTriHeight(
+        g,
+        p.cd13,
+        p.cd14,
+        p.cd05,
+        p.cd06,
+        latLng,
+        KUMAMOTO_HEIGHT_1,
+        KUMAMOTO_PITCH,
+        pitchT
+      ),
+      str: "転移表面",
+    });
+  }
+  if (inPoly([p.cd17, p.cd18, p.cd24])) {
+    height.push({
+      val: hakodateTransTriHeight(
+        g,
+        p.cd19,
+        p.cd18,
+        p.cd27,
+        p.cd26,
+        latLng,
+        KUMAMOTO_HEIGHT_2,
+        KUMAMOTO_PITCH,
+        pitchT
+      ),
+      str: "転移表面",
+    });
+  }
+  if (inPoly([p.cd20, p.cd21, p.cd25])) {
+    height.push({
+      val: hakodateTransTriHeight(
+        g,
+        p.cd19,
+        p.cd20,
+        p.cd27,
+        p.cd28,
+        latLng,
+        KUMAMOTO_HEIGHT_2,
+        KUMAMOTO_PITCH,
+        pitchT
+      ),
+      str: "転移表面",
+    });
+  }
+
+  if (distance > 0 && distance <= KUMAMOTO_HORIZ_RADIUS) {
+    height.push({
+      val: KUMAMOTO_REF_HEIGHT + KUMAMOTO_HORIZ_HEIGHT,
+      str: "水平表面",
+    });
+  }
+
+  const inConical =
+    inPoly(kumamotoConicalCutPath) && distance > KUMAMOTO_HORIZ_RADIUS;
+  if (inConical) {
+    const addHeight = decimalsMultiplication(
+      decimalsSubstract(distance, KUMAMOTO_HORIZ_RADIUS),
+      KUMAMOTO_PITCH_CONICAL
+    );
+    height.push({
+      val: decimalsAddition(KUMAMOTO_REF_HEIGHT + KUMAMOTO_HORIZ_HEIGHT, addHeight),
+      str: "円錐表面",
+    });
+  }
+
+  if (inPoly(kumamotoOuterCutPath)) {
+    height.push({
+      val: KUMAMOTO_REF_HEIGHT + KUMAMOTO_OUTER_HEIGHT,
+      str: "外側水平表面",
+    });
+  }
+
+  if (height.length === 0) return null;
+
+  const picked = pickSendaiSurfaceName(height);
+  let name = picked.name;
+  if (inConical && name === "外側水平表面") {
+    name = "円錐表面";
+  }
+  const st = STR_TO_SURFACE[name];
+  return st ? { surfaceType: st, heightM: picked.heightM } : null;
+}
+
+/**
+ * 熊本空港の高さ制限を計算する。
+ * 公式 GetCirclePaths（CD16 中心、CDA〜CDG、CD101〜CD116）の切り欠きを使う。
  */
 export function calculateKumamotoRestriction(
   lat: number,
@@ -5368,23 +5339,11 @@ export function calculateKumamotoRestriction(
       return { items: [], error: true };
     }
     const g = gmaps;
-    const ref = new g.LatLng(
-      KUMAMOTO_REFERENCE_POINT.lat,
-      KUMAMOTO_REFERENCE_POINT.lng
-    );
+    const ref = new g.LatLng(KUMAMOTO_REFERENCE_POINT.lat, KUMAMOTO_REFERENCE_POINT.lng);
     const point = new g.LatLng(lat, lng);
     const distance = g.geometry.spherical.computeDistanceBetween(ref, point);
 
-    let result: { surfaceType: SurfaceType; heightM: number } | null = null;
-
-    if (distance <= KUMAMOTO_HORIZ_RADIUS) {
-      result = calcKumamotoHorizontalSurface(g, point);
-    } else if (distance <= KUMAMOTO_CONICAL_RADIUS) {
-      result = calcKumamotoConicalSurface(g, point, distance);
-    } else if (distance <= KUMAMOTO_OUTER_RADIUS) {
-      result = calcKumamotoOuterHorizontalSurface(g, point);
-    }
-
+    const result = calcKumamotoSurfaces(g, point, lat, lng, distance);
     if (!result) {
       return { items: [] };
     }
@@ -5556,7 +5515,8 @@ export function calculateAirportRestriction(
     if (nagasaki.error || nagasaki.items.length > 0) return nagasaki;
   }
   if (distToKumamoto <= KUMAMOTO_OUTER_RADIUS) {
-    return calculateKumamotoRestriction(lat, lng, gmaps);
+    const kumamoto = calculateKumamotoRestriction(lat, lng, gmaps);
+    if (kumamoto.error || kumamoto.items.length > 0) return kumamoto;
   }
   if (distToNaha <= NAHA_OUTER_RADIUS) {
     return calculateNahaRestriction(lat, lng, gmaps);
