@@ -75,6 +75,10 @@ export type AirportOverlaySpec = {
     outerRadius: number;
   };
   quads: readonly OverlayCoord[][];
+  /** 未指定なら QUAD_STYLE */
+  quadStyle?: google.maps.PolygonOptions;
+  /** 未指定なら HORIZONTAL_STYLE */
+  horizontalStyle?: google.maps.CircleOptions;
 };
 
 export function makePolygon(
@@ -148,7 +152,7 @@ export function createOverlaysFromSpec(
   if (spec.horizontalCircle) {
     overlays.push(
       new gmaps.Circle({
-        ...HORIZONTAL_STYLE,
+        ...(spec.horizontalStyle ?? HORIZONTAL_STYLE),
         center: spec.horizontalCircle.center,
         radius: spec.horizontalCircle.radius,
       })
@@ -201,8 +205,9 @@ export function createOverlaysFromSpec(
           )
     );
   }
+  const quadStyle = spec.quadStyle ?? QUAD_STYLE;
   for (const path of spec.quads) {
-    overlays.push(makePolygon(gmaps, path, QUAD_STYLE));
+    overlays.push(makePolygon(gmaps, path, quadStyle));
   }
   return overlays;
 }

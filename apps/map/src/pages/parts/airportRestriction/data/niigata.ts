@@ -3,8 +3,8 @@
  * データソース: 新潟空港高さ制限回答システム constants.js / map.bundle.js
  * https://secure.kix-ap.ne.jp/niigata-airport/
  *
- * 新潟空港は水平表面のみ（半径3500m）。円錐表面・外側水平表面はなし。
- * A/B 2本の滑走路。
+ * 新潟空港は円錐表面・外側水平表面なし。水平表面は半径3500m。A/B 2本の滑走路。
+ * 進入・転移は水平円の外側まで伸びる。
  */
 
 /** 座標型 */
@@ -85,9 +85,12 @@ export const NIIGATA_REFERENCE_POINT: Coord = {
 /** 標点の海抜高（m） */
 export const HEIGHT_OF_AIRPORT_REFERENCE_POINT = 1.4;
 
-/** 水平表面: 半径(m), 制限高(m) ※新潟は水平表面のみ */
+/** 水平表面: 半径(m), 制限高(m) ※円錐・外側水平はなし。進入・転移は円の外まで伸びる */
 export const RADIUS_OF_HORIZONTAL_SURFACE = 3500;
 export const HEIGHT_OF_HORIZONTAL_SURFACE = 45;
+
+/** 進入先端は水平円（3500m）より外側。照会はこの半径まで新潟を候補にする */
+export const NIIGATA_SURFACE_EXTENT_M = 5500;
 
 /** A滑走路: 着陸帯 長(m), 幅(m), 高さ(m) RWY22/RWY04, 進入勾配 1/30 */
 export const LENGTH_OF_LANDING_AREA_A = 1434;

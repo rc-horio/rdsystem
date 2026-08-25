@@ -3,7 +3,8 @@
  * データソース: 八尾空港高さ制限回答システム constants.js / map.bundle.js
  * https://secure.kix-ap.ne.jp/yao-airport/
  *
- * 八尾空港は水平表面のみ（半径2000m）。円錐表面・外側水平表面はなし。
+ * 八尾空港は円錐表面・外側水平表面なし。水平表面は半径2000m。
+ * 進入・転移は水平円の外側まで伸びる。
  */
 
 /** 座標型 */
@@ -84,9 +85,12 @@ export const YAO_REFERENCE_POINT: Coord = {
 /** 標点の海抜高（m） */
 export const HEIGHT_OF_AIRPORT_REFERENCE_POINT = 10.0;
 
-/** 水平表面: 半径(m), 制限高(m) ※八尾は水平表面のみ */
+/** 水平表面: 半径(m), 制限高(m) ※円錐・外側水平はなし。進入・転移は円の外まで伸びる */
 export const RADIUS_OF_HORIZONTAL_SURFACE = 2000;
 export const HEIGHT_OF_HORIZONTAL_SURFACE = 45;
+
+/** 進入先端は水平円（2000m）より外側。照会はこの半径まで八尾を候補にする */
+export const YAO_SURFACE_EXTENT_M = 5000;
 
 /** A滑走路: 着陸帯 長(m), 幅(m), 高さ(m) 北/南, 進入勾配 */
 export const LENGTH_OF_LANDING_AREA_A = 1610;

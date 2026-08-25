@@ -126,6 +126,34 @@ import {
   type RestrictionOverlay,
 } from "./factory";
 
+/** 新千歳公式: A滑走路 #0000FF / B滑走路 #FF0000 / 水平 #00FF00 */
+const SHINCHITOSE_QUAD_BASE: google.maps.PolygonOptions = {
+  strokeOpacity: 0.7,
+  strokeWeight: 0.5,
+  fillOpacity: 0.1,
+  zIndex: 50,
+  clickable: false,
+};
+const SHINCHITOSE_RUNWAY_A_STYLE: google.maps.PolygonOptions = {
+  ...SHINCHITOSE_QUAD_BASE,
+  strokeColor: "#0000FF",
+  fillColor: "#0000FF",
+};
+const SHINCHITOSE_RUNWAY_B_STYLE: google.maps.PolygonOptions = {
+  ...SHINCHITOSE_QUAD_BASE,
+  strokeColor: "#FF0000",
+  fillColor: "#FF0000",
+};
+const SHINCHITOSE_HORIZONTAL_STYLE: google.maps.CircleOptions = {
+  strokeColor: "#00FF00",
+  strokeOpacity: 0.7,
+  strokeWeight: 0.5,
+  fillColor: "#00FF00",
+  fillOpacity: 0.05,
+  zIndex: 100,
+  clickable: false,
+};
+
 type KansaiLike = {
   cd04: OverlayCoord;
   cd06: OverlayCoord;
@@ -350,10 +378,13 @@ const SPECS: AirportOverlaySpec[] = [
       center: SHINCHITOSE_REFERENCE_POINT,
       radius: SHINCHITOSE_HORIZ,
     },
-    quads: [
-      ...kansaiLikeShapes(shinchitoseA, { ext1: false, ext2: false }),
-      ...kansaiLikeShapes(shinchitoseB, { ext1: false, ext2: false }),
-    ],
+    horizontalStyle: SHINCHITOSE_HORIZONTAL_STYLE,
+    quads: kansaiLikeShapes(shinchitoseA, { ext1: false, ext2: false }),
+    quadStyle: SHINCHITOSE_RUNWAY_A_STYLE,
+  },
+  {
+    quads: kansaiLikeShapes(shinchitoseB, { ext1: false, ext2: false }),
+    quadStyle: SHINCHITOSE_RUNWAY_B_STYLE,
   },
   {
     ...fullRings(

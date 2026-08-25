@@ -3,7 +3,8 @@
  * データソース: 新千歳空港高さ制限回答システム constants.js / map.bundle.js
  * https://secure.kix-ap.ne.jp/shinchitose-airport/
  *
- * 新千歳空港は水平表面のみ（半径4000m）。円錐表面・外側水平表面はなし。
+ * 新千歳空港は円錐表面・外側水平表面なし。水平表面は半径4000m。
+ * 進入・転移は水平円の外側まで伸びる（公式 map.bundle.js と同じ）。
  */
 
 /** 座標型 */
@@ -84,9 +85,18 @@ export const SHINCHITOSE_REFERENCE_POINT: Coord = {
 /** 標点の海抜高（m） */
 export const HEIGHT_OF_AIRPORT_REFERENCE_POINT = 21.3;
 
-/** 水平表面: 半径(m), 制限高(m) ※新千歳は水平表面のみ */
+/** 水平表面: 半径(m), 制限高(m) ※円錐・外側水平はなし。進入・転移は円の外まで伸びる */
 export const RADIUS_OF_HORIZONTAL_SURFACE = 4000;
 export const HEIGHT_OF_HORIZONTAL_SURFACE = 45;
+
+/** 転移表面の勾配（公式 PITCH_OF_TRANSITIONAL_SURFACE） */
+export const PITCH_OF_TRANSITIONAL_SURFACE = 1 / 7;
+
+/**
+ * 進入先端は水平円（4000m）より外側。照会はこの半径まで新千歳を候補にする。
+ * A滑走路 CD04/CD06 は標点から約 4600m。
+ */
+export const SHINCHITOSE_SURFACE_EXTENT_M = 5200;
 
 /** A滑走路: 着陸帯 長(m), 幅(m), 高さ(m) 北/南, 進入勾配 1/50 */
 export const LENGTH_OF_LANDING_AREA_A = 3120;

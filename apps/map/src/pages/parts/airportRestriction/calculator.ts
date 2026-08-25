@@ -143,6 +143,7 @@ import {
   HEIGHT_OF_AIRPORT_REFERENCE_POINT as YAO_REF_HEIGHT,
   RADIUS_OF_HORIZONTAL_SURFACE as YAO_HORIZ_RADIUS,
   HEIGHT_OF_HORIZONTAL_SURFACE as YAO_HORIZ_HEIGHT,
+  YAO_SURFACE_EXTENT_M,
   LENGTH_OF_LANDING_AREA_A as YAO_LENGTH_A,
   WIDTH_OF_LANDING_AREA_A as YAO_WIDTH_A,
   HEIGHT_OF_LANDING_AREA_A_1 as YAO_HEIGHT_A_1,
@@ -166,6 +167,8 @@ import {
   HEIGHT_OF_LANDING_AREA_A_1 as SHINCHITOSE_HEIGHT_A_1,
   HEIGHT_OF_LANDING_AREA_A_2 as SHINCHITOSE_HEIGHT_A_2,
   PITCH_OF_APPROACH_A as SHINCHITOSE_PITCH_A,
+  PITCH_OF_TRANSITIONAL_SURFACE as SHINCHITOSE_PITCH_TRANS,
+  SHINCHITOSE_SURFACE_EXTENT_M,
   LENGTH_OF_LANDING_AREA_B as SHINCHITOSE_LENGTH_B,
   WIDTH_OF_LANDING_AREA_B as SHINCHITOSE_WIDTH_B,
   HEIGHT_OF_LANDING_AREA_B_1 as SHINCHITOSE_HEIGHT_B_1,
@@ -231,6 +234,7 @@ import {
   HEIGHT_OF_AIRPORT_REFERENCE_POINT as NIIGATA_REF_HEIGHT,
   RADIUS_OF_HORIZONTAL_SURFACE as NIIGATA_HORIZ_RADIUS,
   HEIGHT_OF_HORIZONTAL_SURFACE as NIIGATA_HORIZ_HEIGHT,
+  NIIGATA_SURFACE_EXTENT_M,
   LENGTH_OF_LANDING_AREA_A as NIIGATA_LENGTH_A,
   WIDTH_OF_LANDING_AREA_A as NIIGATA_WIDTH_A,
   HEIGHT_OF_LANDING_AREA_A_1 as NIIGATA_HEIGHT_A_1,
@@ -421,6 +425,162 @@ function mathTennib(
   const dmP = new g.LatLng(yc, xc);
   const dm = g.geometry!.spherical.computeDistanceBetween(cp, dmP);
   return hm + dm * (1 / 7);
+}
+
+/**
+ * 公式高さ回答システム util.js の小数演算。
+ * 進入・転移の制限高を公式 map.bundle.js と同じ式で出すために使う。
+ */
+function kixDecimalsScale(a: number, b: number): number {
+  const d1 = (a.toString().split(".")[1] ?? "").length;
+  const d2 = (b.toString().split(".")[1] ?? "").length;
+  return Math.max(d1, d2);
+}
+
+function decimalsAddition(a: number, b: number): number {
+  const n = kixDecimalsScale(a, b);
+  const p = Math.pow(10, n);
+  return (a * p + b * p) / p;
+}
+
+function decimalsSubstract(a: number, b: number): number {
+  const n = kixDecimalsScale(a, b);
+  const p = Math.pow(10, n);
+  return (a * p - b * p) / p;
+}
+
+function decimalsMultiplication(a: number, b: number): number {
+  const d1 = (a.toString().split(".")[1] ?? "").length;
+  const d2 = (b.toString().split(".")[1] ?? "").length;
+  const divisor = Math.pow(10, d1 + d2);
+  return ((a * Math.pow(10, d1)) * (b * Math.pow(10, d2))) / divisor;
+}
+
+function decimalsDivision(a: number, b: number): number {
+  const n = kixDecimalsScale(a, b);
+  const p = Math.pow(10, n);
+  return (a * p) / (b * p);
+}
+
+/** 公式 ApproachSurface.getLimitHeightOfApproachSurface */
+function kixApproachHeight(
+  g: typeof google.maps,
+  landingCenter: Coord,
+  approachCenter: Coord,
+  clickP: google.maps.LatLng,
+  runwayHeight: number,
+  pitch: number
+): number {
+  const landing = new g.LatLng(landingCenter.lat, landingCenter.lng);
+  const approach = new g.LatLng(approachCenter.lat, approachCenter.lng);
+  const heading1 = g.geometry!.spherical.computeHeading(landing, approach);
+  const heading2 = g.geometry!.spherical.computeHeading(landing, clickP);
+  const degree = Math.abs(decimalsSubstract(heading1, heading2));
+  const radian = decimalsMultiplication(degree, decimalsDivision(Math.PI, 180));
+  const hypotenuse = g.geometry!.spherical.computeDistanceBetween(landing, clickP);
+  const adjacent = decimalsMultiplication(hypotenuse, Math.abs(Math.cos(radian)));
+  const addHeight = decimalsMultiplication(adjacent, pitch);
+  return decimalsAddition(runwayHeight, addHeight);
+}
+
+/**
+ * 公式 TransitionalSurface.getLimitHeightOfQuadrangleArea
+ * origin は着陸帯の南側中心（center2 / 低い方）。
+ */
+function kixTransQuadHeight(
+  g: typeof google.maps,
+  centerNorth: Coord,
+  centerSouth: Coord,
+  heightNorth: number,
+  heightSouth: number,
+  clickP: google.maps.LatLng,
+  landingLength: number,
+  landingWidth: number,
+  pitch: number
+): number {
+  const north = new g.LatLng(centerNorth.lat, centerNorth.lng);
+  const south = new g.LatLng(centerSouth.lat, centerSouth.lng);
+  let heading1 = g.geometry!.spherical.computeHeading(south, north);
+  if (heading1 < 0) heading1 += 180;
+  let heading2 = g.geometry!.spherical.computeHeading(south, clickP);
+  if (heading2 < 0) heading2 += 180;
+  const degree = Math.abs(decimalsSubstract(heading1, heading2));
+  const radian = decimalsMultiplication(degree, decimalsDivision(Math.PI, 180));
+  const hypotenuse = g.geometry!.spherical.computeDistanceBetween(south, clickP);
+  const opposite = decimalsMultiplication(hypotenuse, Math.abs(Math.sin(radian)));
+  const adjacent = decimalsMultiplication(hypotenuse, Math.abs(Math.cos(radian)));
+  const diffHeight = heightNorth - heightSouth;
+  const ratio = decimalsDivision(adjacent, landingLength);
+  const addHeight = decimalsMultiplication(diffHeight, ratio);
+  const edgeHeight = decimalsAddition(heightSouth, addHeight);
+  const fromEdge = decimalsSubstract(opposite, decimalsDivision(landingWidth, 2));
+  const addFromEdge = decimalsMultiplication(fromEdge, pitch);
+  return decimalsAddition(edgeHeight, addFromEdge);
+}
+
+/** 公式 TransitionalSurface.getLimitHeightOfTriangleArea */
+function kixTransTriHeight(
+  g: typeof google.maps,
+  landingCenter: Coord,
+  landingVertex: Coord,
+  approachCenter: Coord,
+  approachVertex: Coord,
+  clickP: google.maps.LatLng,
+  approachAreaHeight: number,
+  pitchApproach: number,
+  pitchTransition: number
+): number {
+  const approachEdgeHeight = kixApproachHeight(
+    g,
+    landingCenter,
+    approachCenter,
+    clickP,
+    approachAreaHeight,
+    pitchApproach
+  );
+  const landingAreaCenter = {
+    x: Number(landingCenter.lng.toFixed(8)),
+    y: Number(landingCenter.lat.toFixed(8)),
+  };
+  const landingAreaVertex = {
+    x: Number(landingVertex.lng.toFixed(8)),
+    y: Number(landingVertex.lat.toFixed(8)),
+  };
+  const approachSurfaceVertex = {
+    x: Number(approachVertex.lng.toFixed(8)),
+    y: Number(approachVertex.lat.toFixed(8)),
+  };
+  const clickPoint = {
+    x: Number(clickP.lng().toFixed(8)),
+    y: Number(clickP.lat().toFixed(8)),
+  };
+  const parallelSlope = decimalsDivision(
+    decimalsSubstract(landingAreaCenter.y, landingAreaVertex.y),
+    decimalsSubstract(landingAreaCenter.x, landingAreaVertex.x)
+  );
+  const parallelIntercept = decimalsAddition(
+    decimalsMultiplication(decimalsMultiplication(parallelSlope, clickPoint.x), -1),
+    clickPoint.y
+  );
+  const approachSlope = decimalsDivision(
+    decimalsSubstract(approachSurfaceVertex.y, landingAreaVertex.y),
+    decimalsSubstract(approachSurfaceVertex.x, landingAreaVertex.x)
+  );
+  const approachIntercept = decimalsAddition(
+    decimalsMultiplication(decimalsMultiplication(approachSlope, landingAreaVertex.x), -1),
+    landingAreaVertex.y
+  );
+  const crossX = decimalsDivision(
+    decimalsSubstract(approachIntercept, parallelIntercept),
+    decimalsSubstract(parallelSlope, approachSlope)
+  );
+  const crossY = decimalsAddition(decimalsMultiplication(parallelSlope, crossX), parallelIntercept);
+  const distanceFromApproachEdge = g.geometry!.spherical.computeDistanceBetween(
+    clickP,
+    new g.LatLng(crossY, crossX)
+  );
+  const addFromEdge = decimalsMultiplication(distanceFromApproachEdge, pitchTransition);
+  return decimalsAddition(approachEdgeHeight, addFromEdge);
 }
 
 /** 転移表面の計算(b)（math_tennib_hei）着陸帯端 pA,pB を考慮 */
@@ -2391,12 +2551,13 @@ function isYaoPointInPolygon(
   return isPointInPolygon(g, lat, lng, path);
 }
 
-/** 八尾: 水平表面ゾーン（半径2000m以内）※八尾は水平表面のみ */
+/** 八尾: 進入・転移は水平円の外側でも判定する */
 function calcYaoHorizontalSurface(
   g: typeof google.maps,
   latLng: google.maps.LatLng,
   lat: number,
-  lng: number
+  lng: number,
+  includeHorizontal: boolean
 ): { surfaceType: SurfaceType; heightM: number } | null {
   const height: HeightEntry[] = [];
   let hSuiheiStr = "水平表面";
@@ -2571,7 +2732,12 @@ function calcYaoHorizontalSurface(
     hSuiheiStr = "転移表面";
   }
 
-  height.push({ val: horizHeight, str: hSuiheiStr });
+  if (includeHorizontal) {
+    height.push({ val: horizHeight, str: hSuiheiStr });
+  }
+  if (height.length === 0) {
+    return null;
+  }
   height.sort((a, b) => a.val - b.val);
   const d = height[0];
   let reStr = d.str;
@@ -2612,11 +2778,13 @@ export function calculateYaoRestriction(
     const point = new g.LatLng(lat, lng);
     const distance = g.geometry.spherical.computeDistanceBetween(ref, point);
 
-    if (distance > YAO_HORIZ_RADIUS) {
-      return { items: [] };
-    }
-
-    const result = calcYaoHorizontalSurface(g, point, lat, lng);
+    const result = calcYaoHorizontalSurface(
+      g,
+      point,
+      lat,
+      lng,
+      distance <= YAO_HORIZ_RADIUS
+    );
     if (!result) {
       return { items: [] };
     }
@@ -2641,16 +2809,18 @@ function isShinchitosePointInPolygon(
   return isPointInPolygon(g, lat, lng, path);
 }
 
-/** 新千歳: 水平表面ゾーン（半径4000m以内）※新千歳は水平表面のみ */
+/** 新千歳: 公式 map.bundle.js と同じ進入・転移・水平の判定 */
 function calcShinchitoseHorizontalSurface(
   g: typeof google.maps,
   latLng: google.maps.LatLng,
   lat: number,
-  lng: number
+  lng: number,
+  includeHorizontal: boolean
 ): { surfaceType: SurfaceType; heightM: number } | null {
   const height: HeightEntry[] = [];
   let hSuiheiStr = "水平表面";
   const horizHeight = SHINCHITOSE_REF_HEIGHT + SHINCHITOSE_HORIZ_HEIGHT;
+  const pitchT = SHINCHITOSE_PITCH_TRANS;
 
   const inPoly = (path: { lat: number; lng: number }[]) =>
     isShinchitosePointInPolygon(g, lat, lng, path);
@@ -2661,21 +2831,21 @@ function calcShinchitoseHorizontalSurface(
   }
   if (inPoly([scA.cd12, scA.cd04, scA.cd06, scA.cd14])) {
     height.push({
-      val: mathSinnyuWithPitch(g, scA.cd13, scA.cd05, latLng, SHINCHITOSE_HEIGHT_A_1, SHINCHITOSE_PITCH_A),
+      val: kixApproachHeight(g, scA.cd13, scA.cd05, latLng, SHINCHITOSE_HEIGHT_A_1, SHINCHITOSE_PITCH_A),
       str: "進入表面",
     });
     hSuiheiStr = "進入表面";
   }
   if (inPoly([scA.cd18, scA.cd20, scA.cd28, scA.cd26])) {
     height.push({
-      val: mathSinnyuWithPitch(g, scA.cd19, scA.cd27, latLng, SHINCHITOSE_HEIGHT_A_2, SHINCHITOSE_PITCH_A),
+      val: kixApproachHeight(g, scA.cd19, scA.cd27, latLng, SHINCHITOSE_HEIGHT_A_2, SHINCHITOSE_PITCH_A),
       str: "進入表面",
     });
     hSuiheiStr = "進入表面";
   }
   if (inPoly([scA.cd11, scA.cd12, scA.cd18, scA.cd17])) {
     height.push({
-      val: mathTennia(
+      val: kixTransQuadHeight(
         g,
         scA.cd13,
         scA.cd19,
@@ -2683,7 +2853,8 @@ function calcShinchitoseHorizontalSurface(
         SHINCHITOSE_HEIGHT_A_2,
         latLng,
         SHINCHITOSE_LENGTH_A,
-        SHINCHITOSE_WIDTH_A
+        SHINCHITOSE_WIDTH_A,
+        pitchT
       ),
       str: "転移表面",
     });
@@ -2691,7 +2862,7 @@ function calcShinchitoseHorizontalSurface(
   }
   if (inPoly([scA.cd14, scA.cd15, scA.cd21, scA.cd20])) {
     height.push({
-      val: mathTennia(
+      val: kixTransQuadHeight(
         g,
         scA.cd13,
         scA.cd19,
@@ -2699,40 +2870,77 @@ function calcShinchitoseHorizontalSurface(
         SHINCHITOSE_HEIGHT_A_2,
         latLng,
         SHINCHITOSE_LENGTH_A,
-        SHINCHITOSE_WIDTH_A
+        SHINCHITOSE_WIDTH_A,
+        pitchT
       ),
       str: "転移表面",
     });
     hSuiheiStr = "転移表面";
   }
   if (inPoly([scA.cd07, scA.cd12, scA.cd11])) {
-    const hm0 = mathSinnyuWithPitch(g, scA.cd13, scA.cd05, latLng, SHINCHITOSE_HEIGHT_A_1, SHINCHITOSE_PITCH_A);
     height.push({
-      val: mathTennib(g, scA.cd13, scA.cd05, scA.cd12, scA.cd04, latLng, hm0),
+      val: kixTransTriHeight(
+        g,
+        scA.cd13,
+        scA.cd12,
+        scA.cd05,
+        scA.cd04,
+        latLng,
+        SHINCHITOSE_HEIGHT_A_1,
+        SHINCHITOSE_PITCH_A,
+        pitchT
+      ),
       str: "転移表面",
     });
     hSuiheiStr = "転移表面";
   }
   if (inPoly([scA.cd08, scA.cd15, scA.cd14])) {
-    const hm0 = mathSinnyuWithPitch(g, scA.cd13, scA.cd05, latLng, SHINCHITOSE_HEIGHT_A_1, SHINCHITOSE_PITCH_A);
     height.push({
-      val: mathTennib(g, scA.cd13, scA.cd05, scA.cd14, scA.cd06, latLng, hm0),
+      val: kixTransTriHeight(
+        g,
+        scA.cd13,
+        scA.cd14,
+        scA.cd05,
+        scA.cd06,
+        latLng,
+        SHINCHITOSE_HEIGHT_A_1,
+        SHINCHITOSE_PITCH_A,
+        pitchT
+      ),
       str: "転移表面",
     });
     hSuiheiStr = "転移表面";
   }
   if (inPoly([scA.cd17, scA.cd18, scA.cd24])) {
-    const hm0 = mathSinnyuWithPitch(g, scA.cd19, scA.cd27, latLng, SHINCHITOSE_HEIGHT_A_2, SHINCHITOSE_PITCH_A);
     height.push({
-      val: mathTennib(g, scA.cd19, scA.cd27, scA.cd18, scA.cd26, latLng, hm0),
+      val: kixTransTriHeight(
+        g,
+        scA.cd19,
+        scA.cd18,
+        scA.cd27,
+        scA.cd26,
+        latLng,
+        SHINCHITOSE_HEIGHT_A_2,
+        SHINCHITOSE_PITCH_A,
+        pitchT
+      ),
       str: "転移表面",
     });
     hSuiheiStr = "転移表面";
   }
   if (inPoly([scA.cd20, scA.cd21, scA.cd25])) {
-    const hm0 = mathSinnyuWithPitch(g, scA.cd19, scA.cd27, latLng, SHINCHITOSE_HEIGHT_A_2, SHINCHITOSE_PITCH_A);
     height.push({
-      val: mathTennib(g, scA.cd19, scA.cd27, scA.cd20, scA.cd28, latLng, hm0),
+      val: kixTransTriHeight(
+        g,
+        scA.cd19,
+        scA.cd20,
+        scA.cd27,
+        scA.cd28,
+        latLng,
+        SHINCHITOSE_HEIGHT_A_2,
+        SHINCHITOSE_PITCH_A,
+        pitchT
+      ),
       str: "転移表面",
     });
     hSuiheiStr = "転移表面";
@@ -2744,21 +2952,21 @@ function calcShinchitoseHorizontalSurface(
   }
   if (inPoly([scB.cd12, scB.cd04, scB.cd06, scB.cd14])) {
     height.push({
-      val: mathSinnyuWithPitch(g, scB.cd13, scB.cd05, latLng, SHINCHITOSE_HEIGHT_B_1, SHINCHITOSE_PITCH_B),
+      val: kixApproachHeight(g, scB.cd13, scB.cd05, latLng, SHINCHITOSE_HEIGHT_B_1, SHINCHITOSE_PITCH_B),
       str: "進入表面",
     });
     hSuiheiStr = "進入表面";
   }
   if (inPoly([scB.cd18, scB.cd20, scB.cd28, scB.cd26])) {
     height.push({
-      val: mathSinnyuWithPitch(g, scB.cd19, scB.cd27, latLng, SHINCHITOSE_HEIGHT_B_2, SHINCHITOSE_PITCH_B),
+      val: kixApproachHeight(g, scB.cd19, scB.cd27, latLng, SHINCHITOSE_HEIGHT_B_2, SHINCHITOSE_PITCH_B),
       str: "進入表面",
     });
     hSuiheiStr = "進入表面";
   }
   if (inPoly([scB.cd11, scB.cd12, scB.cd18, scB.cd17])) {
     height.push({
-      val: mathTennia(
+      val: kixTransQuadHeight(
         g,
         scB.cd13,
         scB.cd19,
@@ -2766,7 +2974,8 @@ function calcShinchitoseHorizontalSurface(
         SHINCHITOSE_HEIGHT_B_2,
         latLng,
         SHINCHITOSE_LENGTH_B,
-        SHINCHITOSE_WIDTH_B
+        SHINCHITOSE_WIDTH_B,
+        pitchT
       ),
       str: "転移表面",
     });
@@ -2774,7 +2983,7 @@ function calcShinchitoseHorizontalSurface(
   }
   if (inPoly([scB.cd14, scB.cd15, scB.cd21, scB.cd20])) {
     height.push({
-      val: mathTennia(
+      val: kixTransQuadHeight(
         g,
         scB.cd13,
         scB.cd19,
@@ -2782,46 +2991,89 @@ function calcShinchitoseHorizontalSurface(
         SHINCHITOSE_HEIGHT_B_2,
         latLng,
         SHINCHITOSE_LENGTH_B,
-        SHINCHITOSE_WIDTH_B
+        SHINCHITOSE_WIDTH_B,
+        pitchT
       ),
       str: "転移表面",
     });
     hSuiheiStr = "転移表面";
   }
   if (inPoly([scB.cd07, scB.cd12, scB.cd11])) {
-    const hm0 = mathSinnyuWithPitch(g, scB.cd13, scB.cd05, latLng, SHINCHITOSE_HEIGHT_B_1, SHINCHITOSE_PITCH_B);
     height.push({
-      val: mathTennib(g, scB.cd13, scB.cd05, scB.cd12, scB.cd04, latLng, hm0),
+      val: kixTransTriHeight(
+        g,
+        scB.cd13,
+        scB.cd12,
+        scB.cd05,
+        scB.cd04,
+        latLng,
+        SHINCHITOSE_HEIGHT_B_1,
+        SHINCHITOSE_PITCH_B,
+        pitchT
+      ),
       str: "転移表面",
     });
     hSuiheiStr = "転移表面";
   }
   if (inPoly([scB.cd08, scB.cd15, scB.cd14])) {
-    const hm0 = mathSinnyuWithPitch(g, scB.cd13, scB.cd05, latLng, SHINCHITOSE_HEIGHT_B_1, SHINCHITOSE_PITCH_B);
     height.push({
-      val: mathTennib(g, scB.cd13, scB.cd05, scB.cd14, scB.cd06, latLng, hm0),
+      val: kixTransTriHeight(
+        g,
+        scB.cd13,
+        scB.cd14,
+        scB.cd05,
+        scB.cd06,
+        latLng,
+        SHINCHITOSE_HEIGHT_B_1,
+        SHINCHITOSE_PITCH_B,
+        pitchT
+      ),
       str: "転移表面",
     });
     hSuiheiStr = "転移表面";
   }
   if (inPoly([scB.cd17, scB.cd18, scB.cd24])) {
-    const hm0 = mathSinnyuWithPitch(g, scB.cd19, scB.cd27, latLng, SHINCHITOSE_HEIGHT_B_2, SHINCHITOSE_PITCH_B);
     height.push({
-      val: mathTennib(g, scB.cd19, scB.cd27, scB.cd18, scB.cd26, latLng, hm0),
+      val: kixTransTriHeight(
+        g,
+        scB.cd19,
+        scB.cd18,
+        scB.cd27,
+        scB.cd26,
+        latLng,
+        SHINCHITOSE_HEIGHT_B_2,
+        SHINCHITOSE_PITCH_B,
+        pitchT
+      ),
       str: "転移表面",
     });
     hSuiheiStr = "転移表面";
   }
   if (inPoly([scB.cd20, scB.cd21, scB.cd25])) {
-    const hm0 = mathSinnyuWithPitch(g, scB.cd19, scB.cd27, latLng, SHINCHITOSE_HEIGHT_B_2, SHINCHITOSE_PITCH_B);
     height.push({
-      val: mathTennib(g, scB.cd19, scB.cd27, scB.cd20, scB.cd28, latLng, hm0),
+      val: kixTransTriHeight(
+        g,
+        scB.cd19,
+        scB.cd20,
+        scB.cd27,
+        scB.cd28,
+        latLng,
+        SHINCHITOSE_HEIGHT_B_2,
+        SHINCHITOSE_PITCH_B,
+        pitchT
+      ),
       str: "転移表面",
     });
     hSuiheiStr = "転移表面";
   }
 
-  height.push({ val: horizHeight, str: hSuiheiStr });
+  // 公式は水平円の isContain のみ。進入ポリゴン内でも円の外なら水平は載せない
+  if (includeHorizontal) {
+    height.push({ val: horizHeight, str: hSuiheiStr });
+  }
+  if (height.length === 0) {
+    return null;
+  }
   height.sort((a, b) => a.val - b.val);
   const d = height[0];
   let reStr = d.str;
@@ -2845,8 +3097,8 @@ function calcShinchitoseHorizontalSurface(
 }
 
 /**
- * 新千歳空港の高さ制限を計算する
- * 新千歳は水平表面のみ（半径4000m）。円錐・外側水平表面なし。
+ * 新千歳空港の高さ制限を計算する。
+ * 公式どおり進入・転移は水平円（4000m）の外側でも判定する。
  */
 export function calculateShinchitoseRestriction(
   lat: number,
@@ -2862,11 +3114,13 @@ export function calculateShinchitoseRestriction(
     const point = new g.LatLng(lat, lng);
     const distance = g.geometry.spherical.computeDistanceBetween(ref, point);
 
-    if (distance > SHINCHITOSE_HORIZ_RADIUS) {
-      return { items: [] };
-    }
-
-    const result = calcShinchitoseHorizontalSurface(g, point, lat, lng);
+    const result = calcShinchitoseHorizontalSurface(
+      g,
+      point,
+      lat,
+      lng,
+      distance <= SHINCHITOSE_HORIZ_RADIUS
+    );
     if (!result) {
       return { items: [] };
     }
@@ -3951,12 +4205,13 @@ function isNiigataPointInPolygon(
   return isPointInPolygon(g, lat, lng, path);
 }
 
-/** 新潟: 水平表面ゾーン（半径3500m以内）※新潟は水平表面のみ */
+/** 新潟: 進入・転移は水平円の外側でも判定する */
 function calcNiigataHorizontalSurface(
   g: typeof google.maps,
   latLng: google.maps.LatLng,
   lat: number,
-  lng: number
+  lng: number,
+  includeHorizontal: boolean
 ): { surfaceType: SurfaceType; heightM: number } | null {
   const height: HeightEntry[] = [];
   let hSuiheiStr = "水平表面";
@@ -4131,7 +4386,12 @@ function calcNiigataHorizontalSurface(
     hSuiheiStr = "転移表面";
   }
 
-  height.push({ val: horizHeight, str: hSuiheiStr });
+  if (includeHorizontal) {
+    height.push({ val: horizHeight, str: hSuiheiStr });
+  }
+  if (height.length === 0) {
+    return null;
+  }
   height.sort((a, b) => a.val - b.val);
   const d = height[0];
   let reStr = d.str;
@@ -4172,11 +4432,13 @@ export function calculateNiigataRestriction(
     const point = new g.LatLng(lat, lng);
     const distance = g.geometry.spherical.computeDistanceBetween(ref, point);
 
-    if (distance > NIIGATA_HORIZ_RADIUS) {
-      return { items: [] };
-    }
-
-    const result = calcNiigataHorizontalSurface(g, point, lat, lng);
+    const result = calcNiigataHorizontalSurface(
+      g,
+      point,
+      lat,
+      lng,
+      distance <= NIIGATA_HORIZ_RADIUS
+    );
     if (!result) {
       return { items: [] };
     }
@@ -4851,17 +5113,20 @@ export function calculateAirportRestriction(
   if (distToSendai <= SENDAI_OUTER_RADIUS) {
     return calculateSendaiRestriction(lat, lng, gmaps);
   }
-  if (distToYao <= YAO_HORIZ_RADIUS) {
-    return calculateYaoRestriction(lat, lng, gmaps);
+  if (distToYao <= YAO_SURFACE_EXTENT_M) {
+    const yao = calculateYaoRestriction(lat, lng, gmaps);
+    if (yao.error || yao.items.length > 0) return yao;
   }
-  if (distToShinchitose <= SHINCHITOSE_HORIZ_RADIUS) {
-    return calculateShinchitoseRestriction(lat, lng, gmaps);
+  if (distToShinchitose <= SHINCHITOSE_SURFACE_EXTENT_M) {
+    const shinchitose = calculateShinchitoseRestriction(lat, lng, gmaps);
+    if (shinchitose.error || shinchitose.items.length > 0) return shinchitose;
   }
   if (distToHakodate <= HAKODATE_OUTER_RADIUS) {
     return calculateHakodateRestriction(lat, lng, gmaps);
   }
-  if (distToNiigata <= NIIGATA_HORIZ_RADIUS) {
-    return calculateNiigataRestriction(lat, lng, gmaps);
+  if (distToNiigata <= NIIGATA_SURFACE_EXTENT_M) {
+    const niigata = calculateNiigataRestriction(lat, lng, gmaps);
+    if (niigata.error || niigata.items.length > 0) return niigata;
   }
   if (distToNagasaki <= NAGASAKI_OUTER_RADIUS) {
     return calculateNagasakiRestriction(lat, lng, gmaps);
