@@ -26,6 +26,7 @@ import {
 } from "./constants/events";
 import { BasicInfoSection } from "./detailBar/BasicInfoSection";
 import { ComingSoonPanel } from "./detailBar/ComingSoonPanel";
+import { ConsideringPanel } from "./detailBar/ConsideringPanel";
 import { DetailBarTabs } from "./detailBar/DetailBarTabs";
 import {
   EMPTY_DETAIL_META,
@@ -575,9 +576,14 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
           <OwnFlightAreaPanel
             history={history}
             selectedHistoryIdx={selectedHistoryIdx}
+            editable={editable}
             onSelectHistory={onSelectHistory}
             onDeleteHistory={onDeleteHistory}
             onRegisterProject={handleRegisterProjectInfo}
+          />
+        )}
+        {active === "considering" && (
+          <ConsideringPanel
             candidates={candidates}
             selectedCandidateIdx={selectedCandidateIdx}
             editingCandidateIdx={editingCandidateIdx}
@@ -596,7 +602,6 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
             pendingNewCandidateIdx={pendingNewCandidateIdx}
           />
         )}
-        {active === "considering" && <ComingSoonPanel />}
         {active === "other" && <ComingSoonPanel />}
       </div>
 
