@@ -96,10 +96,10 @@ import {
 import {
   surfacePointsA as nahaA,
   surfacePointsB as nahaB,
+  conicalCutPath as nahaConicalCut,
+  outerCutPath as nahaOuterCut,
   NAHA_REFERENCE_POINT,
   RADIUS_OF_HORIZONTAL_SURFACE as NAHA_HORIZ,
-  RADIUS_OF_CONICAL_SURFACE as NAHA_CONICAL,
-  RADIUS_OF_OUTER_HORIZONTAL_SURFACE as NAHA_OUTER,
 } from "../data/naha";
 import {
   surfacePoints as matsuyamaPts,
@@ -445,12 +445,12 @@ const SPECS: AirportOverlaySpec[] = [
     quads: [],
   },
   {
-    ...fullRings(
-      NAHA_REFERENCE_POINT,
-      NAHA_HORIZ,
-      NAHA_CONICAL,
-      NAHA_OUTER
-    ),
+    horizontalCircle: {
+      center: NAHA_REFERENCE_POINT,
+      radius: NAHA_HORIZ,
+    },
+    conicalPolygon: nahaConicalCut,
+    outerPolygon: nahaOuterCut,
     quads: [...kansaiLikeShapes(nahaA), ...kansaiLikeShapes(nahaB)],
   },
   {

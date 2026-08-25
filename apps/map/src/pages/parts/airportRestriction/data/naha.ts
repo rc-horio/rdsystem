@@ -113,3 +113,166 @@ export const HEIGHT_OF_LANDING_AREA_B_2 = 4.259;
 /** 進入表面・延長進入表面勾配 1/50 */
 export const PITCH_OF_APPROACH_SURFACE = 1 / 50;
 export const PITCH_OF_EXTENDED_APPROACH_SURFACE = 1 / 50;
+
+/** 転移表面の勾配（公式 PITCH_OF_TRANSITIONAL_SURFACE） */
+export const PITCH_OF_TRANSITIONAL_SURFACE = 1 / 7;
+
+/** 円錐表面の勾配（公式 PITCH_OF_CONICAL_SURFACE） */
+export const PITCH_OF_CONICAL_SURFACE = 1 / 50;
+
+/**
+ * 円錐・外側水平の切り欠き（公式 SURFACE_POINTS CDA〜CDH）
+ * 弧の発生と lng/lat フィルタは標点 CD16。パス先頭は CDG。
+ * CDC=CDD=CDG、CDF=CDH は公式どおり同一座標。
+ * 円錐: right1=CDE, left1=CDB, right2=CDD, left2=CDC, right3=0, left3=0, right12=0
+ * 外側水平: right1=CDF, left1=CDA, right2=CDE, left2=CDB, right3=CDD, left3=CDC, right12=CDH
+ */
+export const interceptPoints = {
+  cda: { lat: 26.3986544583333, lng: 127.716400138889 },
+  cdb: { lat: 26.3322914, lng: 127.699184602778 },
+  cdc: { lat: 26.2427777777778, lng: 127.676111111111 },
+  cdd: { lat: 26.2427777777778, lng: 127.676111111111 },
+  cde: { lat: 26.097359325, lng: 127.765920438889 },
+  cdf: { lat: 26.0355519111111, lng: 127.804168922222 },
+  cdg: { lat: 26.2427777777778, lng: 127.676111111111 },
+  cdh: { lat: 26.0355519111111, lng: 127.804168922222 },
+} as const satisfies Record<string, Coord>;
+
+/** 公式 destinationPoint（地球半径 6371 km） */
+function destinationPoint(from: Coord, headingDeg: number, distKm: number): Coord | null {
+  const dist = distKm / 6371;
+  const brng = (headingDeg * Math.PI) / 180;
+  const lat1 = (from.lat * Math.PI) / 180;
+  const lon1 = (from.lng * Math.PI) / 180;
+  const lat2 = Math.asin(
+    Math.sin(lat1) * Math.cos(dist) +
+      Math.cos(lat1) * Math.sin(dist) * Math.cos(brng)
+  );
+  const lon2 =
+    lon1 +
+    Math.atan2(
+      Math.sin(brng) * Math.sin(dist) * Math.cos(lat1),
+      Math.cos(dist) - Math.sin(lat1) * Math.sin(lat2)
+    );
+  if (Number.isNaN(lat2) || Number.isNaN(lon2)) return null;
+  return { lat: (lat2 * 180) / Math.PI, lng: (lon2 * 180) / Math.PI };
+}
+
+function sortByLngLat(
+  a: Coord,
+  b: Coord,
+  lngDir: 1 | -1,
+  latDir: 1 | -1
+): number {
+  const alng = Number(a.lng.toFixed(8));
+  const blng = Number(b.lng.toFixed(8));
+  if (alng < blng) return lngDir;
+  if (alng > blng) return -lngDir as 1 | -1;
+  const alat = Number(a.lat.toFixed(8));
+  const blat = Number(b.lat.toFixed(8));
+  if (alat < blat) return latDir;
+  if (alat > blat) return -latDir as 1 | -1;
+  return 0;
+}
+
+/**
+ * 那覇公式 GetCirclePaths。6°刻み。
+ * 弧の発生とフィルタ基準は標点（CD16）。パス先頭は CDG（_mid）。
+ * right3 → right2 → right12 → right1 のあと弧、left1 → left2 → left3。
+ */
+function getCirclePaths(
+  arp: Coord,
+  radiusM: number,
+  mid: Coord,
+  right1: Coord,
+  left1: Coord,
+  right2: Coord | 0,
+  left2: Coord | 0,
+  right3: Coord | 0,
+  left3: Coord | 0,
+  right12: Coord | 0
+): Coord[] {
+  const paths: Coord[] = [mid];
+  if (right3 !== 0) paths.push(right3);
+  if (right2 !== 0) paths.push(right2);
+  if (right12 !== 0) paths.push(right12);
+  paths.push(right1);
+
+  const tmpA: Coord[] = [];
+  const tmpB: Coord[] = [];
+  const tmpC: Coord[] = [];
+  const tmpD1: Coord[] = [];
+  const tmpD2: Coord[] = [];
+  const tmpD3: Coord[] = [];
+  const tmpE: Coord[] = [];
+  const tmpF: Coord[] = [];
+  const distKm = radiusM / 1000;
+
+  for (let i = 0; i < 360; i += 6) {
+    const point = destinationPoint(arp, i, distKm);
+    if (!point) continue;
+    if (point.lng > arp.lng) {
+      if (point.lng <= right1.lng && point.lat <= right1.lat) {
+        tmpA.push(point);
+      } else if (point.lng < left1.lng && point.lat > left1.lat) {
+        tmpF.push(point);
+      }
+    } else if (point.lng < arp.lng) {
+      if (point.lat <= right1.lat) {
+        tmpC.push(point);
+      } else if (point.lat < arp.lat && point.lat <= left1.lat) {
+        tmpD1.push(point);
+      } else if (point.lat >= arp.lat && point.lat <= left1.lat) {
+        tmpD2.push(point);
+      } else if (point.lat >= left1.lat) {
+        tmpD3.push(point);
+      }
+    } else if (point.lat <= right1.lat) {
+      tmpB.push(point);
+    } else if (point.lat >= left1.lat) {
+      tmpE.push(point);
+    }
+  }
+
+  tmpA.sort((a, b) => sortByLngLat(a, b, 1, 1));
+  tmpB.sort((a, b) => sortByLngLat(a, b, 1, 1));
+  tmpC.sort((a, b) => sortByLngLat(a, b, 1, 1));
+  tmpD1.sort((a, b) => sortByLngLat(a, b, 1, -1));
+  tmpD2.sort((a, b) => sortByLngLat(a, b, -1, -1));
+  tmpD3.sort((a, b) => sortByLngLat(a, b, -1, -1));
+  tmpE.sort((a, b) => sortByLngLat(a, b, -1, -1));
+  tmpF.sort((a, b) => sortByLngLat(a, b, -1, -1));
+
+  paths.push(...tmpA, ...tmpB, ...tmpC, ...tmpD1, ...tmpD2, ...tmpD3, ...tmpE, ...tmpF, left1);
+  if (left2 !== 0) paths.push(left2);
+  if (left3 !== 0) paths.push(left3);
+  return paths;
+}
+
+/** 円錐表面の切り欠きポリゴン（半径 16500 m） */
+export const conicalCutPath: Coord[] = getCirclePaths(
+  NAHA_REFERENCE_POINT,
+  RADIUS_OF_CONICAL_SURFACE,
+  interceptPoints.cdg,
+  interceptPoints.cde,
+  interceptPoints.cdb,
+  interceptPoints.cdd,
+  interceptPoints.cdc,
+  0,
+  0,
+  0
+);
+
+/** 外側水平表面の切り欠きポリゴン（半径 24000 m） */
+export const outerCutPath: Coord[] = getCirclePaths(
+  NAHA_REFERENCE_POINT,
+  RADIUS_OF_OUTER_HORIZONTAL_SURFACE,
+  interceptPoints.cdg,
+  interceptPoints.cdf,
+  interceptPoints.cda,
+  interceptPoints.cde,
+  interceptPoints.cdb,
+  interceptPoints.cdd,
+  interceptPoints.cdc,
+  interceptPoints.cdh
+);
