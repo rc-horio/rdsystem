@@ -110,10 +110,10 @@ import {
 } from "../data/matsuyama";
 import {
   surfacePoints as miyazakiPts,
+  conicalCutPath as miyazakiConicalCut,
+  outerCutPath as miyazakiOuterCut,
   MIYAZAKI_REFERENCE_POINT,
   RADIUS_OF_HORIZONTAL_SURFACE as MIYAZAKI_HORIZ,
-  RADIUS_OF_CONICAL_SURFACE as MIYAZAKI_CONICAL,
-  RADIUS_OF_OUTER_HORIZONTAL_SURFACE as MIYAZAKI_OUTER,
 } from "../data/miyazaki";
 import {
   runwayA as yaoA,
@@ -463,12 +463,12 @@ const SPECS: AirportOverlaySpec[] = [
     quads: kansaiLikeShapes(matsuyamaPts, { ext2: false }),
   },
   {
-    ...fullRings(
-      MIYAZAKI_REFERENCE_POINT,
-      MIYAZAKI_HORIZ,
-      MIYAZAKI_CONICAL,
-      MIYAZAKI_OUTER
-    ),
+    horizontalCircle: {
+      center: MIYAZAKI_REFERENCE_POINT,
+      radius: MIYAZAKI_HORIZ,
+    },
+    conicalPolygon: miyazakiConicalCut,
+    outerPolygon: miyazakiOuterCut,
     quads: kansaiLikeShapes(miyazakiPts, { ext1: false }),
   },
   {
