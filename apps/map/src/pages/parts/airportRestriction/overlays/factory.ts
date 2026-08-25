@@ -79,6 +79,10 @@ export type AirportOverlaySpec = {
   quadStyle?: google.maps.PolygonOptions;
   /** 未指定なら HORIZONTAL_STYLE */
   horizontalStyle?: google.maps.CircleOptions;
+  /** 未指定なら CONICAL_STYLE */
+  conicalStyle?: google.maps.PolygonOptions;
+  /** 未指定なら OUTER_STYLE */
+  outerStyle?: google.maps.PolygonOptions;
 };
 
 export function makePolygon(
@@ -164,10 +168,14 @@ export function createOverlaysFromSpec(
     );
   }
   if (spec.conicalPolygon) {
-    overlays.push(makePolygon(gmaps, spec.conicalPolygon, CONICAL_STYLE));
+    overlays.push(
+      makePolygon(gmaps, spec.conicalPolygon, spec.conicalStyle ?? CONICAL_STYLE)
+    );
   }
   if (spec.outerPolygon) {
-    overlays.push(makePolygon(gmaps, spec.outerPolygon, OUTER_STYLE));
+    overlays.push(
+      makePolygon(gmaps, spec.outerPolygon, spec.outerStyle ?? OUTER_STYLE)
+    );
   }
   if (spec.conicalRing) {
     overlays.push(

@@ -177,11 +177,12 @@ import {
 } from "./data/shinchitose";
 import {
   surfacePoints as hM,
+  conicalCutPath as hakodateConicalCutPath,
+  outerCutPath as hakodateOuterCutPath,
   HAKODATE_REFERENCE_POINT,
   HEIGHT_OF_AIRPORT_REFERENCE_POINT as HAKODATE_REF_HEIGHT,
   RADIUS_OF_HORIZONTAL_SURFACE as HAKODATE_HORIZ_RADIUS,
   HEIGHT_OF_HORIZONTAL_SURFACE as HAKODATE_HORIZ_HEIGHT,
-  RADIUS_OF_CONICAL_SURFACE as HAKODATE_CONICAL_RADIUS,
   RADIUS_OF_OUTER_HORIZONTAL_SURFACE as HAKODATE_OUTER_RADIUS,
   HEIGHT_OF_OUTER_HORIZONTAL_SURFACE as HAKODATE_OUTER_HEIGHT,
   LENGTH_OF_LANDING_AREA as HAKODATE_LENGTH,
@@ -189,6 +190,8 @@ import {
   HEIGHT_OF_LANDING_AREA_1 as HAKODATE_HEIGHT_1,
   HEIGHT_OF_LANDING_AREA_2 as HAKODATE_HEIGHT_2,
   PITCH_OF_APPROACH_SURFACE as HAKODATE_PITCH,
+  PITCH_OF_TRANSITIONAL_SURFACE as HAKODATE_PITCH_TRANS,
+  PITCH_OF_CONICAL_SURFACE as HAKODATE_PITCH_CONICAL,
 } from "./data/hakodate";
 import {
   surfacePoints as mzM,
@@ -531,6 +534,132 @@ function kixTransTriHeight(
   pitchTransition: number
 ): number {
   const approachEdgeHeight = kixApproachHeight(
+    g,
+    landingCenter,
+    approachCenter,
+    clickP,
+    approachAreaHeight,
+    pitchApproach
+  );
+  const landingAreaCenter = {
+    x: Number(landingCenter.lng.toFixed(8)),
+    y: Number(landingCenter.lat.toFixed(8)),
+  };
+  const landingAreaVertex = {
+    x: Number(landingVertex.lng.toFixed(8)),
+    y: Number(landingVertex.lat.toFixed(8)),
+  };
+  const approachSurfaceVertex = {
+    x: Number(approachVertex.lng.toFixed(8)),
+    y: Number(approachVertex.lat.toFixed(8)),
+  };
+  const clickPoint = {
+    x: Number(clickP.lng().toFixed(8)),
+    y: Number(clickP.lat().toFixed(8)),
+  };
+  const parallelSlope = decimalsDivision(
+    decimalsSubstract(landingAreaCenter.y, landingAreaVertex.y),
+    decimalsSubstract(landingAreaCenter.x, landingAreaVertex.x)
+  );
+  const parallelIntercept = decimalsAddition(
+    decimalsMultiplication(decimalsMultiplication(parallelSlope, clickPoint.x), -1),
+    clickPoint.y
+  );
+  const approachSlope = decimalsDivision(
+    decimalsSubstract(approachSurfaceVertex.y, landingAreaVertex.y),
+    decimalsSubstract(approachSurfaceVertex.x, landingAreaVertex.x)
+  );
+  const approachIntercept = decimalsAddition(
+    decimalsMultiplication(decimalsMultiplication(approachSlope, landingAreaVertex.x), -1),
+    landingAreaVertex.y
+  );
+  const crossX = decimalsDivision(
+    decimalsSubstract(approachIntercept, parallelIntercept),
+    decimalsSubstract(parallelSlope, approachSlope)
+  );
+  const crossY = decimalsAddition(decimalsMultiplication(parallelSlope, crossX), parallelIntercept);
+  const distanceFromApproachEdge = g.geometry!.spherical.computeDistanceBetween(
+    clickP,
+    new g.LatLng(crossY, crossX)
+  );
+  const addFromEdge = decimalsMultiplication(distanceFromApproachEdge, pitchTransition);
+  return decimalsAddition(approachEdgeHeight, addFromEdge);
+}
+
+/**
+ * 函館公式 ApproachSurface.getLimitHeightOfApproachSurface。
+ * cos に abs を付けない（函館 map.bundle.js どおり）。
+ */
+function hakodateApproachHeight(
+  g: typeof google.maps,
+  landingCenter: Coord,
+  approachCenter: Coord,
+  clickP: google.maps.LatLng,
+  runwayHeight: number,
+  pitch: number
+): number {
+  const landing = new g.LatLng(landingCenter.lat, landingCenter.lng);
+  const approach = new g.LatLng(approachCenter.lat, approachCenter.lng);
+  const heading1 = g.geometry!.spherical.computeHeading(landing, approach);
+  const heading2 = g.geometry!.spherical.computeHeading(landing, clickP);
+  const degree = Math.abs(decimalsSubstract(heading1, heading2));
+  const radian = decimalsMultiplication(degree, decimalsDivision(Math.PI, 180));
+  const hypotenuse = g.geometry!.spherical.computeDistanceBetween(landing, clickP);
+  const adjacent = decimalsMultiplication(hypotenuse, Math.cos(radian));
+  const addHeight = decimalsMultiplication(adjacent, pitch);
+  return decimalsAddition(runwayHeight, addHeight);
+}
+
+/**
+ * 函館公式 TransitionalSurface.getLimitHeightOfQuadrangleArea。
+ * 原点は landing_area_center1。heading1 は正規化しない。
+ */
+function hakodateTransQuadHeight(
+  g: typeof google.maps,
+  center1: Coord,
+  center2: Coord,
+  height1: number,
+  height2: number,
+  clickP: google.maps.LatLng,
+  landingLength: number,
+  landingWidth: number,
+  pitch: number
+): number {
+  const c1 = new g.LatLng(center1.lat, center1.lng);
+  const c2 = new g.LatLng(center2.lat, center2.lng);
+  const heading1 = g.geometry!.spherical.computeHeading(c1, c2);
+  let heading2 = g.geometry!.spherical.computeHeading(c1, clickP);
+  if (heading2 < 0) heading2 += 180;
+  const degree = Math.abs(decimalsSubstract(heading1, heading2));
+  const radian = decimalsMultiplication(degree, decimalsDivision(Math.PI, 180));
+  const hypotenuse = g.geometry!.spherical.computeDistanceBetween(c1, clickP);
+  const opposite = decimalsMultiplication(hypotenuse, Math.sin(radian));
+  const adjacent = decimalsMultiplication(hypotenuse, Math.cos(radian));
+  const lowHeight = height1 < height2 ? height1 : height2;
+  const highHeight = height1 < height2 ? height2 : height1;
+  const addHeight = decimalsMultiplication(
+    highHeight - lowHeight,
+    decimalsDivision(adjacent, landingLength)
+  );
+  const edgeHeight = lowHeight + addHeight;
+  const fromEdge = decimalsSubstract(opposite, decimalsDivision(landingWidth, 2));
+  const addFromEdge = decimalsMultiplication(fromEdge, pitch);
+  return decimalsAddition(edgeHeight, addFromEdge);
+}
+
+/** 函館公式 TransitionalSurface.getLimitHeightOfTriangleArea */
+function hakodateTransTriHeight(
+  g: typeof google.maps,
+  landingCenter: Coord,
+  landingVertex: Coord,
+  approachCenter: Coord,
+  approachVertex: Coord,
+  clickP: google.maps.LatLng,
+  approachAreaHeight: number,
+  pitchApproach: number,
+  pitchTransition: number
+): number {
+  const approachEdgeHeight = hakodateApproachHeight(
     g,
     landingCenter,
     approachCenter,
@@ -3145,47 +3274,46 @@ function isHakodatePointInPolygon(
   return isPointInPolygon(g, lat, lng, path);
 }
 
-/** 函館: 水平表面ゾーン（半径4000m以内） */
-function calcHakodateHorizontalSurface(
+/**
+ * 函館: 公式どおり進入・転移・延長は距離帯に関係なくポリゴン判定。
+ * 円錐は切り欠き内かつ 4000m 超、外側水平は切り欠き内。水平は 4000m 以内の円のみ。
+ */
+function calcHakodateSurfaces(
   g: typeof google.maps,
   latLng: google.maps.LatLng,
   lat: number,
-  lng: number
+  lng: number,
+  distance: number
 ): { surfaceType: SurfaceType; heightM: number } | null {
   const height: HeightEntry[] = [];
-  let hSuiheiStr = "水平表面";
-  const horizHeight = HAKODATE_REF_HEIGHT + HAKODATE_HORIZ_HEIGHT;
-
   const inPoly = (path: { lat: number; lng: number }[]) =>
     isHakodatePointInPolygon(g, lat, lng, path);
+  const pitchT = HAKODATE_PITCH_TRANS;
 
   if (inPoly([hM.cd12, hM.cd14, hM.cd20, hM.cd18])) {
     height.push({ val: 0, str: "着陸帯" });
   }
   if (inPoly([hM.cd12, hM.cd04, hM.cd06, hM.cd14])) {
     height.push({
-      val: mathSinnyuWithPitch(g, hM.cd13, hM.cd05, latLng, HAKODATE_HEIGHT_1, HAKODATE_PITCH),
+      val: hakodateApproachHeight(g, hM.cd13, hM.cd05, latLng, HAKODATE_HEIGHT_1, HAKODATE_PITCH),
       str: "進入表面",
     });
-    hSuiheiStr = "進入表面";
   }
   if (inPoly([hM.cd18, hM.cd20, hM.cd28, hM.cd26])) {
     height.push({
-      val: mathSinnyuWithPitch(g, hM.cd19, hM.cd27, latLng, HAKODATE_HEIGHT_2, HAKODATE_PITCH),
+      val: hakodateApproachHeight(g, hM.cd19, hM.cd27, latLng, HAKODATE_HEIGHT_2, HAKODATE_PITCH),
       str: "進入表面",
     });
-    hSuiheiStr = "進入表面";
   }
   if (inPoly([hM.cd04, hM.cd06, hM.cd03, hM.cd01])) {
     height.push({
-      val: mathSinnyuWithPitch(g, hM.cd13, hM.cd02, latLng, HAKODATE_HEIGHT_1, HAKODATE_PITCH),
+      val: hakodateApproachHeight(g, hM.cd13, hM.cd02, latLng, HAKODATE_HEIGHT_1, HAKODATE_PITCH),
       str: "延長進入表面",
     });
-    hSuiheiStr = "延長進入表面";
   }
   if (inPoly([hM.cd11, hM.cd12, hM.cd18, hM.cd17])) {
     height.push({
-      val: mathTennia(
+      val: hakodateTransQuadHeight(
         g,
         hM.cd13,
         hM.cd19,
@@ -3193,15 +3321,15 @@ function calcHakodateHorizontalSurface(
         HAKODATE_HEIGHT_2,
         latLng,
         HAKODATE_LENGTH,
-        HAKODATE_WIDTH
+        HAKODATE_WIDTH,
+        pitchT
       ),
       str: "転移表面",
     });
-    hSuiheiStr = "転移表面";
   }
   if (inPoly([hM.cd14, hM.cd15, hM.cd21, hM.cd20])) {
     height.push({
-      val: mathTennia(
+      val: hakodateTransQuadHeight(
         g,
         hM.cd13,
         hM.cd19,
@@ -3209,40 +3337,113 @@ function calcHakodateHorizontalSurface(
         HAKODATE_HEIGHT_2,
         latLng,
         HAKODATE_LENGTH,
-        HAKODATE_WIDTH
+        HAKODATE_WIDTH,
+        pitchT
       ),
       str: "転移表面",
     });
-    hSuiheiStr = "転移表面";
   }
   if (inPoly([hM.cd07, hM.cd12, hM.cd11])) {
-    const hm0 = mathSinnyuWithPitch(g, hM.cd13, hM.cd05, latLng, HAKODATE_HEIGHT_1, HAKODATE_PITCH);
-    height.push({ val: mathTennib(g, hM.cd13, hM.cd12, hM.cd12, hM.cd04, latLng, hm0), str: "転移表面" });
-    hSuiheiStr = "転移表面";
+    height.push({
+      val: hakodateTransTriHeight(
+        g,
+        hM.cd13,
+        hM.cd12,
+        hM.cd05,
+        hM.cd04,
+        latLng,
+        HAKODATE_HEIGHT_1,
+        HAKODATE_PITCH,
+        pitchT
+      ),
+      str: "転移表面",
+    });
   }
   if (inPoly([hM.cd08, hM.cd15, hM.cd14])) {
-    const hm0 = mathSinnyuWithPitch(g, hM.cd13, hM.cd05, latLng, HAKODATE_HEIGHT_1, HAKODATE_PITCH);
-    height.push({ val: mathTennib(g, hM.cd13, hM.cd14, hM.cd14, hM.cd06, latLng, hm0), str: "転移表面" });
-    hSuiheiStr = "転移表面";
+    height.push({
+      val: hakodateTransTriHeight(
+        g,
+        hM.cd13,
+        hM.cd14,
+        hM.cd05,
+        hM.cd06,
+        latLng,
+        HAKODATE_HEIGHT_1,
+        HAKODATE_PITCH,
+        pitchT
+      ),
+      str: "転移表面",
+    });
   }
   if (inPoly([hM.cd17, hM.cd18, hM.cd24])) {
-    const hm0 = mathSinnyuWithPitch(g, hM.cd19, hM.cd27, latLng, HAKODATE_HEIGHT_2, HAKODATE_PITCH);
-    height.push({ val: mathTennib(g, hM.cd19, hM.cd18, hM.cd18, hM.cd26, latLng, hm0), str: "転移表面" });
-    hSuiheiStr = "転移表面";
+    height.push({
+      val: hakodateTransTriHeight(
+        g,
+        hM.cd19,
+        hM.cd18,
+        hM.cd27,
+        hM.cd26,
+        latLng,
+        HAKODATE_HEIGHT_2,
+        HAKODATE_PITCH,
+        pitchT
+      ),
+      str: "転移表面",
+    });
   }
   if (inPoly([hM.cd20, hM.cd21, hM.cd25])) {
-    const hm0 = mathSinnyuWithPitch(g, hM.cd19, hM.cd27, latLng, HAKODATE_HEIGHT_2, HAKODATE_PITCH);
-    height.push({ val: mathTennib(g, hM.cd19, hM.cd20, hM.cd20, hM.cd28, latLng, hm0), str: "転移表面" });
-    hSuiheiStr = "転移表面";
+    height.push({
+      val: hakodateTransTriHeight(
+        g,
+        hM.cd19,
+        hM.cd20,
+        hM.cd27,
+        hM.cd28,
+        latLng,
+        HAKODATE_HEIGHT_2,
+        HAKODATE_PITCH,
+        pitchT
+      ),
+      str: "転移表面",
+    });
   }
 
-  height.push({ val: horizHeight, str: hSuiheiStr });
+  if (distance <= HAKODATE_HORIZ_RADIUS) {
+    height.push({
+      val: HAKODATE_REF_HEIGHT + HAKODATE_HORIZ_HEIGHT,
+      str: "水平表面",
+    });
+  }
+
+  if (inPoly(hakodateConicalCutPath) && distance > HAKODATE_HORIZ_RADIUS) {
+    const addHeight = decimalsMultiplication(
+      decimalsSubstract(distance, HAKODATE_HORIZ_RADIUS),
+      HAKODATE_PITCH_CONICAL
+    );
+    height.push({
+      val: decimalsAddition(HAKODATE_REF_HEIGHT + HAKODATE_HORIZ_HEIGHT, addHeight),
+      str: "円錐表面",
+    });
+  }
+
+  if (inPoly(hakodateOuterCutPath)) {
+    height.push({
+      val: HAKODATE_REF_HEIGHT + HAKODATE_OUTER_HEIGHT,
+      str: "外側水平表面",
+    });
+  }
+
+  if (height.length === 0) return null;
+
   height.sort((a, b) => a.val - b.val);
   const d = height[0];
   let reStr = d.str;
   if (inPoly([hM.cd04, hM.cd06, hM.cd03, hM.cd01])) {
     reStr = "延長進入表面";
-  } else if (inPoly([hM.cd12, hM.cd04, hM.cd06, hM.cd14]) || inPoly([hM.cd18, hM.cd20, hM.cd28, hM.cd26])) {
+  } else if (
+    inPoly([hM.cd12, hM.cd04, hM.cd06, hM.cd14]) ||
+    inPoly([hM.cd18, hM.cd20, hM.cd28, hM.cd26])
+  ) {
     reStr = "進入表面";
   }
   if (inPoly([hM.cd12, hM.cd14, hM.cd20, hM.cd18])) {
@@ -3253,86 +3454,9 @@ function calcHakodateHorizontalSurface(
   return st ? { surfaceType: st, heightM: d.val } : null;
 }
 
-/** 函館: 円錐表面ゾーン（4000m超〜16500m） */
-function calcHakodateConicalSurface(
-  g: typeof google.maps,
-  latLng: google.maps.LatLng,
-  distance: number,
-  lat: number,
-  lng: number
-): { surfaceType: SurfaceType; heightM: number } | null {
-  const conicalHeight =
-    HAKODATE_REF_HEIGHT + HAKODATE_HORIZ_HEIGHT + (distance - HAKODATE_HORIZ_RADIUS) * (1 / 50);
-  const height: HeightEntry[] = [{ val: conicalHeight, str: "円錐表面" }];
-
-  const inPoly = (path: { lat: number; lng: number }[]) =>
-    isHakodatePointInPolygon(g, lat, lng, path);
-
-  if (inPoly([hM.cd12, hM.cd04, hM.cd06, hM.cd14])) {
-    height.push({
-      val: mathSinnyuWithPitch(g, hM.cd13, hM.cd05, latLng, HAKODATE_HEIGHT_1, HAKODATE_PITCH),
-      str: "進入表面",
-    });
-  }
-  if (inPoly([hM.cd18, hM.cd20, hM.cd28, hM.cd26])) {
-    height.push({
-      val: mathSinnyuWithPitch(g, hM.cd19, hM.cd27, latLng, HAKODATE_HEIGHT_2, HAKODATE_PITCH),
-      str: "進入表面",
-    });
-  }
-  if (inPoly([hM.cd04, hM.cd06, hM.cd03, hM.cd01])) {
-    height.push({
-      val: mathSinnyuWithPitch(g, hM.cd13, hM.cd02, latLng, HAKODATE_HEIGHT_1, HAKODATE_PITCH),
-      str: "延長進入表面",
-    });
-  }
-
-  height.sort((a, b) => a.val - b.val);
-  const d = height[0];
-  let reStr = d.str;
-  if (inPoly([hM.cd04, hM.cd06, hM.cd03, hM.cd01])) {
-    reStr = "延長進入表面";
-  } else if (inPoly([hM.cd12, hM.cd04, hM.cd06, hM.cd14]) || inPoly([hM.cd18, hM.cd20, hM.cd28, hM.cd26])) {
-    reStr = "進入表面";
-  }
-
-  const st = STR_TO_SURFACE[reStr];
-  return st ? { surfaceType: st, heightM: d.val } : null;
-}
-
-/** 函館: 外側水平表面ゾーン（16500m超〜24000m） */
-function calcHakodateOuterHorizontalSurface(
-  g: typeof google.maps,
-  latLng: google.maps.LatLng,
-  lat: number,
-  lng: number
-): { surfaceType: SurfaceType; heightM: number } | null {
-  const outerHeight = HAKODATE_REF_HEIGHT + HAKODATE_OUTER_HEIGHT;
-  const height: HeightEntry[] = [{ val: outerHeight, str: "外側水平表面" }];
-
-  const inPoly = (path: { lat: number; lng: number }[]) =>
-    isHakodatePointInPolygon(g, lat, lng, path);
-
-  if (inPoly([hM.cd04, hM.cd06, hM.cd03, hM.cd01])) {
-    height.push({
-      val: mathSinnyuWithPitch(g, hM.cd13, hM.cd02, latLng, HAKODATE_HEIGHT_1, HAKODATE_PITCH),
-      str: "延長進入表面",
-    });
-  }
-
-  height.sort((a, b) => a.val - b.val);
-  const d = height[0];
-  let reStr = d.str;
-  if (inPoly([hM.cd04, hM.cd06, hM.cd03, hM.cd01])) {
-    reStr = "延長進入表面";
-  }
-
-  const st = STR_TO_SURFACE[reStr];
-  return st ? { surfaceType: st, heightM: d.val } : null;
-}
-
 /**
- * 函館空港の高さ制限を計算する
+ * 函館空港の高さ制限を計算する。
+ * 公式 GetCirclePaths(CDA〜CDE) の切り欠きを円錐・外側水平に使う。
  */
 export function calculateHakodateRestriction(
   lat: number,
@@ -3348,16 +3472,7 @@ export function calculateHakodateRestriction(
     const point = new g.LatLng(lat, lng);
     const distance = g.geometry.spherical.computeDistanceBetween(ref, point);
 
-    let result: { surfaceType: SurfaceType; heightM: number } | null = null;
-
-    if (distance <= HAKODATE_HORIZ_RADIUS) {
-      result = calcHakodateHorizontalSurface(g, point, lat, lng);
-    } else if (distance <= HAKODATE_CONICAL_RADIUS) {
-      result = calcHakodateConicalSurface(g, point, distance, lat, lng);
-    } else if (distance <= HAKODATE_OUTER_RADIUS) {
-      result = calcHakodateOuterHorizontalSurface(g, point, lat, lng);
-    }
-
+    const result = calcHakodateSurfaces(g, point, lat, lng, distance);
     if (!result) {
       return { items: [] };
     }
@@ -5122,7 +5237,8 @@ export function calculateAirportRestriction(
     if (shinchitose.error || shinchitose.items.length > 0) return shinchitose;
   }
   if (distToHakodate <= HAKODATE_OUTER_RADIUS) {
-    return calculateHakodateRestriction(lat, lng, gmaps);
+    const hakodate = calculateHakodateRestriction(lat, lng, gmaps);
+    if (hakodate.error || hakodate.items.length > 0) return hakodate;
   }
   if (distToNiigata <= NIIGATA_SURFACE_EXTENT_M) {
     const niigata = calculateNiigataRestriction(lat, lng, gmaps);

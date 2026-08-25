@@ -66,10 +66,10 @@ import {
 } from "../data/shinchitose";
 import {
   surfacePoints as hakodatePts,
+  conicalCutPath as hakodateConicalCut,
+  outerCutPath as hakodateOuterCut,
   HAKODATE_REFERENCE_POINT,
   RADIUS_OF_HORIZONTAL_SURFACE as HAKODATE_HORIZ,
-  RADIUS_OF_CONICAL_SURFACE as HAKODATE_CONICAL,
-  RADIUS_OF_OUTER_HORIZONTAL_SURFACE as HAKODATE_OUTER,
 } from "../data/hakodate";
 import {
   runwayA as niigataA,
@@ -387,12 +387,12 @@ const SPECS: AirportOverlaySpec[] = [
     quadStyle: SHINCHITOSE_RUNWAY_B_STYLE,
   },
   {
-    ...fullRings(
-      HAKODATE_REFERENCE_POINT,
-      HAKODATE_HORIZ,
-      HAKODATE_CONICAL,
-      HAKODATE_OUTER
-    ),
+    horizontalCircle: {
+      center: HAKODATE_REFERENCE_POINT,
+      radius: HAKODATE_HORIZ,
+    },
+    conicalPolygon: hakodateConicalCut,
+    outerPolygon: hakodateOuterCut,
     quads: kansaiLikeShapes(hakodatePts, { ext2: false }),
   },
   {
