@@ -52,9 +52,9 @@ export const NAGASAKI_REFERENCE_POINT: Coord = {
 /** 標点の海抜高（m） */
 export const HEIGHT_OF_AIRPORT_REFERENCE_POINT = 2.4;
 
-/** 水平表面: 半径(m), 制限高(m) */
+/** 水平表面: 半径(m), 制限高(m) 公式 s_surface_event の 47.4 */
 export const RADIUS_OF_HORIZONTAL_SURFACE = 4000;
-export const HEIGHT_OF_HORIZONTAL_SURFACE = 45;
+export const HEIGHT_OF_HORIZONTAL_SURFACE = 47.4;
 
 /** 円錐表面: 半径(m), 勾配 1/50 */
 export const RADIUS_OF_CONICAL_SURFACE = 16500;
@@ -71,8 +71,8 @@ export const CONICAL_OFFSET = 45;
 /** 着陸帯: 長(m), 幅(m), 北端高さ(m), 南端高さ(m) */
 export const LENGTH_OF_LANDING_AREA = 3120;
 export const WIDTH_OF_LANDING_AREA = 300;
-export const HEIGHT_OF_LANDING_AREA_N = 4.19;
-export const HEIGHT_OF_LANDING_AREA_S = 4.42;
+export const HEIGHT_OF_LANDING_AREA_N = 4.19; // 公式 4.190
+export const HEIGHT_OF_LANDING_AREA_S = 4.42; // 公式 4.420
 
 /** 進入表面勾配 1/50 */
 export const PITCH_OF_APPROACH = 1 / 50;

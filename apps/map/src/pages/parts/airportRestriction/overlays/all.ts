@@ -87,10 +87,11 @@ import {
 } from "../data/kumamoto";
 import {
   mp as nagasakiMp,
+  landingKiE as nagasakiConicalCut,
+  landingKiN as nagasakiOuterN,
+  landingKiS as nagasakiOuterS,
   NAGASAKI_REFERENCE_POINT,
   RADIUS_OF_HORIZONTAL_SURFACE as NAGASAKI_HORIZ,
-  RADIUS_OF_CONICAL_SURFACE as NAGASAKI_CONICAL,
-  RADIUS_OF_OUTER_HORIZONTAL_SURFACE as NAGASAKI_OUTER,
 } from "../data/nagasaki";
 import {
   surfacePointsA as nahaA,
@@ -420,24 +421,28 @@ const SPECS: AirportOverlaySpec[] = [
     quads: kansaiLikeShapes(kumamotoPts),
   },
   {
-    ...fullRings(
-      NAGASAKI_REFERENCE_POINT,
-      NAGASAKI_HORIZ,
-      NAGASAKI_CONICAL,
-      NAGASAKI_OUTER
-    ),
+    horizontalCircle: {
+      center: NAGASAKI_REFERENCE_POINT,
+      radius: NAGASAKI_HORIZ,
+    },
+    conicalPolygon: nagasakiConicalCut,
+    outerPolygon: nagasakiOuterN,
     quads: [
       [nagasakiMp.cd21, nagasakiMp.cd22, nagasakiMp.cd24, nagasakiMp.cd23],
       [nagasakiMp.cd7, nagasakiMp.cd8, nagasakiMp.cd22, nagasakiMp.cd21],
       [nagasakiMp.cd9, nagasakiMp.cd10, nagasakiMp.cd24, nagasakiMp.cd23],
-      [nagasakiMp.cd9, nagasakiMp.cd10, nagasakiMp.cd4, nagasakiMp.cd3],
-      [nagasakiMp.cd22, nagasakiMp.cd18, nagasakiMp.cd20, nagasakiMp.cd24],
-      [nagasakiMp.cd21, nagasakiMp.cd17, nagasakiMp.cd19, nagasakiMp.cd23],
+      [nagasakiMp.cd3, nagasakiMp.cd4, nagasakiMp.cd10, nagasakiMp.cd9],
+      [nagasakiMp.cd18, nagasakiMp.cd20, nagasakiMp.cd24, nagasakiMp.cd22],
       [nagasakiMp.cd14, nagasakiMp.cd18, nagasakiMp.cd22],
-      [nagasakiMp.cd20, nagasakiMp.cd24, nagasakiMp.cd16],
+      [nagasakiMp.cd16, nagasakiMp.cd20, nagasakiMp.cd24],
+      [nagasakiMp.cd17, nagasakiMp.cd19, nagasakiMp.cd23, nagasakiMp.cd21],
       [nagasakiMp.cd13, nagasakiMp.cd17, nagasakiMp.cd21],
       [nagasakiMp.cd15, nagasakiMp.cd19, nagasakiMp.cd23],
     ],
+  },
+  {
+    outerPolygon: nagasakiOuterS,
+    quads: [],
   },
   {
     ...fullRings(
