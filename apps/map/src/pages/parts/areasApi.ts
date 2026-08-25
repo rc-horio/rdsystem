@@ -473,6 +473,7 @@ function parseDetailMeta(info: any, fallbackAreaName?: string): DetailMeta {
     return {
         overview: toStr(ov?.overview ?? defaultOverview),  // 修正: 空の場合にデフォルト値を設定
         address: toStr(ov.address ?? ""),
+        companyName: toStr(ov.companyName ?? ""),
         manager: toStr(ov.manager ?? ""),
         prefecture: toStr(ov.prefecture ?? fallbackAreaName ?? ""),
         droneRecord: (() => {
@@ -792,6 +793,7 @@ export async function createNewArea(params: {
         areaName: trimmed,
         overview: {
             address: params.address ?? "",
+            companyName: "",
             prefecture: params.prefecture ?? "",
             manager: displayName,
             droneRecord: 0,

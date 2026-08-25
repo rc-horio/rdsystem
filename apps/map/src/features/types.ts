@@ -70,7 +70,7 @@ export type Point = {
     areaUuid?: string;
 };
 
-export type TabKey = "overview" | "detail" | "history";
+export type TabKey = "own" | "considering" | "other";
 
 export type HistoryItem = {
     date: string;
@@ -103,6 +103,7 @@ export type HistoryLite = { label: string; date: string };
 export interface DetailMeta {
     overview: string;
     address: string;
+    companyName: string;
     manager: string;
     prefecture: string;
     /** 0=なし, 1=あり */

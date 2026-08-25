@@ -1,5 +1,7 @@
 // src/pages/parts/constants/events.ts
 export const EV_MAP_FOCUS_ONLY = "map:focus-only";
+export const EV_MAP_REQUEST_CURRENT_POINT = "map:request-current-point";
+export const EV_MAP_RESPOND_CURRENT_POINT = "map:respond-current-point";
 
 export const EV_SIDEBAR_OPEN = "sidebar:open";
 export const EV_SIDEBAR_SET_ACTIVE = "sidebar:set-active";

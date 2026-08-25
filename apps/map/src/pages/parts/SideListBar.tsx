@@ -873,6 +873,7 @@ function SideListBarBase({
         overview: {
           ...(raw?.overview ?? {}),
           address: data.meta.address ?? "",
+          companyName: data.meta.companyName ?? "",
           prefecture: data.meta.prefecture ?? "",
           manager: data.meta.manager ?? "",
           droneRecord: data.meta.droneRecord ?? 0,
@@ -1070,6 +1071,7 @@ function SideListBarBase({
       setDetailBarMeta({
         overview: infoToSave.overview?.overview ?? "",
         address: infoToSave.overview?.address ?? "",
+        companyName: infoToSave.overview?.companyName ?? "",
         manager: infoToSave.overview?.manager ?? "",
         prefecture: infoToSave.overview?.prefecture ?? "",
         droneRecord: Number(infoToSave.overview?.droneRecord ?? 0),

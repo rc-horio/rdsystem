@@ -851,7 +851,7 @@ body.detailbar-open #detailbar {
   transform: translateY(-50%) translateZ(0);
   pointer-events: auto;
 
-  /* 三段構成：上=ヘッダー固定、中央=本文スクロール、下=フッター（最終更新） */
+  /* 三段構成：上=閉じる、中央=本文スクロール、下=フッター */
   display: grid;
   grid-template-rows: auto 1fr auto;
   padding: var(--detailbar-pad);
@@ -864,88 +864,14 @@ body.detailbar-open #detailbar {
   opacity: 0;
 }
 
-/* ヘッダー全体（ヒーロー・タイトル・タブ） */
-.detailbar-header {
-  display: grid;
-  grid-template-rows: auto auto auto; /* ヒーロー / タイトル / タブ */
-  gap: 10px;
-  background: transparent; /* 透過（ガラス風は外側で実現） */
-}
-
-/* ヒーロー（画像など差し替え想定）
-   - 高さは CSS 変数で制御（--detailbar-hero-h、デフォルトは 140px）
-   - fullbleed（左右余白を打ち消して全幅表示）も併用可能 */
-.detailbar-hero-slot {
-  --detailbar-hero-h: 140px;
-  height: var(--detailbar-hero-h);
-  margin-bottom: 10px;
-  border: 1px dashed rgba(255, 255, 255, 0.18);
-}
-
-/* fullbleed: 左右のパディングを打ち消して全幅に広げる */
-.detailbar-hero-fullbleed {
-  margin-left: calc(-1 * var(--detailbar-pad));
-  margin-right: calc(-1 * var(--detailbar-pad));
-  width: calc(100% + (var(--detailbar-pad) * 2));
-  display: block;
-}
-/* fullbleed をヘッダー上端まで広げる */
-.detailbar-hero-fullbleed-top {
-  margin-top: calc(-1 * var(--detailbar-pad));
-}
-
-/* タイトル（横幅可変・中央寄せ・省略対応） */
-.detailbar-title {
-  margin: 0;
-  align-self: center;
-
-  /* サイズ/外観（リサイズ時に幅に追従） */
-  width: min(260px, calc(100% - 32px));
-  padding: 0 14px; /* 高さはパディングで確保 */
-  border-radius: 4px;
-  font-size: 50px;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  letter-spacing: 0.02em;
-
-  /* 中央寄せ（上下左右） */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-
-  /* 文字が多いときは「…」で省略 */
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-
-  /* Flex + ellipsis の安定化（Safari等ケア） */
-  min-width: 0;
-
-  margin-top: 0;
-
-  /* タイトル内に置く InputBox 用のカスタム（変数で枠消し） */
-  --rc-inp-bg: transparent;
-  --rc-inp-border: 0;
-  --rc-inp-label-w: 0px;
-}
-/* タイトル内 InputBox の文字中央寄せ＆ellipsis */
-.detailbar-title .rc-inp-input {
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* タブバー */
+/* タブバー（本文スクロール内） */
 .detailbar-tabs {
   display: flex;
   justify-content: center;
   gap: 28px;
   position: relative;
   border-bottom: 1px solid #ed1b24;
-  margin-top: 0;
+  margin: 16px 0 12px;
 }
 
 /* タブボタン（最小幅指定で pill を広げやすく） */
@@ -982,12 +908,127 @@ body.detailbar-open #detailbar {
   overflow: auto; /* パネル内をスクロール */
 }
 
-/* 右上の「隠す」ボタンを前面に */
+.detailbar-area-title {
+  --rc-inp-label-w: 0px;
+  margin: 0 0 16px;
+  width: 100%;
+}
+
+.detailbar-area-title .rc-inp-field,
+.detailbar-area-title .rc-inp-row,
+.detailbar-area-title .rc-inp-shell {
+  width: 100%;
+}
+
+.detailbar-area-title .rc-inp-row {
+  display: block;
+}
+
+.detailbar-area-title .rc-inp-row > span[aria-hidden] {
+  display: none;
+}
+
+.detailbar-area-title .rc-inp-input {
+  font-size: 15px;
+  font-weight: 400;
+  text-align: center;
+}
+
+body:not(.editing-on) .detailbar-area-title {
+  margin: 2px 0 20px;
+  padding-bottom: 12px;
+  position: relative;
+}
+
+body:not(.editing-on) .detailbar-area-title::after {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 1px;
+  margin: 10px 0 0;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+body:not(.editing-on) .detailbar-area-title .rc-inp-shell,
+.detailbar-area-title .rc-inp-shell[aria-disabled="true"] {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 2px 8px 0;
+  min-height: 0;
+  filter: none;
+  opacity: 1;
+}
+
+body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
+  opacity: 1;
+  filter: none;
+  letter-spacing: 0.08em;
+  line-height: 1.45;
+}
+
+.detailbar-panel .rc-txa-shell {
+  padding: 6px 10px;
+}
+
+.detailbar-panel .rc-txa-input {
+  min-height: 0;
+  line-height: 1.45;
+}
+
+.detailbar-gmaps-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.detailbar-gmaps-button {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: #8ec8ff;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.detailbar-gmaps-button:hover:not(:disabled) {
+  color: #b8deff;
+}
+
+.detailbar-gmaps-button:disabled {
+  color: rgba(255, 255, 255, 0.35);
+  cursor: default;
+}
+
+.detailbar-coming-soon {
+  padding: 28px 8px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+}
+
+/* 右上の閉じるボタン（スクロール領域の外） */
 .detailbar-hide {
-  position: absolute;
-  top: 8px;
-  right: 8px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
   z-index: 5;
+  margin: -4px -6px 0 0;
+}
+
+.detailbar-close {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 20px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+}
+
+.detailbar-close:hover {
+  color: #fff;
 }
 
 /* 左下の最終更新表示 */
