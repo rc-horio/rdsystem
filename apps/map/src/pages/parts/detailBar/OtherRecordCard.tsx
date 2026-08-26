@@ -235,14 +235,14 @@ export function OtherRecordCard({
           <div className="detailbar-form">
             <div className="detailbar-form-group">
               <InputBox
-                label="実施会社名"
-                value={record.companyName}
-                onChange={(e) => onPatch({ companyName: e.target.value })}
-              />
-              <InputBox
                 label="イベント名"
                 value={record.eventName}
                 onChange={(e) => onPatch({ eventName: e.target.value })}
+              />
+              <InputBox
+                label="実施会社名"
+                value={record.companyName}
+                onChange={(e) => onPatch({ companyName: e.target.value })}
               />
               <div className="rc-inp-field">
                 <div className="rc-inp-row">

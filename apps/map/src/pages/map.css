@@ -1071,10 +1071,26 @@ body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.other-record-card.is-open .other-record-heading-meta {
+  display: none;
+}
+
 .other-record-body {
   display: grid;
   gap: 12px;
   padding: 12px;
+}
+
+.other-record-card .rc-inp-shell {
+  border: 0;
+}
+
+.other-record-card .rc-inp-shell:not([aria-disabled="true"]):focus-within {
+  border-color: transparent;
+}
+
+.other-record-card .rc-inp-shell[aria-disabled="true"] {
+  border-color: transparent !important;
 }
 
 .other-record-date-shell {
@@ -1109,7 +1125,7 @@ body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
 
 .other-figure-label {
   color: rgba(255, 255, 255, 0.62);
-  font-size: var(--rc-input-font-size, 12px);
+  font-size: 0.8rem;
   line-height: 1.4;
 }
 
