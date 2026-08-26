@@ -117,6 +117,22 @@ export function geometryFromFigure(
   };
 }
 
+export const OTHER_COMPANY_PRESETS = [
+  "ドローンショー・ジャパン",
+  "VISIONOID",
+  "ENCORE",
+  "協和産業",
+  "White Crow",
+  "AlterSky",
+  "SKYTEK",
+] as const;
+
+export const OTHER_COMPANY_FREE_LABEL = "自由記入";
+
+export function isPresetOtherCompany(name: string): boolean {
+  return (OTHER_COMPANY_PRESETS as readonly string[]).includes(name);
+}
+
 export function isEmptyOtherRecord(record: {
   companyName?: string;
   eventName?: string;

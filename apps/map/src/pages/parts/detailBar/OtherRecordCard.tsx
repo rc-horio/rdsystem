@@ -1,7 +1,12 @@
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { useEffect, useId, useRef, useState } from "react";
-import { InputBox, Textarea } from "@/components";
+import { InputBox, SelectBox, Textarea } from "@/components";
 import type { OtherFlightFigure, OtherRecord } from "@/features/types";
+import {
+  OTHER_COMPANY_FREE_LABEL,
+  OTHER_COMPANY_PRESETS,
+  isPresetOtherCompany,
+} from "./helpers";
 
 export type { OtherFlightFigure, OtherRecord };
 
@@ -265,11 +270,35 @@ export function OtherRecordCard({
                 value={record.eventName}
                 onChange={(e) => onPatch({ eventName: e.target.value })}
               />
-              <InputBox
+              <SelectBox
                 label="実施会社名"
-                value={record.companyName}
-                onChange={(e) => onPatch({ companyName: e.target.value })}
+                value={
+                  isPresetOtherCompany(record.companyName)
+                    ? record.companyName
+                    : OTHER_COMPANY_FREE_LABEL
+                }
+                options={[...OTHER_COMPANY_PRESETS, OTHER_COMPANY_FREE_LABEL]}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  if (next === OTHER_COMPANY_FREE_LABEL) {
+                    onPatch({
+                      companyName: isPresetOtherCompany(record.companyName)
+                        ? ""
+                        : record.companyName,
+                    });
+                    return;
+                  }
+                  onPatch({ companyName: next });
+                }}
               />
+              {!isPresetOtherCompany(record.companyName) && (
+                <InputBox
+                  className="other-record-company-free"
+                  value={record.companyName}
+                  onChange={(e) => onPatch({ companyName: e.target.value })}
+                  aria-label="実施会社名（自由記入）"
+                />
+              )}
               <div className="rc-inp-field">
                 <div className="rc-inp-row">
                   <label className="rc-inp-label" htmlFor={dateId}>

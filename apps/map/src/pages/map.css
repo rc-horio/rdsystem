@@ -1095,6 +1095,10 @@ body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
   border-color: transparent !important;
 }
 
+.other-record-company-free .rc-inp-row > span[aria-hidden] {
+  display: none;
+}
+
 .other-record-card .rc-txa-shell {
   border: 0;
 }
