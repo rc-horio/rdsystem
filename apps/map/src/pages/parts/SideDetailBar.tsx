@@ -331,10 +331,15 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     const ok = window.confirm(
       "紐づけを解除しますか？案件情報は削除されません。"
     );
-    if (!ok) return;
+    if (!ok) return false;
     window.alert("案件情報の紐づけを解除しました。");
     setHistory((prev) => prev.filter((_, i) => i !== idx));
-    setSelectedHistoryIdx((current) => (current === idx ? null : current));
+    setSelectedHistoryIdx((current) => {
+      if (current == null) return null;
+      if (current === idx) return null;
+      if (current > idx) return current - 1;
+      return current;
+    });
     window.dispatchEvent(
       new CustomEvent(EV_DETAILBAR_SELECTED, {
         detail: { isSelected: false, kind: null as null },
@@ -344,6 +349,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       index: idx,
       item,
     });
+    return true;
   };
 
   const onSelectCandidate = (idx: number) => {

@@ -1149,6 +1149,13 @@ body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
   line-height: 1.5;
 }
 
+.own-history-value {
+  overflow-wrap: anywhere;
+  caret-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .other-figure-section {
   display: grid;
   gap: 6px;

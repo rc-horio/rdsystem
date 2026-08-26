@@ -6,7 +6,7 @@ type Props = {
   selectedHistoryIdx: number | null;
   editable: boolean;
   onSelectHistory: (item: HistoryItem, idx: number) => void;
-  onDeleteHistory: (idx: number, item: HistoryItem) => void;
+  onDeleteHistory: (idx: number, item: HistoryItem) => boolean;
   onRegisterProject: () => void;
 };
 
