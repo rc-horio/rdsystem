@@ -215,12 +215,9 @@ export function OwnFlightFigures({
 
   return (
     <div className="other-figure-section">
-      <div className="own-figure-head">
-        <div className="other-figure-label">飛行エリア図</div>
-        {figures.length > 0 && (
-          <div className="own-figure-hint">白丸：ダンスファイル指示書に使用</div>
-        )}
-      </div>
+      {figures.length > 0 && (
+        <div className="own-figure-hint">白丸：ダンスファイル指示書に使用</div>
+      )}
       {figures.length === 0 ? (
         <div className="other-figure-empty" aria-live="polite">
           飛行エリア図はありません
