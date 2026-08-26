@@ -1,5 +1,5 @@
 // src/pages/parts/areasApi.ts
-import type { HistoryLite, DetailMeta, Candidate, OtherRecord, OtherFlightFigure, FlightFigure, Geometry } from "@/features/types";
+import type { HistoryLite, DetailMeta, Candidate, OtherRecord, OtherFlightFigure, FlightFigure, Geometry, HistoryItem } from "@/features/types";
 import { getUserDisplayName } from "@/lib/auditHeaders";
 import { getAuditHeaders } from "@/lib/auditHeaders";
 import { getCurrentTurnMetrics } from "./geometry/orientationDebug";
@@ -363,15 +363,7 @@ export async function fetchProjectIndex(projectUuid: string): Promise<any> {
 
 /** project配下から area に紐づく履歴を抽出して返す */
 export async function buildAreaHistoryFromProjects(areaUuid: string): Promise<
-    Array<{
-        date: string;
-        projectName: string;
-        scheduleName: string;
-        kind?: string;
-        droneCount?: number;
-        projectUuid: string;
-        scheduleUuid: string;
-    }>
+    Array<HistoryItem & { kind?: string; droneCount?: number }>
 > {
     // 1) エリアの index を取得して、(projectuuid, scheduleuuid) のペアを抜き出し
     const area = await fetchRawAreaInfo(areaUuid);

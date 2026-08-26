@@ -58,8 +58,8 @@ export function resolveConfirmedGeometry(
 }
 
 /** 表示・エクスポート用。area.geometry を確定図で上書きしたコピー。 */
-export function withConfirmedGeometryView(area: unknown): Record<string, any> {
+export function withConfirmedGeometryView<T>(area: T): T {
   const src = isPlainObject(area) ? { ...area } : {};
   const geometry = resolveConfirmedGeometry(src);
-  return { ...src, geometry: geometry ?? {} };
+  return { ...src, geometry: geometry ?? {} } as T;
 }
