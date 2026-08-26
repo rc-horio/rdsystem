@@ -70,7 +70,7 @@ export type Point = {
     areaUuid?: string;
 };
 
-export type TabKey = "own" | "considering" | "other";
+export type TabKey = "basic" | "own" | "considering" | "other";
 
 export type HistoryItem = {
     date: string;

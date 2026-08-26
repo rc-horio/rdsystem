@@ -62,8 +62,8 @@ export function Textarea({
           aria-describedby={noteId}
           className="rc-txa-input"
           placeholder=""
-          disabled={!editable}
           {...rest}
+          readOnly={!editable}
         />
       </div>
 

@@ -1,6 +1,7 @@
 import type { TabKey } from "@/features/types";
 
 const TABS: Array<{ key: TabKey; label: string }> = [
+  { key: "basic", label: "基本情報" },
   { key: "own", label: "自社" },
   { key: "considering", label: "検討中" },
   { key: "other", label: "他社" },

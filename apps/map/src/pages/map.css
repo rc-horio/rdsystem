@@ -867,21 +867,22 @@ body.detailbar-open #detailbar {
 /* タブバー（本文スクロール内） */
 .detailbar-tabs {
   display: flex;
-  justify-content: center;
-  gap: 28px;
+  justify-content: space-evenly;
+  align-items: center;
+  gap: 4px;
   position: relative;
   border-bottom: 1px solid #ed1b24;
-  margin: 16px 0 12px;
+  margin: 8px 0 12px;
+  flex-wrap: nowrap;
 }
 
-/* タブボタン（最小幅指定で pill を広げやすく） */
 .tab-btn {
   appearance: none;
   border: 0;
   background: transparent;
   color: rgba(255, 255, 255, 0.85);
   font-size: 12px;
-  padding: 4px 14px;
+  padding: 4px 10px;
   position: relative;
   outline: none;
   border-radius: 4px;
@@ -890,7 +891,8 @@ body.detailbar-open #detailbar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: var(--tab-pill-min-w, 60px);
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 /* アクティブタブ */
@@ -1048,7 +1050,34 @@ body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
 
 .detailbar-form {
   display: grid;
-  gap: 8px; /* 概要タブの既定の間隔 */
+  gap: 22px;
+}
+
+.detailbar-form-group {
+  display: grid;
+  gap: 12px;
+}
+
+.detailbar-form .rc-inp-row {
+  grid-template-columns: 1fr;
+  align-items: stretch;
+  row-gap: 6px;
+  column-gap: 0;
+}
+
+.detailbar-form .rc-inp-label,
+.detailbar-form .rc-txa-label {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.detailbar-form .rc-txa-label {
+  margin-bottom: 6px;
+}
+
+.detailbar-form .rc-inp-shell {
+  width: 100%;
+  max-width: 100%;
+  justify-self: stretch;
 }
 
 .detailbar-form--lg {
@@ -1418,6 +1447,15 @@ body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
   caret-color: auto;
   font: inherit;
   font-size: var(--rc-input-font-size);
+}
+
+/* 閲覧時：入力は不可だが、リサイズ・スクロール・テキスト選択は可能 */
+.rc-txa-input:read-only {
+  color: #fff;
+  caret-color: transparent;
+  cursor: default;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 /* 非活性：選択不可・キャレット非表示・完全無反応 */

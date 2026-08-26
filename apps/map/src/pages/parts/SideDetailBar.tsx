@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  InputBox,
   detectEmbedMode,
   useEditableBodyClass,
 } from "@/components";
@@ -44,7 +45,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   }
   const editable = useEditableBodyClass();
   const { handleResizeMouseDown } = useDetailBarResize();
-  const [active, setActive] = useState<TabKey>("own");
+  const [active, setActive] = useState<TabKey>("basic");
   const [title, setTitle] = useState("");
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [selectedHistoryIdx, setSelectedHistoryIdx] = useState<number | null>(
@@ -539,12 +540,12 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   }, [history]);
 
   const hideDetailBar = () => {
-    document.body.classList.remove(CLS_DETAILBAR_OPEN);
-    window.dispatchEvent(
-      new CustomEvent(EV_DETAILBAR_SELECTED, {
-        detail: { isSelected: false, kind: null as null },
-      })
-    );
+            document.body.classList.remove(CLS_DETAILBAR_OPEN);
+            window.dispatchEvent(
+              new CustomEvent(EV_DETAILBAR_SELECTED, {
+                detail: { isSelected: false, kind: null as null },
+              })
+            );
   };
 
   return (
@@ -553,7 +554,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       aria-hidden={typeof open === "boolean" ? !open : undefined}
     >
       <div className="detailbar-hide">
-        <button
+          <button
           type="button"
           className="detailbar-close"
           title="詳細バーを隠す"
@@ -561,17 +562,21 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
           onClick={hideDetailBar}
         >
           ×
-        </button>
+          </button>
       </div>
 
       <div className="detailbar-panel">
-        <BasicInfoSection
-          title={title}
-          onTitleChange={setTitle}
-          meta={meta}
-          onMetaPatch={patchMeta}
-        />
+        <div className="detailbar-area-title">
+              <InputBox
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            aria-label="エリア名称"
+              />
+            </div>
         <DetailBarTabs active={active} onChange={setActive} />
+        {active === "basic" && (
+          <BasicInfoSection meta={meta} onMetaPatch={patchMeta} />
+        )}
         {active === "own" && (
           <OwnFlightAreaPanel
             history={history}
