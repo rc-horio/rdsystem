@@ -58,7 +58,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     null
   );
   const [editingCandidateTitle, setEditingCandidateTitle] = useState("");
-  const editingCandidateInputRef = useRef<HTMLInputElement | null>(null);
+  const editingCandidateInputRef = useRef<HTMLInputElement>(null);
   const [pendingNewCandidateIdx, setPendingNewCandidateIdx] = useState<
     number | null
   >(null);

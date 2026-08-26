@@ -7,7 +7,7 @@ type Props = {
   selectedCandidateIdx: number | null;
   editingCandidateIdx: number | null;
   editingCandidateTitle: string;
-  editingCandidateInputRef: RefObject<HTMLInputElement | null>;
+  editingCandidateInputRef: RefObject<HTMLInputElement>;
   candidateDeletionLocked: boolean;
   editable: boolean;
   onSelectCandidate: (idx: number) => void;
