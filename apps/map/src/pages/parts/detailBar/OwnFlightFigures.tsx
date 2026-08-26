@@ -7,6 +7,13 @@ import {
   removeFlightFigure,
   withConfirmedFlightFigure,
 } from "@/features/flightFigures";
+import { AddFlightFigureModal } from "./AddFlightFigureModal";
+import {
+  cloneGeometry,
+  makeUniqueCopyTitle,
+  type CopySourceItem,
+  type CopySourceTree,
+} from "./flightFigureCopy";
 
 const DEFAULT_FIGURE_TITLE = "飛行エリア図";
 
@@ -22,6 +29,7 @@ type Props = {
   onActivate: (figure: FlightFigure) => void;
   onHighlight: (figureId: string) => void;
   onFigureRemoved: (figureId: string) => void;
+  copySources: CopySourceTree;
 };
 
 function hasDuplicateFigureTitle(
@@ -37,18 +45,6 @@ function hasDuplicateFigureTitle(
   });
 }
 
-function makeUniqueFigureCopyTitle(figures: FlightFigure[], baseTitle: string) {
-  const source = baseTitle.trim() || DEFAULT_FIGURE_TITLE;
-  const first = `${source} (コピー)`;
-  if (!hasDuplicateFigureTitle(figures, first, null)) return first;
-  let n = 2;
-  while (true) {
-    const next = `${source} (コピー${n})`;
-    if (!hasDuplicateFigureTitle(figures, next, null)) return next;
-    n += 1;
-  }
-}
-
 export function OwnFlightFigures({
   figures,
   confirmedFigureId,
@@ -58,8 +54,10 @@ export function OwnFlightFigures({
   onActivate,
   onHighlight,
   onFigureRemoved,
+  copySources,
 }: Props) {
   const figureInputRef = useRef<HTMLInputElement>(null);
+  const [addOpen, setAddOpen] = useState(false);
   const [editingFigureId, setEditingFigureId] = useState<string | null>(null);
   const [editingFigureTitle, setEditingFigureTitle] = useState("");
   const [pendingNewFigureId, setPendingNewFigureId] = useState<string | null>(
@@ -147,12 +145,18 @@ export function OwnFlightFigures({
     setPendingNewFigureId(figure.id);
   };
 
-  const duplicateFigure = (id: string) => {
-    const source = figures.find((f) => f.id === id);
-    if (!source) return;
+  const copyFigure = (source: CopySourceItem) => {
+    if (editingFigureId != null) {
+      const ok = commitFigureTitle();
+      if (!ok) return;
+    }
     const copied = createFlightFigure({
-      title: makeUniqueFigureCopyTitle(figures, source.title ?? ""),
-      geometry: JSON.parse(JSON.stringify(source.geometry ?? {})),
+      title: makeUniqueCopyTitle(
+        figures.map((figure) => figure.title ?? ""),
+        source.title,
+        DEFAULT_FIGURE_TITLE
+      ),
+      geometry: cloneGeometry(source.geometry),
     });
     const next = appendFlightFigure(
       { flight_figures: figures, confirmed_figure_id: confirmedFigureId },
@@ -163,6 +167,14 @@ export function OwnFlightFigures({
     setEditingFigureId(null);
     setEditingFigureTitle("");
     setPendingNewFigureId(null);
+  };
+
+  const requestAdd = () => {
+    if (editingFigureId != null) {
+      const ok = commitFigureTitle();
+      if (!ok) return;
+    }
+    setAddOpen(true);
   };
 
   const deleteFigure = (figure: FlightFigure) => {
@@ -201,10 +213,12 @@ export function OwnFlightFigures({
 
   return (
     <div className="other-figure-section">
-      <div className="other-figure-label">飛行エリア図</div>
-      {figures.length > 0 && (
-        <div className="own-figure-hint">白丸：ダンスファイル仕様書に使用</div>
-      )}
+      <div className="own-figure-head">
+        <div className="other-figure-label">飛行エリア図</div>
+        {figures.length > 0 && (
+          <div className="own-figure-hint">白丸：ダンスファイル指示書に使用</div>
+        )}
+      </div>
       {figures.length === 0 ? (
         <div className="other-figure-empty" aria-live="polite">
           飛行エリア図はありません
@@ -281,41 +295,42 @@ export function OwnFlightFigures({
                     figure.title
                   )}
                 </span>
+                {editable && editingFigureId !== figure.id && (
+                  <span className="other-figure-actions">
+                    <button
+                      type="button"
+                      className="other-figure-action"
+                      onClick={(e: ReactMouseEvent<HTMLButtonElement>) => {
+                        e.stopPropagation();
+                        deleteFigure(figure);
+                      }}
+                    >
+                      削除
+                    </button>
+                  </span>
+                )}
               </div>
             );
           })}
-        </div>
-      )}
-      {editable && selectedFigureId && figures.some((f) => f.id === selectedFigureId) && (
-        <div className="own-figure-toolbar">
-          <button
-            type="button"
-            className="other-figure-action"
-            onClick={() => duplicateFigure(selectedFigureId)}
-          >
-            複製
-          </button>
-          <button
-            type="button"
-            className="other-figure-action"
-            onClick={() => {
-              const figure = figures.find((f) => f.id === selectedFigureId);
-              if (figure) deleteFigure(figure);
-            }}
-          >
-            削除
-          </button>
         </div>
       )}
       {editable && (
         <button
           type="button"
           className="add-area-button detailbar-add-button"
-          onClick={addFigure}
+          onClick={requestAdd}
         >
           <span className="add-icon">＋ </span>飛行エリア図を追加
         </button>
       )}
+      <AddFlightFigureModal
+        open={addOpen}
+        title="飛行エリア図を追加"
+        sources={copySources}
+        onClose={() => setAddOpen(false)}
+        onNew={addFigure}
+        onCopy={copyFigure}
+      />
     </div>
   );
 }

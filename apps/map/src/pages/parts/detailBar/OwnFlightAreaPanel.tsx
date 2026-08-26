@@ -1,11 +1,13 @@
 import type { FlightFigure, HistoryItem } from "@/features/types";
 import { ProjectHistorySection } from "./ProjectHistorySection";
+import type { CopySourceTree } from "./flightFigureCopy";
 
 type Props = {
   history: HistoryItem[];
   selectedHistoryIdx: number | null;
   selectedFigureId: string | null;
   editable: boolean;
+  copySources: CopySourceTree;
   onSelectHistory: (item: HistoryItem, idx: number) => void;
   onDeleteHistory: (idx: number, item: HistoryItem) => boolean;
   onRegisterProject: () => void;
@@ -24,6 +26,7 @@ export function OwnFlightAreaPanel({
   selectedHistoryIdx,
   selectedFigureId,
   editable,
+  copySources,
   onSelectHistory,
   onDeleteHistory,
   onRegisterProject,
@@ -46,6 +49,7 @@ export function OwnFlightAreaPanel({
         onActivateFigure={onActivateFigure}
         onHighlightFigure={onHighlightFigure}
         onFigureRemoved={onFigureRemoved}
+        copySources={copySources}
       />
     </section>
   );

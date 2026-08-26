@@ -7,6 +7,13 @@ import {
   OTHER_COMPANY_PRESETS,
   isPresetOtherCompany,
 } from "./helpers";
+import { AddFlightFigureModal } from "./AddFlightFigureModal";
+import {
+  geometryToFlatFields,
+  makeUniqueCopyTitle,
+  type CopySourceItem,
+  type CopySourceTree,
+} from "./flightFigureCopy";
 
 export type { OtherFlightFigure, OtherRecord };
 
@@ -49,12 +56,13 @@ type Props = {
   onHighlightFigure: (figureIdx: number) => void;
   onActivateFigure: (figureIdx: number, figure: OtherFlightFigure) => void;
   onFigureRemoved: (figureIdx: number) => void;
+  copySources: CopySourceTree;
 };
 
 function formatHeadingDate(ymd: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return ymd;
   const [year, month, day] = ymd.split("-");
-  return `${year.slice(-2)}/${month}/${day}`;
+  return `${year}/${month}/${day}`;
 }
 
 function hasDuplicateFigureTitle(
@@ -70,21 +78,6 @@ function hasDuplicateFigureTitle(
   });
 }
 
-function makeUniqueFigureCopyTitle(
-  figures: OtherFlightFigure[],
-  baseTitle: string
-) {
-  const source = baseTitle.trim() || DEFAULT_FIGURE_TITLE;
-  const first = `${source} (コピー)`;
-  if (!hasDuplicateFigureTitle(figures, first, null)) return first;
-
-  let n = 2;
-  while (true) {
-    const next = `${source} (コピー${n})`;
-    if (!hasDuplicateFigureTitle(figures, next, null)) return next;
-    n += 1;
-  }
-}
 
 export function OtherRecordCard({
   record,
@@ -97,10 +90,12 @@ export function OtherRecordCard({
   onHighlightFigure,
   onActivateFigure,
   onFigureRemoved,
+  copySources,
 }: Props) {
   const dateId = useId();
   const dateInputRef = useRef<HTMLInputElement>(null);
   const figureInputRef = useRef<HTMLInputElement>(null);
+  const [addOpen, setAddOpen] = useState(false);
   const [editingFigureIdx, setEditingFigureIdx] = useState<number | null>(null);
   const [editingFigureTitle, setEditingFigureTitle] = useState("");
   const [pendingNewFigureIdx, setPendingNewFigureIdx] = useState<number | null>(
@@ -199,20 +194,33 @@ export function OtherRecordCard({
     setPendingNewFigureIdx(nextIdx);
   };
 
-  const duplicateFigure = (idx: number) => {
-    const source = record.figures[idx];
-    if (!source) return;
-    const copied: OtherFlightFigure = JSON.parse(JSON.stringify(source));
-    copied.title = makeUniqueFigureCopyTitle(
-      record.figures,
-      source.title ?? ""
-    );
+  const copyFigure = (source: CopySourceItem) => {
+    if (editingFigureIdx != null) {
+      const ok = commitFigureTitle();
+      if (!ok) return;
+    }
+    const copied: OtherFlightFigure = {
+      title: makeUniqueCopyTitle(
+        record.figures.map((figure) => figure.title ?? ""),
+        source.title,
+        DEFAULT_FIGURE_TITLE
+      ),
+      ...geometryToFlatFields(source.geometry),
+    };
     const nextIdx = record.figures.length;
     onPatch({ figures: [...record.figures, copied] });
     onActivateFigure(nextIdx, copied);
     setEditingFigureIdx(null);
     setEditingFigureTitle("");
     setPendingNewFigureIdx(null);
+  };
+
+  const requestAdd = () => {
+    if (editingFigureIdx != null) {
+      const ok = commitFigureTitle();
+      if (!ok) return;
+    }
+    setAddOpen(true);
   };
 
   const deleteFigure = (idx: number, figure: OtherFlightFigure) => {
@@ -296,7 +304,7 @@ export function OtherRecordCard({
                   className="other-record-company-free"
                   value={record.companyName}
                   onChange={(e) => onPatch({ companyName: e.target.value })}
-                  aria-label="実施会社名（自由記入）"
+                  aria-label="実施会社名（その他）"
                 />
               )}
               <div className="rc-inp-field">
@@ -412,41 +420,29 @@ export function OtherRecordCard({
                         figure.title
                       )}
                     </span>
+                    {editable && editingFigureIdx !== idx && (
+                      <span className="other-figure-actions">
+                        <button
+                          type="button"
+                          className="other-figure-action"
+                          onClick={(e: ReactMouseEvent<HTMLButtonElement>) => {
+                            e.stopPropagation();
+                            deleteFigure(idx, figure);
+                          }}
+                        >
+                          削除
+                        </button>
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
             )}
-            {editable &&
-              selectedFigureIdx != null &&
-              selectedFigureIdx >= 0 &&
-              selectedFigureIdx < record.figures.length && (
-                <div className="own-figure-toolbar">
-                  <button
-                    type="button"
-                    className="other-figure-action"
-                    onClick={() => duplicateFigure(selectedFigureIdx)}
-                  >
-                    複製
-                  </button>
-                  <button
-                    type="button"
-                    className="other-figure-action"
-                    onClick={() =>
-                      deleteFigure(
-                        selectedFigureIdx,
-                        record.figures[selectedFigureIdx]
-                      )
-                    }
-                  >
-                    削除
-                  </button>
-                </div>
-              )}
             {editable && (
               <button
                 type="button"
                 className="add-area-button detailbar-add-button"
-                onClick={addFigure}
+                onClick={requestAdd}
               >
                 <span className="add-icon">＋ </span>飛行エリア図を追加
               </button>
@@ -464,6 +460,14 @@ export function OtherRecordCard({
           )}
         </div>
       )}
+      <AddFlightFigureModal
+        open={addOpen}
+        title="飛行エリア図を追加"
+        sources={copySources}
+        onClose={() => setAddOpen(false)}
+        onNew={addFigure}
+        onCopy={copyFigure}
+      />
     </div>
   );
 }

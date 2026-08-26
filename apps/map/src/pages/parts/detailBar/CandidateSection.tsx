@@ -1,6 +1,8 @@
-import type { MouseEvent as ReactMouseEvent, RefObject } from "react";
+import { useState, type MouseEvent as ReactMouseEvent, type RefObject } from "react";
 import { DeleteIconButton } from "@/components";
 import type { Candidate } from "@/features/types";
+import { AddFlightFigureModal } from "./AddFlightFigureModal";
+import type { CopySourceItem, CopySourceTree } from "./flightFigureCopy";
 
 type Props = {
   candidates: Candidate[];
@@ -15,10 +17,11 @@ type Props = {
   onEditingTitleChange: (value: string) => void;
   onCommitTitle: () => boolean;
   onCancelEdit: () => void;
-  onDuplicate: (idx: number) => void;
+  onCopy: (source: CopySourceItem) => void;
   onDelete: (idx: number, candidate: Candidate) => void;
   onAdd: () => void;
   pendingNewCandidateIdx: number | null;
+  copySources: CopySourceTree;
 };
 
 export function CandidateSection({
@@ -34,11 +37,22 @@ export function CandidateSection({
   onEditingTitleChange,
   onCommitTitle,
   onCancelEdit,
-  onDuplicate,
+  onCopy,
   onDelete,
   onAdd,
   pendingNewCandidateIdx,
+  copySources,
 }: Props) {
+  const [addOpen, setAddOpen] = useState(false);
+
+  const requestAdd = () => {
+    if (editingCandidateIdx != null) {
+      const ok = onCommitTitle();
+      if (!ok) return;
+    }
+    setAddOpen(true);
+  };
+
   return (
     <div className="ds-record-section">
       <div className="ds-record-section-title">候補</div>
@@ -118,14 +132,6 @@ export function CandidateSection({
                     e.stopPropagation();
                   }}
                 >
-                  <button
-                    type="button"
-                    className="ds-candidate-duplicate-button"
-                    title="この候補を複製"
-                    onClick={() => onDuplicate(idx)}
-                  >
-                    複製
-                  </button>
                   <DeleteIconButton
                     className={
                       !editable ? "ds-record-delete--hidden" : undefined
@@ -148,11 +154,19 @@ export function CandidateSection({
         <button
           type="button"
           className="add-area-button detailbar-add-button"
-          onClick={onAdd}
+          onClick={requestAdd}
         >
           <span className="add-icon">＋ </span>候補地を追加する
         </button>
       )}
+      <AddFlightFigureModal
+        open={addOpen}
+        title="候補地を追加"
+        sources={copySources}
+        onClose={() => setAddOpen(false)}
+        onNew={onAdd}
+        onCopy={onCopy}
+      />
     </div>
   );
 }

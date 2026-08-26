@@ -59,10 +59,10 @@ export function buildHubUrl(
 export function fmtDate(isoLike: string) {
   const d = new Date(isoLike);
   if (Number.isNaN(d.getTime())) return isoLike;
-  const yy = String(d.getFullYear()).slice(-2);
+  const yyyy = String(d.getFullYear());
   const m = `${d.getMonth() + 1}`.padStart(2, "0");
   const da = `${d.getDate()}`.padStart(2, "0");
-  return `${yy}/${m}/${da}`;
+  return `${yyyy}/${m}/${da}`;
 }
 
 export function formatDateTime(iso: string): string {
@@ -127,7 +127,7 @@ export const OTHER_COMPANY_PRESETS = [
   "SKYTEK",
 ] as const;
 
-export const OTHER_COMPANY_FREE_LABEL = "自由記入";
+export const OTHER_COMPANY_FREE_LABEL = "その他";
 
 export function isPresetOtherCompany(name: string): boolean {
   return (OTHER_COMPANY_PRESETS as readonly string[]).includes(name);

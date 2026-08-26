@@ -6,6 +6,7 @@ import {
   type OtherRecord,
 } from "./OtherRecordCard";
 import { isEmptyOtherRecord } from "./helpers";
+import type { CopySourceTree } from "./flightFigureCopy";
 
 export type OtherFigureSelection = {
   recordIdx: number;
@@ -25,6 +26,7 @@ type Props = {
   ) => void;
   onFigureRemoved: (recordIdx: number, figureIdx: number) => void;
   onRecordRemoved: (recordIdx: number) => void;
+  copySources: CopySourceTree;
 };
 
 export function OtherCompanyPanel({
@@ -36,6 +38,7 @@ export function OtherCompanyPanel({
   onActivateFigure,
   onFigureRemoved,
   onRecordRemoved,
+  copySources,
 }: Props) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
 
@@ -122,6 +125,7 @@ export function OtherCompanyPanel({
                   onFigureRemoved={(figureIdx) =>
                     onFigureRemoved(idx, figureIdx)
                   }
+                  copySources={copySources}
                 />
               );
             })

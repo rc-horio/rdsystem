@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   InputBox,
   detectEmbedMode,
@@ -41,6 +41,11 @@ import {
 } from "./detailBar/helpers";
 import { OwnFlightAreaPanel } from "./detailBar/OwnFlightAreaPanel";
 import { useDetailBarResize } from "./detailBar/useDetailBarResize";
+import {
+  buildCopySourceTree,
+  geometryToFlatFields,
+  type CopySourceItem,
+} from "./detailBar/flightFigureCopy";
 
 export default function SideDetailBar({ open }: { open?: boolean }) {
   const isEmbed = detectEmbedMode();
@@ -78,6 +83,10 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   const candidates = meta.candidate ?? [];
   const otherRecords = meta.otherRecords ?? [];
   const candidateDeletionLocked = !!meta.candidateDeletionLocked;
+  const copySourceTree = useMemo(
+    () => buildCopySourceTree(history, candidates, otherRecords),
+    [history, candidates, otherRecords]
+  );
 
   const initialScheduleRef = useRef<{
     projectUuid?: string;
@@ -214,16 +223,13 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     setEditingCandidateTitle(candidates[idx]?.title ?? "");
   };
 
-  const duplicateCandidate = (idx: number) => {
+  const copyCandidateFromSource = (source: CopySourceItem) => {
     if (candidateDeletionLocked) return;
-    const source = candidates[idx];
-    if (!source) return;
 
-    const copied: Candidate = JSON.parse(JSON.stringify(source));
-    copied.title = makeUniqueCandidateCopyTitle(
-      candidates,
-      source.title ?? ""
-    );
+    const copied: Candidate = {
+      title: makeUniqueCandidateCopyTitle(candidates, source.title),
+      ...geometryToFlatFields(source.geometry),
+    };
     const nextIdx = candidates.length;
     setMeta((prev) => ({
       ...prev,
@@ -760,6 +766,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
             selectedHistoryIdx={selectedHistoryIdx}
             selectedFigureId={selectedOwnFigureId}
             editable={editable}
+            copySources={copySourceTree}
             onSelectHistory={onSelectHistory}
             onDeleteHistory={onDeleteHistory}
             onRegisterProject={handleRegisterProjectInfo}
@@ -783,10 +790,11 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
             onEditingTitleChange={setEditingCandidateTitle}
             onCommitCandidateTitle={commitCandidateTitle}
             onCancelCandidateEdit={cancelCandidateEdit}
-            onDuplicateCandidate={duplicateCandidate}
+            onCopyCandidate={copyCandidateFromSource}
             onDeleteCandidate={deleteCandidate}
             onAddCandidate={handleAddCandidate}
             pendingNewCandidateIdx={pendingNewCandidateIdx}
+            copySources={copySourceTree}
           />
         )}
         {active === "other" && (
@@ -794,6 +802,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
             records={otherRecords}
             editable={editable}
             selectedFigure={selectedOtherFigure}
+            copySources={copySourceTree}
             onHighlightFigure={highlightOtherFigure}
             onActivateFigure={activateOtherFigure}
             onFigureRemoved={onOtherFigureRemoved}

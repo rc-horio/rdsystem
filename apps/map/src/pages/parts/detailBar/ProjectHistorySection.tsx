@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import type { FlightFigure, HistoryItem } from "@/features/types";
-import { buildHubUrl, fmtDate } from "./helpers";
+import { fmtDate } from "./helpers";
 import { OwnFlightFigures } from "./OwnFlightFigures";
+import type { CopySourceTree } from "./flightFigureCopy";
 
 type Props = {
   history: HistoryItem[];
@@ -19,19 +20,8 @@ type Props = {
   onActivateFigure: (idx: number, figure: FlightFigure) => void;
   onHighlightFigure: (idx: number, figureId: string) => void;
   onFigureRemoved: (idx: number, figureId: string) => void;
+  copySources: CopySourceTree;
 };
-
-function openHub(item: HistoryItem) {
-  const url = buildHubUrl(item.projectUuid, item.date, item.scheduleUuid);
-  if (!url) {
-    console.warn(
-      "[detailbar] projectUuid is missing. cannot navigate to hub.",
-      item
-    );
-    return;
-  }
-  window.open(url, "_blank", "noopener,noreferrer");
-}
 
 export function ProjectHistorySection({
   history,
@@ -45,6 +35,7 @@ export function ProjectHistorySection({
   onActivateFigure,
   onHighlightFigure,
   onFigureRemoved,
+  copySources,
 }: Props) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
 
@@ -79,15 +70,10 @@ export function ProjectHistorySection({
         ) : (
           history.map((item, idx) => {
             const open = openIdx === idx;
-            const hubUrl = buildHubUrl(
-              item.projectUuid,
-              item.date,
-              item.scheduleUuid
-            );
             return (
               <div
                 key={`${item.projectName}-${item.scheduleName}-${item.date}-${idx}`}
-                className={`other-record-card ${open ? "is-open" : ""}`}
+                className={`other-record-card own-record-card ${open ? "is-open" : ""}`}
               >
                 <div
                   className="other-record-heading"
@@ -120,62 +106,6 @@ export function ProjectHistorySection({
 
                 {open && (
                   <div className="other-record-body">
-                    <div className="detailbar-form">
-                      <div className="detailbar-form-group">
-                        <div className="rc-inp-field">
-                          <div className="rc-inp-row">
-                            <span className="rc-inp-label">案件名</span>
-                            <div
-                              className="rc-inp-shell"
-                              aria-disabled="true"
-                            >
-                              <div className="rc-inp-input own-history-value">
-                                {item.projectName}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="rc-inp-field">
-                          <div className="rc-inp-row">
-                            <span className="rc-inp-label">
-                              スケジュール名
-                            </span>
-                            <div
-                              className="rc-inp-shell"
-                              aria-disabled="true"
-                            >
-                              <div className="rc-inp-input own-history-value">
-                                {item.scheduleName}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="rc-inp-field">
-                          <div className="rc-inp-row">
-                            <span className="rc-inp-label">日付</span>
-                            <div
-                              className="rc-inp-shell"
-                              aria-disabled="true"
-                            >
-                              <div className="rc-inp-input own-history-value">
-                                {item.date ? fmtDate(item.date) : ""}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="detailbar-gmaps-row">
-                          <button
-                            type="button"
-                            className="detailbar-gmaps-button"
-                            disabled={!hubUrl}
-                            onClick={() => openHub(item)}
-                          >
-                            RD Hubへ
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
                     <OwnFlightFigures
                       figures={item.flight_figures ?? []}
                       confirmedFigureId={item.confirmed_figure_id ?? null}
@@ -193,16 +123,18 @@ export function ProjectHistorySection({
                       onFigureRemoved={(figureId) =>
                         onFigureRemoved(idx, figureId)
                       }
+                      copySources={copySources}
                     />
-
                     {editable && (
-                      <button
-                        type="button"
-                        className="add-area-button detailbar-add-button"
-                        onClick={() => handleDelete(idx, item)}
-                      >
-                        紐づけを解除する
-                      </button>
+                      <div className="own-record-unlink-row">
+                        <button
+                          type="button"
+                          className="own-record-unlink"
+                          onClick={() => handleDelete(idx, item)}
+                        >
+                          紐づけを解除する
+                        </button>
+                      </div>
                     )}
                   </div>
                 )}

@@ -1,6 +1,7 @@
 import type { RefObject } from "react";
 import type { Candidate } from "@/features/types";
 import { CandidateSection } from "./CandidateSection";
+import type { CopySourceItem, CopySourceTree } from "./flightFigureCopy";
 
 type Props = {
   candidates: Candidate[];
@@ -15,10 +16,11 @@ type Props = {
   onEditingTitleChange: (value: string) => void;
   onCommitCandidateTitle: () => boolean;
   onCancelCandidateEdit: () => void;
-  onDuplicateCandidate: (idx: number) => void;
+  onCopyCandidate: (source: CopySourceItem) => void;
   onDeleteCandidate: (idx: number, candidate: Candidate) => void;
   onAddCandidate: () => void;
   pendingNewCandidateIdx: number | null;
+  copySources: CopySourceTree;
 };
 
 export function ConsideringPanel(props: Props) {
@@ -37,10 +39,11 @@ export function ConsideringPanel(props: Props) {
         onEditingTitleChange={props.onEditingTitleChange}
         onCommitTitle={props.onCommitCandidateTitle}
         onCancelEdit={props.onCancelCandidateEdit}
-        onDuplicate={props.onDuplicateCandidate}
+        onCopy={props.onCopyCandidate}
         onDelete={props.onDeleteCandidate}
         onAdd={props.onAddCandidate}
         pendingNewCandidateIdx={props.pendingNewCandidateIdx}
+        copySources={props.copySources}
       />
     </section>
   );

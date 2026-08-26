@@ -1,5 +1,6 @@
 // src/components/modals/BaseModal.tsx
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 
 type BaseModalProps = {
   open: boolean;
@@ -19,7 +20,6 @@ export const BaseModal: React.FC<BaseModalProps> = ({
   backdropClassName,
   containerClassName,
 }) => {
-  // ESCキーで閉じる
   useEffect(() => {
     if (!open) return;
     const handleKey = (e: KeyboardEvent) => {
@@ -31,24 +31,24 @@ export const BaseModal: React.FC<BaseModalProps> = ({
 
   if (!open) return null;
 
-  const baseBackdrop = "modal-backdrop";
-  const baseContainer = "modal-container";
-
-  const backdropCls = [baseBackdrop, backdropClassName]
+  const backdropCls = ["modal-backdrop", backdropClassName]
     .filter(Boolean)
     .join(" ");
-  const containerCls = [baseContainer, containerClassName]
+  const containerCls = ["modal-container", containerClassName]
     .filter(Boolean)
     .join(" ");
 
-  return (
+  const portalTarget =
+    document.querySelector(".map-page") ?? document.body;
+
+  return createPortal(
     <div className={backdropCls} role="presentation" onClick={onClose}>
       <div
         className={containerCls}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? "modal-title" : undefined}
-        onClick={(e) => e.stopPropagation()} // 中身クリックで閉じない
+        onClick={(e) => e.stopPropagation()}
       >
         {title && (
           <header className="modal-header">
@@ -65,6 +65,7 @@ export const BaseModal: React.FC<BaseModalProps> = ({
         )}
         <div className="modal-body">{children}</div>
       </div>
-    </div>
+    </div>,
+    portalTarget
   );
 };
