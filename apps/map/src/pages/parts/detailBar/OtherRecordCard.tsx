@@ -57,6 +57,7 @@ type Props = {
   onActivateFigure: (figureIdx: number, figure: OtherFlightFigure) => void;
   onFigureRemoved: (figureIdx: number) => void;
   copySources: CopySourceTree;
+  onClearConsideringCandidates?: (sourceIndex: number) => void;
 };
 
 function formatHeadingDate(ymd: string) {
@@ -91,6 +92,7 @@ export function OtherRecordCard({
   onActivateFigure,
   onFigureRemoved,
   copySources,
+  onClearConsideringCandidates,
 }: Props) {
   const dateId = useId();
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -464,9 +466,11 @@ export function OtherRecordCard({
         open={addOpen}
         title="飛行エリア図を追加"
         sources={copySources}
+        destinationKind="other"
         onClose={() => setAddOpen(false)}
         onNew={addFigure}
         onCopy={copyFigure}
+        onClearConsideringCandidates={onClearConsideringCandidates}
       />
     </div>
   );

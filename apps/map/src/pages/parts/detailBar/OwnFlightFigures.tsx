@@ -30,6 +30,7 @@ type Props = {
   onHighlight: (figureId: string) => void;
   onFigureRemoved: (figureId: string) => void;
   copySources: CopySourceTree;
+  onClearConsideringCandidates?: (sourceIndex: number) => void;
 };
 
 function hasDuplicateFigureTitle(
@@ -55,6 +56,7 @@ export function OwnFlightFigures({
   onHighlight,
   onFigureRemoved,
   copySources,
+  onClearConsideringCandidates,
 }: Props) {
   const figureInputRef = useRef<HTMLInputElement>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -327,9 +329,11 @@ export function OwnFlightFigures({
         open={addOpen}
         title="飛行エリア図を追加"
         sources={copySources}
+        destinationKind="own"
         onClose={() => setAddOpen(false)}
         onNew={addFigure}
         onCopy={copyFigure}
+        onClearConsideringCandidates={onClearConsideringCandidates}
       />
     </div>
   );

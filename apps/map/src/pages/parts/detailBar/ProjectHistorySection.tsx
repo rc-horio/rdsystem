@@ -21,6 +21,7 @@ type Props = {
   onHighlightFigure: (idx: number, figureId: string) => void;
   onFigureRemoved: (idx: number, figureId: string) => void;
   copySources: CopySourceTree;
+  onClearConsideringCandidates?: (sourceIndex: number) => void;
 };
 
 export function ProjectHistorySection({
@@ -36,6 +37,7 @@ export function ProjectHistorySection({
   onHighlightFigure,
   onFigureRemoved,
   copySources,
+  onClearConsideringCandidates,
 }: Props) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
 
@@ -124,6 +126,9 @@ export function ProjectHistorySection({
                         onFigureRemoved(idx, figureId)
                       }
                       copySources={copySources}
+                      onClearConsideringCandidates={
+                        onClearConsideringCandidates
+                      }
                     />
                     {editable && (
                       <div className="own-record-unlink-row">

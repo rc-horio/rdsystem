@@ -266,6 +266,36 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     setPendingNewCandidateIdx(null);
   };
 
+  const removeCopiedConsideringCandidate = (index: number) => {
+    setMeta((prev) => {
+      const list = Array.isArray(prev.candidate) ? [...prev.candidate] : [];
+      if (index < 0 || index >= list.length) return prev;
+      list.splice(index, 1);
+      return { ...prev, candidate: list };
+    });
+    setSelectedCandidateIdx((current) => {
+      if (current == null) return null;
+      if (current === index) return null;
+      if (current > index) return current - 1;
+      return current;
+    });
+    if (editingCandidateIdx === index) {
+      setEditingCandidateIdx(null);
+      setEditingCandidateTitle("");
+    } else if (editingCandidateIdx != null && editingCandidateIdx > index) {
+      setEditingCandidateIdx(editingCandidateIdx - 1);
+    }
+    setPendingNewCandidateIdx((current) => {
+      if (current == null) return null;
+      if (current === index) return null;
+      if (current > index) return current - 1;
+      return current;
+    });
+    window.alert(
+      "コピー元の候補を削除しました。\nSAVEボタンで確定してください。"
+    );
+  };
+
   const deleteCandidate = (idx: number, candidate: Candidate) => {
     const ok = window.confirm(
       `候補「${candidate.title || "（無題の候補）"}」を削除してもよろしいですか？`
@@ -767,6 +797,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
             selectedFigureId={selectedOwnFigureId}
             editable={editable}
             copySources={copySourceTree}
+            onClearConsideringCandidates={removeCopiedConsideringCandidate}
             onSelectHistory={onSelectHistory}
             onDeleteHistory={onDeleteHistory}
             onRegisterProject={handleRegisterProjectInfo}
@@ -803,6 +834,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
             editable={editable}
             selectedFigure={selectedOtherFigure}
             copySources={copySourceTree}
+            onClearConsideringCandidates={removeCopiedConsideringCandidate}
             onHighlightFigure={highlightOtherFigure}
             onActivateFigure={activateOtherFigure}
             onFigureRemoved={onOtherFigureRemoved}

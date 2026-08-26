@@ -163,6 +163,7 @@ export function CandidateSection({
         open={addOpen}
         title="候補地を追加"
         sources={copySources}
+        destinationKind="considering"
         onClose={() => setAddOpen(false)}
         onNew={onAdd}
         onCopy={onCopy}

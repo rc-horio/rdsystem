@@ -2886,6 +2886,15 @@ select.rc-inp-input optgroup {
   font-size: 13px;
 }
 
+.add-figure-modal__check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #222;
+  cursor: pointer;
+}
+
 /* =========================================
    14) 新規エリア作成トースト
    ========================================= */

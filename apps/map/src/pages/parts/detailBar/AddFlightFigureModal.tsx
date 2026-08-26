@@ -12,9 +12,11 @@ type Props = {
   open: boolean;
   title: string;
   sources: CopySourceTree;
+  destinationKind: "own" | "considering" | "other";
   onClose: () => void;
   onNew: () => void;
   onCopy: (source: CopySourceItem) => void;
+  onClearConsideringCandidates?: (sourceIndex: number) => void;
 };
 
 function sourceLabel(title: string) {
@@ -25,9 +27,11 @@ export function AddFlightFigureModal({
   open,
   title,
   sources,
+  destinationKind,
   onClose,
   onNew,
   onCopy,
+  onClearConsideringCandidates,
 }: Props) {
   const [mode, setMode] = useState<"new" | "copy">("new");
   const [group, setGroup] = useState<GroupKey>("own");
@@ -35,28 +39,35 @@ export function AddFlightFigureModal({
   const [scheduleIdx, setScheduleIdx] = useState(0);
   const [recordIdx, setRecordIdx] = useState(0);
   const [figureIdx, setFigureIdx] = useState(0);
+  const [deleteSourceAfterCopy, setDeleteSourceAfterCopy] = useState(true);
 
   const groups = useMemo(() => {
     const next: { key: GroupKey; label: string }[] = [];
     if (sources.own.length > 0) next.push({ key: "own", label: "自社" });
-    if (sources.considering.length > 0) {
+    if (destinationKind !== "other" && sources.considering.length > 0) {
       next.push({ key: "considering", label: "検討中" });
     }
     if (sources.other.length > 0) next.push({ key: "other", label: "他社" });
     return next;
-  }, [sources]);
+  }, [sources, destinationKind]);
 
-  const canCopy = hasAnyCopySource(sources);
+  const defaultGroup =
+    groups.find((item) => item.key === destinationKind)?.key ??
+    groups[0]?.key ??
+    "own";
+
+  const canCopy = hasAnyCopySource(sources, destinationKind);
 
   useEffect(() => {
     if (!open) return;
     setMode("new");
-    setGroup(groups[0]?.key ?? "own");
+    setGroup(defaultGroup);
     setProjectIdx(0);
     setScheduleIdx(0);
     setRecordIdx(0);
     setFigureIdx(0);
-  }, [open, groups]);
+    setDeleteSourceAfterCopy(true);
+  }, [open, defaultGroup]);
 
   const selectedProject = sources.own[projectIdx] ?? sources.own[0];
   const selectedSchedule =
@@ -264,6 +275,18 @@ export function AddFlightFigureModal({
                 </div>
               </>
             )}
+            {group === "considering" &&
+              destinationKind !== "considering" &&
+              onClearConsideringCandidates && (
+                <label className="add-figure-modal__check">
+                  <input
+                    type="checkbox"
+                    checked={deleteSourceAfterCopy}
+                    onChange={(e) => setDeleteSourceAfterCopy(e.target.checked)}
+                  />
+                  <span>コピー元の飛行エリア図を削除する</span>
+                </label>
+              )}
           </>
         )}
 
@@ -282,7 +305,14 @@ export function AddFlightFigureModal({
               disabled={!canSubmitCopy}
               onClick={() => {
                 if (!selectedSource) return;
+                const clearConsidering =
+                  group === "considering" &&
+                  destinationKind !== "considering" &&
+                  deleteSourceAfterCopy;
                 onCopy(selectedSource);
+                if (clearConsidering) {
+                  onClearConsideringCandidates?.(figureIdx);
+                }
                 onClose();
               }}
             >

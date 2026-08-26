@@ -84,10 +84,14 @@ export function makeUniqueCopyTitle(
   return `${source} (コピー${n})`;
 }
 
-export function hasAnyCopySource(tree: CopySourceTree): boolean {
+export function hasAnyCopySource(
+  tree: CopySourceTree,
+  destinationKind?: "own" | "considering" | "other"
+): boolean {
+  const includeConsidering = destinationKind !== "other";
   return (
     tree.own.length > 0 ||
-    tree.considering.length > 0 ||
+    (includeConsidering && tree.considering.length > 0) ||
     tree.other.length > 0
   );
 }

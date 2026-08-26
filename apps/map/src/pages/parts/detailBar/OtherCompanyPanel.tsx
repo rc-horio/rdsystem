@@ -27,6 +27,7 @@ type Props = {
   onFigureRemoved: (recordIdx: number, figureIdx: number) => void;
   onRecordRemoved: (recordIdx: number) => void;
   copySources: CopySourceTree;
+  onClearConsideringCandidates?: (sourceIndex: number) => void;
 };
 
 export function OtherCompanyPanel({
@@ -39,6 +40,7 @@ export function OtherCompanyPanel({
   onFigureRemoved,
   onRecordRemoved,
   copySources,
+  onClearConsideringCandidates,
 }: Props) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
 
@@ -126,6 +128,7 @@ export function OtherCompanyPanel({
                     onFigureRemoved(idx, figureIdx)
                   }
                   copySources={copySources}
+                  onClearConsideringCandidates={onClearConsideringCandidates}
                 />
               );
             })

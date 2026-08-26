@@ -8,6 +8,7 @@ type Props = {
   selectedFigureId: string | null;
   editable: boolean;
   copySources: CopySourceTree;
+  onClearConsideringCandidates?: (sourceIndex: number) => void;
   onSelectHistory: (item: HistoryItem, idx: number) => void;
   onDeleteHistory: (idx: number, item: HistoryItem) => boolean;
   onRegisterProject: () => void;
@@ -27,6 +28,7 @@ export function OwnFlightAreaPanel({
   selectedFigureId,
   editable,
   copySources,
+  onClearConsideringCandidates,
   onSelectHistory,
   onDeleteHistory,
   onRegisterProject,
@@ -50,6 +52,7 @@ export function OwnFlightAreaPanel({
         onHighlightFigure={onHighlightFigure}
         onFigureRemoved={onFigureRemoved}
         copySources={copySources}
+        onClearConsideringCandidates={onClearConsideringCandidates}
       />
     </section>
   );
