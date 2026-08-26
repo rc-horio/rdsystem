@@ -203,7 +203,7 @@ export function OwnFlightFigures({
     <div className="other-figure-section">
       <div className="other-figure-label">飛行エリア図</div>
       {figures.length > 0 && (
-        <div className="own-figure-hint">白い丸が確定（ダンス仕様書に使う図）</div>
+        <div className="own-figure-hint">白丸：ダンスファイル仕様書に使用</div>
       )}
       {figures.length === 0 ? (
         <div className="other-figure-empty" aria-live="polite">
