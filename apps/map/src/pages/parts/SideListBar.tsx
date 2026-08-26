@@ -37,6 +37,7 @@ import {
   FETCH_AREAS_LIST_ERROR_MSG,
 } from "./areasApi";
 import { PREFECTURES } from "./constants/events";
+import { isEmptyOtherRecord } from "./detailBar/helpers";
 import type {
   ScheduleLite,
   Point,
@@ -943,6 +944,15 @@ function SideListBarBase({
         (p) => !afterKeySet.has(`${p.projectUuid}::${p.scheduleUuid}`)
       );
 
+      const sourceOtherRecords = Array.isArray(data.meta.otherRecords)
+        ? data.meta.otherRecords
+        : Array.isArray(raw?.otherRecords)
+        ? raw.otherRecords
+        : [];
+      const otherRecordsToSave = sourceOtherRecords.filter(
+        (record: { figures?: unknown[] }) => !isEmptyOtherRecord(record)
+      );
+
       // （2-2）画面入力値からareas/<areaUuid>/index.json 形式
       const displayName = await getUserDisplayName();
       const infoToSave = {
@@ -973,11 +983,7 @@ function SideListBarBase({
           : Array.isArray(raw?.candidate)
           ? raw.candidate
           : [],
-        otherRecords: Array.isArray(data.meta.otherRecords)
-          ? data.meta.otherRecords
-          : Array.isArray(raw?.otherRecords)
-          ? raw.otherRecords
-          : [],
+        otherRecords: otherRecordsToSave,
         updated_at: new Date().toISOString(),
         updated_by: displayName,
       };
@@ -1124,11 +1130,21 @@ function SideListBarBase({
           // （3-2）案件に紐づく geometry を保存 or 削除
           await applyProjectGeometryFromPayload(geomPayload);
         } else if (geomPayload.geometry || geomPayload.deleted) {
-          const otherRecordIdx = currentOtherRecordIndexRef.current;
+          const origOtherRecordIdx = currentOtherRecordIndexRef.current;
           const otherFigureIdx = currentOtherFigureIndexRef.current;
           const savedOtherRecords = Array.isArray(infoToSave.otherRecords)
             ? infoToSave.otherRecords
             : [];
+          const otherRecordIdx =
+            typeof origOtherRecordIdx === "number" &&
+            origOtherRecordIdx >= 0 &&
+            origOtherRecordIdx < sourceOtherRecords.length &&
+            !isEmptyOtherRecord(sourceOtherRecords[origOtherRecordIdx])
+              ? sourceOtherRecords
+                  .slice(0, origOtherRecordIdx)
+                  .filter((record: { figures?: unknown[] }) => !isEmptyOtherRecord(record))
+                  .length
+              : null;
           const otherFigureCount =
             typeof otherRecordIdx === "number" &&
             otherRecordIdx >= 0 &&

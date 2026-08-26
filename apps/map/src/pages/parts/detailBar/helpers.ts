@@ -116,3 +116,23 @@ export function geometryFromFigure(
     audienceArea: figure.audienceArea,
   };
 }
+
+export function isEmptyOtherRecord(record: {
+  companyName?: string;
+  eventName?: string;
+  date?: string;
+  aircraftCount?: string;
+  referenceUrl?: string;
+  memo?: string;
+  figures?: OtherFlightFigure[];
+}): boolean {
+  const textEmpty =
+    !(record.eventName ?? "").trim() &&
+    !(record.companyName ?? "").trim() &&
+    !(record.date ?? "").trim() &&
+    !(record.aircraftCount ?? "").trim() &&
+    !(record.referenceUrl ?? "").trim() &&
+    !(record.memo ?? "").trim();
+  if (!textEmpty) return false;
+  return !Array.isArray(record.figures) || record.figures.length === 0;
+}

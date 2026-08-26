@@ -908,6 +908,7 @@ body.detailbar-open #detailbar {
   flex: 1 1 auto;
   min-height: 0; /* Grid子要素のスクロール可にするキモ */
   overflow: auto; /* パネル内をスクロール */
+  caret-color: transparent;
 }
 
 .detailbar-area-title {
@@ -1017,6 +1018,7 @@ body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
   display: block;
   padding: 10px 12px;
   cursor: pointer;
+  caret-color: transparent;
 }
 
 .other-record-heading:hover {
@@ -1176,6 +1178,7 @@ body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
   border-radius: 6px;
   background: transparent;
   cursor: pointer;
+  caret-color: transparent;
 }
 
 .other-figure-row::before {
@@ -1806,6 +1809,29 @@ body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
   pointer-events: none;
 }
 
+/* 入力できないコントロールはキャレットを出さない（検索など入力可の欄は対象外） */
+input:disabled,
+textarea:disabled,
+select:disabled,
+input:read-only,
+textarea:read-only {
+  caret-color: transparent !important;
+}
+
+body:not(.editing-on) #detailbar input,
+body:not(.editing-on) #detailbar textarea,
+body:not(.editing-on) .geom-metrics-panel input,
+body:not(.editing-on) .geom-metrics-panel textarea {
+  caret-color: transparent !important;
+}
+
+#detailbar input:not(:disabled):not(:read-only),
+#detailbar textarea:not(:disabled):not(:read-only),
+.geom-metrics-panel input:not(:disabled):not(:read-only),
+.geom-metrics-panel textarea:not(:disabled):not(:read-only) {
+  caret-color: auto;
+}
+
 /* ===== SelectBox (rc-inp-input on <select>) ===== */
 /* 基本トーンをダークに（UAが対応していればポップアップも暗色になる） */
 select.rc-inp-input {
@@ -1994,6 +2020,7 @@ select.rc-inp-input optgroup {
   opacity: 0.85;
   pointer-events: none;
   -webkit-text-fill-color: rgba(255, 255, 255, 0.95);
+  caret-color: transparent;
 }
 
 /* Number input: hide spin buttons */

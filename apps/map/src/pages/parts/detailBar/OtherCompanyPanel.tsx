@@ -5,6 +5,7 @@ import {
   type OtherFlightFigure,
   type OtherRecord,
 } from "./OtherRecordCard";
+import { isEmptyOtherRecord } from "./helpers";
 
 export type OtherFigureSelection = {
   recordIdx: number;
@@ -45,6 +46,11 @@ export function OtherCompanyPanel({
   }, [openIdx, records.length]);
 
   const addRecord = () => {
+    const emptyIdx = records.findIndex(isEmptyOtherRecord);
+    if (emptyIdx >= 0) {
+      setOpenIdx(emptyIdx);
+      return;
+    }
     const nextIdx = records.length;
     onRecordsChange((prev) => [...prev, { ...EMPTY_OTHER_RECORD, figures: [] }]);
     setOpenIdx(nextIdx);
@@ -76,42 +82,49 @@ export function OtherCompanyPanel({
     );
   };
 
+  const hasVisibleRecords = editable
+    ? records.length > 0
+    : records.some((record) => !isEmptyOtherRecord(record));
+
   return (
     <section role="tabpanel" aria-label="他社">
       <div className="ds-record-section">
         <div className="ds-record-list">
-          {records.length === 0 && !editable ? (
+          {!hasVisibleRecords && !editable ? (
             <div className="other-record-empty" aria-live="polite">
               実績は登録されていません。
             </div>
           ) : (
-            records.map((record, idx) => (
-              <OtherRecordCard
-                key={idx}
-                record={record}
-                editable={editable}
-                open={openIdx === idx}
-                selectedFigureIdx={
-                  selectedFigure?.recordIdx === idx
-                    ? selectedFigure.figureIdx
-                    : null
-                }
-                onToggle={() =>
-                  setOpenIdx((current) => (current === idx ? null : idx))
-                }
-                onPatch={(patch) => patchRecord(idx, patch)}
-                onDelete={() => deleteRecord(idx, record)}
-                onHighlightFigure={(figureIdx) =>
-                  onHighlightFigure(idx, figureIdx)
-                }
-                onActivateFigure={(figureIdx, figure) =>
-                  onActivateFigure(idx, figureIdx, figure)
-                }
-                onFigureRemoved={(figureIdx) =>
-                  onFigureRemoved(idx, figureIdx)
-                }
-              />
-            ))
+            records.map((record, idx) => {
+              if (!editable && isEmptyOtherRecord(record)) return null;
+              return (
+                <OtherRecordCard
+                  key={idx}
+                  record={record}
+                  editable={editable}
+                  open={openIdx === idx}
+                  selectedFigureIdx={
+                    selectedFigure?.recordIdx === idx
+                      ? selectedFigure.figureIdx
+                      : null
+                  }
+                  onToggle={() =>
+                    setOpenIdx((current) => (current === idx ? null : idx))
+                  }
+                  onPatch={(patch) => patchRecord(idx, patch)}
+                  onDelete={() => deleteRecord(idx, record)}
+                  onHighlightFigure={(figureIdx) =>
+                    onHighlightFigure(idx, figureIdx)
+                  }
+                  onActivateFigure={(figureIdx, figure) =>
+                    onActivateFigure(idx, figureIdx, figure)
+                  }
+                  onFigureRemoved={(figureIdx) =>
+                    onFigureRemoved(idx, figureIdx)
+                  }
+                />
+              );
+            })
           )}
         </div>
         {editable && (

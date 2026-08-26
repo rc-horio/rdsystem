@@ -3,6 +3,7 @@ import type { HistoryLite, DetailMeta, Candidate, OtherRecord, OtherFlightFigure
 import { getUserDisplayName } from "@/lib/auditHeaders";
 import { getAuditHeaders } from "@/lib/auditHeaders";
 import { getCurrentTurnMetrics } from "./geometry/orientationDebug";
+import { isEmptyOtherRecord } from "./detailBar/helpers";
 
 const CATALOG =
     String(import.meta.env.VITE_CATALOG_BASE_URL || "").replace(/\/+$/, "") + "/";
@@ -180,7 +181,7 @@ function parseOtherRecords(raw: unknown): OtherRecord[] {
             memo: toStr(row.memo),
             figures,
         };
-    });
+    }).filter((record) => !isEmptyOtherRecord(record));
 }
 
 // ========= Public APIs =========
