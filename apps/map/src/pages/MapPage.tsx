@@ -95,6 +95,10 @@ export default function MapPage() {
           }
 
           const item = history[idx];
+          const confirmed =
+            (item.flight_figures ?? []).find(
+              (f) => f.id === item.confirmed_figure_id
+            ) ?? item.flight_figures?.[0];
 
           // SideDetailBar が無くても、MapView/useScheduleSection がこのイベントを受けて
           // 該当スケジュールの geometry を表示してくれる
@@ -106,7 +110,12 @@ export default function MapPage() {
 
           window.dispatchEvent(
             new CustomEvent(EV_DETAILBAR_SELECT_HISTORY, {
-              detail: { ...item, index: idx },
+              detail: {
+                ...item,
+                index: idx,
+                figureId: confirmed?.id,
+                geometry: confirmed?.geometry,
+              },
             })
           );
         } catch (e) {

@@ -1,9 +1,15 @@
 // src/pages/parts/areasApi.ts
-import type { HistoryLite, DetailMeta, Candidate, OtherRecord, OtherFlightFigure } from "@/features/types";
+import type { HistoryLite, DetailMeta, Candidate, OtherRecord, OtherFlightFigure, FlightFigure, Geometry } from "@/features/types";
 import { getUserDisplayName } from "@/lib/auditHeaders";
 import { getAuditHeaders } from "@/lib/auditHeaders";
 import { getCurrentTurnMetrics } from "./geometry/orientationDebug";
 import { isEmptyOtherRecord } from "./detailBar/helpers";
+import {
+    applyFlightAreaToScheduleArea,
+    createFlightFigure,
+    normalizeScheduleFlightArea,
+    upsertGeometryForFigure,
+} from "@/features/flightFigures";
 
 const CATALOG =
     String(import.meta.env.VITE_CATALOG_BASE_URL || "").replace(/\/+$/, "") + "/";
@@ -420,6 +426,7 @@ export async function buildAreaHistoryFromProjects(areaUuid: string): Promise<
             : undefined;
 
         const kind = typeof sch?.kind === "string" ? sch.kind : undefined;
+        const normalized = normalizeScheduleFlightArea(sch?.area, scheduleName);
 
         return [
             {
@@ -430,6 +437,8 @@ export async function buildAreaHistoryFromProjects(areaUuid: string): Promise<
                 droneCount,
                 projectUuid,
                 scheduleUuid,
+                flight_figures: normalized.flight_figures,
+                confirmed_figure_id: normalized.confirmed_figure_id,
             },
         ];
     });
@@ -601,31 +610,38 @@ export async function updateScheduleTakeoffReferencePoint(params: {
     if (idx < 0) return false;
 
     const sch = proj.schedules[idx];
-
-    // 既存 geometry/takeoffArea が rectangle である場合のみ上書き（無いなら何もしない）
-    const takeoff = sch?.area?.geometry?.takeoffArea;
+    const normalized = normalizeScheduleFlightArea(
+        sch?.area,
+        typeof sch?.label === "string" ? sch.label : "飛行エリア図"
+    );
+    const confirmed = normalized.flight_figures.find(
+        (f) => f.id === normalized.confirmed_figure_id
+    );
+    const takeoff = confirmed?.geometry?.takeoffArea ?? sch?.area?.geometry?.takeoffArea;
     if (!takeoff || takeoff?.type !== "rectangle" || !Array.isArray(takeoff?.coordinates)) {
         if (import.meta.env.DEV) console.warn("[updateRef] takeoff rectangle not found");
         return false;
     }
 
-    // 破壊的変更を避けて浅いコピーで更新
+    const nextGeometry = {
+        ...(confirmed?.geometry ?? sch?.area?.geometry ?? {}),
+        takeoffArea: {
+            ...takeoff,
+            referencePointIndex,
+        },
+    };
+    const nextNormalized =
+        confirmed
+            ? upsertGeometryForFigure(normalized, confirmed.id, nextGeometry)
+            : normalized;
+
     const next = {
         ...proj,
         schedules: proj.schedules.map((s: any, i: number) =>
             i === idx
                 ? {
                     ...s,
-                    area: {
-                        ...(s?.area ?? {}),
-                        geometry: {
-                            ...(s?.area?.geometry ?? {}),
-                            takeoffArea: {
-                                ...s?.area?.geometry?.takeoffArea,
-                                referencePointIndex,
-                            },
-                        },
-                    },
+                    area: applyFlightAreaToScheduleArea(s?.area, nextNormalized),
                 }
                 : s),
     };
@@ -636,8 +652,86 @@ export async function updateScheduleTakeoffReferencePoint(params: {
 }
 
 /**
+ * 複数スケジュールの飛行エリア図を、プロジェクト単位でまとめて保存する。
+ * 同一プロジェクトを連続 save して上書きしないため。
+ */
+export async function upsertScheduleFlightFiguresBatch(
+    items: Array<{
+        projectUuid: string;
+        scheduleUuid: string;
+        flight_figures: FlightFigure[];
+        confirmed_figure_id: string | null;
+        mergeFigureId?: string;
+        geometry?: Geometry;
+    }>
+): Promise<boolean> {
+    const grouped = new Map<string, typeof items>();
+    for (const item of items) {
+        if (!item.projectUuid || !item.scheduleUuid) continue;
+        const list = grouped.get(item.projectUuid) ?? [];
+        list.push(item);
+        grouped.set(item.projectUuid, list);
+    }
+
+    let allOk = true;
+    for (const [projectUuid, list] of grouped) {
+        const proj = await fetchProjectIndex(projectUuid);
+        if (!proj || !Array.isArray(proj?.schedules)) {
+            allOk = false;
+            continue;
+        }
+
+        let schedules = proj.schedules;
+        for (const item of list) {
+            const idx = schedules.findIndex((s: any) => s?.id === item.scheduleUuid);
+            if (idx < 0) {
+                allOk = false;
+                continue;
+            }
+            const sch = schedules[idx];
+            const fallbackTitle =
+                typeof sch?.label === "string" ? sch.label : "飛行エリア図";
+            let normalized = normalizeScheduleFlightArea(
+                {
+                    flight_figures: item.flight_figures,
+                    confirmed_figure_id: item.confirmed_figure_id,
+                },
+                fallbackTitle
+            );
+            if (item.mergeFigureId && item.geometry) {
+                const turn = getCurrentTurnMetrics();
+                const geometryWithTurn = {
+                    ...item.geometry,
+                    ...(turn ? { turn } : {}),
+                };
+                normalized = upsertGeometryForFigure(
+                    normalized,
+                    item.mergeFigureId,
+                    geometryWithTurn
+                );
+            }
+            schedules = schedules.map((s: any, i: number) =>
+                i === idx
+                    ? {
+                          ...s,
+                          area: applyFlightAreaToScheduleArea(s?.area, normalized),
+                      }
+                    : s
+            );
+        }
+
+        const ok = await saveProjectIndex(projectUuid, { ...proj, schedules });
+        if (!ok) {
+            console.error("[upsertScheduleFlightFiguresBatch] saveProjectIndex failed");
+            allOk = false;
+        }
+    }
+    return allOk;
+}
+
+/**
  * 指定スケジュールの geometry を置き換えて保存します（存在時のみ更新）。
- * 成功: true / 失敗 or 対象なし: false
+ * 互換のため残す。新形では確定図へ書く。
  */
 export async function upsertScheduleGeometry(params: {
     projectUuid: string;
@@ -658,20 +752,35 @@ export async function upsertScheduleGeometry(params: {
         ...geometry,
         ...(turn ? { turn } : {}),
     };
+    const sch = proj.schedules[idx];
+    const fallbackTitle =
+        typeof sch?.label === "string" ? sch.label : "飛行エリア図";
+    let normalized = normalizeScheduleFlightArea(sch?.area, fallbackTitle);
+    const confirmedId = normalized.confirmed_figure_id;
+    if (confirmedId) {
+        normalized = upsertGeometryForFigure(
+            normalized,
+            confirmedId,
+            geometryWithTurn
+        );
+    } else {
+        const figure = createFlightFigure({
+            title: fallbackTitle,
+            geometry: geometryWithTurn,
+        });
+        normalized = {
+            flight_figures: [figure],
+            confirmed_figure_id: figure.id,
+        };
+    }
+
     const next = {
         ...proj,
         schedules: proj.schedules.map((s: any, i: number) => {
             if (i !== idx) return s;
-
-            const prevArea =
-                (typeof s?.area === "object" && s.area) ? s.area : {};
-
             return {
                 ...s,
-                area: {
-                    ...prevArea,
-                    geometry: geometryWithTurn,
-                },
+                area: applyFlightAreaToScheduleArea(s?.area, normalized),
             };
         }),
     };
@@ -844,13 +953,17 @@ export async function clearScheduleGeometry(params: {
             if (i !== idx) return s;
 
             const prevArea = (typeof s?.area === "object" && s.area) ? s.area : {};
-            const { geometry, ...restArea } = prevArea;
+            const fallbackTitle =
+                typeof s?.label === "string" ? s.label : "飛行エリア図";
+            const normalized = normalizeScheduleFlightArea(prevArea, fallbackTitle);
+            const confirmedId = normalized.confirmed_figure_id;
+            const nextNormalized = confirmedId
+                ? upsertGeometryForFigure(normalized, confirmedId, {})
+                : { flight_figures: [], confirmed_figure_id: null };
 
             return {
                 ...s,
-                area: {
-                    ...restArea, // geometry だけ落とす（他の area_* は維持）
-                },
+                area: applyFlightAreaToScheduleArea(prevArea, nextNormalized),
             };
         }),
     };

@@ -1,14 +1,24 @@
 import { useEffect, useState } from "react";
-import type { HistoryItem } from "@/features/types";
+import type { FlightFigure, HistoryItem } from "@/features/types";
 import { buildHubUrl, fmtDate } from "./helpers";
+import { OwnFlightFigures } from "./OwnFlightFigures";
 
 type Props = {
   history: HistoryItem[];
   selectedHistoryIdx: number | null;
+  selectedFigureId: string | null;
   editable: boolean;
   onSelect: (item: HistoryItem, idx: number) => void;
   onDelete: (idx: number, item: HistoryItem) => boolean;
   onRegisterProject: () => void;
+  onPatchFigures: (
+    idx: number,
+    figures: FlightFigure[],
+    confirmedFigureId: string | null
+  ) => void;
+  onActivateFigure: (idx: number, figure: FlightFigure) => void;
+  onHighlightFigure: (idx: number, figureId: string) => void;
+  onFigureRemoved: (idx: number, figureId: string) => void;
 };
 
 function openHub(item: HistoryItem) {
@@ -26,10 +36,15 @@ function openHub(item: HistoryItem) {
 export function ProjectHistorySection({
   history,
   selectedHistoryIdx,
+  selectedFigureId,
   editable,
   onSelect,
   onDelete,
   onRegisterProject,
+  onPatchFigures,
+  onActivateFigure,
+  onHighlightFigure,
+  onFigureRemoved,
 }: Props) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
 
@@ -160,6 +175,25 @@ export function ProjectHistorySection({
                         </div>
                       </div>
                     </div>
+
+                    <OwnFlightFigures
+                      figures={item.flight_figures ?? []}
+                      confirmedFigureId={item.confirmed_figure_id ?? null}
+                      selectedFigureId={
+                        selectedHistoryIdx === idx ? selectedFigureId : null
+                      }
+                      editable={editable}
+                      onChange={(figures, confirmedFigureId) =>
+                        onPatchFigures(idx, figures, confirmedFigureId)
+                      }
+                      onActivate={(figure) => onActivateFigure(idx, figure)}
+                      onHighlight={(figureId) =>
+                        onHighlightFigure(idx, figureId)
+                      }
+                      onFigureRemoved={(figureId) =>
+                        onFigureRemoved(idx, figureId)
+                      }
+                    />
 
                     {editable && (
                       <button

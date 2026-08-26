@@ -25,8 +25,7 @@ import {
   clearAreaCandidateGeometryAtIndex,
   upsertAreaCandidateAtIndex,
   upsertAreaOtherFigureAtIndex,
-  upsertScheduleGeometry,
-  clearScheduleGeometry,
+  upsertScheduleFlightFiguresBatch,
   isAreaNameDuplicated,
   upsertAreasListEntryFromInfo,
   removeAreasListEntryByUuid,
@@ -38,6 +37,7 @@ import {
 } from "./areasApi";
 import { PREFECTURES } from "./constants/events";
 import { isEmptyOtherRecord } from "./detailBar/helpers";
+import { normalizeScheduleFlightArea } from "@/features/flightFigures";
 import type {
   ScheduleLite,
   Point,
@@ -586,30 +586,33 @@ function SideListBarBase({
   };
 
   // projects/<projectUuid>/index.json
-  // 案件に紐づく geometry を保存 or 削除
-  const applyProjectGeometryFromPayload = async (
-    payload: GeometryPayload
+  // 案件に紐づく飛行エリア図を保存
+  const applyOwnFlightFiguresFromHistory = async (
+    historyItems: HistoryItem[],
+    geomPayload: GeometryPayload | null
   ): Promise<void> => {
-    const { projectUuid, scheduleUuid, geometry, deleted } = payload;
-    if (!projectUuid || !scheduleUuid) return;
-
-    if (deleted === true) {
-      const okGeomDel = await clearScheduleGeometry({
-        projectUuid,
-        scheduleUuid,
-      });
-      if (!okGeomDel) console.warn("[save] geometry delete failed");
-    } else if (geometry) {
-      const okGeomSave = await upsertScheduleGeometry({
-        projectUuid,
-        scheduleUuid,
-        geometry,
-      });
-      if (!okGeomSave) console.warn("[save] geometry save failed");
-    } else {
-      if (import.meta.env.DEV)
-        console.debug("[save] geometry payload not available — skipped");
-    }
+    const items = historyItems.flatMap((item) => {
+      if (!item.projectUuid || !item.scheduleUuid) return [];
+      const mergeThis =
+        !!geomPayload &&
+        geomPayload.deleted !== true &&
+        !!geomPayload.geometry &&
+        geomPayload.projectUuid === item.projectUuid &&
+        geomPayload.scheduleUuid === item.scheduleUuid;
+      return [
+        {
+          projectUuid: item.projectUuid,
+          scheduleUuid: item.scheduleUuid,
+          flight_figures: item.flight_figures ?? [],
+          confirmed_figure_id: item.confirmed_figure_id ?? null,
+          mergeFigureId: mergeThis ? geomPayload?.figureId : undefined,
+          geometry: mergeThis ? geomPayload?.geometry : undefined,
+        },
+      ];
+    });
+    if (items.length === 0) return;
+    const ok = await upsertScheduleFlightFiguresBatch(items);
+    if (!ok) console.warn("[save] own flight figures save failed");
   };
 
   // areas/<areaUuid>/index.json
@@ -786,7 +789,6 @@ function SideListBarBase({
 
           for (const { projectUuid, scheduleUuid } of historyPairs) {
             try {
-              await clearScheduleGeometry({ projectUuid, scheduleUuid });
               await clearScheduleAreaRef({ projectUuid, scheduleUuid });
             } catch (e) {
               console.warn("[save] clear schedule for deleted area failed", e);
@@ -1000,21 +1002,9 @@ function SideListBarBase({
         return;
       }
 
-      /** 紐づけ解除されたスケジュールの geometry を削除 + area参照も解除 */
+      /** 紐づけ解除：エリア参照だけ外す。飛行エリア図は案件側に残す。 */
       for (const { projectUuid, scheduleUuid } of removedPairs) {
         try {
-          const okGeom = await clearScheduleGeometry({
-            projectUuid,
-            scheduleUuid,
-          });
-          if (!okGeom) {
-            console.warn(
-              "[save] clearScheduleGeometry failed for removed link",
-              projectUuid,
-              scheduleUuid
-            );
-          }
-
           const okArea = await clearScheduleAreaRef({
             projectUuid,
             scheduleUuid,
@@ -1125,10 +1115,16 @@ function SideListBarBase({
         ? infoToSave.otherRecords
         : [];
 
+      await applyOwnFlightFiguresFromHistory(
+        uiHistory,
+        geomPayload?.projectUuid && geomPayload.scheduleUuid
+          ? geomPayload
+          : null
+      );
+
       if (geomPayload) {
         if (geomPayload.projectUuid && geomPayload.scheduleUuid) {
-          // （3-2）案件に紐づく geometry を保存 or 削除
-          await applyProjectGeometryFromPayload(geomPayload);
+          // 自社図は上で保存済み
         } else if (geomPayload.geometry || geomPayload.deleted) {
           const origOtherRecordIdx = currentOtherRecordIndexRef.current;
           const otherFigureIdx = currentOtherFigureIndexRef.current;
@@ -1431,6 +1427,7 @@ function SideListBarBase({
               scheduleName,
               projectUuid: d.projectUuid!,
               scheduleUuid: d.scheduleUuid!,
+              ...normalizeScheduleFlightArea(sch?.area, scheduleName),
             },
           ];
 

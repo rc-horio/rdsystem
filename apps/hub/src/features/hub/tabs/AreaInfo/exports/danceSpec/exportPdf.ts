@@ -8,6 +8,7 @@ import { sanitize, formatTurnText, getSpacingBetweenDronesText } from "./texts";
 import { buildLandingFigureExportSvg } from "./buildLandingFigureExportSvg";
 import { applyDroneOrientationToPage2 } from "./applyDroneOrientation";
 import { getEffectiveBlocks, hasBlocks } from "@/features/hub/utils/areaBlocks";
+import { withConfirmedGeometryView } from "@/features/hub/utils/flightFigures";
 import {
     applyPage2SpacingForExport,
     buildUnequalSpacingExportPage,
@@ -62,7 +63,7 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
     if (headerEl) headerEl.textContent = page2Header;
 
     // 離着陸情報
-    const area = opts?.area ?? {};
+    const area = withConfirmedGeometryView(opts?.area ?? {});
 
     // ===== 左ペイン：LandingAreaFigure を注入 =====
     {

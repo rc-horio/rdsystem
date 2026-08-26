@@ -1200,6 +1200,53 @@ body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
   line-height: 1;
 }
 
+.other-figure-row.own-figure-row::before {
+  content: none;
+  display: none;
+}
+
+.own-figure-hint {
+  margin: -2px 0 4px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.own-figure-radio {
+  appearance: none;
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  margin: 0 8px 0 4px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 50%;
+  background: transparent;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.own-figure-radio.is-on {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.own-figure-radio:disabled {
+  cursor: default;
+}
+
+.own-figure-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 2px 4px 0;
+}
+
+.own-figure-toolbar .other-figure-action {
+  opacity: 1;
+  pointer-events: auto;
+  padding: 0;
+}
+
 .other-figure-row:hover {
   background: rgba(255, 255, 255, 0.06);
 }

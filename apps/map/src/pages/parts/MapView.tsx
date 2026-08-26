@@ -2827,6 +2827,7 @@ export default function MapView({ onLoaded }: Props) {
     setDetailBarMetrics,
     currentProjectUuidRef,
     currentScheduleUuidRef,
+    createDefaultGeometryForFigure: createDefaultGeometry,
   });
 
   // 候補セクション用の処理をフックに委譲

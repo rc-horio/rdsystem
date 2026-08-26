@@ -72,12 +72,25 @@ export type Point = {
 
 export type TabKey = "basic" | "own" | "considering" | "other";
 
+export type FlightFigure = {
+    id: string;
+    title: string;
+    geometry: Geometry;
+};
+
+export type NormalizedScheduleFlightArea = {
+    flight_figures: FlightFigure[];
+    confirmed_figure_id: string | null;
+};
+
 export type HistoryItem = {
     date: string;
     projectName: string;
     scheduleName: string;
     projectUuid?: string;
     scheduleUuid?: string;
+    flight_figures?: FlightFigure[];
+    confirmed_figure_id?: string | null;
 };
 
 export type GeometryMetrics = {
@@ -163,6 +176,7 @@ export type OtherRecord = {
 export type GeometryPayload = {
     projectUuid?: string;
     scheduleUuid?: string;
+    figureId?: string;
     geometry?: any;
     deleted?: boolean;
 };

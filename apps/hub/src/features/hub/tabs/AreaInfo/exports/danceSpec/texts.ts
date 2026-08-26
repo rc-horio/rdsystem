@@ -1,5 +1,6 @@
 // src/features/hub/tabs/AreaInfo/exports/danceSpec/texts.ts
 import { collapseUniformSpacing } from "@/features/hub/utils/spacing";
+import { resolveConfirmedGeometry } from "@/features/hub/utils/flightFigures";
 
 /** ファイル名に使えない文字を安全化 */
 export const sanitize = (name: string) =>
@@ -64,7 +65,7 @@ export function getAltitudeText(areaInput: any): string {
     const max = flight?.altitude_max_m;
 
     // geometry に単一高度があるデータの救済（例: flightAltitude_m）
-    const gAlt = area?.geometry?.flightAltitude_m;
+    const gAlt = resolveConfirmedGeometry(area)?.flightAltitude_m;
 
     const minTxt = min == null && gAlt != null ? toNumText(gAlt) : toNumText(min);
     const maxTxt = max == null && gAlt != null ? toNumText(gAlt) : toNumText(max);
@@ -103,8 +104,9 @@ export function getAnimSizeText(areaInput: any): string {
     let d = anim?.depth_m;
 
     // geometry.flightArea から救済（RightPanel表示と合わせたい場合）
-    if ((w == null || d == null) && area?.geometry?.flightArea) {
-        const fa = area.geometry.flightArea;
+    const confirmed = resolveConfirmedGeometry(area);
+    if ((w == null || d == null) && confirmed?.flightArea) {
+        const fa = confirmed.flightArea;
         if (w == null && fa.radiusX_m != null) w = fa.radiusX_m * 2;
         if (d == null && fa.radiusY_m != null) d = fa.radiusY_m * 2;
     }
@@ -164,5 +166,5 @@ export function getObstaclesText(areaInput: any): string {
 export function getTurnText(areaInput: any): string {
     const area = normalizeArea(areaInput);
     // RightPanelは geometry.turn を使っているのでそれに合わせる
-    return formatTurnText(area?.geometry?.turn);
+    return formatTurnText(resolveConfirmedGeometry(area)?.turn);
 }

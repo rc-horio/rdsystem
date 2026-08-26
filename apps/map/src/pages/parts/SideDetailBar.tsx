@@ -11,7 +11,9 @@ import type {
   DetailMeta,
   Candidate,
   OtherFlightFigure,
+  FlightFigure,
 } from "@/features/types";
+import { normalizeScheduleFlightArea } from "@/features/flightFigures";
 import {
   CLS_DETAILBAR_OPEN,
   EV_DETAILBAR_REQUEST_DATA,
@@ -60,6 +62,9 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     recordIdx: number;
     figureIdx: number;
   } | null>(null);
+  const [selectedOwnFigureId, setSelectedOwnFigureId] = useState<string | null>(
+    null
+  );
   const [editingCandidateIdx, setEditingCandidateIdx] = useState<number | null>(
     null
   );
@@ -113,6 +118,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       candidate: [...(prev.candidate ?? []), newCandidate],
     }));
     setSelectedHistoryIdx(null);
+    setSelectedOwnFigureId(null);
     setSelectedCandidateIdx(nextIdx);
     setSelectedOtherFigure(null);
     setEditingCandidateIdx(nextIdx);
@@ -146,6 +152,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     setEditingCandidateTitle("");
     setPendingNewCandidateIdx(null);
     setSelectedHistoryIdx(null);
+    setSelectedOwnFigureId(null);
     setSelectedCandidateIdx(idx);
     setSelectedOtherFigure(null);
 
@@ -223,6 +230,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       candidate: [...(prev.candidate ?? []), copied],
     }));
     setSelectedHistoryIdx(null);
+    setSelectedOwnFigureId(null);
     setSelectedCandidateIdx(nextIdx);
     setSelectedOtherFigure(null);
     window.dispatchEvent(
@@ -306,15 +314,32 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
           ? x.id
           : undefined;
       return date && projectName && scheduleName
-        ? [{ date, projectName, scheduleName, projectUuid, scheduleUuid }]
+        ? [
+            {
+              date,
+              projectName,
+              scheduleName,
+              projectUuid,
+              scheduleUuid,
+              ...normalizeScheduleFlightArea(
+                {
+                  flight_figures: x?.flight_figures,
+                  confirmed_figure_id: x?.confirmed_figure_id,
+                  geometry: x?.geometry,
+                },
+                scheduleName
+              ),
+            },
+          ]
         : [];
     });
   };
 
-  const onSelectHistory = (item: HistoryItem, idx: number) => {
-    setSelectedHistoryIdx(idx);
-    setSelectedCandidateIdx(null);
-    setSelectedOtherFigure(null);
+  const dispatchOwnFigure = (
+    item: HistoryItem,
+    idx: number,
+    figure: FlightFigure | null
+  ) => {
     window.dispatchEvent(
       new CustomEvent(EV_DETAILBAR_SELECTED, {
         detail: { isSelected: true, kind: "schedule" as const },
@@ -322,9 +347,77 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     );
     window.dispatchEvent(
       new CustomEvent(EV_DETAILBAR_SELECT_HISTORY, {
-      detail: { ...item, index: idx },
+        detail: {
+          ...item,
+          index: idx,
+          figureId: figure?.id,
+          geometry: figure?.geometry,
+        },
       })
     );
+  };
+
+  const confirmedFigureOf = (item: HistoryItem): FlightFigure | null => {
+    const figures = item.flight_figures ?? [];
+    if (figures.length === 0) return null;
+    return (
+      figures.find((f) => f.id === item.confirmed_figure_id) ?? figures[0]
+    );
+  };
+
+  const onSelectHistory = (item: HistoryItem, idx: number) => {
+    setSelectedHistoryIdx(idx);
+    setSelectedCandidateIdx(null);
+    setSelectedOtherFigure(null);
+    const confirmed = confirmedFigureOf(item);
+    setSelectedOwnFigureId(confirmed?.id ?? null);
+    dispatchOwnFigure(item, idx, confirmed);
+  };
+
+  const activateOwnFigure = (idx: number, figure: FlightFigure) => {
+    const item = history[idx];
+    if (!item) return;
+    setSelectedHistoryIdx(idx);
+    setSelectedOwnFigureId(figure.id);
+    setSelectedCandidateIdx(null);
+    setSelectedOtherFigure(null);
+    dispatchOwnFigure(item, idx, figure);
+  };
+
+  const highlightOwnFigure = (idx: number, figureId: string) => {
+    setSelectedHistoryIdx(idx);
+    setSelectedOwnFigureId(figureId);
+    setSelectedCandidateIdx(null);
+    setSelectedOtherFigure(null);
+  };
+
+  const patchOwnFigures = (
+    idx: number,
+    figures: FlightFigure[],
+    confirmedFigureId: string | null
+  ) => {
+    setHistory((prev) =>
+      prev.map((item, i) =>
+        i === idx
+          ? {
+              ...item,
+              flight_figures: figures,
+              confirmed_figure_id: confirmedFigureId,
+            }
+          : item
+      )
+    );
+  };
+
+  const onOwnFigureRemoved = (idx: number, figureId: string) => {
+    setSelectedOwnFigureId((current) => {
+      if (current !== figureId) return current;
+      const item = history[idx];
+      const remaining = (item?.flight_figures ?? []).filter(
+        (f) => f.id !== figureId
+      );
+      return remaining[0]?.id ?? null;
+    });
   };
 
   const onDeleteHistory = (idx: number, item: HistoryItem) => {
@@ -340,6 +433,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       if (current > idx) return current - 1;
       return current;
     });
+    setSelectedOwnFigureId(null);
     window.dispatchEvent(
       new CustomEvent(EV_DETAILBAR_SELECTED, {
         detail: { isSelected: false, kind: null as null },
@@ -355,6 +449,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   const onSelectCandidate = (idx: number) => {
     setSelectedCandidateIdx(idx);
     setSelectedHistoryIdx(null);
+    setSelectedOwnFigureId(null);
     setSelectedOtherFigure(null);
     window.dispatchEvent(
       new CustomEvent(EV_DETAILBAR_SELECTED, {
@@ -387,6 +482,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     setSelectedOtherFigure({ recordIdx, figureIdx });
     setSelectedCandidateIdx(null);
     setSelectedHistoryIdx(null);
+    setSelectedOwnFigureId(null);
   };
 
   const activateOtherFigure = (
@@ -534,6 +630,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       setSelectedHistoryIdx(null);
       setSelectedCandidateIdx(null);
       setSelectedOtherFigure(null);
+      setSelectedOwnFigureId(null);
       window.dispatchEvent(
         new CustomEvent(EV_DETAILBAR_SELECTED, {
           detail: { isSelected: false, kind: null as null },
@@ -576,6 +673,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       setSelectedHistoryIdx(null);
       setSelectedCandidateIdx(null);
       setSelectedOtherFigure(null);
+      setSelectedOwnFigureId(null);
       window.dispatchEvent(
         new CustomEvent(EV_DETAILBAR_SELECTED, {
           detail: { isSelected: false, kind: null as null },
@@ -660,10 +758,15 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
           <OwnFlightAreaPanel
             history={history}
             selectedHistoryIdx={selectedHistoryIdx}
+            selectedFigureId={selectedOwnFigureId}
             editable={editable}
             onSelectHistory={onSelectHistory}
             onDeleteHistory={onDeleteHistory}
             onRegisterProject={handleRegisterProjectInfo}
+            onPatchFigures={patchOwnFigures}
+            onActivateFigure={activateOwnFigure}
+            onHighlightFigure={highlightOwnFigure}
+            onFigureRemoved={onOwnFigureRemoved}
           />
         )}
         {active === "considering" && (

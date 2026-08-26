@@ -7,6 +7,7 @@ import {
   type SelectOption,
 } from "@/components";
 import { useEffect, useState } from "react";
+import { resolveConfirmedGeometry } from "@/features/hub/utils/flightFigures";
 
 // 開発用のCatalogのベースURL
 // const S3_BASE =
@@ -57,7 +58,7 @@ export function RightPanel({
   const [areasError, setAreasError] = useState<string | null>(null);
 
   const A = area ?? {};
-  const geo = A.geometry ?? {};
+  const geo = resolveConfirmedGeometry(A) ?? A.geometry ?? {};
   const flightArea = geo.flightArea ?? {};
   const safetyArea = geo.safetyArea ?? {};
   // const flight = A.flight_area ?? {};

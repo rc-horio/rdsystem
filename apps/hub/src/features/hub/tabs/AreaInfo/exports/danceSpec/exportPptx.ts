@@ -8,6 +8,7 @@ import { buildFileBaseName, formatTurnText, getSpacingBetweenDronesText } from "
 import { buildLandingFigureExportSvg } from "./buildLandingFigureExportSvg";
 import { applyDroneOrientationToPage2 } from "./applyDroneOrientation";
 import { getEffectiveBlocks, hasBlocks } from "@/features/hub/utils/areaBlocks";
+import { withConfirmedGeometryView } from "@/features/hub/utils/flightFigures";
 import {
     applyPage2SpacingForExport,
     buildUnequalSpacingExportPage,
@@ -588,7 +589,7 @@ export async function exportDanceSpecPptxFromHtml(opts?: ExportOpts) {
     setText(p1clone, "#company", company);
     setText(p2clone, "#page2-header", page2Header);
 
-    const area = opts?.area ?? {};
+    const area = withConfirmedGeometryView(opts?.area ?? {});
     const rightPaneRows = buildRightPaneRows(area);
     const rightPaneDdSels = [
         "#v-aircraft",
