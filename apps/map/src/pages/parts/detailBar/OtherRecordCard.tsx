@@ -412,33 +412,36 @@ export function OtherRecordCard({
                         figure.title
                       )}
                     </span>
-                    {editable && (
-                      <span
-                        className="other-figure-actions"
-                        onClick={(e: ReactMouseEvent<HTMLSpanElement>) => {
-                          e.stopPropagation();
-                        }}
-                      >
-                        <button
-                          type="button"
-                          className="other-figure-action"
-                          onClick={() => duplicateFigure(idx)}
-                        >
-                          複製
-                        </button>
-                        <button
-                          type="button"
-                          className="other-figure-action"
-                          onClick={() => deleteFigure(idx, figure)}
-                        >
-                          削除
-                        </button>
-                      </span>
-                    )}
                   </div>
                 ))}
               </div>
             )}
+            {editable &&
+              selectedFigureIdx != null &&
+              selectedFigureIdx >= 0 &&
+              selectedFigureIdx < record.figures.length && (
+                <div className="own-figure-toolbar">
+                  <button
+                    type="button"
+                    className="other-figure-action"
+                    onClick={() => duplicateFigure(selectedFigureIdx)}
+                  >
+                    複製
+                  </button>
+                  <button
+                    type="button"
+                    className="other-figure-action"
+                    onClick={() =>
+                      deleteFigure(
+                        selectedFigureIdx,
+                        record.figures[selectedFigureIdx]
+                      )
+                    }
+                  >
+                    削除
+                  </button>
+                </div>
+              )}
             {editable && (
               <button
                 type="button"

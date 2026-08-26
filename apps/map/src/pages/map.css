@@ -1193,11 +1193,12 @@ body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
 }
 
 .other-figure-row::before {
-  content: "・";
+  content: "○";
   flex: 0 0 auto;
-  color: #ff4d4f;
-  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
   line-height: 1;
+  margin: 0 8px 0 4px;
 }
 
 .other-figure-row.own-figure-row::before {
