@@ -15,6 +15,7 @@ export const EMPTY_DETAIL_META: DetailMeta = {
   restrictionsMemo: "",
   remarks: "",
   candidate: [],
+  otherRecords: [],
   candidateDeletionLocked: false,
   updated_at: undefined,
   updated_by: undefined,

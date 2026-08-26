@@ -1002,11 +1002,191 @@ body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
   cursor: default;
 }
 
-.detailbar-coming-soon {
-  padding: 28px 8px;
-  text-align: center;
-  color: rgba(255, 255, 255, 0.7);
+.other-record-card {
+  border: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+}
+
+.other-record-card.is-open {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.other-record-heading {
+  display: block;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.other-record-heading:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.other-record-heading-texts {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.other-record-heading-event {
   font-size: 13px;
+  line-height: 1.35;
+  color: #fff;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.other-record-heading-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.other-record-heading-company {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.78);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.other-record-heading-date {
+  flex: 0 0 auto;
+  font-size: 11px;
+  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.52);
+  font-variant-numeric: tabular-nums;
+}
+
+.other-record-card.is-open .other-record-heading {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.other-record-body {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+}
+
+.other-record-date-shell {
+  cursor: pointer;
+}
+
+.other-record-date-shell[aria-disabled="true"] {
+  cursor: default;
+}
+
+.other-record-date-input {
+  color-scheme: dark;
+  cursor: pointer;
+}
+
+.other-record-date-input:disabled {
+  cursor: default;
+}
+
+.other-record-empty {
+  padding: 24px 8px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.other-figure-section {
+  display: grid;
+  gap: 6px;
+}
+
+.other-figure-label {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: var(--rc-input-font-size, 12px);
+  line-height: 1.4;
+}
+
+.other-figure-list {
+  display: grid;
+  gap: 8px;
+}
+
+.other-figure-empty {
+  padding: 8px 2px;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.other-figure-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  border-radius: var(--rc-input-radius, 6px);
+  background: rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+
+.other-figure-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.other-figure-row.is-selected {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.other-figure-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #fff;
+}
+
+.other-figure-name-input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  padding: 0;
+  caret-color: auto;
+}
+
+.other-figure-actions {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.other-figure-action {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 12px;
+  line-height: 1;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+
+.other-figure-action:hover {
+  color: #fff;
 }
 
 /* 右上の閉じるボタン（スクロール領域の外） */

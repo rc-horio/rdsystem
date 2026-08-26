@@ -26,7 +26,7 @@ import {
   EV_PROJECT_MODAL_OPEN,
 } from "./constants/events";
 import { BasicInfoSection } from "./detailBar/BasicInfoSection";
-import { ComingSoonPanel } from "./detailBar/ComingSoonPanel";
+import { OtherCompanyPanel } from "./detailBar/OtherCompanyPanel";
 import { ConsideringPanel } from "./detailBar/ConsideringPanel";
 import { DetailBarTabs } from "./detailBar/DetailBarTabs";
 import {
@@ -65,6 +65,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   const [meta, setMeta] = useState<DetailMeta>({ ...EMPTY_DETAIL_META });
 
   const candidates = meta.candidate ?? [];
+  const otherRecords = meta.otherRecords ?? [];
   const candidateDeletionLocked = !!meta.candidateDeletionLocked;
 
   const initialScheduleRef = useRef<{
@@ -607,7 +608,20 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
             pendingNewCandidateIdx={pendingNewCandidateIdx}
           />
         )}
-        {active === "other" && <ComingSoonPanel />}
+        {active === "other" && (
+          <OtherCompanyPanel
+            records={otherRecords}
+            editable={editable}
+            onRecordsChange={(update) => {
+              setMeta((prev) => {
+                const current = prev.otherRecords ?? [];
+                const next =
+                  typeof update === "function" ? update(current) : update;
+                return { ...prev, otherRecords: next };
+              });
+            }}
+          />
+        )}
       </div>
 
       {(meta.updated_at ?? meta.updated_by) && (

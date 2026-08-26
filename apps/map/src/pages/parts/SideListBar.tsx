@@ -895,6 +895,11 @@ function SideListBarBase({
           : Array.isArray(raw?.candidate)
           ? raw.candidate
           : [],
+        otherRecords: Array.isArray(data.meta.otherRecords)
+          ? data.meta.otherRecords
+          : Array.isArray(raw?.otherRecords)
+          ? raw.otherRecords
+          : [],
         updated_at: new Date().toISOString(),
         updated_by: displayName,
       };
@@ -1082,6 +1087,9 @@ function SideListBarBase({
         permitMemo: infoToSave.details?.permitMemo ?? "",
         restrictionsMemo: infoToSave.details?.restrictionsMemo ?? "",
         remarks: infoToSave.details?.remarks ?? "",
+        otherRecords: Array.isArray(infoToSave.otherRecords)
+          ? infoToSave.otherRecords
+          : [],
         updated_at: infoToSave.updated_at,
         updated_by: infoToSave.updated_by,
       });

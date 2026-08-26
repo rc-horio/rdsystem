@@ -116,6 +116,8 @@ export interface DetailMeta {
     restrictionsMemo: string;
     remarks: string;
     candidate: Candidate[];
+    /** 他社タブの実績。永続化キーはエリア index.json の otherRecords */
+    otherRecords: OtherRecord[];
     /**
      * 「候補からコピー + 削除」などの不可逆操作後に、
      * 候補UI（追加/複製/削除）をロックするためのフロント状態。
@@ -137,6 +139,18 @@ export interface Candidate {
     safetyArea?: SafetyGeom;
     audienceArea?: RectangleGeom;
 }
+
+export type OtherFlightFigure = {
+    title: string;
+};
+
+export type OtherRecord = {
+    companyName: string;
+    eventName: string;
+    date: string;
+    aircraftCount: string;
+    figures: OtherFlightFigure[];
+};
 
 export type GeometryPayload = {
     projectUuid?: string;
