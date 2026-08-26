@@ -10,6 +10,7 @@ import type {
   GeometryMetrics,
   DetailMeta,
   Candidate,
+  OtherFlightFigure,
 } from "@/features/types";
 import {
   CLS_DETAILBAR_OPEN,
@@ -32,6 +33,7 @@ import { DetailBarTabs } from "./detailBar/DetailBarTabs";
 import {
   EMPTY_DETAIL_META,
   formatDateTime,
+  geometryFromFigure,
   hasDuplicateCandidateTitle,
   makeUniqueCandidateCopyTitle,
 } from "./detailBar/helpers";
@@ -54,6 +56,10 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   const [selectedCandidateIdx, setSelectedCandidateIdx] = useState<
     number | null
   >(null);
+  const [selectedOtherFigure, setSelectedOtherFigure] = useState<{
+    recordIdx: number;
+    figureIdx: number;
+  } | null>(null);
   const [editingCandidateIdx, setEditingCandidateIdx] = useState<number | null>(
     null
   );
@@ -108,6 +114,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     }));
     setSelectedHistoryIdx(null);
     setSelectedCandidateIdx(nextIdx);
+    setSelectedOtherFigure(null);
     setEditingCandidateIdx(nextIdx);
     setEditingCandidateTitle(newCandidate.title);
     setPendingNewCandidateIdx(nextIdx);
@@ -140,6 +147,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     setPendingNewCandidateIdx(null);
     setSelectedHistoryIdx(null);
     setSelectedCandidateIdx(idx);
+    setSelectedOtherFigure(null);
 
     window.dispatchEvent(
       new CustomEvent(EV_DETAILBAR_SELECTED, {
@@ -149,6 +157,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     window.dispatchEvent(
       new CustomEvent(EV_DETAILBAR_SELECT_CANDIDATE, {
         detail: {
+          source: "candidate" as const,
           geometry: {
             flightAltitude_min_m: undefined,
             flightAltitude_Max_m: undefined,
@@ -215,6 +224,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     }));
     setSelectedHistoryIdx(null);
     setSelectedCandidateIdx(nextIdx);
+    setSelectedOtherFigure(null);
     window.dispatchEvent(
       new CustomEvent(EV_DETAILBAR_SELECTED, {
         detail: { isSelected: true, kind: "candidate" as const },
@@ -223,6 +233,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     window.dispatchEvent(
       new CustomEvent(EV_DETAILBAR_SELECT_CANDIDATE, {
         detail: {
+          source: "candidate" as const,
           geometry: {
             flightAltitude_min_m: copied.flightAltitude_min_m,
             flightAltitude_Max_m: copied.flightAltitude_Max_m,
@@ -303,6 +314,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   const onSelectHistory = (item: HistoryItem, idx: number) => {
     setSelectedHistoryIdx(idx);
     setSelectedCandidateIdx(null);
+    setSelectedOtherFigure(null);
     window.dispatchEvent(
       new CustomEvent(EV_DETAILBAR_SELECTED, {
         detail: { isSelected: true, kind: "schedule" as const },
@@ -337,6 +349,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   const onSelectCandidate = (idx: number) => {
     setSelectedCandidateIdx(idx);
     setSelectedHistoryIdx(null);
+    setSelectedOtherFigure(null);
     window.dispatchEvent(
       new CustomEvent(EV_DETAILBAR_SELECTED, {
         detail: { isSelected: true, kind: "candidate" as const },
@@ -347,6 +360,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       window.dispatchEvent(
         new CustomEvent(EV_DETAILBAR_SELECT_CANDIDATE, {
           detail: {
+            source: "candidate" as const,
             geometry: {
         flightAltitude_min_m: selectedCandidate.flightAltitude_min_m,
         flightAltitude_Max_m: selectedCandidate.flightAltitude_Max_m,
@@ -361,6 +375,58 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
         })
       );
     }
+  };
+
+  const highlightOtherFigure = (recordIdx: number, figureIdx: number) => {
+    setSelectedOtherFigure({ recordIdx, figureIdx });
+    setSelectedCandidateIdx(null);
+    setSelectedHistoryIdx(null);
+  };
+
+  const activateOtherFigure = (
+    recordIdx: number,
+    figureIdx: number,
+    figure: OtherFlightFigure
+  ) => {
+    highlightOtherFigure(recordIdx, figureIdx);
+    window.dispatchEvent(
+      new CustomEvent(EV_DETAILBAR_SELECTED, {
+        detail: { isSelected: true, kind: "candidate" as const },
+      })
+    );
+    window.dispatchEvent(
+      new CustomEvent(EV_DETAILBAR_SELECT_CANDIDATE, {
+        detail: {
+          source: "other" as const,
+          recordIndex: recordIdx,
+          index: figureIdx,
+          title: figure.title,
+          geometry: geometryFromFigure(figure),
+        },
+      })
+    );
+  };
+
+  const onOtherFigureRemoved = (recordIdx: number, figureIdx: number) => {
+    setSelectedOtherFigure((current) => {
+      if (!current || current.recordIdx !== recordIdx) return current;
+      if (current.figureIdx === figureIdx) return null;
+      if (current.figureIdx > figureIdx) {
+        return { recordIdx, figureIdx: current.figureIdx - 1 };
+      }
+      return current;
+    });
+  };
+
+  const onOtherRecordRemoved = (recordIdx: number) => {
+    setSelectedOtherFigure((current) => {
+      if (!current) return current;
+      if (current.recordIdx === recordIdx) return null;
+      if (current.recordIdx > recordIdx) {
+        return { ...current, recordIdx: current.recordIdx - 1 };
+      }
+      return current;
+    });
   };
 
   useEffect(() => {
@@ -461,6 +527,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       setHistory(sanitized);
       setSelectedHistoryIdx(null);
       setSelectedCandidateIdx(null);
+      setSelectedOtherFigure(null);
       window.dispatchEvent(
         new CustomEvent(EV_DETAILBAR_SELECTED, {
           detail: { isSelected: false, kind: null as null },
@@ -485,19 +552,24 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   }, [history, selectedHistoryIdx]);
 
   useEffect(() => {
-    if (selectedHistoryIdx === null && selectedCandidateIdx === null) {
+    if (
+      selectedHistoryIdx === null &&
+      selectedCandidateIdx === null &&
+      selectedOtherFigure === null
+    ) {
       window.dispatchEvent(
         new CustomEvent(EV_DETAILBAR_SELECTED, {
           detail: { isSelected: false, kind: null as null },
         })
       );
     }
-  }, [selectedHistoryIdx, selectedCandidateIdx]);
+  }, [selectedHistoryIdx, selectedCandidateIdx, selectedOtherFigure]);
 
   useEffect(() => {
     const reset = () => {
       setSelectedHistoryIdx(null);
       setSelectedCandidateIdx(null);
+      setSelectedOtherFigure(null);
       window.dispatchEvent(
         new CustomEvent(EV_DETAILBAR_SELECTED, {
           detail: { isSelected: false, kind: null as null },
@@ -612,6 +684,11 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
           <OtherCompanyPanel
             records={otherRecords}
             editable={editable}
+            selectedFigure={selectedOtherFigure}
+            onHighlightFigure={highlightOtherFigure}
+            onActivateFigure={activateOtherFigure}
+            onFigureRemoved={onOtherFigureRemoved}
+            onRecordRemoved={onOtherRecordRemoved}
             onRecordsChange={(update) => {
               setMeta((prev) => {
                 const current = prev.otherRecords ?? [];

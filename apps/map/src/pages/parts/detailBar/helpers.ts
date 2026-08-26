@@ -1,4 +1,4 @@
-import type { Candidate, DetailMeta } from "@/features/types";
+import type { Candidate, DetailMeta, OtherFlightFigure } from "@/features/types";
 
 export const EMPTY_DETAIL_META: DetailMeta = {
   overview: "",
@@ -102,4 +102,17 @@ export function makeUniqueCandidateCopyTitle(
     if (!hasDuplicateCandidateTitle(candidates, next, null)) return next;
     n += 1;
   }
+}
+
+export function geometryFromFigure(
+  figure: Candidate | OtherFlightFigure
+) {
+  return {
+    flightAltitude_min_m: figure.flightAltitude_min_m,
+    flightAltitude_Max_m: figure.flightAltitude_Max_m,
+    takeoffArea: figure.takeoffArea,
+    flightArea: figure.flightArea,
+    safetyArea: figure.safetyArea,
+    audienceArea: figure.audienceArea,
+  };
 }

@@ -2,19 +2,39 @@ import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import {
   EMPTY_OTHER_RECORD,
   OtherRecordCard,
+  type OtherFlightFigure,
   type OtherRecord,
 } from "./OtherRecordCard";
+
+export type OtherFigureSelection = {
+  recordIdx: number;
+  figureIdx: number;
+};
 
 type Props = {
   records: OtherRecord[];
   editable: boolean;
+  selectedFigure: OtherFigureSelection | null;
   onRecordsChange: Dispatch<SetStateAction<OtherRecord[]>>;
+  onHighlightFigure: (recordIdx: number, figureIdx: number) => void;
+  onActivateFigure: (
+    recordIdx: number,
+    figureIdx: number,
+    figure: OtherFlightFigure
+  ) => void;
+  onFigureRemoved: (recordIdx: number, figureIdx: number) => void;
+  onRecordRemoved: (recordIdx: number) => void;
 };
 
 export function OtherCompanyPanel({
   records,
   editable,
+  selectedFigure,
   onRecordsChange,
+  onHighlightFigure,
+  onActivateFigure,
+  onFigureRemoved,
+  onRecordRemoved,
 }: Props) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
 
@@ -46,6 +66,7 @@ export function OtherCompanyPanel({
       if (current > idx) return current - 1;
       return current;
     });
+    onRecordRemoved(idx);
     window.alert("実績を削除しました。\nSAVEボタンで確定してください。");
   };
 
@@ -70,11 +91,25 @@ export function OtherCompanyPanel({
                 record={record}
                 editable={editable}
                 open={openIdx === idx}
+                selectedFigureIdx={
+                  selectedFigure?.recordIdx === idx
+                    ? selectedFigure.figureIdx
+                    : null
+                }
                 onToggle={() =>
                   setOpenIdx((current) => (current === idx ? null : idx))
                 }
                 onPatch={(patch) => patchRecord(idx, patch)}
                 onDelete={() => deleteRecord(idx, record)}
+                onHighlightFigure={(figureIdx) =>
+                  onHighlightFigure(idx, figureIdx)
+                }
+                onActivateFigure={(figureIdx, figure) =>
+                  onActivateFigure(idx, figureIdx, figure)
+                }
+                onFigureRemoved={(figureIdx) =>
+                  onFigureRemoved(idx, figureIdx)
+                }
               />
             ))
           )}

@@ -154,7 +154,21 @@ function parseOtherRecords(raw: unknown): OtherRecord[] {
                       figure && typeof figure === "object"
                           ? (figure as Record<string, unknown>)
                           : {};
-                  return { title: toStr(f.title) };
+                  return {
+                      title: toStr(f.title),
+                      flightAltitude_min_m:
+                          f.flightAltitude_min_m as OtherFlightFigure["flightAltitude_min_m"],
+                      flightAltitude_Max_m:
+                          f.flightAltitude_Max_m as OtherFlightFigure["flightAltitude_Max_m"],
+                      takeoffArea:
+                          f.takeoffArea as OtherFlightFigure["takeoffArea"],
+                      flightArea:
+                          f.flightArea as OtherFlightFigure["flightArea"],
+                      safetyArea:
+                          f.safetyArea as OtherFlightFigure["safetyArea"],
+                      audienceArea:
+                          f.audienceArea as OtherFlightFigure["audienceArea"],
+                  };
               })
             : [];
         return {
@@ -162,6 +176,8 @@ function parseOtherRecords(raw: unknown): OtherRecord[] {
             eventName: toStr(row.eventName),
             date: toStr(row.date),
             aircraftCount: toStr(row.aircraftCount),
+            referenceUrl: toStr(row.referenceUrl),
+            memo: toStr(row.memo),
             figures,
         };
     });
@@ -717,6 +733,68 @@ export async function upsertAreaCandidateAtIndex(params: {
 
     const ok = await saveAreaInfo(areaUuid, nextInfo);
     if (!ok) console.error("[upsertAreaCandidateAtIndex] saveAreaInfo failed");
+    return ok;
+}
+
+/**
+ * エリア index.json の otherRecords[recordIndex].figures[figureIndex] を上書き保存（merge）します。
+ * 既存要素の更新のみ（append しない）。SAVE 時のジオメトリ書き込み用。
+ */
+export async function upsertAreaOtherFigureAtIndex(params: {
+    areaUuid: string;
+    recordIndex: number;
+    figureIndex: number;
+    figure: Partial<OtherFlightFigure>;
+    preserveTitle?: boolean;
+}): Promise<boolean> {
+    const {
+        areaUuid,
+        recordIndex,
+        figureIndex,
+        figure,
+        preserveTitle = true,
+    } = params;
+    if (
+        !areaUuid ||
+        !Number.isInteger(recordIndex) ||
+        recordIndex < 0 ||
+        !Number.isInteger(figureIndex) ||
+        figureIndex < 0
+    ) {
+        return false;
+    }
+
+    const info = await fetchRawAreaInfo(areaUuid);
+    const records: OtherRecord[] = Array.isArray(info?.otherRecords)
+        ? info.otherRecords
+        : [];
+    if (recordIndex >= records.length) return false;
+
+    const prevRecord = records[recordIndex] ?? {};
+    const figures: OtherFlightFigure[] = Array.isArray(prevRecord.figures)
+        ? [...prevRecord.figures]
+        : [];
+    if (figureIndex >= figures.length) return false;
+
+    const prev = figures[figureIndex] ?? { title: "" };
+    const next: OtherFlightFigure = {
+        ...prev,
+        ...figure,
+        ...(preserveTitle
+            ? { title: prev.title ?? figure.title ?? "飛行エリア図" }
+            : {}),
+    };
+    figures[figureIndex] = next;
+
+    const nextRecords = records.map((record, i) =>
+        i === recordIndex ? { ...prevRecord, ...record, figures } : record
+    );
+
+    const ok = await saveAreaInfo(areaUuid, {
+        ...info,
+        otherRecords: nextRecords,
+    });
+    if (!ok) console.error("[upsertAreaOtherFigureAtIndex] saveAreaInfo failed");
     return ok;
 }
 

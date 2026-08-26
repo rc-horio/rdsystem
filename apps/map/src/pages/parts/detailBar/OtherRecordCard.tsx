@@ -1,6 +1,6 @@
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { useEffect, useId, useRef, useState } from "react";
-import { InputBox } from "@/components";
+import { InputBox, Textarea } from "@/components";
 import type { OtherFlightFigure, OtherRecord } from "@/features/types";
 
 export type { OtherFlightFigure, OtherRecord };
@@ -10,18 +10,40 @@ export const EMPTY_OTHER_RECORD: OtherRecord = {
   eventName: "",
   date: "",
   aircraftCount: "",
+  referenceUrl: "",
+  memo: "",
   figures: [],
 };
 
 const DEFAULT_FIGURE_TITLE = "飛行エリア図";
 
+function canOpenReferenceUrl(raw: string): boolean {
+  const value = raw.trim();
+  if (!value) return false;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function openReferenceUrl(raw: string) {
+  if (!canOpenReferenceUrl(raw)) return;
+  window.open(raw.trim(), "_blank", "noopener,noreferrer");
+}
+
 type Props = {
   record: OtherRecord;
   editable: boolean;
   open: boolean;
+  selectedFigureIdx: number | null;
   onToggle: () => void;
   onPatch: (patch: Partial<OtherRecord>) => void;
   onDelete: () => void;
+  onHighlightFigure: (figureIdx: number) => void;
+  onActivateFigure: (figureIdx: number, figure: OtherFlightFigure) => void;
+  onFigureRemoved: (figureIdx: number) => void;
 };
 
 function formatHeadingDate(ymd: string) {
@@ -63,16 +85,17 @@ export function OtherRecordCard({
   record,
   editable,
   open,
+  selectedFigureIdx,
   onToggle,
   onPatch,
   onDelete,
+  onHighlightFigure,
+  onActivateFigure,
+  onFigureRemoved,
 }: Props) {
   const dateId = useId();
   const dateInputRef = useRef<HTMLInputElement>(null);
   const figureInputRef = useRef<HTMLInputElement>(null);
-  const [selectedFigureIdx, setSelectedFigureIdx] = useState<number | null>(
-    null
-  );
   const [editingFigureIdx, setEditingFigureIdx] = useState<number | null>(null);
   const [editingFigureTitle, setEditingFigureTitle] = useState("");
   const [pendingNewFigureIdx, setPendingNewFigureIdx] = useState<number | null>(
@@ -120,12 +143,13 @@ export function OtherRecordCard({
     const list = [...record.figures];
     const target = list[idx];
     if (!target) return false;
-    list[idx] = { ...target, title: finalTitle };
+    const nextFigure = { ...target, title: finalTitle };
+    list[idx] = nextFigure;
     onPatch({ figures: list });
     setEditingFigureIdx(null);
     setEditingFigureTitle("");
     setPendingNewFigureIdx(null);
-    setSelectedFigureIdx(idx);
+    onActivateFigure(idx, nextFigure);
     return true;
   };
 
@@ -140,7 +164,7 @@ export function OtherRecordCard({
         list.splice(idx, 1);
         onPatch({ figures: list });
       }
-      setSelectedFigureIdx((current) => (current === idx ? null : current));
+      onFigureRemoved(idx);
       setPendingNewFigureIdx(null);
     }
 
@@ -164,7 +188,7 @@ export function OtherRecordCard({
     }
     const nextIdx = record.figures.length;
     onPatch({ figures: [...record.figures, { title: "" }] });
-    setSelectedFigureIdx(nextIdx);
+    onHighlightFigure(nextIdx);
     setEditingFigureIdx(nextIdx);
     setEditingFigureTitle("");
     setPendingNewFigureIdx(nextIdx);
@@ -173,12 +197,14 @@ export function OtherRecordCard({
   const duplicateFigure = (idx: number) => {
     const source = record.figures[idx];
     if (!source) return;
-    const copied: OtherFlightFigure = {
-      title: makeUniqueFigureCopyTitle(record.figures, source.title ?? ""),
-    };
+    const copied: OtherFlightFigure = JSON.parse(JSON.stringify(source));
+    copied.title = makeUniqueFigureCopyTitle(
+      record.figures,
+      source.title ?? ""
+    );
     const nextIdx = record.figures.length;
     onPatch({ figures: [...record.figures, copied] });
-    setSelectedFigureIdx(nextIdx);
+    onActivateFigure(nextIdx, copied);
     setEditingFigureIdx(null);
     setEditingFigureTitle("");
     setPendingNewFigureIdx(null);
@@ -193,7 +219,7 @@ export function OtherRecordCard({
     if (idx < 0 || idx >= list.length) return;
     list.splice(idx, 1);
     onPatch({ figures: list });
-    setSelectedFigureIdx((current) => (current === idx ? null : current));
+    onFigureRemoved(idx);
     if (editingFigureIdx != null) {
       setEditingFigureIdx(null);
       setEditingFigureTitle("");
@@ -271,6 +297,27 @@ export function OtherRecordCard({
                 value={record.aircraftCount}
                 onChange={(e) => onPatch({ aircraftCount: e.target.value })}
               />
+              <div className="other-record-url-field">
+                <InputBox
+                  label="参考URL"
+                  value={record.referenceUrl}
+                  onChange={(e) => onPatch({ referenceUrl: e.target.value })}
+                />
+                <button
+                  type="button"
+                  className="detailbar-gmaps-button other-record-url-open"
+                  disabled={!canOpenReferenceUrl(record.referenceUrl)}
+                  onClick={() => openReferenceUrl(record.referenceUrl)}
+                >
+                  URLを開く
+                </button>
+              </div>
+              <Textarea
+                label="メモ"
+                rows={2}
+                value={record.memo}
+                onChange={(e) => onPatch({ memo: e.target.value })}
+              />
             </div>
           </div>
 
@@ -290,7 +337,7 @@ export function OtherRecordCard({
                     }`}
                     role="option"
                     aria-selected={selectedFigureIdx === idx}
-                    onClick={() => setSelectedFigureIdx(idx)}
+                    onClick={() => onActivateFigure(idx, figure)}
                   >
                     <span
                       className="other-figure-name"
@@ -316,11 +363,11 @@ export function OtherRecordCard({
                               pendingNewFigureIdx === idx;
                             const hasInput =
                               editingFigureTitle.trim().length > 0;
-                            if (isPendingNew && hasInput) {
-                              commitFigureTitle();
+                            if (isPendingNew && !hasInput) {
+                              cancelFigureEdit();
                               return;
                             }
-                            cancelFigureEdit();
+                            commitFigureTitle();
                           }}
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {

@@ -142,6 +142,12 @@ export interface Candidate {
 
 export type OtherFlightFigure = {
     title: string;
+    flightAltitude_min_m?: number;
+    flightAltitude_Max_m?: number;
+    takeoffArea?: RectangleGeom;
+    flightArea?: EllipseGeom;
+    safetyArea?: SafetyGeom;
+    audienceArea?: RectangleGeom;
 };
 
 export type OtherRecord = {
@@ -149,6 +155,8 @@ export type OtherRecord = {
     eventName: string;
     date: string;
     aircraftCount: string;
+    referenceUrl: string;
+    memo: string;
     figures: OtherFlightFigure[];
 };
 

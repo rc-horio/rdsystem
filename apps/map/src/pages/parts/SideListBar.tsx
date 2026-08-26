@@ -24,6 +24,7 @@ import {
   getMaxDroneCountFromScheduleArea,
   clearAreaCandidateGeometryAtIndex,
   upsertAreaCandidateAtIndex,
+  upsertAreaOtherFigureAtIndex,
   upsertScheduleGeometry,
   clearScheduleGeometry,
   isAreaNameDuplicated,
@@ -41,10 +42,12 @@ import type {
   Point,
   GeometryPayload,
   HistoryItem,
+  OtherRecord,
 } from "@/features/types";
 import {
   AREA_NAME_NONE,
   EV_DETAILBAR_SELECT_CANDIDATE,
+  EV_DETAILBAR_SELECT_HISTORY,
   EV_GEOMETRY_REQUEST_DATA,
   EV_SIDEBAR_SET_ACTIVE,
   EV_SIDEBAR_VISIBLE_AREAS,
@@ -113,6 +116,8 @@ function SideListBarBase({
   const currentAreaUuidRef = useRef<string | undefined>(undefined);
   const currentCandidateIndexRef = useRef<number | null>(null);
   const currentCandidateTitleRef = useRef<string | undefined>(undefined);
+  const currentOtherRecordIndexRef = useRef<number | null>(null);
+  const currentOtherFigureIndexRef = useRef<number | null>(null);
 
   // エリア追加モードの状態
   const [isAddAreaMode, setIsAddAreaMode] = useState(false);
@@ -670,6 +675,79 @@ function SideListBarBase({
     }
   };
 
+  const applyOtherFigureGeometryFromPayload = async (params: {
+    payload: GeometryPayload;
+    areaUuidToUse?: string;
+    recordIndex: number;
+    figureIndex: number;
+    figureTitle?: string;
+    activeAreaName: string | null;
+  }): Promise<OtherRecord[] | null> => {
+    const {
+      payload,
+      areaUuidToUse,
+      recordIndex,
+      figureIndex,
+      figureTitle,
+      activeAreaName,
+    } = params;
+    const { geometry, deleted } = payload;
+
+    if (
+      !areaUuidToUse ||
+      !Number.isInteger(recordIndex) ||
+      recordIndex < 0 ||
+      !Number.isInteger(figureIndex) ||
+      figureIndex < 0
+    ) {
+      console.warn(
+        "[save] other-figure context missing (areaUuid/record/figure). Skipped."
+      );
+      return null;
+    }
+
+    if (deleted === true) {
+      if (import.meta.env.DEV) {
+        console.debug(
+          "[save] skip other-figure geometry delete: figure rows are removed from the list, not via map delete"
+        );
+      }
+    } else if (geometry) {
+      const g = geometry;
+      const okFig = await upsertAreaOtherFigureAtIndex({
+        areaUuid: areaUuidToUse,
+        recordIndex,
+        figureIndex,
+        figure: {
+          title: figureTitle,
+          flightAltitude_min_m: g.flightAltitude_min_m,
+          flightAltitude_Max_m: g.flightAltitude_Max_m,
+          takeoffArea: g.takeoffArea,
+          flightArea: g.flightArea,
+          safetyArea: g.safetyArea,
+          audienceArea: g.audienceArea,
+        },
+        preserveTitle: true,
+      });
+      if (!okFig) console.warn("[save] other-figure geometry save failed");
+    }
+
+    try {
+      if (!areaUuidToUse) return null;
+      const { meta: refreshedMeta } = await fetchAreaInfo(
+        areaUuidToUse,
+        activeAreaName || ""
+      );
+      setDetailBarMeta(refreshedMeta);
+      return Array.isArray(refreshedMeta.otherRecords)
+        ? refreshedMeta.otherRecords
+        : [];
+    } catch (e) {
+      console.warn("[save] refresh other-figure meta failed:", e);
+      return null;
+    }
+  };
+
   // 保存
   const handleSave = async () => {
     const hasDeletedAreas = deletedAreas.size > 0;
@@ -1037,36 +1115,73 @@ function SideListBarBase({
         console.warn("[save] geometry payload fetch skipped:", e);
       }
 
+      let otherRecordsForMeta = Array.isArray(infoToSave.otherRecords)
+        ? infoToSave.otherRecords
+        : [];
+
       if (geomPayload) {
         if (geomPayload.projectUuid && geomPayload.scheduleUuid) {
           // （3-2）案件に紐づく geometry を保存 or 削除
           await applyProjectGeometryFromPayload(geomPayload);
         } else if (geomPayload.geometry || geomPayload.deleted) {
-          // （3-3）候補エリアの geometry を保存 or 削除
-          // 候補リストから削除済みの index に対してはスキップ（上書きで削除が復活するのを防ぐ）
-          const savedCandidateCount = Array.isArray(infoToSave.candidate)
-            ? infoToSave.candidate.length
-            : 0;
-          const candIdx = currentCandidateIndexRef.current;
+          const otherRecordIdx = currentOtherRecordIndexRef.current;
+          const otherFigureIdx = currentOtherFigureIndexRef.current;
+          const savedOtherRecords = Array.isArray(infoToSave.otherRecords)
+            ? infoToSave.otherRecords
+            : [];
+          const otherFigureCount =
+            typeof otherRecordIdx === "number" &&
+            otherRecordIdx >= 0 &&
+            otherRecordIdx < savedOtherRecords.length
+              ? savedOtherRecords[otherRecordIdx].figures?.length ?? 0
+              : 0;
+
           if (
-            typeof candIdx === "number" &&
-            candIdx >= 0 &&
-            candIdx < savedCandidateCount
+            typeof otherRecordIdx === "number" &&
+            typeof otherFigureIdx === "number" &&
+            otherRecordIdx >= 0 &&
+            otherRecordIdx < savedOtherRecords.length &&
+            otherFigureIdx >= 0 &&
+            otherFigureIdx < otherFigureCount
           ) {
-            await applyCandidateGeometryFromPayload({
+            const refreshedOtherRecords = await applyOtherFigureGeometryFromPayload({
               payload: geomPayload,
               areaUuidToUse: currentAreaUuidRef.current ?? areaUuid,
-              candidateIndex: candIdx,
-              candidateTitle: currentCandidateTitleRef.current,
+              recordIndex: otherRecordIdx,
+              figureIndex: otherFigureIdx,
+              figureTitle: currentCandidateTitleRef.current,
               activeAreaName: activeKey,
             });
-          } else if (import.meta.env.DEV && (geomPayload.geometry || geomPayload.deleted)) {
-            console.debug(
-              "[save] skip applyCandidateGeometryFromPayload: candidateIndex",
-              candIdx,
-              "out of range for saved list length",
-              savedCandidateCount
-            );
+            if (refreshedOtherRecords) {
+              otherRecordsForMeta = refreshedOtherRecords;
+            }
+          } else {
+            // （3-3）候補エリアの geometry を保存 or 削除
+            // 候補リストから削除済みの index に対してはスキップ（上書きで削除が復活するのを防ぐ）
+            const savedCandidateCount = Array.isArray(infoToSave.candidate)
+              ? infoToSave.candidate.length
+              : 0;
+            const candIdx = currentCandidateIndexRef.current;
+            if (
+              typeof candIdx === "number" &&
+              candIdx >= 0 &&
+              candIdx < savedCandidateCount
+            ) {
+              await applyCandidateGeometryFromPayload({
+                payload: geomPayload,
+                areaUuidToUse: currentAreaUuidRef.current ?? areaUuid,
+                candidateIndex: candIdx,
+                candidateTitle: currentCandidateTitleRef.current,
+                activeAreaName: activeKey,
+              });
+            } else if (import.meta.env.DEV && (geomPayload.geometry || geomPayload.deleted)) {
+              console.debug(
+                "[save] skip applyCandidateGeometryFromPayload: candidateIndex",
+                candIdx,
+                "out of range for saved list length",
+                savedCandidateCount
+              );
+            }
           }
         }
       }
@@ -1087,9 +1202,7 @@ function SideListBarBase({
         permitMemo: infoToSave.details?.permitMemo ?? "",
         restrictionsMemo: infoToSave.details?.restrictionsMemo ?? "",
         remarks: infoToSave.details?.remarks ?? "",
-        otherRecords: Array.isArray(infoToSave.otherRecords)
-          ? infoToSave.otherRecords
-          : [],
+        otherRecords: otherRecordsForMeta,
         updated_at: infoToSave.updated_at,
         updated_by: infoToSave.updated_by,
       });
@@ -1181,16 +1294,37 @@ function SideListBarBase({
     };
   }, [isOn]);
 
-  // 候補選択（どの candidate を保存対象にするか）
+  // 候補選択（どの candidate を保存対象にするか）／他社飛行エリア図
   useEffect(() => {
     const onCandidate = (e: Event) => {
       const d =
-        (e as CustomEvent<{ index?: number; title?: string }>).detail || {};
-      currentCandidateIndexRef.current = Number.isInteger(d.index)
-        ? (d.index as number)
-        : null;
-      currentCandidateTitleRef.current =
-        typeof d.title === "string" ? d.title : undefined;
+        (
+          e as CustomEvent<{
+            index?: number;
+            title?: string;
+            source?: "candidate" | "other";
+            recordIndex?: number;
+          }>
+        ).detail || {};
+      if (d.source === "other") {
+        currentOtherRecordIndexRef.current = Number.isInteger(d.recordIndex)
+          ? (d.recordIndex as number)
+          : null;
+        currentOtherFigureIndexRef.current = Number.isInteger(d.index)
+          ? (d.index as number)
+          : null;
+        currentCandidateIndexRef.current = null;
+        currentCandidateTitleRef.current =
+          typeof d.title === "string" ? d.title : undefined;
+      } else {
+        currentCandidateIndexRef.current = Number.isInteger(d.index)
+          ? (d.index as number)
+          : null;
+        currentCandidateTitleRef.current =
+          typeof d.title === "string" ? d.title : undefined;
+        currentOtherRecordIndexRef.current = null;
+        currentOtherFigureIndexRef.current = null;
+      }
     };
     window.addEventListener(
       EV_DETAILBAR_SELECT_CANDIDATE,
@@ -1201,6 +1335,16 @@ function SideListBarBase({
         EV_DETAILBAR_SELECT_CANDIDATE,
         onCandidate as EventListener
       );
+  }, []);
+
+  useEffect(() => {
+    const onHistory = () => {
+      currentOtherRecordIndexRef.current = null;
+      currentOtherFigureIndexRef.current = null;
+    };
+    window.addEventListener(EV_DETAILBAR_SELECT_HISTORY, onHistory);
+    return () =>
+      window.removeEventListener(EV_DETAILBAR_SELECT_HISTORY, onHistory);
   }, []);
 
   // 案件紐づけモーダルからの選択結果を受け取る
@@ -1891,6 +2035,8 @@ function SideListBarBase({
             currentAreaUuidRef.current = undefined;
             currentCandidateIndexRef.current = null;
             currentCandidateTitleRef.current = undefined;
+            currentOtherRecordIndexRef.current = null;
+            currentOtherFigureIndexRef.current = null;
             pendingProjectLinkRef.current = null;
 
             closeDetailBar();

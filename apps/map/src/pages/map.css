@@ -1093,6 +1093,19 @@ body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
   border-color: transparent !important;
 }
 
+.other-record-card .rc-txa-shell {
+  border: 0;
+}
+
+.other-record-card .rc-txa-shell:not([aria-disabled="true"]):focus-within {
+  border-color: transparent;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.other-record-card .rc-txa-shell[aria-disabled="true"] {
+  border-color: transparent !important;
+}
+
 .other-record-date-shell {
   cursor: pointer;
 }
@@ -1108,6 +1121,18 @@ body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
 
 .other-record-date-input:disabled {
   cursor: default;
+}
+
+.other-record-url-field {
+  position: relative;
+}
+
+.other-record-url-open {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  line-height: 1.4;
 }
 
 .other-record-empty {
@@ -1131,7 +1156,7 @@ body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
 
 .other-figure-list {
   display: grid;
-  gap: 8px;
+  gap: 2px;
 }
 
 .other-figure-empty {
@@ -1144,13 +1169,21 @@ body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
 .other-figure-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 36px;
-  padding: 8px 12px;
+  gap: 6px;
+  min-height: 28px;
+  padding: 4px 8px 4px 4px;
   box-sizing: border-box;
-  border-radius: var(--rc-input-radius, 6px);
-  background: rgba(0, 0, 0, 0.25);
+  border-radius: 6px;
+  background: transparent;
   cursor: pointer;
+}
+
+.other-figure-row::before {
+  content: "・";
+  flex: 0 0 auto;
+  color: #ff4d4f;
+  font-size: 13px;
+  line-height: 1;
 }
 
 .other-figure-row:hover {
@@ -1158,7 +1191,7 @@ body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
 }
 
 .other-figure-row.is-selected {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .other-figure-name {
@@ -1188,6 +1221,14 @@ body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.other-figure-row:hover .other-figure-actions,
+.other-figure-row:focus-within .other-figure-actions {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .other-figure-action {
@@ -1203,6 +1244,11 @@ body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
 
 .other-figure-action:hover {
   color: #fff;
+}
+
+.other-record-card .detailbar-add-button:hover,
+.other-record-card .detailbar-add-button:active {
+  box-shadow: none;
 }
 
 /* 右上の閉じるボタン（スクロール領域の外） */
