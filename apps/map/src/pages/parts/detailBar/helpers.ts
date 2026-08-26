@@ -65,6 +65,15 @@ export function fmtDate(isoLike: string) {
   return `${yyyy}/${m}/${da}`;
 }
 
+/** 日付の新しい順。空・不正は末尾。 */
+export function compareDateDesc(a: string, b: string) {
+  const ta = Date.parse(a);
+  const tb = Date.parse(b);
+  const na = Number.isNaN(ta) ? 0 : ta;
+  const nb = Number.isNaN(tb) ? 0 : tb;
+  return nb - na;
+}
+
 export function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString("ja-JP", {
     year: "numeric",

@@ -5,7 +5,7 @@ import {
   type OtherFlightFigure,
   type OtherRecord,
 } from "./OtherRecordCard";
-import { isEmptyOtherRecord } from "./helpers";
+import { isEmptyOtherRecord, compareDateDesc } from "./helpers";
 import type { CopySourceTree } from "./flightFigureCopy";
 
 export type OtherFigureSelection = {
@@ -91,6 +91,14 @@ export function OtherCompanyPanel({
     ? records.length > 0
     : records.some((record) => !isEmptyOtherRecord(record));
 
+  const recordEntries = records
+    .map((record, idx) => ({ record, idx }))
+    .sort((a, b) => {
+      const byDate = compareDateDesc(a.record.date, b.record.date);
+      if (byDate !== 0) return byDate;
+      return a.idx - b.idx;
+    });
+
   return (
     <section role="tabpanel" aria-label="他社">
       <div className="ds-record-section">
@@ -100,7 +108,7 @@ export function OtherCompanyPanel({
               実績は登録されていません。
             </div>
           ) : (
-            records.map((record, idx) => {
+            recordEntries.map(({ record, idx }) => {
               if (!editable && isEmptyOtherRecord(record)) return null;
               return (
                 <OtherRecordCard

@@ -26,12 +26,8 @@ type Props = {
   onGeometryOpacityChange: (areaKey: AreaColorKey, fillOpacity: number) => void;
 
   // ボタン類
-  onCreateGeometry: () => void;
-  onDeleteGeometry: () => void;
   onStartMeasurement: () => void;
   onAirportHeightRestrictionChange?: (checked: boolean) => void;
-  showCreateButton: boolean;
-  showDeleteButton: boolean;
   showMeasureButton: boolean;
   showAirportHeightRestrictionCheckbox?: boolean;
   airportHeightRestrictionMode?: boolean;
@@ -59,12 +55,8 @@ export default function MapToolsPanel({
   currentGeometry,
   onGeometryColorChange,
   onGeometryOpacityChange,
-  onCreateGeometry,
-  onDeleteGeometry,
   onStartMeasurement,
   onAirportHeightRestrictionChange,
-  showCreateButton,
-  showDeleteButton,
   showMeasureButton,
   showAirportHeightRestrictionCheckbox = false,
   airportHeightRestrictionMode = false,
@@ -116,8 +108,6 @@ export default function MapToolsPanel({
   const hasContent =
     showCompanyMarkersToggle ||
     showOverlaySection ||
-    showCreateButton ||
-    showDeleteButton ||
     showMeasureButton ||
     showDjiNfzSection ||
     showAirportHeightRestrictionCheckbox;
@@ -324,27 +314,15 @@ export default function MapToolsPanel({
 
 
 
-      {(showCreateButton || showDeleteButton || showMeasureButton) && (
+      {showMeasureButton && (
         <section className="map-tools-panel__section map-tools-panel__buttons" aria-label="操作">
           {(showDjiNfzSection || showCompanyMarkersToggle || showOverlaySection || showAirportHeightRestrictionCheckbox) && (
             <div className="map-tools-panel__divider" />
           )}
           <div className="map-tools-panel__button-group">
-            {showCreateButton && (
-              <button type="button" className="map-tools-panel__btn map-tools-panel__btn--create" onClick={onCreateGeometry} aria-label="飛行エリアを作図する">
-                飛行エリア作図
-              </button>
-            )}
-            {showDeleteButton && (
-              <button type="button" className="map-tools-panel__btn map-tools-panel__btn--delete" onClick={onDeleteGeometry} aria-label="エリア情報を削除する">
-                飛行エリア削除
-              </button>
-            )}
-            {showMeasureButton && (
-              <button type="button" className="map-tools-panel__btn map-tools-panel__btn--measure" onClick={onStartMeasurement} aria-label="距離を測る">
-                測定
-              </button>
-            )}
+            <button type="button" className="map-tools-panel__btn map-tools-panel__btn--measure" onClick={onStartMeasurement} aria-label="距離を測る">
+              測定
+            </button>
           </div>
         </section>
       )}

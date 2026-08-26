@@ -6,7 +6,7 @@ import type {
   OtherFlightFigure,
   OtherRecord,
 } from "@/features/types";
-import { fmtDate, geometryFromFigure } from "./helpers";
+import { compareDateDesc, fmtDate, geometryFromFigure } from "./helpers";
 
 function formatSourceDate(value: string) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
@@ -137,6 +137,10 @@ export function buildCopySourceTree(
     });
   }
 
+  for (const project of own) {
+    project.schedules.sort((a, b) => compareDateDesc(a.date, b.date));
+  }
+
   const considering = candidates.map(flatSource);
 
   const other: OtherRecordSource[] = [];
@@ -150,6 +154,8 @@ export function buildCopySourceTree(
       figures,
     });
   }
+
+  other.sort((a, b) => compareDateDesc(a.date, b.date));
 
   return { own, considering, other };
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { FlightFigure, HistoryItem } from "@/features/types";
-import { fmtDate } from "./helpers";
+import { buildHubUrl, compareDateDesc, fmtDate } from "./helpers";
 import { OwnFlightFigures } from "./OwnFlightFigures";
 import type { CopySourceTree } from "./flightFigureCopy";
 
@@ -23,6 +23,18 @@ type Props = {
   copySources: CopySourceTree;
   onClearConsideringCandidates?: (sourceIndex: number) => void;
 };
+
+function openHub(item: HistoryItem) {
+  const url = buildHubUrl(item.projectUuid, item.date, item.scheduleUuid);
+  if (!url) {
+    console.warn(
+      "[detailbar] projectUuid is missing. cannot navigate to hub.",
+      item
+    );
+    return;
+  }
+  window.open(url, "_blank", "noopener,noreferrer");
+}
 
 export function ProjectHistorySection({
   history,
@@ -62,16 +74,38 @@ export function ProjectHistorySection({
     });
   };
 
+  const historyEntries = history
+    .map((item, idx) => ({ item, idx }))
+    .sort((a, b) => {
+      const byDate = compareDateDesc(a.item.date, b.item.date);
+      if (byDate !== 0) return byDate;
+      return a.idx - b.idx;
+    });
+
   return (
     <div className="ds-record-section">
+      {editable && (
+        <button
+          type="button"
+          className="add-area-button detailbar-add-button"
+          onClick={onRegisterProject}
+        >
+          <span className="add-icon">＋ </span>案件情報を紐づける
+        </button>
+      )}
       <div className="ds-record-list">
         {history.length === 0 ? (
           <div className="other-record-empty" aria-live="polite">
             履歴はありません
           </div>
         ) : (
-          history.map((item, idx) => {
+          historyEntries.map(({ item, idx }) => {
             const open = openIdx === idx;
+            const hubUrl = buildHubUrl(
+              item.projectUuid,
+              item.date,
+              item.scheduleUuid
+            );
             return (
               <div
                 key={`${item.projectName}-${item.scheduleName}-${item.date}-${idx}`}
@@ -130,8 +164,16 @@ export function ProjectHistorySection({
                         onClearConsideringCandidates
                       }
                     />
-                    {editable && (
-                      <div className="own-record-unlink-row">
+                    <div className="own-record-footer">
+                      <button
+                        type="button"
+                        className="detailbar-gmaps-button"
+                        disabled={!hubUrl}
+                        onClick={() => openHub(item)}
+                      >
+                        RD Hubへ
+                      </button>
+                      {editable && (
                         <button
                           type="button"
                           className="own-record-unlink"
@@ -139,8 +181,8 @@ export function ProjectHistorySection({
                         >
                           紐づけを解除する
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -148,15 +190,6 @@ export function ProjectHistorySection({
           })
         )}
       </div>
-      {editable && (
-        <button
-          type="button"
-          className="add-area-button detailbar-add-button"
-          onClick={onRegisterProject}
-        >
-          <span className="add-icon">＋ </span>案件情報を紐づける
-        </button>
-      )}
     </div>
   );
 }
