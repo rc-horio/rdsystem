@@ -944,13 +944,13 @@ function SideListBarBase({
         (p) => !afterKeySet.has(`${p.projectUuid}::${p.scheduleUuid}`)
       );
 
-      const sourceOtherRecords = Array.isArray(data.meta.otherRecords)
+      const sourceOtherRecords: OtherRecord[] = Array.isArray(data.meta.otherRecords)
         ? data.meta.otherRecords
         : Array.isArray(raw?.otherRecords)
-        ? raw.otherRecords
+        ? (raw.otherRecords as OtherRecord[])
         : [];
       const otherRecordsToSave = sourceOtherRecords.filter(
-        (record: { figures?: unknown[] }) => !isEmptyOtherRecord(record)
+        (record) => !isEmptyOtherRecord(record)
       );
 
       // （2-2）画面入力値からareas/<areaUuid>/index.json 形式
@@ -1142,7 +1142,7 @@ function SideListBarBase({
             !isEmptyOtherRecord(sourceOtherRecords[origOtherRecordIdx])
               ? sourceOtherRecords
                   .slice(0, origOtherRecordIdx)
-                  .filter((record: { figures?: unknown[] }) => !isEmptyOtherRecord(record))
+                  .filter((record) => !isEmptyOtherRecord(record))
                   .length
               : null;
           const otherFigureCount =
