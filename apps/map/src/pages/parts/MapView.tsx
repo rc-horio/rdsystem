@@ -53,12 +53,14 @@ import {
   EV_DETAILBAR_SELECT_CANDIDATE,
   EV_ADD_AREA_SELECT_RESULT,
   EV_ADD_AREA_RESULT_COORDS,
+  EV_OVERLAY_VISIBILITY_CHANGED,
 } from "./constants/events";
 import { AddAreaModal } from "./AddAreaModal";
 import { RegisterProjectModal } from "./RegisterProjectModal";
 import MapToolsPanel from "./MapToolsPanel";
 import {
   DEFAULT_OVERLAY_VISIBILITY,
+  OTHER_FIGURE_OVERLAY_PATCH,
   type OverlayVisibility,
 } from "./overlayVisibility";
 import { systemError, E004_NEW_AREA_S3 } from "@/lib/errorMessages";
@@ -453,10 +455,15 @@ export default function MapView({ onLoaded }: Props) {
   const [isSelected, setIsSelected] = useState(false);
   const isSelectedRef = useRef(isSelected);
   isSelectedRef.current = isSelected;
-  // 「どのセクション由来の選択か」を保持（案件 or 候補）
+  // 「どのセクション由来の選択か」を保持（案件 / 候補 / 他社）
   const [selectionKind, setSelectionKind] = useState<
-    "schedule" | "candidate" | null
+    "schedule" | "candidate" | "other" | null
   >(null);
+  const selectionKindRef = useRef(selectionKind);
+  selectionKindRef.current = selectionKind;
+  const figureOverlayBeforeOtherRef = useRef<typeof OTHER_FIGURE_OVERLAY_PATCH | null>(
+    null
+  );
 
   const [showAreaCreatedToast, setShowAreaCreatedToast] = useState(false);
   const areaCreatedToastTimerRef = useRef<number | null>(null);
@@ -474,6 +481,14 @@ export default function MapView({ onLoaded }: Props) {
     useState<OverlayVisibility>(DEFAULT_OVERLAY_VISIBILITY);
   const overlayVisibilityRef = useRef(overlayVisibility);
   overlayVisibilityRef.current = overlayVisibility;
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent(EV_OVERLAY_VISIBILITY_CHANGED, {
+        detail: overlayVisibility,
+      })
+    );
+  }, [overlayVisibility]);
   // DJI NFZ ローディング・エラー状態
   const [djiNfzLoading, setDjiNfzLoading] = useState(false);
   const [djiNfzError, setDjiNfzError] = useState<string | null>(null);
@@ -2845,16 +2860,51 @@ export default function MapView({ onLoaded }: Props) {
 
   // SideDetailBar から選択状態を受け取る
   useEffect(() => {
+    const applyOverlayPatch = (patch: Partial<OverlayVisibility>) => {
+      const next = { ...overlayVisibilityRef.current, ...patch };
+      overlayVisibilityRef.current = next;
+      setOverlayVisibility(next);
+      geomRef.current?.setOverlayVisibility(next);
+    };
+
     const onSelectedStateChange = (e: Event) => {
       const detail =
         (
           e as CustomEvent<{
             isSelected?: boolean;
-            kind?: "schedule" | "candidate" | null;
+            kind?: "schedule" | "candidate" | "other" | null;
           }>
         ).detail || {};
+      const nextKind = detail.isSelected ? (detail.kind ?? null) : null;
+      const wasOther = selectionKindRef.current === "other";
+      const isOther = nextKind === "other";
+
+      if (isOther && !wasOther) {
+        const current = overlayVisibilityRef.current;
+        figureOverlayBeforeOtherRef.current = {
+          safety: current.safety,
+          referencePoint: current.referencePoint,
+          arrows: current.arrows,
+          labels: current.labels,
+          diameterLines: current.diameterLines,
+        };
+        applyOverlayPatch(OTHER_FIGURE_OVERLAY_PATCH);
+      } else if (!isOther && wasOther) {
+        applyOverlayPatch(
+          figureOverlayBeforeOtherRef.current ?? {
+            safety: true,
+            referencePoint: true,
+            arrows: true,
+            labels: true,
+            diameterLines: true,
+          }
+        );
+        figureOverlayBeforeOtherRef.current = null;
+      }
+
       setIsSelected(!!detail.isSelected);
-      setSelectionKind(detail.kind ?? null);
+      setSelectionKind(nextKind);
+      selectionKindRef.current = nextKind;
     };
 
     window.addEventListener(EV_DETAILBAR_SELECTED, onSelectedStateChange);

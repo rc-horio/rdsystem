@@ -1986,11 +1986,28 @@ select.rc-inp-input optgroup {
   opacity: 0.8;
 }
 
+.geom-metrics-panel--compact {
+  width: max-content;
+  max-width: min(540px, 90vw);
+}
+
+.geom-metrics-panel--compact .geom-col {
+  flex: 0 0 110px;
+}
+
 /* Title */
 .geom-metrics-title {
   margin-bottom: 8px;
   font-size: 12px;
   opacity: 0.85;
+}
+
+.geom-metrics-note {
+  font-size: 11px;
+  line-height: 1;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 6px;
 }
 
 /* Columns：左右の余白だけ調整 */

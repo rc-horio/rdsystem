@@ -19,12 +19,14 @@ export const EV_DETAILBAR_RESPOND_DATA = "detailbar:respond-data";
 export const EV_DETAILBAR_SELECT_HISTORY = "detailbar:select-history";
 export const EV_DETAILBAR_SELECT_CANDIDATE = "detailbar:select-candidate";
 export const EV_DETAILBAR_SELECTED = "side-detailbar:selected";
+export type DetailSelectionKind = "schedule" | "candidate" | "other";
 export const EV_DETAILBAR_SET_METRICS = "detailbar:set-metrics";
 export const EV_DETAILBAR_REQUEST_DATA = "detailbar:request-data";
 export const EV_DETAILBAR_SET_TITLE = "detailbar:set-title";
 export const EV_DETAILBAR_SET_META = "detailbar:set-meta";
 export const EV_DETAILBAR_SET_HISTORY = "detailbar:set-history";
 export const EV_DETAILBAR_APPLY_METRICS = "detailbar:apply-metrics";
+export const EV_OVERLAY_VISIBILITY_CHANGED = "overlay:visibility-changed";
 
 export const EV_PROJECT_MODAL_OPEN = "project:open-modal";
 export const EV_PROJECT_MODAL_SUBMIT = "project-modal:submit";

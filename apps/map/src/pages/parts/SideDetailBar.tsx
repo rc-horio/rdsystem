@@ -439,7 +439,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     highlightOtherFigure(recordIdx, figureIdx);
     window.dispatchEvent(
       new CustomEvent(EV_DETAILBAR_SELECTED, {
-        detail: { isSelected: true, kind: "candidate" as const },
+        detail: { isSelected: true, kind: "other" as const },
       })
     );
     window.dispatchEvent(

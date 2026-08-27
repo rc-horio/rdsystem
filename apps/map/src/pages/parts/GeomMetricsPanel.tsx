@@ -6,11 +6,15 @@ import type { GeometryMetrics } from "@/features/types";
 import {
   EV_DETAILBAR_SET_METRICS,
   EV_DETAILBAR_APPLY_METRICS,
+  EV_DETAILBAR_SELECTED,
+  EV_OVERLAY_VISIBILITY_CHANGED,
+  type DetailSelectionKind,
 } from "./constants/events";
 import {
   EV_GEOM_TURN_METRICS,
   type TurnMetricsDetail,
 } from "./geometry/orientationDebug";
+import type { OverlayVisibility } from "./overlayVisibility";
 import { detectEmbedMode } from "@/components";
 
 type PanelMetrics = GeometryMetrics & {
@@ -43,7 +47,13 @@ export default function GeomMetricsPanel() {
   }
 
   const [m, setM] = useState<PanelMetrics>({});
-  
+  const [selectionKind, setSelectionKind] = useState<DetailSelectionKind | null>(
+    null
+  );
+  const isOtherFigure = selectionKind === "other";
+  const [overlaySafetyVisible, setOverlaySafetyVisible] = useState(false);
+  const showOtherSafety = isOtherFigure && overlaySafetyVisible;
+
   // 小数入力フィールドの入力中状態を保持
   const [rectWidthInput, setRectWidthInput] = useState<string>("");
   const [rectDepthInput, setRectDepthInput] = useState<string>("");
@@ -67,6 +77,41 @@ export default function GeomMetricsPanel() {
     });
     mo.observe(document.body, { attributes: true, attributeFilter: ["class"] });
     return () => mo.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const onSelected = (e: Event) => {
+      const detail =
+        (
+          e as CustomEvent<{
+            isSelected?: boolean;
+            kind?: DetailSelectionKind | null;
+          }>
+        ).detail || {};
+      setSelectionKind(detail.isSelected ? (detail.kind ?? null) : null);
+    };
+    window.addEventListener(EV_DETAILBAR_SELECTED, onSelected as EventListener);
+    return () =>
+      window.removeEventListener(
+        EV_DETAILBAR_SELECTED,
+        onSelected as EventListener
+      );
+  }, []);
+
+  useEffect(() => {
+    const onOverlay = (e: Event) => {
+      const v = (e as CustomEvent<OverlayVisibility>).detail;
+      setOverlaySafetyVisible(!!v?.flight && !!v?.safety);
+    };
+    window.addEventListener(
+      EV_OVERLAY_VISIBILITY_CHANGED,
+      onOverlay as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        EV_OVERLAY_VISIBILITY_CHANGED,
+        onOverlay as EventListener
+      );
   }, []);
 
   // 外部イベント：detailbar:set-metrics -> パネル state 更新
@@ -208,9 +253,12 @@ export default function GeomMetricsPanel() {
     <aside
       ref={panelRef}
       id="geomMetricsPanel"
-      className="geom-metrics-panel"
-      aria-label="エリア寸法"
+      className={`geom-metrics-panel${isOtherFigure ? " geom-metrics-panel--compact" : ""}`}
+      aria-label={isOtherFigure ? "エリア寸法（参考）" : "エリア寸法"}
     >
+      {isOtherFigure && (
+        <div className="geom-metrics-note">参考値</div>
+      )}
       <div className="geom-cols" role="group" aria-label="エリア別寸法">
         {/* 高度 */}
         <section className="geom-col is-active" aria-label="高度">
@@ -256,7 +304,64 @@ export default function GeomMetricsPanel() {
           </div>
         </section>
 
-        {/* 保安距離 */}
+        {showOtherSafety && (
+        <section className="geom-col" aria-label="保安距離">
+          <div className="geom-col-title">保安距離</div>
+          <div className="geom-rows">
+            <div className="geom-row">
+              <span className="k" />
+              <input
+                className="v geom-input"
+                type="text"
+                inputMode="decimal"
+                placeholder="-"
+                value={
+                  safetyCustomInput ||
+                  toInputDec1(
+                    m.safetyCustom_m ?? m.buffer_m ?? m.safetyDistance_m
+                  )
+                }
+                onFocus={(e) => {
+                  setSafetyCustomInput(
+                    e.target.value ||
+                      toInputDec1(
+                        m.safetyCustom_m ?? m.buffer_m ?? m.safetyDistance_m
+                      )
+                  );
+                }}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSafetyCustomInput(value);
+                  if (value === "" || value === "-") {
+                    setM((p) => ({ ...p, safetyCustom_m: undefined }));
+                    return;
+                  }
+                  const n = parseDec1Meters(value);
+                  if (n !== undefined) {
+                    setM((p) => ({ ...p, safetyCustom_m: n }));
+                    send({ safetyMode: "custom", buffer_m: n } as any);
+                  }
+                }}
+                onBlur={(e) => {
+                  const n = parseDec1Meters(e.target.value);
+                  if (n !== undefined) {
+                    setSafetyCustomInput(toInputDec1(n));
+                    setM((p) => ({ ...p, safetyCustom_m: n }));
+                    send({ safetyMode: "custom", buffer_m: n } as any);
+                  } else {
+                    setSafetyCustomInput("");
+                  }
+                }}
+                disabled={!editable}
+                aria-label="保安距離(m)"
+              />
+              <span className="u">m</span>
+            </div>
+          </div>
+        </section>
+        )}
+
+        {!isOtherFigure && (
         <section className="geom-col" aria-label="保安距離">
           <div className="geom-col-title">保安距離</div>
           <div className="geom-rows">
@@ -390,6 +495,7 @@ export default function GeomMetricsPanel() {
             </div>
           </div>
         </section>
+        )}
 
         {/* 飛行エリア */}
         <section className="geom-col" aria-label="飛行エリア">
@@ -435,6 +541,7 @@ export default function GeomMetricsPanel() {
               />
               <span className="u">m</span>
             </div>
+            {!isOtherFigure && (
             <div className="geom-row">
               <span className="k">r</span>
               <input
@@ -456,6 +563,7 @@ export default function GeomMetricsPanel() {
               />
               <span className="u">度</span>
             </div>
+            )}
           </div>
         </section>
 
@@ -545,6 +653,7 @@ export default function GeomMetricsPanel() {
               />
               <span className="u">m</span>
             </div>
+            {!isOtherFigure && (
             <div className="geom-row">
               <span className="k">r</span>
               <input
@@ -566,9 +675,12 @@ export default function GeomMetricsPanel() {
               />
               <span className="u">度</span>
             </div>
+            )}
           </div>
         </section>
 
+        {!isOtherFigure && (
+          <>
         {/* 観客エリア */}
         <section className="geom-col" aria-label="観客エリア">
           <div className="geom-col-title">観客エリア</div>
@@ -658,6 +770,8 @@ export default function GeomMetricsPanel() {
             </div>
           </div>
         </section>
+          </>
+        )}
       </div>
     </aside>
   );

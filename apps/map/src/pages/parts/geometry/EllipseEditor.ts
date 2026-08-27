@@ -167,7 +167,7 @@ export class EllipseEditor {
             });
         }
         if (this.frontLabelMarker) {
-            this.frontLabelMarker.setVisible(isEdit);
+            this.frontLabelMarker.setVisible(true);
         }
         if (this.poly) this.poly.setOptions({ clickable: true, cursor: isEdit ? "grab" : "default", draggable: isEdit } as google.maps.PolygonOptions);
         // safetyPoly は常に非ドラッグ
@@ -760,7 +760,7 @@ export class EllipseEditor {
             position: this.opts.latLng(frontLabelPos[1], frontLabelPos[0]),
             draggable: false,
             clickable: false,
-            visible: this.opts.isEditingOn(),
+            visible: true,
             zIndex: baseZ + Z.MARKER_OFFSET.ROTATE + 1,
             icon: {
                 url: frontLabelUrl,

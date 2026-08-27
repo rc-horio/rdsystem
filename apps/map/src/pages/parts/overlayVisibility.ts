@@ -34,3 +34,15 @@ export const DEFAULT_OVERLAY_VISIBILITY: OverlayVisibility = {
   djiNfz: false,
   companyMarkers: true,
 };
+
+/** 他社図の初期表示。飛行・離着陸・観客は出し、数値を断言する補助は消す */
+export const OTHER_FIGURE_OVERLAY_PATCH: Pick<
+  OverlayVisibility,
+  "safety" | "referencePoint" | "arrows" | "labels" | "diameterLines"
+> = {
+  safety: false,
+  referencePoint: false,
+  arrows: false,
+  labels: false,
+  diameterLines: true,
+};
