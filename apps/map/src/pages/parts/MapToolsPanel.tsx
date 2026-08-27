@@ -231,9 +231,9 @@ export default function MapToolsPanel({
                 type="checkbox"
                 checked={overlayVisibility.companyMarkers}
                 onChange={handleOverlayChange("companyMarkers")}
-                aria-label="RCマーカー"
+                aria-label="マーカー"
               />
-              <span>RCマーカー</span>
+              <span>マーカー</span>
             </label>
           )}
           {(showDjiNfzSection || showAirportHeightRestrictionCheckbox) && (

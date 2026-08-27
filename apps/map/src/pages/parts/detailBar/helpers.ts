@@ -252,7 +252,7 @@ export const AREA_KIND_ORDER: readonly AreaKind[] = [
 ];
 
 export const AREA_KIND_LABEL: Record<AreaKind, string> = {
-  own: "自社",
+  own: "RC",
   considering: "検討中",
   other: "他社",
 };

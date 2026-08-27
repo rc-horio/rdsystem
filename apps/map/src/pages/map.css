@@ -272,11 +272,19 @@ body,
 
 .search-kind-options {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px 14px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
   min-width: 0;
   padding-top: 1px;
+}
+
+.search-kind-options-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .search-kind-filter-item {
@@ -292,12 +300,46 @@ body,
 }
 
 .search-kind-filter-item input {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
   margin: 0;
-  accent-color: #ed1b24;
+  box-sizing: border-box;
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  border-radius: 2px;
+  background: transparent;
+  flex: 0 0 auto;
+}
+
+.search-kind-filter-item--own input {
+  border-color: var(--area-kind-own);
+}
+.search-kind-filter-item--own input:checked {
+  background: var(--area-kind-own);
+}
+
+.search-kind-filter-item--considering input {
+  border-color: var(--area-kind-considering);
+}
+.search-kind-filter-item--considering input:checked {
+  background: var(--area-kind-considering);
+}
+
+.search-kind-filter-item--other input {
+  border-color: var(--area-kind-other);
+}
+.search-kind-filter-item--other input:checked {
+  background: var(--area-kind-other);
 }
 
 .search-kind-filter-item--exclude {
-  flex: 1 0 100%;
+  flex: 0 0 auto;
+}
+
+.search-kind-filter-item--exclude input:checked {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(255, 255, 255, 0.85);
 }
 
 .search-sort-icon {

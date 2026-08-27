@@ -2348,34 +2348,35 @@ function SideListBarBase({
                 フィルター
               </span>
               <div className="search-kind-options" role="group" aria-label="フィルター">
-                {AREA_KIND_ORDER.map((kind) => (
-                  <label key={kind} className="search-kind-filter-item">
-                    <input
-                      type="checkbox"
-                      checked={filterKinds.has(kind)}
-                      onChange={() => {
-                        setFilterKinds((prev) => {
-                          const next = new Set(prev);
-                          if (next.has(kind)) next.delete(kind);
-                          else next.add(kind);
-                          return next;
-                        });
-                      }}
-                    />
-                    <span
-                      className={`area-kind-dot area-kind-dot--${kind}`}
-                      aria-hidden="true"
-                    />
-                    {AREA_KIND_LABEL[kind]}
-                  </label>
-                ))}
+                <div className="search-kind-options-row">
+                  {AREA_KIND_ORDER.map((kind) => (
+                    <label
+                      key={kind}
+                      className={`search-kind-filter-item search-kind-filter-item--${kind}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={filterKinds.has(kind)}
+                        onChange={() => {
+                          setFilterKinds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(kind)) next.delete(kind);
+                            else next.add(kind);
+                            return next;
+                          });
+                        }}
+                      />
+                      {AREA_KIND_LABEL[kind]}
+                    </label>
+                  ))}
+                </div>
                 <label className="search-kind-filter-item search-kind-filter-item--exclude">
                   <input
                     type="checkbox"
                     checked={excludeOwn}
                     onChange={() => setExcludeOwn((prev) => !prev)}
                   />
-                  自社を含まない
+                  RCを含まない
                 </label>
               </div>
             </div>
