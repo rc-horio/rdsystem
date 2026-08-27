@@ -21,6 +21,8 @@ import {
   EV_DETAILBAR_SET_TITLE,
   EV_DETAILBAR_SET_META,
   EV_DETAILBAR_SET_HISTORY,
+  EV_DETAILBAR_SET_TAB,
+  EV_DETAILBAR_PATCH_CONSIDERING,
   EV_DETAILBAR_SET_METRICS,
   EV_DETAILBAR_SELECT_HISTORY,
   EV_DETAILBAR_SELECT_CANDIDATE,
@@ -100,7 +102,14 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   };
 
   const handleRegisterProjectInfo = () => {
-    window.dispatchEvent(new Event(EV_PROJECT_MODAL_OPEN));
+    window.dispatchEvent(
+      new CustomEvent(EV_PROJECT_MODAL_OPEN, {
+        detail: {
+          consideringStatus: considering.status,
+          consideringStatusDetail: considering.statusDetail,
+        },
+      })
+    );
   };
 
   const patchConsidering = (patch: Partial<typeof considering>) => {
@@ -578,6 +587,49 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       window.removeEventListener(
         EV_DETAILBAR_SET_HISTORY,
         onSetHistory as EventListener
+      );
+  }, []);
+
+  useEffect(() => {
+    const onSetTab = (e: Event) => {
+      const tab = (e as CustomEvent<{ tab?: TabKey }>).detail?.tab;
+      if (
+        tab === "basic" ||
+        tab === "own" ||
+        tab === "considering" ||
+        tab === "other"
+      ) {
+        setActive(tab);
+      }
+    };
+    window.addEventListener(EV_DETAILBAR_SET_TAB, onSetTab as EventListener);
+    return () =>
+      window.removeEventListener(
+        EV_DETAILBAR_SET_TAB,
+        onSetTab as EventListener
+      );
+  }, []);
+
+  useEffect(() => {
+    const onPatchConsidering = (e: Event) => {
+      const patch = (e as CustomEvent<Partial<typeof considering>>).detail;
+      if (!patch || typeof patch !== "object") return;
+      setMeta((prev) => ({
+        ...prev,
+        considering: {
+          ...(prev.considering ?? EMPTY_CONSIDERING_INFO),
+          ...patch,
+        },
+      }));
+    };
+    window.addEventListener(
+      EV_DETAILBAR_PATCH_CONSIDERING,
+      onPatchConsidering as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        EV_DETAILBAR_PATCH_CONSIDERING,
+        onPatchConsidering as EventListener
       );
   }, []);
 

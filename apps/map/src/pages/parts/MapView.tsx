@@ -474,6 +474,10 @@ export default function MapView({ onLoaded }: Props) {
   const positionUpdatedToastTimerRef = useRef<number | null>(null);
 
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [projectModalConsideringStatus, setProjectModalConsideringStatus] =
+    useState("");
+  const [projectModalConsideringStatusDetail, setProjectModalConsideringStatusDetail] =
+    useState("");
   // ジオメトリ未作成メッセージ（マップ上に表示）
   const [showNoGeometryHint, setShowNoGeometryHint] = useState(false);
   // オーバーレイ表示切り替え（セッション中のみ保持）
@@ -1742,7 +1746,14 @@ export default function MapView({ onLoaded }: Props) {
 
   // 案件情報モーダルを開くイベント
   useEffect(() => {
-    const onOpen = () => {
+    const onOpen = (e: Event) => {
+      const d =
+        (e as CustomEvent<{
+          consideringStatus?: string;
+          consideringStatusDetail?: string;
+        }>).detail ?? {};
+      setProjectModalConsideringStatus(d.consideringStatus ?? "");
+      setProjectModalConsideringStatusDetail(d.consideringStatusDetail ?? "");
       setIsProjectModalOpen(true);
     };
     window.addEventListener(EV_PROJECT_MODAL_OPEN, onOpen as EventListener);
@@ -3589,6 +3600,8 @@ export default function MapView({ onLoaded }: Props) {
 
       <RegisterProjectModal
         open={isProjectModalOpen}
+        currentStatus={projectModalConsideringStatus}
+        currentStatusDetail={projectModalConsideringStatusDetail}
         onClose={() => setIsProjectModalOpen(false)}
       />
       {/* 新規エリア作成完了トースト */}

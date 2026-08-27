@@ -2,10 +2,13 @@
 import { BaseModal } from "@/components";
 import { useEffect, useState } from "react";
 import { fetchProjectIndex, fetchProjectsList } from "../parts/areasApi";
+import { CONSIDERING_STATUS_OK_CONFIRM, consideringStatusLabel } from "./detailBar/helpers";
 import { EV_PROJECT_MODAL_SUBMIT } from "./constants/events";
 
 type Props = {
   open: boolean;
+  currentStatus?: string;
+  currentStatusDetail?: string;
   onClose: () => void;
 };
 
@@ -17,12 +20,22 @@ type ProjectItem = {
 
 type ScheduleItem = { id: string; label: string };
 
-export function RegisterProjectModal({ open, onClose }: Props) {
+export function RegisterProjectModal({
+  open,
+  currentStatus = "",
+  currentStatusDetail = "",
+  onClose,
+}: Props) {
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
   const [selectedProjectUuid, setSelectedProjectUuid] = useState<string>("");
   const [selectedScheduleUuid, setSelectedScheduleUuid] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [askingStatusOk, setAskingStatusOk] = useState(false);
+
+  useEffect(() => {
+    if (!open) setAskingStatusOk(false);
+  }, [open]);
 
   // 初回：案件一覧を取得
   useEffect(() => {
@@ -75,25 +88,31 @@ export function RegisterProjectModal({ open, onClose }: Props) {
   }, [selectedProjectUuid]);
 
   // OK ボタンが押されたときの処理
-  const handleOkButtonClick = () => {
-    // 案件・スケジュールが未選択なら保存させない
-    if (!selectedProjectUuid || !selectedScheduleUuid) {
-      window.alert("案件とスケジュールを選択してください。");
-      return;
-    }
-
-    // SideListBar 側に「この案件・スケジュールを紐づけたい」というイベントを飛ばす
+  const submitLink = (setConsideringOk: boolean) => {
     window.dispatchEvent(
       new CustomEvent(EV_PROJECT_MODAL_SUBMIT, {
         detail: {
           projectUuid: selectedProjectUuid,
           scheduleUuid: selectedScheduleUuid,
+          setConsideringOk,
         },
       })
     );
 
     window.alert("案件情報を紐づけました。\nSAVEボタンで確定してください。");
     onClose();
+  };
+
+  const handleOkButtonClick = () => {
+    if (!selectedProjectUuid || !selectedScheduleUuid) {
+      window.alert("案件とスケジュールを選択してください。");
+      return;
+    }
+    if (consideringStatusLabel(currentStatus) === "OK") {
+      submitLink(false);
+      return;
+    }
+    setAskingStatusOk(true);
   };
 
   // OK ボタンの活性/非活性を制御
@@ -103,13 +122,44 @@ export function RegisterProjectModal({ open, onClose }: Props) {
     <BaseModal
       open={open}
       onClose={onClose}
-      title="案件情報を紐づける"
+      title={askingStatusOk ? "確認" : "案件情報を紐づける"}
       backdropClassName="map-modal-backdrop"
       containerClassName="map-modal-container"
     >
       <div className="register-project-modal no-caret">
-        {/* 案件名（必須） */}
-        <div className="register-project-modal__row">
+        {askingStatusOk ? (
+          <>
+            <p className="register-project-modal__confirm">
+              {CONSIDERING_STATUS_OK_CONFIRM}
+            </p>
+            <p className="register-project-modal__confirm-note">
+              現在のステータス：{consideringStatusLabel(currentStatus)}
+            </p>
+            {currentStatusDetail.trim() ? (
+              <p className="register-project-modal__confirm-note">
+                ステータス詳細：{currentStatusDetail.trim()}
+              </p>
+            ) : null}
+            <div className="register-project-modal__actions">
+              <button
+                type="button"
+                className="register-project-modal__btn register-project-modal__btn--cancel"
+                onClick={() => submitLink(false)}
+              >
+                いいえ
+              </button>
+              <button
+                type="button"
+                className="register-project-modal__btn register-project-modal__btn--ok"
+                onClick={() => submitLink(true)}
+              >
+                はい
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="register-project-modal__row">
           <label
             htmlFor="projectName"
             className="register-project-modal__label-row"
@@ -208,7 +258,9 @@ export function RegisterProjectModal({ open, onClose }: Props) {
           >
             OK
           </button>
-        </div>
+            </div>
+          </>
+        )}
       </div>
     </BaseModal>
   );

@@ -142,7 +142,7 @@ export interface DetailMeta {
     restrictionsMemo: string;
     remarks: string;
     candidate: Candidate[];
-    /** 検討中タブの入力（エリアにつき1式）。永続化キーは index.json の considering */
+    /** 候補地タブの入力（エリアにつき1式）。永続化キーは index.json の considering */
     considering: ConsideringInfo;
     /** 他社タブの実績。永続化キーはエリア index.json の otherRecords */
     otherRecords: OtherRecord[];
@@ -194,4 +194,6 @@ export type GeometryPayload = {
     figureId?: string;
     geometry?: any;
     deleted?: boolean;
+    /** 地図上の図が、読み込み／前回SAVE以降に編集されている */
+    figureEdited?: boolean;
 };

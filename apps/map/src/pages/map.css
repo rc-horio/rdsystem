@@ -28,7 +28,7 @@
   --detailbar-gap: 5px; /* サイドバーとの距離 */
   --detailbar-pad: 16px; /* 詳細バー内パディング */
 
-  /* 自社 / 検討中 / 他社（色覚差でも赤・灰・青が分かれ、点の並びでも読める） */
+  /* RC / 候補地 / 他社（色覚差でも赤・灰・青が分かれ、点の並びでも読める） */
   --area-kind-own: #e05656;
   --area-kind-considering: #8e959e;
   --area-kind-other: #4d8fd6;
@@ -2988,6 +2988,22 @@ select.rc-inp-input optgroup {
 .new-area-modal__row span,
 .register-project-modal__row span {
   cursor: default;
+}
+
+.register-project-modal__confirm {
+  margin: 0;
+  white-space: pre-line;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #111827;
+}
+
+.register-project-modal__confirm-note {
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #4b5563;
+  white-space: pre-wrap;
 }
 
 /* ボタン行 */

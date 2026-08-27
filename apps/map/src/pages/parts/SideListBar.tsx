@@ -37,14 +37,21 @@ import {
 } from "./areasApi";
 import { PREFECTURES } from "./constants/events";
 import {
+  CONSIDERING_STATUS_REQUIRED_ALERT,
   EMPTY_CONSIDERING_INFO,
   areaKindFlagList,
   areaMatchesKindFilter,
   getAreaKindFlags,
   hasConsideringContent,
   isEmptyOtherRecord,
+  isPresetConsideringStatus,
+  shouldBlockUnsetConsideringStatusSave,
+  shouldSetConsideringOkFromOwnHistory,
+  snapshotConsideringState,
+  withConsideringStatusOk,
   type AreaKind,
   type AreaKindFlags,
+  type ConsideringSaveSnapshot,
   AREA_KIND_LABEL,
   AREA_KIND_ORDER,
 } from "./detailBar/helpers";
@@ -68,6 +75,8 @@ import {
   EV_GEOMETRY_RESPOND_DATA,
   EV_PROJECT_MODAL_SUBMIT,
   EV_DETAILBAR_REQUEST_DATA,
+  EV_DETAILBAR_SET_TAB,
+  EV_DETAILBAR_PATCH_CONSIDERING,
   ADD_AREA_EMPTY_MESSAGE,
   ADD_AREA_ERROR_MESSAGE,
   EV_ADD_AREA_SELECT_RESULT,
@@ -147,6 +156,17 @@ function SideListBarBase({
   const currentCandidateTitleRef = useRef<string | undefined>(undefined);
   const currentOtherRecordIndexRef = useRef<number | null>(null);
   const currentOtherFigureIndexRef = useRef<number | null>(null);
+  const lastSavedConsideringRef = useRef<ConsideringSaveSnapshot | null>(null);
+
+  const rememberConsideringSnapshot = (
+    considering: ConsideringSaveSnapshot["considering"] | null | undefined,
+    candidates: ConsideringSaveSnapshot["candidates"] | null | undefined
+  ) => {
+    lastSavedConsideringRef.current = snapshotConsideringState(
+      considering,
+      candidates
+    );
+  };
 
   // エリア追加モードの状態
   const [isAddAreaMode, setIsAddAreaMode] = useState(false);
@@ -168,14 +188,14 @@ function SideListBarBase({
   const [sortDir, setSortDir] = useState<AreaSortDir>(
     AREA_SORT_DEFAULT_DIR.updated
   );
-  // フィルター条件（空＝すべて。自社/検討中/他社はOR）
+  // フィルター条件（空＝すべて。RC/候補地/他社はOR）
   const [filterKinds, setFilterKinds] = useState<Set<AreaKind>>(() => new Set());
   const [excludeOwn, setExcludeOwn] = useState(false);
   // 都道府県情報のキャッシュ（areaUuid -> prefecture）
   const [prefectureCache, setPrefectureCache] = useState<Record<string, string>>({});
   // 更新日情報のキャッシュ（areaUuid -> updated_at）
   const [updatedAtCache, setUpdatedAtCache] = useState<Record<string, string>>({});
-  // 自社/検討中/他社タグのキャッシュ（areaUuid -> flags）
+  // RC/候補地/他社タグのキャッシュ（areaUuid -> flags）
   const [kindCache, setKindCache] = useState<Record<string, AreaKindFlags>>({});
   // 機体数のキャッシュ（areaUuid -> schedules.area.drone_count.count の最大値）
   const [droneCountCache, setDroneCountCache] = useState<Record<string, number | undefined>>({});
@@ -196,24 +216,46 @@ function SideListBarBase({
         Array.from(uniqueAreaUuids).map(async (areaUuid) => {
           try {
             const raw = await fetchRawAreaInfo(areaUuid);
-            const prefecture = typeof raw?.overview?.prefecture === "string" 
-              ? raw.overview.prefecture 
+            let info = raw;
+            if (shouldSetConsideringOkFromOwnHistory(raw)) {
+              const next = withConsideringStatusOk(raw);
+              const ok = await saveAreaInfo(areaUuid, next);
+              if (ok) {
+                info = next;
+                if (currentAreaUuidRef.current === areaUuid) {
+                  window.dispatchEvent(
+                    new CustomEvent(EV_DETAILBAR_PATCH_CONSIDERING, {
+                      detail: { status: "OK" },
+                    })
+                  );
+                  const saved = lastSavedConsideringRef.current;
+                  if (saved) {
+                    rememberConsideringSnapshot(
+                      { ...saved.considering, status: "OK" },
+                      saved.candidates
+                    );
+                  }
+                }
+              }
+            }
+            const prefecture = typeof info?.overview?.prefecture === "string" 
+              ? info.overview.prefecture 
               : "";
             if (prefecture) {
               prefectureCache[areaUuid] = prefecture;
             }
-            const updatedAt = typeof raw?.updated_at === "string" 
-              ? raw.updated_at 
+            const updatedAt = typeof info?.updated_at === "string" 
+              ? info.updated_at 
               : "";
             if (updatedAt) {
               updatedAtCache[areaUuid] = updatedAt;
             }
-            kindCache[areaUuid] = getAreaKindFlags(raw);
+            kindCache[areaUuid] = getAreaKindFlags(info);
 
             // schedules.area.drone_count.count の最大値を取得してキャッシュ
             const maxDroneCount = await getMaxDroneCountFromScheduleArea(areaUuid);
             droneCountCache[areaUuid] = maxDroneCount;
-            const areaName = raw?.areaName ?? areaUuid;
+            const areaName = info?.areaName ?? areaUuid;
             if (import.meta.env.DEV) {
               console.log(
                 `[drone_count] areaUuid=${areaUuid} areaName=${areaName} maxCount=${maxDroneCount ?? "なし"}`
@@ -416,6 +458,7 @@ function SideListBarBase({
 
     setDetailBarTitle(displayTitle);
     setDetailBarMeta(meta);
+    rememberConsideringSnapshot(meta.considering, meta.candidate);
 
     const fullHistory = await buildAreaHistoryFromProjects(areaUuid);
     setDetailBarHistory(fullHistory);
@@ -651,7 +694,7 @@ function SideListBarBase({
     candidateIndex: number | null;
     candidateTitle?: string;
     activeAreaName: string | null;
-  }): Promise<void> => {
+  }): Promise<ConsideringSaveSnapshot["candidates"] | undefined> => {
     const {
       payload,
       areaUuidToUse,
@@ -666,7 +709,7 @@ function SideListBarBase({
       console.warn(
         "[save] candidate context missing (areaUuid/index). Skipped."
       );
-      return;
+      return undefined;
     }
 
     if (deleted === true) {
@@ -696,14 +739,18 @@ function SideListBarBase({
 
     // 保存後、candidate の更新を UI へ反映
     try {
-      if (!areaUuidToUse) return;
+      if (!areaUuidToUse) return undefined;
       const { meta: refreshedMeta } = await fetchAreaInfo(
         areaUuidToUse,
         activeAreaName || ""
       );
       setDetailBarMeta(refreshedMeta);
+      return Array.isArray(refreshedMeta.candidate)
+        ? refreshedMeta.candidate
+        : undefined;
     } catch (e) {
       console.warn("[save] refresh candidate meta failed:", e);
+      return undefined;
     }
   };
 
@@ -1010,6 +1057,47 @@ function SideListBarBase({
         consideringToSave.manager = displayName;
       }
 
+      let consideringFigureChanged = false;
+      if (!isPresetConsideringStatus(consideringToSave.status)) {
+        try {
+          const previewPayload = await requestGeometryPayload();
+          const isOwn = !!(
+            previewPayload?.projectUuid && previewPayload.scheduleUuid
+          );
+          const isOther =
+            typeof currentOtherRecordIndexRef.current === "number" &&
+            typeof currentOtherFigureIndexRef.current === "number";
+          const isConsideringCandidate =
+            typeof currentCandidateIndexRef.current === "number";
+          consideringFigureChanged =
+            !!previewPayload?.figureEdited &&
+            !isOwn &&
+            !isOther &&
+            isConsideringCandidate;
+        } catch {
+          consideringFigureChanged = false;
+        }
+      }
+
+      if (
+        shouldBlockUnsetConsideringStatusSave({
+          current: consideringToSave,
+          currentCandidates: candidatesToSave,
+          saved: lastSavedConsideringRef.current,
+          consideringFigureChanged,
+        })
+      ) {
+        window.alert(CONSIDERING_STATUS_REQUIRED_ALERT);
+        window.dispatchEvent(
+          new CustomEvent(EV_DETAILBAR_SET_TAB, {
+            detail: { tab: "considering" },
+          })
+        );
+        return;
+      }
+
+      let snapshotCandidates = candidatesToSave;
+
       const infoToSave = {
         ...(typeof raw === "object" && raw ? raw : {}),
         areaName: newTitle, // エリア名を index.json にも反映（areas.json と同期）
@@ -1236,13 +1324,16 @@ function SideListBarBase({
               candIdx >= 0 &&
               candIdx < savedCandidateCount
             ) {
-              await applyCandidateGeometryFromPayload({
+              const refreshedCandidates = await applyCandidateGeometryFromPayload({
                 payload: geomPayload,
                 areaUuidToUse: currentAreaUuidRef.current ?? areaUuid,
                 candidateIndex: candIdx,
                 candidateTitle: currentCandidateTitleRef.current,
                 activeAreaName: activeKey,
               });
+              if (refreshedCandidates) {
+                snapshotCandidates = refreshedCandidates;
+              }
             } else if (import.meta.env.DEV && (geomPayload.geometry || geomPayload.deleted)) {
               console.debug(
                 "[save] skip applyCandidateGeometryFromPayload: candidateIndex",
@@ -1278,6 +1369,7 @@ function SideListBarBase({
         updated_at: infoToSave.updated_at,
         updated_by: infoToSave.updated_by,
       });
+      rememberConsideringSnapshot(consideringToSave, snapshotCandidates);
 
       // 案件履歴も再取得して詳細バーに反映
       try {
@@ -1320,6 +1412,7 @@ function SideListBarBase({
       const d = ce.detail || {};
       if (d.clear) {
         setActiveKey(null);
+        lastSavedConsideringRef.current = null;
         return;
       }
       const idx = points.findIndex((p) => {
@@ -1423,8 +1516,11 @@ function SideListBarBase({
   useEffect(() => {
     const onProjectSubmit = (e: Event) => {
       const d =
-        (e as CustomEvent<{ projectUuid?: string; scheduleUuid?: string }>)
-          .detail || {};
+        (e as CustomEvent<{
+          projectUuid?: string;
+          scheduleUuid?: string;
+          setConsideringOk?: boolean;
+        }>).detail || {};
 
       if (d.projectUuid && d.scheduleUuid) {
         // まず SAVE 用に保持（従来どおり）
@@ -1434,6 +1530,14 @@ function SideListBarBase({
         };
         if (import.meta.env.DEV) {
           console.debug("[sidebar] pending project link set", d);
+        }
+
+        if (d.setConsideringOk) {
+          window.dispatchEvent(
+            new CustomEvent(EV_DETAILBAR_PATCH_CONSIDERING, {
+              detail: { status: "OK" },
+            })
+          );
         }
 
         // ★ ここから「④〜⑤の間に DetailBar の案件履歴に即時反映」する処理
@@ -2126,6 +2230,7 @@ function SideListBarBase({
             currentOtherRecordIndexRef.current = null;
             currentOtherFigureIndexRef.current = null;
             pendingProjectLinkRef.current = null;
+            lastSavedConsideringRef.current = null;
 
             closeDetailBar();
             window.dispatchEvent(new Event("map:start-add-area"));

@@ -328,6 +328,7 @@ export class MapGeometry {
                     figureId: this.currentScheduleRef?.figureId,
                     geometry: geometryWithDistance,
                     deleted: this.deletedRef,
+                    figureEdited: this.undoStack.length > 0,
                 };
                 console.log("[MapGeometry] respond geometry:", detail);
                 window.dispatchEvent(

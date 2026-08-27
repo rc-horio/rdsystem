@@ -5,6 +5,7 @@ import {
   CONSIDERING_CHANNEL_FREE_LABEL,
   CONSIDERING_CHANNEL_PRESETS,
   CONSIDERING_STATUS_PRESETS,
+  CONSIDERING_STATUS_UNSET_LABEL,
   isPresetConsideringChannel,
   isPresetConsideringStatus,
   needsConsideringStatusDetail,
@@ -52,7 +53,7 @@ export function ConsideringPanel({
     : "";
 
   return (
-    <section className="considering-panel" role="tabpanel" aria-label="検討中">
+    <section className="considering-panel" role="tabpanel" aria-label="候補地">
       <div className="detailbar-form">
         <div className="detailbar-form-group">
           <InputBox
@@ -64,7 +65,7 @@ export function ConsideringPanel({
             label="ステータス"
             value={statusSelectValue}
             options={[
-              { value: "", label: "未選択" },
+              { value: "", label: CONSIDERING_STATUS_UNSET_LABEL },
               ...CONSIDERING_STATUS_PRESETS,
             ]}
             onChange={(e) => onConsideringPatch({ status: e.target.value })}

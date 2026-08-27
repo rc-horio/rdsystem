@@ -177,9 +177,93 @@ export function isEmptyConsideringCandidate(candidate: Candidate): boolean {
 }
 
 export const CONSIDERING_STATUS_PRESETS = ["OK", "交渉中", "NG"] as const;
+export const CONSIDERING_STATUS_UNSET_LABEL = "未交渉";
+export const CONSIDERING_STATUS_REQUIRED_ALERT =
+  "未交渉のまま候補地の内容を変更することはできません。ステータスを選択してください。";
+export const CONSIDERING_STATUS_OK_CONFIRM =
+  "このエリアの交渉ステータスを「OK」に変更しますか？";
 
 export function isPresetConsideringStatus(name: string): boolean {
   return (CONSIDERING_STATUS_PRESETS as readonly string[]).includes(name);
+}
+
+export function consideringStatusLabel(status: string): string {
+  const trimmed = status.trim();
+  if (isPresetConsideringStatus(trimmed)) return trimmed;
+  return CONSIDERING_STATUS_UNSET_LABEL;
+}
+
+function normalizeConsideringInfo(
+  info: Partial<ConsideringInfo> | null | undefined
+): ConsideringInfo {
+  return {
+    status: (info?.status ?? "").trim(),
+    statusDetail: (info?.statusDetail ?? "").trim(),
+    manager: (info?.manager ?? "").trim(),
+    channel: (info?.channel ?? "").trim(),
+    feasibility: (info?.feasibility ?? "").trim(),
+    costEstimate: (info?.costEstimate ?? "").trim(),
+    memo: (info?.memo ?? "").trim(),
+  };
+}
+
+function consideringNonStatusEqual(
+  a: ConsideringInfo,
+  b: ConsideringInfo
+): boolean {
+  return (
+    a.statusDetail === b.statusDetail &&
+    a.manager === b.manager &&
+    a.channel === b.channel &&
+    a.feasibility === b.feasibility &&
+    a.costEstimate === b.costEstimate &&
+    a.memo === b.memo
+  );
+}
+
+export type ConsideringSaveSnapshot = {
+  considering: ConsideringInfo;
+  candidates: Candidate[];
+};
+
+export function snapshotConsideringState(
+  info: ConsideringInfo | null | undefined,
+  candidates: Candidate[] | null | undefined
+): ConsideringSaveSnapshot {
+  return {
+    considering: normalizeConsideringInfo(info),
+    candidates: JSON.parse(JSON.stringify(candidates ?? [])),
+  };
+}
+
+/** 未交渉のまま、候補地タブのステータス以外が前回SAVEから変わっていれば止める */
+export function shouldBlockUnsetConsideringStatusSave(args: {
+  current: ConsideringInfo;
+  currentCandidates: Candidate[];
+  saved: ConsideringSaveSnapshot | null;
+  consideringFigureChanged?: boolean;
+}): boolean {
+  const current = normalizeConsideringInfo(args.current);
+  if (isPresetConsideringStatus(current.status)) return false;
+
+  const saved = args.saved
+    ? {
+        considering: normalizeConsideringInfo(args.saved.considering),
+        candidates: args.saved.candidates,
+      }
+    : snapshotConsideringState(EMPTY_CONSIDERING_INFO, []);
+
+  // OK / 交渉中 / NG から未交渉へ戻す操作は通す
+  if (isPresetConsideringStatus(saved.considering.status)) return false;
+
+  if (!consideringNonStatusEqual(current, saved.considering)) return true;
+  if (
+    JSON.stringify(args.currentCandidates ?? []) !==
+    JSON.stringify(saved.candidates ?? [])
+  ) {
+    return true;
+  }
+  return !!args.consideringFigureChanged;
 }
 
 export function needsConsideringStatusDetail(status: string): boolean {
@@ -253,7 +337,7 @@ export const AREA_KIND_ORDER: readonly AreaKind[] = [
 
 export const AREA_KIND_LABEL: Record<AreaKind, string> = {
   own: "RC",
-  considering: "検討中",
+  considering: "候補地",
   other: "他社",
 };
 
@@ -311,6 +395,36 @@ export function getAreaKindFlags(raw: unknown): AreaKindFlags {
   );
 
   return { own, considering, other };
+}
+
+function readConsideringStatus(raw: unknown): string {
+  const row =
+    raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const consideringRaw =
+    row.considering && typeof row.considering === "object"
+      ? (row.considering as Record<string, unknown>)
+      : {};
+  return typeof consideringRaw.status === "string"
+    ? consideringRaw.status.trim()
+    : "";
+}
+
+/** 案件が紐づいていてステータスが空なら、既存データの一括で OK にする対象 */
+export function shouldSetConsideringOkFromOwnHistory(raw: unknown): boolean {
+  return getAreaKindFlags(raw).own && readConsideringStatus(raw) === "";
+}
+
+/** considering.status だけ OK にする。他のフィールドと updated_at は触らない */
+export function withConsideringStatusOk(raw: unknown): Record<string, unknown> {
+  const row =
+    raw && typeof raw === "object" ? { ...(raw as Record<string, unknown>) } : {};
+  const consideringRaw =
+    row.considering && typeof row.considering === "object"
+      ? { ...(row.considering as Record<string, unknown>) }
+      : {};
+  consideringRaw.status = "OK";
+  row.considering = consideringRaw;
+  return row;
 }
 
 /** 未選択（空集合）はすべて表示。選択中は1つでも含むエリアを残す。excludeOwn は自社ありを除外 */
