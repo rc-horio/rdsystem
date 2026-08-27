@@ -40,7 +40,7 @@ export function BasicInfoSection({ meta, onMetaPatch }: Props) {
             onChange={(e) => onMetaPatch({ prefecture: e.target.value })}
           />
           <InputBox
-            label="担当者"
+            label="エリア登録者"
             value={meta.manager}
             onChange={(e) => onMetaPatch({ manager: e.target.value })}
           />
@@ -59,12 +59,6 @@ export function BasicInfoSection({ meta, onMetaPatch }: Props) {
         </div>
         <div className="detailbar-form-group">
           <Textarea
-            label="制限"
-            rows={2}
-            value={meta.restrictionsMemo}
-            onChange={(e) => onMetaPatch({ restrictionsMemo: e.target.value })}
-          />
-          <Textarea
             label="備考"
             rows={2}
             value={meta.remarks}
@@ -73,7 +67,7 @@ export function BasicInfoSection({ meta, onMetaPatch }: Props) {
         </div>
         <div className="detailbar-form-group">
           <InputBox
-            label="会社名"
+            label="管理会社名"
             value={meta.companyName ?? ""}
             onChange={(e) => onMetaPatch({ companyName: e.target.value })}
           />
