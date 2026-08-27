@@ -451,6 +451,8 @@ export default function MapView({ onLoaded }: Props) {
   const [mapReady, setMapReady] = useState(false);
   const [showCreateGeomCta, setShowCreateGeomCta] = useState(false);
   const [isSelected, setIsSelected] = useState(false);
+  const isSelectedRef = useRef(isSelected);
+  isSelectedRef.current = isSelected;
   // 「どのセクション由来の選択か」を保持（案件 or 候補）
   const [selectionKind, setSelectionKind] = useState<
     "schedule" | "candidate" | null
@@ -2654,6 +2656,11 @@ export default function MapView({ onLoaded }: Props) {
         infoRef.current?.close();
         djiNfzInfoRef.current?.close();
         airportHeightRestrictionInfoRef.current?.close();
+
+        // 編集ONかつ図が選択中は、空クリックで選択・詳細バー・ジオメトリを維持する
+        if (editableRef.current && isSelectedRef.current) {
+          return;
+        }
 
         // 地図空クリックで選択解除（未選択）にする
         clearCurrentAreaSelection();
