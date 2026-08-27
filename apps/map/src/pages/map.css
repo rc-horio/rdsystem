@@ -167,7 +167,7 @@ body,
   top: 0; /* スクロールしても検索エリアを固定 */
   z-index: 11;
   flex: 0 0 auto;
-  padding: 10px 0 8px;
+  padding: 10px 0 12px;
 }
 
 .search-field {
@@ -196,41 +196,33 @@ body,
 
 .search-sort-filter-row {
   display: grid;
-  grid-template-columns: 6.25em minmax(0, 1fr);
-  gap: 8px 10px;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 8px 12px;
   align-items: center;
 }
 
 .search-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 10px;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  column-gap: 12px;
+  row-gap: 12px;
+  align-items: center;
+  margin-top: 12px;
 }
 
 .search-control-row {
-  display: grid;
-  grid-template-columns: 6.25em minmax(0, 1fr);
-  gap: 8px 10px;
-  align-items: center;
-}
-
-.search-control-row--filters {
-  align-items: start;
+  display: contents;
 }
 
 .search-control-row--filters .search-sort-filter-label {
-  padding-top: 2px;
-}
-
-.search-control-row--clear {
-  grid-template-columns: 6.25em minmax(0, 1fr);
-  margin-top: 6px;
+  align-self: start;
+  padding-top: 3px;
 }
 
 .search-control-row--clear .search-clear-button {
   grid-column: 2;
   justify-self: end;
+  margin-top: 2px;
 }
 
 .search-sort-filter-label {
@@ -277,8 +269,9 @@ body,
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 12px;
+  gap: 10px 14px;
   min-width: 0;
+  padding-top: 1px;
 }
 
 .search-kind-filter-item {
