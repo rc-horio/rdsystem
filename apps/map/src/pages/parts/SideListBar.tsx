@@ -38,12 +38,15 @@ import {
 import { PREFECTURES } from "./constants/events";
 import {
   EMPTY_CONSIDERING_INFO,
+  areaKindFlagList,
   areaMatchesKindFilter,
   getAreaKindFlags,
   hasConsideringContent,
   isEmptyOtherRecord,
   type AreaKind,
   type AreaKindFlags,
+  AREA_KIND_LABEL,
+  AREA_KIND_ORDER,
 } from "./detailBar/helpers";
 import { normalizeScheduleFlightArea } from "@/features/flightFigures";
 import type {
@@ -1951,6 +1954,28 @@ function SideListBarBase({
 
     return (
       <>
+        {(() => {
+          const firstPoint = points[indices[0]];
+          const flags = firstPoint?.areaUuid
+            ? kindCache[firstPoint.areaUuid]
+            : undefined;
+          const kinds = areaKindFlagList(flags);
+          if (kinds.length === 0) return null;
+          return (
+            <span
+              className="area-kind-dots"
+              aria-label={kinds.map((kind) => AREA_KIND_LABEL[kind]).join("、")}
+            >
+              {kinds.map((kind) => (
+                <span
+                  key={kind}
+                  className={`area-kind-dot area-kind-dot--${kind}`}
+                  aria-hidden="true"
+                />
+              ))}
+            </span>
+          );
+        })()}
         <span className="location-label">
           {displayLabel}
           {indices.length > 1 ? `（${indices.length}）` : null}
@@ -2323,13 +2348,7 @@ function SideListBarBase({
                 フィルター
               </span>
               <div className="search-kind-options" role="group" aria-label="フィルター">
-                {(
-                  [
-                    ["own", "自社"],
-                    ["considering", "検討中"],
-                    ["other", "他社"],
-                  ] as const
-                ).map(([kind, label]) => (
+                {AREA_KIND_ORDER.map((kind) => (
                   <label key={kind} className="search-kind-filter-item">
                     <input
                       type="checkbox"
@@ -2343,7 +2362,11 @@ function SideListBarBase({
                         });
                       }}
                     />
-                    {label}
+                    <span
+                      className={`area-kind-dot area-kind-dot--${kind}`}
+                      aria-hidden="true"
+                    />
+                    {AREA_KIND_LABEL[kind]}
                   </label>
                 ))}
                 <label className="search-kind-filter-item search-kind-filter-item--exclude">

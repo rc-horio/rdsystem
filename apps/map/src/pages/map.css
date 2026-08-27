@@ -28,6 +28,11 @@
   --detailbar-gap: 5px; /* サイドバーとの距離 */
   --detailbar-pad: 16px; /* 詳細バー内パディング */
 
+  /* 自社 / 検討中 / 他社（色覚差でも赤・灰・青が分かれ、点の並びでも読める） */
+  --area-kind-own: #e05656;
+  --area-kind-considering: #8e959e;
+  --area-kind-other: #4d8fd6;
+
   /* ========== Map overlay tokens ========== */
   /* 離着陸 長方形（赤系） */
   --map-takeoff-stroke: #ed1b24;
@@ -544,6 +549,32 @@ body,
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.area-kind-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: 0 0 auto;
+}
+
+.area-kind-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.area-kind-dot--own {
+  background: var(--area-kind-own);
+}
+
+.area-kind-dot--considering {
+  background: var(--area-kind-considering);
+}
+
+.area-kind-dot--other {
+  background: var(--area-kind-other);
 }
 
 /* 都道府県ヘッダー */

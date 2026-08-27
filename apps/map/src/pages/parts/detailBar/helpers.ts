@@ -245,6 +245,25 @@ export type AreaKindFlags = {
   other: boolean;
 };
 
+export const AREA_KIND_ORDER: readonly AreaKind[] = [
+  "own",
+  "considering",
+  "other",
+];
+
+export const AREA_KIND_LABEL: Record<AreaKind, string> = {
+  own: "自社",
+  considering: "検討中",
+  other: "他社",
+};
+
+export function areaKindFlagList(
+  flags: AreaKindFlags | undefined
+): AreaKind[] {
+  if (!flags) return [];
+  return AREA_KIND_ORDER.filter((kind) => flags[kind]);
+}
+
 function readHistoryPair(entry: unknown): {
   projectUuid: string;
   scheduleUuid: string;
