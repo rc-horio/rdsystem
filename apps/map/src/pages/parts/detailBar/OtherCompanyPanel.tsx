@@ -102,6 +102,15 @@ export function OtherCompanyPanel({
   return (
     <section role="tabpanel" aria-label="他社">
       <div className="ds-record-section">
+        {editable && (
+          <button
+            type="button"
+            className="add-area-button detailbar-add-button"
+            onClick={addRecord}
+          >
+            <span className="add-icon">＋ </span>実績を追加する
+          </button>
+        )}
         <div className="ds-record-list">
           {!hasVisibleRecords && !editable ? (
             <div className="other-record-empty" aria-live="polite">
@@ -142,15 +151,6 @@ export function OtherCompanyPanel({
             })
           )}
         </div>
-        {editable && (
-          <button
-            type="button"
-            className="add-area-button detailbar-add-button"
-            onClick={addRecord}
-          >
-            <span className="add-icon">＋ </span>実績を追加する
-          </button>
-        )}
       </div>
     </section>
   );

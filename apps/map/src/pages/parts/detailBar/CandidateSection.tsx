@@ -56,6 +56,15 @@ export function CandidateSection({
   return (
     <div className="ds-record-section">
       <div className="ds-record-section-title">候補</div>
+      {editable && !candidateDeletionLocked && (
+        <button
+          type="button"
+          className="add-area-button detailbar-add-button"
+          onClick={requestAdd}
+        >
+          <span className="add-icon">＋ </span>候補地を追加する
+        </button>
+      )}
 
       <div className="ds-record-list">
         {candidates.length === 0 ? (
@@ -149,16 +158,6 @@ export function CandidateSection({
           ))
         )}
       </div>
-
-      {editable && !candidateDeletionLocked && (
-        <button
-          type="button"
-          className="add-area-button detailbar-add-button"
-          onClick={requestAdd}
-        >
-          <span className="add-icon">＋ </span>候補地を追加する
-        </button>
-      )}
       <AddFlightFigureModal
         open={addOpen}
         title="候補地を追加"

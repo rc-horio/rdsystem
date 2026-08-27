@@ -1472,7 +1472,7 @@ body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
   padding: 10px 10px; /* 少しだけコンパクトに */
 }
 
-.detailbar-panel .ds-record-section > .detailbar-add-button:first-child {
+.detailbar-panel .ds-record-section > .detailbar-add-button {
   margin-top: 0;
 }
 
