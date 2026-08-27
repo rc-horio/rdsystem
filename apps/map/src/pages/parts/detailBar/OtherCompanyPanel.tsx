@@ -108,7 +108,7 @@ export function OtherCompanyPanel({
             className="add-area-button detailbar-add-button"
             onClick={addRecord}
           >
-            <span className="add-icon">＋ </span>実績を追加する
+            <span className="add-icon">＋ </span>実績を追加
           </button>
         )}
         <div className="ds-record-list">

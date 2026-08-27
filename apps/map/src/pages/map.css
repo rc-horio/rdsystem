@@ -1471,10 +1471,33 @@ body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
 
 /* Detailbar 内の追加ボタン */
 .detailbar-panel .detailbar-add-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  appearance: none;
+  border: 0;
+  background: transparent;
   margin-left: 0; /* ネガティブマージンを消して中にそろえる */
   margin-top: 10px; /* リストから少し間を空ける */
   font-size: 13px; /* サイドバーより一段小さく、控えめに */
   padding: 10px 10px; /* 少しだけコンパクトに */
+}
+
+/* 先頭の＋分を右側で相殺し、ラベルがパネルの視覚中央に来るようにする */
+.detailbar-panel .detailbar-add-button .add-icon {
+  display: inline-block;
+  width: 1em;
+  margin-right: 2px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.detailbar-panel .detailbar-add-button:has(.add-icon)::after {
+  content: "";
+  flex: 0 0 auto;
+  width: 1em;
+  font-size: 15px; /* .add-icon と同じ */
+  margin-left: 2px;
 }
 
 .detailbar-panel .ds-record-section > .detailbar-add-button {
