@@ -7,6 +7,7 @@ import type {
 
 export const EMPTY_CONSIDERING_INFO: ConsideringInfo = {
   status: "",
+  statusDetail: "",
   manager: "",
   channel: "",
   feasibility: "",
@@ -18,6 +19,8 @@ export const EMPTY_DETAIL_META: DetailMeta = {
   overview: "",
   address: "",
   companyName: "",
+  administrator: "",
+  contact: "",
   manager: "",
   prefecture: "",
   droneRecord: 0,
@@ -172,6 +175,16 @@ export function isEmptyConsideringCandidate(candidate: Candidate): boolean {
   return !(candidate.title ?? "").trim() && !hasConsideringGeometry(candidate);
 }
 
+export const CONSIDERING_STATUS_PRESETS = ["OK", "交渉中", "NG"] as const;
+
+export function isPresetConsideringStatus(name: string): boolean {
+  return (CONSIDERING_STATUS_PRESETS as readonly string[]).includes(name);
+}
+
+export function needsConsideringStatusDetail(status: string): boolean {
+  return isPresetConsideringStatus(status);
+}
+
 export const CONSIDERING_CHANNEL_PRESETS = [
   "代理店",
   "直販",
@@ -191,6 +204,7 @@ export function hasConsideringContent(
 ): boolean {
   if (
     (info.status ?? "").trim() ||
+    (info.statusDetail ?? "").trim() ||
     (info.channel ?? "").trim() ||
     (info.feasibility ?? "").trim() ||
     (info.costEstimate ?? "").trim() ||

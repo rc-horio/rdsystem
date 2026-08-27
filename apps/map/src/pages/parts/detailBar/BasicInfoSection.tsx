@@ -71,6 +71,16 @@ export function BasicInfoSection({ meta, onMetaPatch }: Props) {
             value={meta.companyName ?? ""}
             onChange={(e) => onMetaPatch({ companyName: e.target.value })}
           />
+          <InputBox
+            label="管理者"
+            value={meta.administrator ?? ""}
+            onChange={(e) => onMetaPatch({ administrator: e.target.value })}
+          />
+          <InputBox
+            label="連絡先"
+            value={meta.contact ?? ""}
+            onChange={(e) => onMetaPatch({ contact: e.target.value })}
+          />
           <Textarea
             label="住所"
             rows={2}

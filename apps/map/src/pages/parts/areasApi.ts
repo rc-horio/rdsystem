@@ -157,6 +157,7 @@ function parseConsidering(raw: unknown): ConsideringInfo {
             : {};
     return {
         status: toStr(row.status),
+        statusDetail: toStr(row.statusDetail),
         manager: toStr(row.manager),
         channel: toStr(row.channel),
         feasibility: toStr(row.feasibility),
@@ -531,6 +532,8 @@ function parseDetailMeta(info: any, fallbackAreaName?: string): DetailMeta {
         overview: toStr(ov?.overview ?? defaultOverview),  // 修正: 空の場合にデフォルト値を設定
         address: toStr(ov.address ?? ""),
         companyName: toStr(ov.companyName ?? ""),
+        administrator: toStr(ov.administrator ?? ""),
+        contact: toStr(ov.contact ?? ""),
         manager: toStr(ov.manager ?? ""),
         prefecture: toStr(ov.prefecture ?? fallbackAreaName ?? ""),
         droneRecord: (() => {
@@ -1019,6 +1022,8 @@ export async function createNewArea(params: {
         overview: {
             address: params.address ?? "",
             companyName: "",
+            administrator: "",
+            contact: "",
             prefecture: params.prefecture ?? "",
             manager: displayName,
             droneRecord: 0,

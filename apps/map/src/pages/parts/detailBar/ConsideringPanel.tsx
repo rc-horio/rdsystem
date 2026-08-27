@@ -4,7 +4,10 @@ import { ConsideringFigures } from "./ConsideringFigures";
 import {
   CONSIDERING_CHANNEL_FREE_LABEL,
   CONSIDERING_CHANNEL_PRESETS,
+  CONSIDERING_STATUS_PRESETS,
   isPresetConsideringChannel,
+  isPresetConsideringStatus,
+  needsConsideringStatusDetail,
 } from "./helpers";
 import type { CopySourceItem, CopySourceTree } from "./flightFigureCopy";
 
@@ -44,21 +47,38 @@ export function ConsideringPanel({
   const channelSelectValue = isPresetConsideringChannel(considering.channel)
     ? considering.channel
     : CONSIDERING_CHANNEL_FREE_LABEL;
+  const statusSelectValue = isPresetConsideringStatus(considering.status)
+    ? considering.status
+    : "";
 
   return (
     <section className="considering-panel" role="tabpanel" aria-label="検討中">
       <div className="detailbar-form">
         <div className="detailbar-form-group">
           <InputBox
-            label="ステータス"
-            value={considering.status}
-            onChange={(e) => onConsideringPatch({ status: e.target.value })}
-          />
-          <InputBox
             label="担当者"
             value={considering.manager}
             onChange={(e) => onConsideringPatch({ manager: e.target.value })}
           />
+          <SelectBox
+            label="ステータス"
+            value={statusSelectValue}
+            options={[
+              { value: "", label: "未選択" },
+              ...CONSIDERING_STATUS_PRESETS,
+            ]}
+            onChange={(e) => onConsideringPatch({ status: e.target.value })}
+          />
+          {needsConsideringStatusDetail(considering.status) && (
+            <Textarea
+              label="ステータス詳細"
+              rows={2}
+              value={considering.statusDetail}
+              onChange={(e) =>
+                onConsideringPatch({ statusDetail: e.target.value })
+              }
+            />
+          )}
           <SelectBox
             label="チャネル"
             value={channelSelectValue}

@@ -965,6 +965,7 @@ function SideListBarBase({
       const consideringSource = data.meta.considering ?? EMPTY_CONSIDERING_INFO;
       const consideringToSave = {
         status: consideringSource.status ?? "",
+        statusDetail: consideringSource.statusDetail ?? "",
         manager: consideringSource.manager ?? "",
         channel: consideringSource.channel ?? "",
         feasibility: consideringSource.feasibility ?? "",
@@ -988,6 +989,8 @@ function SideListBarBase({
           ...(raw?.overview ?? {}),
           address: data.meta.address ?? "",
           companyName: data.meta.companyName ?? "",
+          administrator: data.meta.administrator ?? "",
+          contact: data.meta.contact ?? "",
           prefecture: data.meta.prefecture ?? "",
           manager: data.meta.manager ?? "",
           droneRecord: data.meta.droneRecord ?? 0,
@@ -1225,6 +1228,8 @@ function SideListBarBase({
         overview: infoToSave.overview?.overview ?? "",
         address: infoToSave.overview?.address ?? "",
         companyName: infoToSave.overview?.companyName ?? "",
+        administrator: infoToSave.overview?.administrator ?? "",
+        contact: infoToSave.overview?.contact ?? "",
         manager: infoToSave.overview?.manager ?? "",
         prefecture: infoToSave.overview?.prefecture ?? "",
         droneRecord: Number(infoToSave.overview?.droneRecord ?? 0),

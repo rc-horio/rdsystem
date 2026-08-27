@@ -116,6 +116,7 @@ export type HistoryLite = { label: string; date: string };
 
 export type ConsideringInfo = {
     status: string;
+    statusDetail: string;
     manager: string;
     channel: string;
     feasibility: string;
@@ -127,6 +128,8 @@ export interface DetailMeta {
     overview: string;
     address: string;
     companyName: string;
+    administrator: string;
+    contact: string;
     manager: string;
     prefecture: string;
     /** 0=なし, 1=あり */
