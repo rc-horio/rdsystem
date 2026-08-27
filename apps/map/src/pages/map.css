@@ -196,9 +196,41 @@ body,
 
 .search-sort-filter-row {
   display: grid;
-  grid-template-columns: 72px 130px;
-  gap: 8px;
+  grid-template-columns: 6.25em minmax(0, 1fr);
+  gap: 8px 10px;
   align-items: center;
+}
+
+.search-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.search-control-row {
+  display: grid;
+  grid-template-columns: 6.25em minmax(0, 1fr);
+  gap: 8px 10px;
+  align-items: center;
+}
+
+.search-control-row--filters {
+  align-items: start;
+}
+
+.search-control-row--filters .search-sort-filter-label {
+  padding-top: 2px;
+}
+
+.search-control-row--clear {
+  grid-template-columns: 6.25em minmax(0, 1fr);
+  margin-top: 6px;
+}
+
+.search-control-row--clear .search-clear-button {
+  grid-column: 2;
+  justify-self: end;
 }
 
 .search-sort-filter-label {
@@ -211,17 +243,41 @@ body,
   white-space: nowrap;
 }
 
-.search-sort-filter-row .search-sort-select {
+.search-sort-filter-row .search-sort-select,
+.search-control-row .search-sort-select {
   min-width: 0;
   width: 100%;
 }
 
-.search-kind-filter {
+.search-sort-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px;
+  gap: 6px;
+  min-width: 0;
+  align-items: center;
+}
+
+.search-sort-select-wrap {
+  position: relative;
+  min-width: 0;
+}
+
+.search-sort-select-caret {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 8px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.search-kind-options {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 10px;
-  margin: 8px 0 0;
+  gap: 8px 12px;
   min-width: 0;
 }
 
@@ -243,55 +299,79 @@ body,
 }
 
 .search-kind-filter-item--exclude {
-  margin-left: 4px;
-  padding-left: 10px;
-  border-left: 1px solid rgba(255, 255, 255, 0.25);
+  flex: 1 0 100%;
 }
 
 .search-sort-icon {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 14px;
   line-height: 1;
   opacity: 0.8;
 }
 
+.search-filter-icon {
+  display: block;
+  width: 12px;
+  height: 12px;
+}
+
 .search-sort-select {
   flex: 0 1 auto;
   min-width: 0;
+  width: 100%;
   height: 28px;
   box-sizing: border-box;
-  padding: 4px 28px 4px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 4px 22px 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.1) !important;
+  background-color: transparent;
   color: #fff;
   outline: none;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   font-size: 12px;
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23ffffff' d='M5 7.5L1.5 4h7z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
-  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  -webkit-appearance: none;
+  box-shadow: none;
+  transition: border-color 0.15s ease;
 }
 .search-sort-select:hover {
-  border-color: rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.7);
 }
 .search-sort-select:focus {
-  border-color: rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.15) !important;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.85);
 }
 .search-sort-select option {
   background: rgba(0, 0, 0, 0.95);
   color: #fff;
 }
 
+.search-sort-dir {
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
+  background: transparent;
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+.search-sort-dir:hover {
+  border-color: rgba(255, 255, 255, 0.7);
+}
+.search-sort-dir:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.45);
+  outline-offset: 2px;
+}
+
 .search-clear-wrapper {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   margin-top: 8px;
 }
 

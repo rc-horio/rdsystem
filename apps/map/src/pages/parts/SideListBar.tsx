@@ -92,6 +92,23 @@ type AddAreaSearchEventDetail = {
   message?: string | null;
 };
 
+type AreaSortType = "name" | "prefecture" | "updated" | "droneCount";
+type AreaSortDir = "asc" | "desc";
+
+const AREA_SORT_DEFAULT_DIR: Record<AreaSortType, AreaSortDir> = {
+  prefecture: "asc",
+  updated: "desc",
+  droneCount: "desc",
+  name: "asc",
+};
+
+function areaSortDirLabel(type: AreaSortType, dir: AreaSortDir): string {
+  if (type === "prefecture") return dir === "asc" ? "北海道から" : "沖縄から";
+  if (type === "updated") return dir === "desc" ? "新しい順" : "古い順";
+  if (type === "droneCount") return dir === "desc" ? "多い順" : "少ない順";
+  return dir === "asc" ? "あいうえお順" : "逆順";
+}
+
 // サイドバーの基本コンポーネント
 function SideListBarBase({
   points = [],
@@ -144,7 +161,10 @@ function SideListBarBase({
   // 検索クエリ state
   const [searchQuery, setSearchQuery] = useState("");
   // ソート種類 state
-  const [sortType, setSortType] = useState<"name" | "prefecture" | "updated" | "droneCount">("updated");
+  const [sortType, setSortType] = useState<AreaSortType>("updated");
+  const [sortDir, setSortDir] = useState<AreaSortDir>(
+    AREA_SORT_DEFAULT_DIR.updated
+  );
   // フィルター条件（空＝すべて。自社/検討中/他社はOR）
   const [filterKinds, setFilterKinds] = useState<Set<AreaKind>>(() => new Set());
   const [excludeOwn, setExcludeOwn] = useState(false);
@@ -1595,17 +1615,16 @@ function SideListBarBase({
     }
     
     // ソート
+    const dirSign = sortDir === "desc" ? -1 : 1;
     if (sortType === "name") {
-      // エリア名順（あいうえお順）
       filtered = [...filtered].sort((a, b) => {
         const nameA = (areaLabelOverrides[a.area] ?? a.area).localeCompare(
           areaLabelOverrides[b.area] ?? b.area,
           "ja"
         );
-        return nameA;
+        return nameA * dirSign;
       });
     } else if (sortType === "updated") {
-      // 更新日順（最新が上）
       filtered = [...filtered].sort((a, b) => {
         const firstIdxA = a.indices[0];
         const firstIdxB = b.indices[0];
@@ -1615,29 +1634,21 @@ function SideListBarBase({
         const updatedAtA = pointA?.areaUuid ? updatedAtCache[pointA.areaUuid] || "" : "";
         const updatedAtB = pointB?.areaUuid ? updatedAtCache[pointB.areaUuid] || "" : "";
         
-        // 更新日が新しい順（降順）
         if (!updatedAtA && !updatedAtB) return 0;
-        if (!updatedAtA) return 1; // 更新日がないものは下
-        if (!updatedAtB) return -1; // 更新日がないものは下
+        if (!updatedAtA) return 1;
+        if (!updatedAtB) return -1;
         
-        // ISO 8601形式の日付文字列を比較（新しいものが上）
-        return updatedAtB.localeCompare(updatedAtA);
+        return updatedAtA.localeCompare(updatedAtB) * dirSign;
       });
     } else if (sortType === "prefecture") {
-      // 都道府県順（北海道が上、沖縄が下、未選択は一番下）
-      // 都道府県の順序を取得するヘルパー関数
       const getPrefectureOrder = (prefecture: string): number => {
         if (!prefecture || prefecture.trim() === "" || prefecture === "未選択") {
-          // 未選択や空文字は最後（大きな値）
           return 9999;
         }
         const index = PREFECTURES.indexOf(prefecture);
         if (index === -1) {
-          // リストにない都道府県は最後（未選択よりは上）
           return 9998;
         }
-        // PREFECTURESのインデックスを返す（「未選択」はインデックス0だが、上で除外済み）
-        // インデックス1が「北海道」、最後が「沖縄県」
         return index;
       };
       
@@ -1650,15 +1661,16 @@ function SideListBarBase({
         const prefectureA = pointA?.areaUuid ? prefectureCache[pointA.areaUuid] || "" : "";
         const prefectureB = pointB?.areaUuid ? prefectureCache[pointB.areaUuid] || "" : "";
         
-        // 都道府県の順序で比較
         const orderA = getPrefectureOrder(prefectureA);
         const orderB = getPrefectureOrder(prefectureB);
-        
+        const missingA = orderA >= 9998;
+        const missingB = orderB >= 9998;
+        if (missingA !== missingB) return missingA ? 1 : -1;
+
         if (orderA !== orderB) {
-          return orderA - orderB;
+          return (orderA - orderB) * dirSign;
         }
         
-        // 都道府県が同じ場合はエリア名で比較
         const nameA = (areaLabelOverrides[a.area] ?? a.area).localeCompare(
           areaLabelOverrides[b.area] ?? b.area,
           "ja"
@@ -1666,7 +1678,6 @@ function SideListBarBase({
         return nameA;
       });
     } else if (sortType === "droneCount") {
-      // 機体数順（多い順、未設定は末尾）
       filtered = [...filtered].sort((a, b) => {
         const firstIdxA = a.indices[0];
         const firstIdxB = b.indices[0];
@@ -1675,25 +1686,23 @@ function SideListBarBase({
 
         const countA = pointA?.areaUuid ? droneCountCache[pointA.areaUuid] : undefined;
         const countB = pointB?.areaUuid ? droneCountCache[pointB.areaUuid] : undefined;
-
-        const numA = countA ?? -1;
-        const numB = countB ?? -1;
-
-        if (numA !== numB) return numB - numA; // 降順（多い順）
-
-        if (numA === -1 && numB === -1) {
-          const nameA = (areaLabelOverrides[a.area] ?? a.area).localeCompare(
+        const missingA = countA == null;
+        const missingB = countB == null;
+        if (missingA !== missingB) return missingA ? 1 : -1;
+        if (missingA && missingB) {
+          return (areaLabelOverrides[a.area] ?? a.area).localeCompare(
             areaLabelOverrides[b.area] ?? b.area,
             "ja"
           );
-          return nameA;
         }
+
+        if (countA !== countB) return ((countA ?? 0) - (countB ?? 0)) * dirSign;
         return 0;
       });
     }
     
     return filtered;
-  }, [areaGroups, searchQuery, areaLabelOverrides, points, prefectureCache, updatedAtCache, kindCache, droneCountCache, sortType, filterKinds, excludeOwn]);
+  }, [areaGroups, searchQuery, areaLabelOverrides, points, prefectureCache, updatedAtCache, kindCache, droneCountCache, sortType, sortDir, filterKinds, excludeOwn]);
 
   // フィルタ結果を地図に通知（マーカーの表示/非表示を同期）
   useEffect(() => {
@@ -1828,7 +1837,8 @@ function SideListBarBase({
       const indexB = PREFECTURES.indexOf(b.prefecture);
       if (indexA === -1) return 1;
       if (indexB === -1) return -1;
-      return indexA - indexB;
+      const diff = indexA - indexB;
+      return sortDir === "desc" ? -diff : diff;
     });
 
     // 未選択グループを最後に追加
@@ -1837,7 +1847,7 @@ function SideListBarBase({
     }
 
     return groups;
-  }, [visibleAreaGroups, sortType, points, prefectureCache]);
+  }, [visibleAreaGroups, sortType, sortDir, points, prefectureCache]);
 
   // 更新日順ソート時にグループ化する
   const groupedByUpdatedAt = useMemo(() => {
@@ -1865,13 +1875,17 @@ function SideListBarBase({
 
     // 更新日グループの順序でソート（新しいものが上）
     groups.sort((a, b) => {
+      const unknownA = a.groupLabel === "Unknown";
+      const unknownB = b.groupLabel === "Unknown";
+      if (unknownA !== unknownB) return unknownA ? 1 : -1;
       const orderA = getUpdatedAtGroupOrder(a.groupLabel);
       const orderB = getUpdatedAtGroupOrder(b.groupLabel);
-      return orderA - orderB;
+      const diff = orderA - orderB;
+      return sortDir === "desc" ? diff : -diff;
     });
 
     return groups;
-  }, [visibleAreaGroups, sortType, points, updatedAtCache]);
+  }, [visibleAreaGroups, sortType, sortDir, points, updatedAtCache]);
 
   // 機体数順ソート時にグループ化する
   const groupedByDroneCount = useMemo(() => {
@@ -1896,13 +1910,17 @@ function SideListBarBase({
     });
 
     groups.sort((a, b) => {
+      const unsetA = a.groupLabel === "未設定";
+      const unsetB = b.groupLabel === "未設定";
+      if (unsetA !== unsetB) return unsetA ? 1 : -1;
       const orderA = getDroneCountGroupOrder(a.groupLabel);
       const orderB = getDroneCountGroupOrder(b.groupLabel);
-      return orderA - orderB;
+      const diff = orderA - orderB;
+      return sortDir === "desc" ? diff : -diff;
     });
 
     return groups;
-  }, [visibleAreaGroups, sortType, points, droneCountCache]);
+  }, [visibleAreaGroups, sortType, sortDir, points, droneCountCache]);
 
   // エリアアイテムのコンテンツをレンダリングする関数（グループ化時と通常時で共通）
   const renderAreaItemContent = (area: string, indices: number[]) => {
@@ -2242,76 +2260,118 @@ function SideListBarBase({
             />
           </div>
           <div id="searchHint" aria-live="polite" />
-          {/* ソート・フィルター（上下左右・幅を揃えて配置） */}
-          <div className="search-sort-filter-row" style={{ marginTop: "8px" }}>
-            <label htmlFor="sortSelect" className="search-sort-filter-label">
-              <span className="search-sort-icon" aria-hidden="true">⇅</span>
-              ソート
-            </label>
-            <select
-              id="sortSelect"
-              value={sortType}
-              onChange={(e) => setSortType(e.target.value as "name" | "prefecture" | "updated" | "droneCount")}
-              className="search-sort-select"
-              aria-label="ソート順を選択"
-            >
-              <option value="prefecture">都道府県</option>
-              <option value="updated">更新日</option>
-              <option value="droneCount">機体数</option>
-              <option value="name">エリア名</option>
-            </select>
-          </div>
-          <div className="search-kind-filter" role="group" aria-label="フィルター">
-            <span className="search-sort-filter-label">
-              <span className="search-sort-icon" aria-hidden="true">▾</span>
-              フィルター
-            </span>
-            {(
-              [
-                ["own", "自社"],
-                ["considering", "検討中"],
-                ["other", "他社"],
-              ] as const
-            ).map(([kind, label]) => (
-              <label key={kind} className="search-kind-filter-item">
-                <input
-                  type="checkbox"
-                  checked={filterKinds.has(kind)}
-                  onChange={() => {
-                    setFilterKinds((prev) => {
-                      const next = new Set(prev);
-                      if (next.has(kind)) next.delete(kind);
-                      else next.add(kind);
-                      return next;
-                    });
-                  }}
-                />
-                {label}
+          <div className="search-controls">
+            <div className="search-control-row">
+              <label htmlFor="sortSelect" className="search-sort-filter-label">
+                <span className="search-sort-icon" aria-hidden="true">⇅</span>
+                並べ替え
               </label>
-            ))}
-            <label className="search-kind-filter-item search-kind-filter-item--exclude">
-              <input
-                type="checkbox"
-                checked={excludeOwn}
-                onChange={() => setExcludeOwn((prev) => !prev)}
-              />
-              自社を含まない
-            </label>
-          </div>
-          <div className="search-clear-wrapper">
-            <button
-              type="button"
-              className="search-clear-button"
-              onClick={() => {
-                setSearchQuery("");
-                setSortType("prefecture");
-                setFilterKinds(new Set());
-                setExcludeOwn(false);
-              }}
-              aria-label="検索・ソート・フィルターをクリア"
-            >
-              検索条件クリア
-            </button>
+              <div className="search-sort-fields">
+                <div className="search-sort-select-wrap">
+                  <select
+                    id="sortSelect"
+                    value={sortType}
+                    onChange={(e) => {
+                      const next = e.target.value as AreaSortType;
+                      setSortType(next);
+                      setSortDir(AREA_SORT_DEFAULT_DIR[next]);
+                    }}
+                    className="search-sort-select"
+                    aria-label="並べ替えの項目を選択"
+                  >
+                    <option value="prefecture">都道府県</option>
+                    <option value="updated">更新日</option>
+                    <option value="droneCount">機体数</option>
+                    <option value="name">エリア名</option>
+                  </select>
+                  <span className="search-sort-select-caret" aria-hidden="true">
+                    ▼
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="search-sort-dir"
+                  aria-label={`現在は${areaSortDirLabel(sortType, sortDir)}。クリックで${areaSortDirLabel(
+                    sortType,
+                    sortDir === "desc" ? "asc" : "desc"
+                  )}`}
+                  title={areaSortDirLabel(sortType, sortDir)}
+                  onClick={() =>
+                    setSortDir((current) => (current === "desc" ? "asc" : "desc"))
+                  }
+                >
+                  {sortDir === "desc" ? "↓" : "↑"}
+                </button>
+              </div>
+            </div>
+            <div className="search-control-row search-control-row--filters">
+              <span className="search-sort-filter-label">
+                <span className="search-sort-icon" aria-hidden="true">
+                  <svg
+                    className="search-filter-icon"
+                    viewBox="0 0 12 12"
+                    width="12"
+                    height="12"
+                    focusable="false"
+                  >
+                    <path
+                      fill="currentColor"
+                      d="M1.2 1.5h9.6L7.2 6.3v3.4L4.8 11V6.3L1.2 1.5z"
+                    />
+                  </svg>
+                </span>
+                フィルター
+              </span>
+              <div className="search-kind-options" role="group" aria-label="フィルター">
+                {(
+                  [
+                    ["own", "自社"],
+                    ["considering", "検討中"],
+                    ["other", "他社"],
+                  ] as const
+                ).map(([kind, label]) => (
+                  <label key={kind} className="search-kind-filter-item">
+                    <input
+                      type="checkbox"
+                      checked={filterKinds.has(kind)}
+                      onChange={() => {
+                        setFilterKinds((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(kind)) next.delete(kind);
+                          else next.add(kind);
+                          return next;
+                        });
+                      }}
+                    />
+                    {label}
+                  </label>
+                ))}
+                <label className="search-kind-filter-item search-kind-filter-item--exclude">
+                  <input
+                    type="checkbox"
+                    checked={excludeOwn}
+                    onChange={() => setExcludeOwn((prev) => !prev)}
+                  />
+                  自社を含まない
+                </label>
+              </div>
+            </div>
+            <div className="search-control-row search-control-row--clear">
+              <button
+                type="button"
+                className="search-clear-button"
+                onClick={() => {
+                  setSearchQuery("");
+                  setSortType("prefecture");
+                  setSortDir(AREA_SORT_DEFAULT_DIR.prefecture);
+                  setFilterKinds(new Set());
+                  setExcludeOwn(false);
+                }}
+                aria-label="検索・並べ替え・フィルターをクリア"
+              >
+                検索条件クリア
+              </button>
+            </div>
           </div>
         </div>
       )}
