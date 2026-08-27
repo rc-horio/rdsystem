@@ -113,6 +113,16 @@ export type GeometryMetrics = {
 // スケジュール情報
 export type ScheduleLite = { label: string; date: string; areaName: string };
 export type HistoryLite = { label: string; date: string };
+
+export type ConsideringInfo = {
+    status: string;
+    manager: string;
+    channel: string;
+    feasibility: string;
+    costEstimate: string;
+    memo: string;
+};
+
 export interface DetailMeta {
     overview: string;
     address: string;
@@ -129,6 +139,8 @@ export interface DetailMeta {
     restrictionsMemo: string;
     remarks: string;
     candidate: Candidate[];
+    /** 検討中タブの入力（エリアにつき1式）。永続化キーは index.json の considering */
+    considering: ConsideringInfo;
     /** 他社タブの実績。永続化キーはエリア index.json の otherRecords */
     otherRecords: OtherRecord[];
     /**

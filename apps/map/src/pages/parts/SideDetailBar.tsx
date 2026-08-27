@@ -33,17 +33,17 @@ import { OtherCompanyPanel } from "./detailBar/OtherCompanyPanel";
 import { ConsideringPanel } from "./detailBar/ConsideringPanel";
 import { DetailBarTabs } from "./detailBar/DetailBarTabs";
 import {
+  EMPTY_CONSIDERING_INFO,
   EMPTY_DETAIL_META,
   formatDateTime,
   geometryFromFigure,
-  hasDuplicateCandidateTitle,
-  makeUniqueCandidateCopyTitle,
 } from "./detailBar/helpers";
 import { OwnFlightAreaPanel } from "./detailBar/OwnFlightAreaPanel";
 import { useDetailBarResize } from "./detailBar/useDetailBarResize";
 import {
   buildCopySourceTree,
   geometryToFlatFields,
+  makeUniqueCopyTitle,
   type CopySourceItem,
 } from "./detailBar/flightFigureCopy";
 
@@ -70,17 +70,10 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   const [selectedOwnFigureId, setSelectedOwnFigureId] = useState<string | null>(
     null
   );
-  const [editingCandidateIdx, setEditingCandidateIdx] = useState<number | null>(
-    null
-  );
-  const [editingCandidateTitle, setEditingCandidateTitle] = useState("");
-  const editingCandidateInputRef = useRef<HTMLInputElement>(null);
-  const [pendingNewCandidateIdx, setPendingNewCandidateIdx] = useState<
-    number | null
-  >(null);
   const [meta, setMeta] = useState<DetailMeta>({ ...EMPTY_DETAIL_META });
 
   const candidates = meta.candidate ?? [];
+  const considering = meta.considering ?? EMPTY_CONSIDERING_INFO;
   const otherRecords = meta.otherRecords ?? [];
   const candidateDeletionLocked = !!meta.candidateDeletionLocked;
   const copySourceTree = useMemo(
@@ -110,9 +103,15 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     window.dispatchEvent(new Event(EV_PROJECT_MODAL_OPEN));
   };
 
+  const patchConsidering = (patch: Partial<typeof considering>) => {
+    setMeta((prev) => ({
+      ...prev,
+      considering: { ...(prev.considering ?? EMPTY_CONSIDERING_INFO), ...patch },
+    }));
+  };
+
   const handleAddCandidate = () => {
     if (candidateDeletionLocked) return;
-    const nextIdx = candidates.length;
     const newCandidate: Candidate = {
       title: "",
       flightAltitude_min_m: undefined,
@@ -126,108 +125,27 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       ...prev,
       candidate: [...(prev.candidate ?? []), newCandidate],
     }));
-    setSelectedHistoryIdx(null);
-    setSelectedOwnFigureId(null);
-    setSelectedCandidateIdx(nextIdx);
-    setSelectedOtherFigure(null);
-    setEditingCandidateIdx(nextIdx);
-    setEditingCandidateTitle(newCandidate.title);
-    setPendingNewCandidateIdx(nextIdx);
   };
 
-  const commitCandidateTitle = (): boolean => {
-    if (editingCandidateIdx == null) return false;
-    if (candidateDeletionLocked) return false;
-
-    const idx = editingCandidateIdx;
-    const finalTitle = editingCandidateTitle.trim() || "候補地ラベル";
-
-    if (hasDuplicateCandidateTitle(candidates, finalTitle, idx)) {
-      window.alert(
-        "同じタイトルの候補が既にあります。別のタイトルを入力してください。"
-      );
-      return false;
-    }
-
+  const patchCandidate = (idx: number, patch: Partial<Candidate>) => {
+    if (candidateDeletionLocked) return;
     setMeta((prev) => {
       const list = [...(prev.candidate ?? [])];
       const target = list[idx];
       if (!target) return prev;
-      list[idx] = { ...target, title: finalTitle };
+      list[idx] = { ...target, ...patch };
       return { ...prev, candidate: list };
     });
-
-    setEditingCandidateIdx(null);
-    setEditingCandidateTitle("");
-    setPendingNewCandidateIdx(null);
-    setSelectedHistoryIdx(null);
-    setSelectedOwnFigureId(null);
-    setSelectedCandidateIdx(idx);
-    setSelectedOtherFigure(null);
-
-    window.dispatchEvent(
-      new CustomEvent(EV_DETAILBAR_SELECTED, {
-        detail: { isSelected: true, kind: "candidate" as const },
-      })
-    );
-    window.dispatchEvent(
-      new CustomEvent(EV_DETAILBAR_SELECT_CANDIDATE, {
-        detail: {
-          source: "candidate" as const,
-          geometry: {
-            flightAltitude_min_m: undefined,
-            flightAltitude_Max_m: undefined,
-            takeoffArea: undefined,
-            flightArea: undefined,
-            safetyArea: undefined,
-            audienceArea: undefined,
-          },
-          index: idx,
-          title: finalTitle,
-        },
-      })
-    );
-    return true;
   };
 
-  const cancelCandidateEdit = () => {
-    const idx = editingCandidateIdx;
-    const isPendingNew =
-      idx != null && pendingNewCandidateIdx === idx;
-    const isEmptyInput = editingCandidateTitle.trim() === "";
-
-    if (isPendingNew && isEmptyInput) {
-      setMeta((prev) => {
-        const list = Array.isArray(prev.candidate) ? [...prev.candidate] : [];
-        if (idx == null || idx < 0 || idx >= list.length) return prev;
-        list.splice(idx, 1);
-        return { ...prev, candidate: list };
-      });
-      setSelectedCandidateIdx((current) => (current === idx ? null : current));
-      setPendingNewCandidateIdx(null);
-    }
-
-    setEditingCandidateIdx(null);
-    setEditingCandidateTitle("");
-  };
-
-  const startEditCandidate = (idx: number) => {
-    if (
-      editingCandidateIdx != null &&
-      editingCandidateIdx !== idx
-    ) {
-      const ok = commitCandidateTitle();
-      if (!ok) return;
-    }
-    setEditingCandidateIdx(idx);
-    setEditingCandidateTitle(candidates[idx]?.title ?? "");
-  };
-
-  const copyCandidateFromSource = (source: CopySourceItem) => {
+  const copyFigureFromSource = (source: CopySourceItem) => {
     if (candidateDeletionLocked) return;
-
     const copied: Candidate = {
-      title: makeUniqueCandidateCopyTitle(candidates, source.title),
+      title: makeUniqueCopyTitle(
+        candidates.map((candidate) => candidate.title ?? ""),
+        source.title,
+        "飛行エリア図"
+      ),
       ...geometryToFlatFields(source.geometry),
     };
     const nextIdx = candidates.length;
@@ -261,9 +179,6 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
         },
       })
     );
-    setEditingCandidateIdx(null);
-    setEditingCandidateTitle("");
-    setPendingNewCandidateIdx(null);
   };
 
   const removeCopiedConsideringCandidate = (index: number) => {
@@ -279,40 +194,28 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       if (current > index) return current - 1;
       return current;
     });
-    if (editingCandidateIdx === index) {
-      setEditingCandidateIdx(null);
-      setEditingCandidateTitle("");
-    } else if (editingCandidateIdx != null && editingCandidateIdx > index) {
-      setEditingCandidateIdx(editingCandidateIdx - 1);
-    }
-    setPendingNewCandidateIdx((current) => {
-      if (current == null) return null;
-      if (current === index) return null;
-      if (current > index) return current - 1;
-      return current;
-    });
     window.alert(
       "コピー元の候補を削除しました。\nSAVEボタンで確定してください。"
     );
   };
 
-  const deleteCandidate = (idx: number, candidate: Candidate) => {
-    const ok = window.confirm(
-      `候補「${candidate.title || "（無題の候補）"}」を削除してもよろしいですか？`
-    );
-    if (!ok) return;
-
+  const deleteCandidate = (idx: number) => {
     setMeta((prev) => {
       const list = Array.isArray(prev.candidate) ? [...prev.candidate] : [];
       if (idx < 0 || idx >= list.length) return prev;
       list.splice(idx, 1);
       return { ...prev, candidate: list };
     });
+    setSelectedCandidateIdx((current) => {
+      if (current == null) return null;
+      if (current === idx) return null;
+      if (current > idx) return current - 1;
+      return current;
+    });
+  };
+
+  const onCandidateFigureRemoved = (idx: number) => {
     setSelectedCandidateIdx((current) => (current === idx ? null : current));
-    if (editingCandidateIdx != null) {
-      cancelCandidateEdit();
-    }
-    window.alert("候補を削除しました。\nSAVEボタンで確定してください。");
   };
 
   const sanitizeHistory = (arrLike: unknown): HistoryItem[] => {
@@ -482,6 +385,13 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     return true;
   };
 
+  const highlightCandidate = (idx: number) => {
+    setSelectedCandidateIdx(idx);
+    setSelectedHistoryIdx(null);
+    setSelectedOwnFigureId(null);
+    setSelectedOtherFigure(null);
+  };
+
   const onSelectCandidate = (idx: number) => {
     setSelectedCandidateIdx(idx);
     setSelectedHistoryIdx(null);
@@ -572,23 +482,10 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     if (selectedCandidateIdx != null && selectedCandidateIdx >= candLen) {
       setSelectedCandidateIdx(null);
     }
-    if (editingCandidateIdx != null && editingCandidateIdx >= candLen) {
-      setEditingCandidateIdx(null);
-      setEditingCandidateTitle("");
-      setPendingNewCandidateIdx(null);
-    }
     if (candidateDeletionLocked) {
       setSelectedCandidateIdx(null);
-      setEditingCandidateIdx(null);
-      setEditingCandidateTitle("");
-      setPendingNewCandidateIdx(null);
     }
-  }, [
-    candidates?.length,
-    selectedCandidateIdx,
-    editingCandidateIdx,
-    candidateDeletionLocked,
-  ]);
+  }, [candidates?.length, selectedCandidateIdx, candidateDeletionLocked]);
 
   useEffect(() => {
     const onRequest = () => {
@@ -722,21 +619,6 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   }, []);
 
   useEffect(() => {
-    if (editingCandidateIdx != null && editingCandidateInputRef.current) {
-      const input = editingCandidateInputRef.current;
-      const len = input.value.length;
-      input.focus();
-      window.setTimeout(() => {
-        try {
-          input.setSelectionRange(len, len);
-        } catch {
-          /* noop */
-        }
-      }, 0);
-    }
-  }, [editingCandidateIdx]);
-
-  useEffect(() => {
     if (didAutoSelectRef.current) return;
     const { projectUuid, scheduleUuid } = initialScheduleRef.current;
     if (!projectUuid || !scheduleUuid) return;
@@ -809,23 +691,20 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
         )}
         {active === "considering" && (
           <ConsideringPanel
+            considering={considering}
             candidates={candidates}
             selectedCandidateIdx={selectedCandidateIdx}
-            editingCandidateIdx={editingCandidateIdx}
-            editingCandidateTitle={editingCandidateTitle}
-            editingCandidateInputRef={editingCandidateInputRef}
             candidateDeletionLocked={candidateDeletionLocked}
             editable={editable}
+            copySources={copySourceTree}
+            onConsideringPatch={patchConsidering}
             onSelectCandidate={onSelectCandidate}
-            onStartEditCandidate={startEditCandidate}
-            onEditingTitleChange={setEditingCandidateTitle}
-            onCommitCandidateTitle={commitCandidateTitle}
-            onCancelCandidateEdit={cancelCandidateEdit}
-            onCopyCandidate={copyCandidateFromSource}
+            onHighlightCandidate={highlightCandidate}
+            onPatchCandidate={patchCandidate}
+            onCopyFigure={copyFigureFromSource}
             onDeleteCandidate={deleteCandidate}
             onAddCandidate={handleAddCandidate}
-            pendingNewCandidateIdx={pendingNewCandidateIdx}
-            copySources={copySourceTree}
+            onFigureRemoved={onCandidateFigureRemoved}
           />
         )}
         {active === "other" && (

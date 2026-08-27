@@ -1,49 +1,128 @@
-import type { RefObject } from "react";
-import type { Candidate } from "@/features/types";
-import { CandidateSection } from "./CandidateSection";
+import { InputBox, SelectBox, Textarea } from "@/components";
+import type { Candidate, ConsideringInfo } from "@/features/types";
+import { ConsideringFigures } from "./ConsideringFigures";
+import {
+  CONSIDERING_CHANNEL_FREE_LABEL,
+  CONSIDERING_CHANNEL_PRESETS,
+  isPresetConsideringChannel,
+} from "./helpers";
 import type { CopySourceItem, CopySourceTree } from "./flightFigureCopy";
 
 type Props = {
+  considering: ConsideringInfo;
   candidates: Candidate[];
   selectedCandidateIdx: number | null;
-  editingCandidateIdx: number | null;
-  editingCandidateTitle: string;
-  editingCandidateInputRef: RefObject<HTMLInputElement>;
   candidateDeletionLocked: boolean;
   editable: boolean;
-  onSelectCandidate: (idx: number) => void;
-  onStartEditCandidate: (idx: number) => void;
-  onEditingTitleChange: (value: string) => void;
-  onCommitCandidateTitle: () => boolean;
-  onCancelCandidateEdit: () => void;
-  onCopyCandidate: (source: CopySourceItem) => void;
-  onDeleteCandidate: (idx: number, candidate: Candidate) => void;
-  onAddCandidate: () => void;
-  pendingNewCandidateIdx: number | null;
   copySources: CopySourceTree;
+  onConsideringPatch: (patch: Partial<ConsideringInfo>) => void;
+  onSelectCandidate: (idx: number) => void;
+  onHighlightCandidate: (idx: number) => void;
+  onPatchCandidate: (idx: number, patch: Partial<Candidate>) => void;
+  onCopyFigure: (source: CopySourceItem) => void;
+  onDeleteCandidate: (idx: number) => void;
+  onAddCandidate: () => void;
+  onFigureRemoved: (idx: number) => void;
 };
 
-export function ConsideringPanel(props: Props) {
+export function ConsideringPanel({
+  considering,
+  candidates,
+  selectedCandidateIdx,
+  candidateDeletionLocked,
+  editable,
+  copySources,
+  onConsideringPatch,
+  onSelectCandidate,
+  onHighlightCandidate,
+  onPatchCandidate,
+  onCopyFigure,
+  onDeleteCandidate,
+  onAddCandidate,
+  onFigureRemoved,
+}: Props) {
+  const channelSelectValue = isPresetConsideringChannel(considering.channel)
+    ? considering.channel
+    : CONSIDERING_CHANNEL_FREE_LABEL;
+
   return (
-    <section role="tabpanel" aria-label="検討中">
-      <CandidateSection
-        candidates={props.candidates}
-        selectedCandidateIdx={props.selectedCandidateIdx}
-        editingCandidateIdx={props.editingCandidateIdx}
-        editingCandidateTitle={props.editingCandidateTitle}
-        editingCandidateInputRef={props.editingCandidateInputRef}
-        candidateDeletionLocked={props.candidateDeletionLocked}
-        editable={props.editable}
-        onSelect={props.onSelectCandidate}
-        onStartEdit={props.onStartEditCandidate}
-        onEditingTitleChange={props.onEditingTitleChange}
-        onCommitTitle={props.onCommitCandidateTitle}
-        onCancelEdit={props.onCancelCandidateEdit}
-        onCopy={props.onCopyCandidate}
-        onDelete={props.onDeleteCandidate}
-        onAdd={props.onAddCandidate}
-        pendingNewCandidateIdx={props.pendingNewCandidateIdx}
-        copySources={props.copySources}
+    <section className="considering-panel" role="tabpanel" aria-label="検討中">
+      <div className="detailbar-form">
+        <div className="detailbar-form-group">
+          <InputBox
+            label="ステータス"
+            value={considering.status}
+            onChange={(e) => onConsideringPatch({ status: e.target.value })}
+          />
+          <InputBox
+            label="担当者"
+            value={considering.manager}
+            onChange={(e) => onConsideringPatch({ manager: e.target.value })}
+          />
+          <SelectBox
+            label="チャネル"
+            value={channelSelectValue}
+            options={[
+              ...CONSIDERING_CHANNEL_PRESETS,
+              CONSIDERING_CHANNEL_FREE_LABEL,
+            ]}
+            onChange={(e) => {
+              const next = e.target.value;
+              if (next === CONSIDERING_CHANNEL_FREE_LABEL) {
+                onConsideringPatch({
+                  channel: isPresetConsideringChannel(considering.channel)
+                    ? ""
+                    : considering.channel,
+                });
+                return;
+              }
+              onConsideringPatch({ channel: next });
+            }}
+          />
+          {!isPresetConsideringChannel(considering.channel) && (
+            <InputBox
+              className="other-record-company-free"
+              value={considering.channel}
+              onChange={(e) => onConsideringPatch({ channel: e.target.value })}
+              aria-label="チャネル（その他）"
+            />
+          )}
+          <InputBox
+            label="フィジビリティ"
+            value={considering.feasibility}
+            onChange={(e) =>
+              onConsideringPatch({ feasibility: e.target.value })
+            }
+          />
+          <InputBox
+            label="コスト目安"
+            value={considering.costEstimate}
+            onChange={(e) =>
+              onConsideringPatch({ costEstimate: e.target.value })
+            }
+          />
+          <Textarea
+            label="メモ"
+            rows={2}
+            value={considering.memo}
+            onChange={(e) => onConsideringPatch({ memo: e.target.value })}
+          />
+        </div>
+      </div>
+
+      <ConsideringFigures
+        candidates={candidates}
+        selectedIdx={selectedCandidateIdx}
+        editable={editable}
+        locked={candidateDeletionLocked}
+        copySources={copySources}
+        onAdd={onAddCandidate}
+        onHighlight={onHighlightCandidate}
+        onActivate={onSelectCandidate}
+        onPatch={onPatchCandidate}
+        onCopy={onCopyFigure}
+        onDelete={onDeleteCandidate}
+        onFigureRemoved={onFigureRemoved}
       />
     </section>
   );

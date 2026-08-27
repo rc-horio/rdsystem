@@ -1402,6 +1402,11 @@ body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
   gap: 20px; /* 詳細タブなど広めにしたいとき */
 }
 
+.considering-panel {
+  display: grid;
+  gap: 22px;
+}
+
 /* =========================================
    7) Scrollbar Styling（Sidebar / Detailbar）
    ========================================= */

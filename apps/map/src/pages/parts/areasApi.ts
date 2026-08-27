@@ -1,9 +1,9 @@
 // src/pages/parts/areasApi.ts
-import type { HistoryLite, DetailMeta, Candidate, OtherRecord, OtherFlightFigure, FlightFigure, Geometry, HistoryItem } from "@/features/types";
+import type { HistoryLite, DetailMeta, Candidate, ConsideringInfo, OtherRecord, OtherFlightFigure, FlightFigure, Geometry, HistoryItem } from "@/features/types";
 import { getUserDisplayName } from "@/lib/auditHeaders";
 import { getAuditHeaders } from "@/lib/auditHeaders";
 import { getCurrentTurnMetrics } from "./geometry/orientationDebug";
-import { isEmptyOtherRecord } from "./detailBar/helpers";
+import { EMPTY_CONSIDERING_INFO, isEmptyOtherRecord } from "./detailBar/helpers";
 import {
     applyFlightAreaToScheduleArea,
     createFlightFigure,
@@ -149,6 +149,21 @@ async function getJson<T = any>(url: string): Promise<T | null> {
 }
 
 const toStr = (v: unknown) => (v == null ? "" : String(v));
+
+function parseConsidering(raw: unknown): ConsideringInfo {
+    const row =
+        raw && typeof raw === "object"
+            ? (raw as Record<string, unknown>)
+            : {};
+    return {
+        status: toStr(row.status),
+        manager: toStr(row.manager),
+        channel: toStr(row.channel),
+        feasibility: toStr(row.feasibility),
+        costEstimate: toStr(row.costEstimate),
+        memo: toStr(row.memo),
+    };
+}
 
 function parseOtherRecords(raw: unknown): OtherRecord[] {
     if (!Array.isArray(raw)) return [];
@@ -531,6 +546,7 @@ function parseDetailMeta(info: any, fallbackAreaName?: string): DetailMeta {
         restrictionsMemo: toStr(dt.restrictionsMemo ?? dt.restrictions ?? ""),
         remarks: toStr(dt.remarks ?? ""),
         candidate,
+        considering: parseConsidering(info?.considering),
         otherRecords: parseOtherRecords(info?.otherRecords),
         updated_at: typeof info?.updated_at === "string" ? info.updated_at : undefined,
         updated_by: typeof info?.updated_by === "string" ? info.updated_by : undefined,
@@ -1018,6 +1034,7 @@ export async function createNewArea(params: {
         },
         history: [],
         candidate: [],
+        considering: { ...EMPTY_CONSIDERING_INFO },
         otherRecords: [],
         updated_at: now,
         updated_by: displayName,

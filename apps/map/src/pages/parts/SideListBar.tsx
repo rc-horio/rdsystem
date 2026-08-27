@@ -36,7 +36,7 @@ import {
   FETCH_AREAS_LIST_ERROR_MSG,
 } from "./areasApi";
 import { PREFECTURES } from "./constants/events";
-import { isEmptyOtherRecord } from "./detailBar/helpers";
+import { EMPTY_CONSIDERING_INFO, hasConsideringContent, isEmptyOtherRecord } from "./detailBar/helpers";
 import { normalizeScheduleFlightArea } from "@/features/flightFigures";
 import type {
   ScheduleLite,
@@ -955,8 +955,32 @@ function SideListBarBase({
         (record) => !isEmptyOtherRecord(record)
       );
 
+      const candidatesToSave: typeof data.meta.candidate = Array.isArray(
+        data.meta.candidate
+      )
+        ? data.meta.candidate
+        : Array.isArray(raw?.candidate)
+        ? raw.candidate
+        : [];
+      const consideringSource = data.meta.considering ?? EMPTY_CONSIDERING_INFO;
+      const consideringToSave = {
+        status: consideringSource.status ?? "",
+        manager: consideringSource.manager ?? "",
+        channel: consideringSource.channel ?? "",
+        feasibility: consideringSource.feasibility ?? "",
+        costEstimate: consideringSource.costEstimate ?? "",
+        memo: consideringSource.memo ?? "",
+      };
+
       // （2-2）画面入力値からareas/<areaUuid>/index.json 形式
       const displayName = await getUserDisplayName();
+      if (
+        !consideringToSave.manager.trim() &&
+        hasConsideringContent(consideringToSave, candidatesToSave)
+      ) {
+        consideringToSave.manager = displayName;
+      }
+
       const infoToSave = {
         ...(typeof raw === "object" && raw ? raw : {}),
         areaName: newTitle, // エリア名を index.json にも反映（areas.json と同期）
@@ -980,11 +1004,8 @@ function SideListBarBase({
         },
         // ここで UI 上の history（削除済み行を含めた状態）をそのまま保存
         history: historyToSave,
-        candidate: Array.isArray(data.meta.candidate)
-          ? data.meta.candidate
-          : Array.isArray(raw?.candidate)
-          ? raw.candidate
-          : [],
+        candidate: candidatesToSave,
+        considering: consideringToSave,
         otherRecords: otherRecordsToSave,
         updated_at: new Date().toISOString(),
         updated_by: displayName,
@@ -1214,6 +1235,7 @@ function SideListBarBase({
         permitMemo: infoToSave.details?.permitMemo ?? "",
         restrictionsMemo: infoToSave.details?.restrictionsMemo ?? "",
         remarks: infoToSave.details?.remarks ?? "",
+        considering: consideringToSave,
         otherRecords: otherRecordsForMeta,
         updated_at: infoToSave.updated_at,
         updated_by: infoToSave.updated_by,

@@ -1,4 +1,18 @@
-import type { Candidate, DetailMeta, OtherFlightFigure } from "@/features/types";
+import type {
+  Candidate,
+  ConsideringInfo,
+  DetailMeta,
+  OtherFlightFigure,
+} from "@/features/types";
+
+export const EMPTY_CONSIDERING_INFO: ConsideringInfo = {
+  status: "",
+  manager: "",
+  channel: "",
+  feasibility: "",
+  costEstimate: "",
+  memo: "",
+};
 
 export const EMPTY_DETAIL_META: DetailMeta = {
   overview: "",
@@ -15,6 +29,7 @@ export const EMPTY_DETAIL_META: DetailMeta = {
   restrictionsMemo: "",
   remarks: "",
   candidate: [],
+  considering: { ...EMPTY_CONSIDERING_INFO },
   otherRecords: [],
   candidateDeletionLocked: false,
   updated_at: undefined,
@@ -140,6 +155,51 @@ export const OTHER_COMPANY_FREE_LABEL = "その他";
 
 export function isPresetOtherCompany(name: string): boolean {
   return (OTHER_COMPANY_PRESETS as readonly string[]).includes(name);
+}
+
+export function hasConsideringGeometry(candidate: Candidate): boolean {
+  return !!(
+    candidate.takeoffArea ||
+    candidate.flightArea ||
+    candidate.safetyArea ||
+    candidate.audienceArea ||
+    candidate.flightAltitude_min_m != null ||
+    candidate.flightAltitude_Max_m != null
+  );
+}
+
+export function isEmptyConsideringCandidate(candidate: Candidate): boolean {
+  return !(candidate.title ?? "").trim() && !hasConsideringGeometry(candidate);
+}
+
+export const CONSIDERING_CHANNEL_PRESETS = [
+  "代理店",
+  "直販",
+  "問い合わせ",
+  "照会",
+] as const;
+
+export const CONSIDERING_CHANNEL_FREE_LABEL = "その他";
+
+export function isPresetConsideringChannel(name: string): boolean {
+  return (CONSIDERING_CHANNEL_PRESETS as readonly string[]).includes(name);
+}
+
+export function hasConsideringContent(
+  info: ConsideringInfo,
+  candidates: Candidate[]
+): boolean {
+  if (
+    (info.status ?? "").trim() ||
+    (info.channel ?? "").trim() ||
+    (info.feasibility ?? "").trim() ||
+    (info.costEstimate ?? "").trim() ||
+    (info.memo ?? "").trim() ||
+    (info.manager ?? "").trim()
+  ) {
+    return true;
+  }
+  return candidates.some((candidate) => !isEmptyConsideringCandidate(candidate));
 }
 
 export function isEmptyOtherRecord(record: {
