@@ -28,7 +28,7 @@
   --detailbar-gap: 5px; /* サイドバーとの距離 */
   --detailbar-pad: 16px; /* 詳細バー内パディング */
 
-  /* RC / 候補地 / 他社（色覚差でも赤・灰・青が分かれ、点の並びでも読める） */
+  /* RC / 交渉 / 他社（色覚差でも赤・灰・青が分かれ、点の並びでも読める） */
   --area-kind-own: #e05656;
   --area-kind-considering: #8e959e;
   --area-kind-other: #4d8fd6;

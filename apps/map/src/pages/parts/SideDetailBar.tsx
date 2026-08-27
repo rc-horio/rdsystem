@@ -451,8 +451,8 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
         detail: { isSelected: true, kind: "other" as const },
       })
     );
-    window.dispatchEvent(
-      new CustomEvent(EV_DETAILBAR_SELECT_CANDIDATE, {
+      window.dispatchEvent(
+        new CustomEvent(EV_DETAILBAR_SELECT_CANDIDATE, {
         detail: {
           source: "other" as const,
           recordIndex: recordIdx,
@@ -771,7 +771,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
             onFigureRemoved={onOtherFigureRemoved}
             onRecordRemoved={onOtherRecordRemoved}
             onRecordsChange={(update) => {
-              setMeta((prev) => {
+                              setMeta((prev) => {
                 const current = prev.otherRecords ?? [];
                 const next =
                   typeof update === "function" ? update(current) : update;

@@ -45,7 +45,7 @@ export function AddFlightFigureModal({
     const next: { key: GroupKey; label: string }[] = [];
     if (sources.own.length > 0) next.push({ key: "own", label: "自社" });
     if (destinationKind !== "other" && sources.considering.length > 0) {
-      next.push({ key: "considering", label: "候補地" });
+      next.push({ key: "considering", label: "交渉" });
     }
     if (sources.other.length > 0) next.push({ key: "other", label: "他社" });
     return next;

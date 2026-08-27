@@ -10,6 +10,8 @@ type BaseModalProps = {
   /** 画面ごとに足したいクラス（任意） */
   backdropClassName?: string;
   containerClassName?: string;
+  /** false のとき ×・Esc・外側クリックでは閉じない */
+  dismissible?: boolean;
 };
 
 export const BaseModal: React.FC<BaseModalProps> = ({
@@ -19,15 +21,16 @@ export const BaseModal: React.FC<BaseModalProps> = ({
   children,
   backdropClassName,
   containerClassName,
+  dismissible = true,
 }) => {
   useEffect(() => {
-    if (!open) return;
+    if (!open || !dismissible) return;
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [open, onClose]);
+  }, [open, onClose, dismissible]);
 
   if (!open) return null;
 
@@ -42,7 +45,11 @@ export const BaseModal: React.FC<BaseModalProps> = ({
     document.querySelector(".map-page") ?? document.body;
 
   return createPortal(
-    <div className={backdropCls} role="presentation" onClick={onClose}>
+    <div
+      className={backdropCls}
+      role="presentation"
+      onClick={dismissible ? onClose : undefined}
+    >
       <div
         className={containerCls}
         role="dialog"
@@ -53,14 +60,16 @@ export const BaseModal: React.FC<BaseModalProps> = ({
         {title && (
           <header className="modal-header">
             <h2 id="modal-title">{title}</h2>
-            <button
-              type="button"
-              className="modal-close-button"
-              onClick={onClose}
-              aria-label="閉じる"
-            >
-              ×
-            </button>
+            {dismissible ? (
+              <button
+                type="button"
+                className="modal-close-button"
+                onClick={onClose}
+                aria-label="閉じる"
+              >
+                ×
+              </button>
+            ) : null}
           </header>
         )}
         <div className="modal-body">{children}</div>

@@ -179,7 +179,7 @@ export function isEmptyConsideringCandidate(candidate: Candidate): boolean {
 export const CONSIDERING_STATUS_PRESETS = ["OK", "交渉中", "NG"] as const;
 export const CONSIDERING_STATUS_UNSET_LABEL = "未交渉";
 export const CONSIDERING_STATUS_REQUIRED_ALERT =
-  "未交渉のまま候補地の内容を変更することはできません。ステータスを選択してください。";
+  "未交渉のまま交渉の内容を変更することはできません。ステータスを選択してください。";
 export const CONSIDERING_STATUS_OK_CONFIRM =
   "このエリアの交渉ステータスを「OK」に変更しますか？";
 
@@ -236,7 +236,7 @@ export function snapshotConsideringState(
   };
 }
 
-/** 未交渉のまま、候補地タブのステータス以外が前回SAVEから変わっていれば止める */
+/** 未交渉のまま、交渉タブのステータス以外が前回SAVEから変わっていれば止める */
 export function shouldBlockUnsetConsideringStatusSave(args: {
   current: ConsideringInfo;
   currentCandidates: Candidate[];
@@ -337,7 +337,7 @@ export const AREA_KIND_ORDER: readonly AreaKind[] = [
 
 export const AREA_KIND_LABEL: Record<AreaKind, string> = {
   own: "RC",
-  considering: "候補地",
+  considering: "交渉",
   other: "他社",
 };
 
@@ -382,9 +382,11 @@ export function getAreaKindFlags(raw: unknown): AreaKindFlags {
     row.considering && typeof row.considering === "object"
       ? (row.considering as Record<string, unknown>)
       : {};
-  const considering = isPresetConsideringStatus(
-    typeof consideringRaw.status === "string" ? consideringRaw.status : ""
-  );
+  const considering =
+    !own &&
+    isPresetConsideringStatus(
+      typeof consideringRaw.status === "string" ? consideringRaw.status : ""
+    );
 
   const otherRecords = Array.isArray(row.otherRecords) ? row.otherRecords : [];
   const other = otherRecords.some(

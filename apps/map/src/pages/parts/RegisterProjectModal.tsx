@@ -123,6 +123,7 @@ export function RegisterProjectModal({
       open={open}
       onClose={onClose}
       title={askingStatusOk ? "確認" : "案件情報を紐づける"}
+      dismissible={!askingStatusOk}
       backdropClassName="map-modal-backdrop"
       containerClassName="map-modal-container"
     >

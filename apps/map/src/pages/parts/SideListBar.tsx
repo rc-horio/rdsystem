@@ -188,14 +188,14 @@ function SideListBarBase({
   const [sortDir, setSortDir] = useState<AreaSortDir>(
     AREA_SORT_DEFAULT_DIR.updated
   );
-  // フィルター条件（空＝すべて。RC/候補地/他社はOR）
+  // フィルター条件（空＝すべて。RC/交渉/他社はOR）
   const [filterKinds, setFilterKinds] = useState<Set<AreaKind>>(() => new Set());
   const [excludeOwn, setExcludeOwn] = useState(false);
   // 都道府県情報のキャッシュ（areaUuid -> prefecture）
   const [prefectureCache, setPrefectureCache] = useState<Record<string, string>>({});
   // 更新日情報のキャッシュ（areaUuid -> updated_at）
   const [updatedAtCache, setUpdatedAtCache] = useState<Record<string, string>>({});
-  // RC/候補地/他社タグのキャッシュ（areaUuid -> flags）
+  // RC/交渉/他社タグのキャッシュ（areaUuid -> flags）
   const [kindCache, setKindCache] = useState<Record<string, AreaKindFlags>>({});
   // 機体数のキャッシュ（areaUuid -> schedules.area.drone_count.count の最大値）
   const [droneCountCache, setDroneCountCache] = useState<Record<string, number | undefined>>({});
