@@ -36,7 +36,15 @@ import {
   FETCH_AREAS_LIST_ERROR_MSG,
 } from "./areasApi";
 import { PREFECTURES } from "./constants/events";
-import { EMPTY_CONSIDERING_INFO, hasConsideringContent, isEmptyOtherRecord } from "./detailBar/helpers";
+import {
+  EMPTY_CONSIDERING_INFO,
+  areaMatchesKindFilter,
+  getAreaKindFlags,
+  hasConsideringContent,
+  isEmptyOtherRecord,
+  type AreaKind,
+  type AreaKindFlags,
+} from "./detailBar/helpers";
 import { normalizeScheduleFlightArea } from "@/features/flightFigures";
 import type {
   ScheduleLite,
@@ -137,31 +145,30 @@ function SideListBarBase({
   const [searchQuery, setSearchQuery] = useState("");
   // ソート種類 state
   const [sortType, setSortType] = useState<"name" | "prefecture" | "updated" | "droneCount">("updated");
-  // フィルター条件 state
-  const [filterType, setFilterType] = useState<
-    "all" | "droneRecord" | "candidate"
-  >("all");
+  // フィルター条件（空＝すべて。自社/検討中/他社はOR）
+  const [filterKinds, setFilterKinds] = useState<Set<AreaKind>>(() => new Set());
+  const [excludeOwn, setExcludeOwn] = useState(false);
   // 都道府県情報のキャッシュ（areaUuid -> prefecture）
   const [prefectureCache, setPrefectureCache] = useState<Record<string, string>>({});
   // 更新日情報のキャッシュ（areaUuid -> updated_at）
   const [updatedAtCache, setUpdatedAtCache] = useState<Record<string, string>>({});
-  // ドローン実績のキャッシュ（areaUuid -> 0|1）
-  const [droneRecordCache, setDroneRecordCache] = useState<Record<string, number>>({});
+  // 自社/検討中/他社タグのキャッシュ（areaUuid -> flags）
+  const [kindCache, setKindCache] = useState<Record<string, AreaKindFlags>>({});
   // 機体数のキャッシュ（areaUuid -> schedules.area.drone_count.count の最大値）
   const [droneCountCache, setDroneCountCache] = useState<Record<string, number | undefined>>({});
   
-  // エリア一覧が変更されたときに都道府県情報・更新日情報・ドローン実績・機体数を取得してキャッシュ
+  // エリア一覧が変更されたときに都道府県情報・更新日情報・種別タグ・機体数を取得してキャッシュ
   useEffect(() => {
     const loadAreaMetadata = async () => {
       const prefectureCache: Record<string, string> = {};
       const updatedAtCache: Record<string, string> = {};
-      const droneRecordCache: Record<string, number> = {};
+      const kindCache: Record<string, AreaKindFlags> = {};
       const droneCountCache: Record<string, number | undefined> = {};
       const uniqueAreaUuids = new Set(
         points.map((p) => p.areaUuid).filter((uuid): uuid is string => !!uuid)
       );
       
-      // 並列で都道府県情報・更新日情報・ドローン実績・drone_count を取得
+      // 並列で都道府県情報・更新日情報・種別タグ・drone_count を取得
       await Promise.all(
         Array.from(uniqueAreaUuids).map(async (areaUuid) => {
           try {
@@ -178,9 +185,7 @@ function SideListBarBase({
             if (updatedAt) {
               updatedAtCache[areaUuid] = updatedAt;
             }
-            const v = raw?.overview?.droneRecord;
-            const droneRecord = v === 1 || v === "1" || v === "あり" ? 1 : 0;
-            droneRecordCache[areaUuid] = droneRecord;
+            kindCache[areaUuid] = getAreaKindFlags(raw);
 
             // schedules.area.drone_count.count の最大値を取得してキャッシュ
             const maxDroneCount = await getMaxDroneCountFromScheduleArea(areaUuid);
@@ -199,7 +204,7 @@ function SideListBarBase({
       
       setPrefectureCache(prefectureCache);
       setUpdatedAtCache(updatedAtCache);
-      setDroneRecordCache(droneRecordCache);
+      setKindCache(kindCache);
       setDroneCountCache(droneCountCache);
     };
     
@@ -1026,6 +1031,11 @@ function SideListBarBase({
         return;
       }
 
+      setKindCache((prev) => ({
+        ...prev,
+        [areaUuid!]: getAreaKindFlags(infoToSave),
+      }));
+
       /** 紐づけ解除：エリア参照だけ外す。飛行エリア図は案件側に残す。 */
       for (const { projectUuid, scheduleUuid } of removedPairs) {
         try {
@@ -1548,22 +1558,17 @@ function SideListBarBase({
     const q = searchQuery.trim().toLowerCase();
     let filtered = areaGroups;
     
-    // フィルター条件
-    if (filterType === "droneRecord") {
-      // ドローン実績あり
+    // フィルター条件（未選択＝すべて。選択中は1つでも含む。自社を含まないは除外）
+    if (filterKinds.size > 0 || excludeOwn) {
       filtered = filtered.filter(({ indices }) => {
         const firstIdx = indices[0];
         const firstPoint = points[firstIdx];
         if (!firstPoint?.areaUuid) return false;
-        return droneRecordCache[firstPoint.areaUuid] === 1;
-      });
-    } else if (filterType === "candidate") {
-      // 候補地（ドローン実績なし）
-      filtered = filtered.filter(({ indices }) => {
-        const firstIdx = indices[0];
-        const firstPoint = points[firstIdx];
-        if (!firstPoint?.areaUuid) return false;
-        return droneRecordCache[firstPoint.areaUuid] === 0;
+        return areaMatchesKindFilter(
+          kindCache[firstPoint.areaUuid],
+          filterKinds,
+          { excludeOwn }
+        );
       });
     }
     
@@ -1688,7 +1693,7 @@ function SideListBarBase({
     }
     
     return filtered;
-  }, [areaGroups, searchQuery, areaLabelOverrides, points, prefectureCache, updatedAtCache, droneRecordCache, droneCountCache, sortType, filterType]);
+  }, [areaGroups, searchQuery, areaLabelOverrides, points, prefectureCache, updatedAtCache, kindCache, droneCountCache, sortType, filterKinds, excludeOwn]);
 
   // フィルタ結果を地図に通知（マーカーの表示/非表示を同期）
   useEffect(() => {
@@ -2255,23 +2260,43 @@ function SideListBarBase({
               <option value="droneCount">機体数</option>
               <option value="name">エリア名</option>
             </select>
-            <label htmlFor="filterSelect" className="search-sort-filter-label">
+          </div>
+          <div className="search-kind-filter" role="group" aria-label="フィルター">
+            <span className="search-sort-filter-label">
               <span className="search-sort-icon" aria-hidden="true">▾</span>
               フィルター
+            </span>
+            {(
+              [
+                ["own", "自社"],
+                ["considering", "検討中"],
+                ["other", "他社"],
+              ] as const
+            ).map(([kind, label]) => (
+              <label key={kind} className="search-kind-filter-item">
+                <input
+                  type="checkbox"
+                  checked={filterKinds.has(kind)}
+                  onChange={() => {
+                    setFilterKinds((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(kind)) next.delete(kind);
+                      else next.add(kind);
+                      return next;
+                    });
+                  }}
+                />
+                {label}
+              </label>
+            ))}
+            <label className="search-kind-filter-item search-kind-filter-item--exclude">
+              <input
+                type="checkbox"
+                checked={excludeOwn}
+                onChange={() => setExcludeOwn((prev) => !prev)}
+              />
+              自社を含まない
             </label>
-            <select
-              id="filterSelect"
-              value={filterType}
-              onChange={(e) =>
-                setFilterType(e.target.value as "all" | "droneRecord" | "candidate")
-              }
-              className="search-sort-select"
-              aria-label="フィルター条件を選択"
-            >
-              <option value="all">すべて</option>
-              <option value="droneRecord">実施済み</option>
-              <option value="candidate">候補地</option>
-            </select>
           </div>
           <div className="search-clear-wrapper">
             <button
@@ -2280,7 +2305,8 @@ function SideListBarBase({
               onClick={() => {
                 setSearchQuery("");
                 setSortType("prefecture");
-                setFilterType("all");
+                setFilterKinds(new Set());
+                setExcludeOwn(false);
               }}
               aria-label="検索・ソート・フィルターをクリア"
             >

@@ -3,6 +3,7 @@ import type {
   ConsideringInfo,
   DetailMeta,
   OtherFlightFigure,
+  OtherRecord,
 } from "@/features/types";
 
 export const EMPTY_CONSIDERING_INFO: ConsideringInfo = {
@@ -234,4 +235,78 @@ export function isEmptyOtherRecord(record: {
     !(record.memo ?? "").trim();
   if (!textEmpty) return false;
   return !Array.isArray(record.figures) || record.figures.length === 0;
+}
+
+export type AreaKind = "own" | "considering" | "other";
+
+export type AreaKindFlags = {
+  own: boolean;
+  considering: boolean;
+  other: boolean;
+};
+
+function readHistoryPair(entry: unknown): {
+  projectUuid: string;
+  scheduleUuid: string;
+} | null {
+  if (!entry || typeof entry !== "object") return null;
+  const row = entry as Record<string, unknown>;
+  const projectUuid =
+    typeof row.projectuuid === "string"
+      ? row.projectuuid
+      : typeof row.projectUuid === "string"
+        ? row.projectUuid
+        : "";
+  const scheduleUuid =
+    typeof row.scheduleuuid === "string"
+      ? row.scheduleuuid
+      : typeof row.scheduleUuid === "string"
+        ? row.scheduleUuid
+        : "";
+  if (!projectUuid || !scheduleUuid) return null;
+  return { projectUuid, scheduleUuid };
+}
+
+/** エリア index.json（または保存ペイロード）からフィルター用タグを判定する */
+export function getAreaKindFlags(raw: unknown): AreaKindFlags {
+  const row =
+    raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+
+  const history = Array.isArray(row.history) ? row.history : [];
+  const own = history.some((entry) => readHistoryPair(entry) != null);
+
+  const consideringRaw =
+    row.considering && typeof row.considering === "object"
+      ? (row.considering as Record<string, unknown>)
+      : {};
+  const considering = isPresetConsideringStatus(
+    typeof consideringRaw.status === "string" ? consideringRaw.status : ""
+  );
+
+  const otherRecords = Array.isArray(row.otherRecords) ? row.otherRecords : [];
+  const other = otherRecords.some(
+    (record) =>
+      !!record &&
+      typeof record === "object" &&
+      !isEmptyOtherRecord(record as OtherRecord)
+  );
+
+  return { own, considering, other };
+}
+
+/** 未選択（空集合）はすべて表示。選択中は1つでも含むエリアを残す。excludeOwn は自社ありを除外 */
+export function areaMatchesKindFilter(
+  flags: AreaKindFlags | undefined,
+  selected: ReadonlySet<AreaKind>,
+  opts?: { excludeOwn?: boolean }
+): boolean {
+  if (opts?.excludeOwn) {
+    if (!flags || flags.own) return false;
+  }
+  if (selected.size === 0) return true;
+  if (!flags) return false;
+  if (selected.has("own") && flags.own) return true;
+  if (selected.has("considering") && flags.considering) return true;
+  if (selected.has("other") && flags.other) return true;
+  return false;
 }
