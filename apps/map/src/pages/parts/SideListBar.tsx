@@ -2288,21 +2288,6 @@ function SideListBarBase({
       {/* 通常検索（エリア追加モードでは非表示） */}
       {!isAddAreaMode && (
         <div id="searchWrap" role="search" aria-label="Search markers">
-          <div className="search-field">
-            <label htmlFor="searchBox" className="sr-only">
-              Search markers
-            </label>
-            <input
-              id="searchBox"
-              type="text"
-              placeholder="エリア名・都道府県名で検索"
-              autoComplete="off"
-              inputMode="search"
-              aria-describedby="searchHint"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
           <div id="searchHint" aria-live="polite" />
           <div className="search-controls">
             <div className="search-control-row">
@@ -2323,9 +2308,9 @@ function SideListBarBase({
                     className="search-sort-select"
                     aria-label="並べ替えの項目を選択"
                   >
-                    <option value="prefecture">都道府県</option>
                     <option value="updated">更新日</option>
-                    <option value="droneCount">機体数</option>
+                    <option value="prefecture">都道府県</option>
+                    <option value="droneCount">機体数（RC）</option>
                     <option value="name">エリア名</option>
                   </select>
                   <span className="search-sort-select-caret" aria-hidden="true">
@@ -2422,6 +2407,21 @@ function SideListBarBase({
                 検索条件クリア
               </button>
             </div>
+          </div>
+          <div className="search-field">
+            <label htmlFor="searchBox" className="sr-only">
+              エリア名・都道府県名などで既存エリア検索
+            </label>
+            <input
+              id="searchBox"
+              type="text"
+              placeholder="エリア名・都道府県名などで既存エリア検索"
+              autoComplete="off"
+              inputMode="search"
+              aria-describedby="searchHint"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
         </div>
       )}

@@ -768,14 +768,13 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
             }}
           />
         )}
+        {(meta.updated_at ?? meta.updated_by) && (
+          <div className="detailbar-tab-updated">
+            最終更新 {meta.updated_at ? formatDateTime(meta.updated_at) : "—"}
+            {meta.updated_by?.trim() ? ` ${meta.updated_by.trim()}` : ""}
+          </div>
+        )}
       </div>
-
-      {(meta.updated_at ?? meta.updated_by) && (
-        <div className="detailbar-footer">
-          最終更新 {meta.updated_at ? formatDateTime(meta.updated_at) : "—"}
-          {meta.updated_by?.trim() ? ` ${meta.updated_by.trim()}` : ""}
-        </div>
-      )}
 
       <div
         className="detailbar-resize-handle"

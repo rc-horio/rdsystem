@@ -178,17 +178,19 @@ body,
 .search-field {
   position: relative;
   width: 100%;
+  margin-top: 12px;
 }
 
 #searchBox {
   width: 100%;
   height: 36px;
   box-sizing: border-box;
-  padding: 8px 12px; /* 左アイコン無しの通常パディング */
+  padding: 8px 10px; /* 左アイコン無しの通常パディング */
   border: 1px solid rgba(255, 255, 255, 0.35);
   border-radius: 5px;
   background: rgba(0, 0, 0, 0.137) !important;
   color: #fff;
+  font-size: 11px;
   outline: none;
   box-shadow: none !important;
 }
@@ -212,7 +214,6 @@ body,
   column-gap: 12px;
   row-gap: 12px;
   align-items: center;
-  margin-top: 12px;
 }
 
 .search-control-row {
@@ -1090,9 +1091,9 @@ body.detailbar-open #detailbar {
   transform: translateY(-50%) translateZ(0);
   pointer-events: auto;
 
-  /* 三段構成：上=閉じる、中央=本文スクロール、下=フッター */
+  /* 二段構成：上=閉じる、下=本文スクロール（最終更新は各タブ下部） */
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto 1fr;
   padding: var(--detailbar-pad);
   gap: 12px;
   overflow: hidden; /* 外側は隠す（本文は内側 .detailbar-panel でスクロール） */
@@ -1148,6 +1149,8 @@ body.detailbar-open #detailbar {
   min-height: 0; /* Grid子要素のスクロール可にするキモ */
   overflow: auto; /* パネル内をスクロール */
   caret-color: transparent;
+  display: flex;
+  flex-direction: column;
 }
 
 .detailbar-area-title {
@@ -1590,12 +1593,12 @@ body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
   color: #fff;
 }
 
-/* 左下の最終更新表示 */
-.detailbar-footer {
+/* 各タブ本文の下部に出す最終更新（エリア単位） */
+.detailbar-tab-updated {
+  margin-top: auto;
+  padding-top: 16px;
   font-size: 11px;
   color: rgba(255, 255, 255, 0.45);
-  align-self: end;
-  justify-self: start;
 }
 
 /* =========================================
