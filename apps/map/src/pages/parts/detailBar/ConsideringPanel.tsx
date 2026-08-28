@@ -1,6 +1,5 @@
 import { InputBox, SelectBox, Textarea } from "@/components";
-import type { Candidate, ConsideringInfo } from "@/features/types";
-import { ConsideringFigures } from "./ConsideringFigures";
+import type { ConsideringInfo } from "@/features/types";
 import {
   CONSIDERING_CHANNEL_FREE_LABEL,
   CONSIDERING_CHANNEL_PRESETS,
@@ -10,40 +9,15 @@ import {
   isPresetConsideringStatus,
   needsConsideringStatusDetail,
 } from "./helpers";
-import type { CopySourceItem, CopySourceTree } from "./flightFigureCopy";
 
 type Props = {
   considering: ConsideringInfo;
-  candidates: Candidate[];
-  selectedCandidateIdx: number | null;
-  candidateDeletionLocked: boolean;
-  editable: boolean;
-  copySources: CopySourceTree;
   onConsideringPatch: (patch: Partial<ConsideringInfo>) => void;
-  onSelectCandidate: (idx: number) => void;
-  onHighlightCandidate: (idx: number) => void;
-  onPatchCandidate: (idx: number, patch: Partial<Candidate>) => void;
-  onCopyFigure: (source: CopySourceItem) => void;
-  onDeleteCandidate: (idx: number) => void;
-  onAddCandidate: () => void;
-  onFigureRemoved: (idx: number) => void;
 };
 
 export function ConsideringPanel({
   considering,
-  candidates,
-  selectedCandidateIdx,
-  candidateDeletionLocked,
-  editable,
-  copySources,
   onConsideringPatch,
-  onSelectCandidate,
-  onHighlightCandidate,
-  onPatchCandidate,
-  onCopyFigure,
-  onDeleteCandidate,
-  onAddCandidate,
-  onFigureRemoved,
 }: Props) {
   const channelSelectValue = isPresetConsideringChannel(considering.channel)
     ? considering.channel
@@ -130,21 +104,6 @@ export function ConsideringPanel({
           />
         </div>
       </div>
-
-      <ConsideringFigures
-        candidates={candidates}
-        selectedIdx={selectedCandidateIdx}
-        editable={editable}
-        locked={candidateDeletionLocked}
-        copySources={copySources}
-        onAdd={onAddCandidate}
-        onHighlight={onHighlightCandidate}
-        onActivate={onSelectCandidate}
-        onPatch={onPatchCandidate}
-        onCopy={onCopyFigure}
-        onDelete={onDeleteCandidate}
-        onFigureRemoved={onFigureRemoved}
-      />
     </section>
   );
 }

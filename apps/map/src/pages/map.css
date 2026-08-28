@@ -1382,6 +1382,46 @@ body:not(.editing-on) .detailbar-area-title .rc-inp-input:disabled {
   color: rgba(255, 255, 255, 0.85);
 }
 
+.own-panel-segment {
+  display: flex;
+  width: fit-content;
+  margin: 25px auto;
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.own-panel-segment-btn {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  line-height: 26px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.own-panel-segment-btn + .own-panel-segment-btn {
+  border-left: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.own-panel-segment-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.own-panel-segment-btn.is-active,
+.own-panel-segment-btn[aria-selected="true"] {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
 .other-record-body {
   display: grid;
   gap: 12px;

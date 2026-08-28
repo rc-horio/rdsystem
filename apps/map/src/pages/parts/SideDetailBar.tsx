@@ -723,6 +723,9 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
             selectedFigureId={selectedOwnFigureId}
             editable={editable}
             copySources={copySourceTree}
+            candidates={candidates}
+            selectedCandidateIdx={selectedCandidateIdx}
+            candidateDeletionLocked={candidateDeletionLocked}
             onClearConsideringCandidates={removeCopiedConsideringCandidate}
             onSelectHistory={onSelectHistory}
             onDeleteHistory={onDeleteHistory}
@@ -731,24 +734,19 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
             onActivateFigure={activateOwnFigure}
             onHighlightFigure={highlightOwnFigure}
             onFigureRemoved={onOwnFigureRemoved}
-          />
-        )}
-        {active === "considering" && (
-          <ConsideringPanel
-            considering={considering}
-            candidates={candidates}
-            selectedCandidateIdx={selectedCandidateIdx}
-            candidateDeletionLocked={candidateDeletionLocked}
-            editable={editable}
-            copySources={copySourceTree}
-            onConsideringPatch={patchConsidering}
             onSelectCandidate={onSelectCandidate}
             onHighlightCandidate={highlightCandidate}
             onPatchCandidate={patchCandidate}
             onCopyFigure={copyFigureFromSource}
             onDeleteCandidate={deleteCandidate}
             onAddCandidate={handleAddCandidate}
-            onFigureRemoved={onCandidateFigureRemoved}
+            onCandidateFigureRemoved={onCandidateFigureRemoved}
+          />
+        )}
+        {active === "considering" && (
+          <ConsideringPanel
+            considering={considering}
+            onConsideringPatch={patchConsidering}
           />
         )}
         {active === "other" && (
