@@ -224,6 +224,12 @@ export function useHubPageState() {
     candidate?: any[];
     updated_at?: string;
     updated_by?: string;
+    tabUpdates?: Partial<
+      Record<
+        "basic" | "own" | "other" | "considering",
+        { updated_at?: string; updated_by?: string }
+      >
+    >;
   };
 
   // 1つのエリアについて、「このプロジェクトの history を現在の状態に合わせて差し替える」
@@ -283,8 +289,13 @@ export function useHubPageState() {
     }
 
     json.history = nextHistory;
-    json.updated_at = new Date().toISOString();
+    const now = new Date().toISOString();
+    json.updated_at = now;
     json.updated_by = updatedBy;
+    json.tabUpdates = {
+      ...(json.tabUpdates ?? {}),
+      own: { updated_at: now, updated_by: updatedBy },
+    };
 
     await putJsonViaLambda({
       key: `catalog/v1/areas/${areaUuid}/index.json`,

@@ -72,6 +72,13 @@ export type Point = {
 
 export type TabKey = "basic" | "own" | "considering" | "other";
 
+export type TabUpdateStamp = {
+    updated_at?: string;
+    updated_by?: string;
+};
+
+export type TabUpdates = Partial<Record<TabKey, TabUpdateStamp>>;
+
 export type FlightFigure = {
     id: string;
     title: string;
@@ -152,10 +159,12 @@ export interface DetailMeta {
      * 永続化は行わない（candidate 配列自体が空になるため）。
      */
     candidateDeletionLocked?: boolean;
-    /** 最終更新日時（ISO8601） */
+    /** 最終更新日時（ISO8601）。一覧の更新日ソート用（エリア単位） */
     updated_at?: string;
-    /** 最終更新ユーザー */
+    /** 最終更新ユーザー（エリア単位） */
     updated_by?: string;
+    /** 詳細バー各タブの最終更新。キーは basic / own / other / considering */
+    tabUpdates?: TabUpdates;
 }
 
 export interface Candidate {

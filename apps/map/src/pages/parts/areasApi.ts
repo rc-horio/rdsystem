@@ -3,7 +3,7 @@ import type { HistoryLite, DetailMeta, Candidate, ConsideringInfo, OtherRecord, 
 import { getUserDisplayName } from "@/lib/auditHeaders";
 import { getAuditHeaders } from "@/lib/auditHeaders";
 import { getCurrentTurnMetrics } from "./geometry/orientationDebug";
-import { EMPTY_CONSIDERING_INFO, isEmptyOtherRecord } from "./detailBar/helpers";
+import { EMPTY_CONSIDERING_INFO, isEmptyOtherRecord, parseTabUpdates } from "./detailBar/helpers";
 import {
     applyFlightAreaToScheduleArea,
     createFlightFigure,
@@ -553,6 +553,7 @@ function parseDetailMeta(info: any, fallbackAreaName?: string): DetailMeta {
         otherRecords: parseOtherRecords(info?.otherRecords),
         updated_at: typeof info?.updated_at === "string" ? info.updated_at : undefined,
         updated_by: typeof info?.updated_by === "string" ? info.updated_by : undefined,
+        tabUpdates: parseTabUpdates(info?.tabUpdates),
     };
 }
 
@@ -1043,6 +1044,9 @@ export async function createNewArea(params: {
         otherRecords: [],
         updated_at: now,
         updated_by: displayName,
+        tabUpdates: {
+            basic: { updated_at: now, updated_by: displayName },
+        },
     };
 
     const okInfo = await saveAreaInfo(uuid, info);

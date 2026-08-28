@@ -50,6 +50,12 @@ import {
   hasConsideringContent,
   isAreaAxisFilterActive,
   isEmptyOtherRecord,
+  parseTabUpdates,
+  applyTabUpdateStamps,
+  areaBasicSnapshot,
+  areaConsideringSnapshot,
+  historyPairsKey,
+  collectDirtyAreaTabs,
   type AreaAxisFilter,
   type AreaKindFlags,
 } from "./detailBar/helpers";
@@ -61,6 +67,7 @@ import type {
   GeometryPayload,
   HistoryItem,
   OtherRecord,
+  TabKey,
 } from "@/features/types";
 import {
   AREA_NAME_NONE,
@@ -1023,6 +1030,75 @@ function SideListBarBase({
         consideringToSave.manager = displayName;
       }
 
+      let geomPayload: GeometryPayload | null = null;
+      try {
+        geomPayload = await requestGeometryPayload();
+        console.log("[SideListBar] geomPayload on save:", geomPayload);
+      } catch (e) {
+        console.warn("[save] geometry payload fetch skipped:", e);
+      }
+
+      const figureEdited =
+        !!geomPayload && (!!geomPayload.figureEdited || !!geomPayload.deleted);
+      let figureTab: TabKey | null = null;
+      if (figureEdited && geomPayload) {
+        if (geomPayload.projectUuid && geomPayload.scheduleUuid) {
+          figureTab = "own";
+        } else if (
+          typeof currentOtherRecordIndexRef.current === "number" &&
+          typeof currentOtherFigureIndexRef.current === "number"
+        ) {
+          figureTab = "other";
+        } else if (typeof currentCandidateIndexRef.current === "number") {
+          figureTab = "considering";
+        }
+      }
+
+      const prevBasic = areaBasicSnapshot({
+        areaName: raw?.areaName,
+        overview: raw?.overview,
+        details: raw?.details,
+      });
+      const nextBasic = areaBasicSnapshot({
+        areaName: newTitle,
+        overview: {
+          address: data.meta.address ?? "",
+          companyName: data.meta.companyName ?? "",
+          administrator: data.meta.administrator ?? "",
+          contact: data.meta.contact ?? "",
+          prefecture: data.meta.prefecture ?? "",
+          manager: data.meta.manager ?? "",
+          droneRecord: data.meta.droneRecord ?? 0,
+          droneCountEstimate: data.meta.aircraftCount ?? "",
+          heightLimitM: data.meta.altitudeLimit ?? "",
+          availability: data.meta.availability ?? "",
+        },
+        details: {
+          statusMemo: data.meta.statusMemo ?? "",
+          permitMemo: data.meta.permitMemo ?? "",
+          restrictionsMemo: data.meta.restrictionsMemo ?? "",
+          remarks: data.meta.remarks ?? "",
+        },
+      });
+      const prevCandidate = Array.isArray(raw?.candidate) ? raw.candidate : [];
+      const prevOtherRecords = Array.isArray(raw?.otherRecords)
+        ? raw.otherRecords
+        : [];
+      const dirtyTabs = collectDirtyAreaTabs({
+        basicChanged: JSON.stringify(prevBasic) !== JSON.stringify(nextBasic),
+        ownHistoryChanged:
+          historyPairsKey(beforePairs) !== historyPairsKey(afterPairs),
+        consideringChanged:
+          JSON.stringify(areaConsideringSnapshot(raw?.considering)) !==
+            JSON.stringify(areaConsideringSnapshot(consideringToSave)) ||
+          JSON.stringify(prevCandidate) !== JSON.stringify(candidatesToSave),
+        otherChanged:
+          JSON.stringify(prevOtherRecords) !==
+          JSON.stringify(otherRecordsToSave),
+        figureTab,
+      });
+
+      const now = new Date().toISOString();
       const infoToSave = {
         ...(typeof raw === "object" && raw ? raw : {}),
         areaName: newTitle, // エリア名を index.json にも反映（areas.json と同期）
@@ -1051,8 +1127,14 @@ function SideListBarBase({
         candidate: candidatesToSave,
         considering: consideringToSave,
         otherRecords: otherRecordsToSave,
-        updated_at: new Date().toISOString(),
+        updated_at: now,
         updated_by: displayName,
+        tabUpdates: applyTabUpdateStamps(
+          parseTabUpdates(raw?.tabUpdates),
+          dirtyTabs,
+          now,
+          displayName
+        ),
       };
 
       // （2-3）areas/<areaUuid>/index.json を保存
@@ -1172,15 +1254,6 @@ function SideListBarBase({
         window.alert(FETCH_AREAS_LIST_ERROR_MSG);
       }
 
-      // （3-1）MapGeometry から現在編集中の geometry 情報（payload）を取得
-      let geomPayload: GeometryPayload | null = null;
-      try {
-        geomPayload = await requestGeometryPayload();
-        console.log("[SideListBar] geomPayload on save:", geomPayload);
-      } catch (e) {
-        console.warn("[save] geometry payload fetch skipped:", e);
-      }
-
       let otherRecordsForMeta = Array.isArray(infoToSave.otherRecords)
         ? infoToSave.otherRecords
         : [];
@@ -1290,6 +1363,7 @@ function SideListBarBase({
         otherRecords: otherRecordsForMeta,
         updated_at: infoToSave.updated_at,
         updated_by: infoToSave.updated_by,
+        tabUpdates: infoToSave.tabUpdates,
       });
 
       // 案件履歴も再取得して詳細バーに反映

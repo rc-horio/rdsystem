@@ -78,6 +78,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   const considering = meta.considering ?? EMPTY_CONSIDERING_INFO;
   const otherRecords = meta.otherRecords ?? [];
   const candidateDeletionLocked = !!meta.candidateDeletionLocked;
+  const tabStamp = meta.tabUpdates?.[active];
   const copySourceTree = useMemo(
     () => buildCopySourceTree(history, candidates, otherRecords),
     [history, candidates, otherRecords]
@@ -768,10 +769,10 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
             }}
           />
         )}
-        {(meta.updated_at ?? meta.updated_by) && (
+        {(tabStamp?.updated_at ?? tabStamp?.updated_by) && (
           <div className="detailbar-tab-updated">
-            最終更新 {meta.updated_at ? formatDateTime(meta.updated_at) : "—"}
-            {meta.updated_by?.trim() ? ` ${meta.updated_by.trim()}` : ""}
+            最終更新 {tabStamp.updated_at ? formatDateTime(tabStamp.updated_at) : "—"}
+            {tabStamp.updated_by?.trim() ? ` ${tabStamp.updated_by.trim()}` : ""}
           </div>
         )}
       </div>

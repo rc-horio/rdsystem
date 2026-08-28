@@ -4,6 +4,9 @@ import type {
   DetailMeta,
   OtherFlightFigure,
   OtherRecord,
+  TabKey,
+  TabUpdates,
+  TabUpdateStamp,
 } from "@/features/types";
 
 export const EMPTY_CONSIDERING_INFO: ConsideringInfo = {
@@ -38,7 +41,125 @@ export const EMPTY_DETAIL_META: DetailMeta = {
   candidateDeletionLocked: false,
   updated_at: undefined,
   updated_by: undefined,
+  tabUpdates: undefined,
 };
+
+export const DETAIL_TAB_KEYS: TabKey[] = [
+  "basic",
+  "own",
+  "other",
+  "considering",
+];
+
+export function parseTabUpdates(raw: unknown): TabUpdates {
+  if (!raw || typeof raw !== "object") return {};
+  const src = raw as Record<string, unknown>;
+  const out: TabUpdates = {};
+  for (const key of DETAIL_TAB_KEYS) {
+    const row = src[key];
+    if (!row || typeof row !== "object") continue;
+    const stamp = row as Record<string, unknown>;
+    const updated_at =
+      typeof stamp.updated_at === "string" ? stamp.updated_at : undefined;
+    const updated_by =
+      typeof stamp.updated_by === "string" ? stamp.updated_by : undefined;
+    if (updated_at || updated_by) {
+      out[key] = { updated_at, updated_by };
+    }
+  }
+  return out;
+}
+
+export function applyTabUpdateStamps(
+  prev: TabUpdates,
+  dirty: readonly TabKey[],
+  now: string,
+  by: string
+): TabUpdates {
+  if (dirty.length === 0) return prev;
+  const next: TabUpdates = { ...prev };
+  const stamp: TabUpdateStamp = { updated_at: now, updated_by: by };
+  for (const key of dirty) {
+    next[key] = stamp;
+  }
+  return next;
+}
+
+function asText(value: unknown): string {
+  return value == null ? "" : String(value);
+}
+
+function asDroneRecord(value: unknown): 0 | 1 {
+  if (value === 1 || value === "1" || value === "あり") return 1;
+  return 0;
+}
+
+/** 基本情報タブに相当する index.json の比較用スナップショット */
+export function areaBasicSnapshot(info: {
+  areaName?: unknown;
+  overview?: Record<string, unknown> | null;
+  details?: Record<string, unknown> | null;
+}) {
+  const ov = info.overview ?? {};
+  const dt = info.details ?? {};
+  return {
+    areaName: asText(info.areaName),
+    address: asText(ov.address),
+    companyName: asText(ov.companyName),
+    administrator: asText(ov.administrator),
+    contact: asText(ov.contact),
+    prefecture: asText(ov.prefecture),
+    manager: asText(ov.manager),
+    droneRecord: asDroneRecord(ov.droneRecord),
+    aircraftCount: asText(ov.droneCountEstimate),
+    altitudeLimit: asText(ov.heightLimitM),
+    availability: asText(ov.availability),
+    statusMemo: asText(dt.statusMemo),
+    permitMemo: asText(dt.permitMemo ?? dt.permitInfo),
+    restrictionsMemo: asText(dt.restrictionsMemo ?? dt.restrictions),
+    remarks: asText(dt.remarks),
+  };
+}
+
+export function areaConsideringSnapshot(
+  info: Partial<ConsideringInfo> | undefined
+) {
+  const c = info ?? EMPTY_CONSIDERING_INFO;
+  return {
+    status: asText(c.status),
+    statusDetail: asText(c.statusDetail),
+    manager: asText(c.manager),
+    channel: asText(c.channel),
+    feasibility: asText(c.feasibility),
+    costEstimate: asText(c.costEstimate),
+    memo: asText(c.memo),
+  };
+}
+
+export function historyPairsKey(
+  pairs: Array<{ projectUuid: string; scheduleUuid: string }>
+): string {
+  return pairs
+    .map((p) => `${p.projectUuid}::${p.scheduleUuid}`)
+    .sort()
+    .join("\n");
+}
+
+export function collectDirtyAreaTabs(input: {
+  basicChanged: boolean;
+  ownHistoryChanged: boolean;
+  consideringChanged: boolean;
+  otherChanged: boolean;
+  figureTab?: TabKey | null;
+}): TabKey[] {
+  const dirty = new Set<TabKey>();
+  if (input.basicChanged) dirty.add("basic");
+  if (input.ownHistoryChanged) dirty.add("own");
+  if (input.consideringChanged) dirty.add("considering");
+  if (input.otherChanged) dirty.add("other");
+  if (input.figureTab) dirty.add(input.figureTab);
+  return Array.from(dirty);
+}
 
 export function buildHubUrl(
   projectUuid?: string,
