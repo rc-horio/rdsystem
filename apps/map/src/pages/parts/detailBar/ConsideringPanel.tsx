@@ -53,7 +53,7 @@ export function ConsideringPanel({
     : "";
 
   return (
-    <section className="considering-panel" role="tabpanel" aria-label="交渉">
+    <section className="considering-panel" role="tabpanel" aria-label="候補">
       <div className="detailbar-form">
         <div className="detailbar-form-group">
           <InputBox

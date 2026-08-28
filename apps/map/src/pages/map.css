@@ -274,7 +274,7 @@ body,
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
   padding-top: 1px;
 }
@@ -285,6 +285,63 @@ body,
   align-items: center;
   gap: 8px;
   min-width: 0;
+}
+
+.search-axis-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.search-axis-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 4.5em;
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.search-axis-segment {
+  display: inline-flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.search-axis-chip {
+  flex: 1 1 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  line-height: 26px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.search-axis-chip + .search-axis-chip {
+  border-left: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.search-axis-chip:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.search-axis-chip[aria-pressed="true"] {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
 }
 
 .search-kind-filter-item {
@@ -310,6 +367,10 @@ body,
   border-radius: 2px;
   background: transparent;
   flex: 0 0 auto;
+}
+
+.search-kind-filter-item input[type="radio"] {
+  border-radius: 50%;
 }
 
 .search-kind-filter-item--own input {

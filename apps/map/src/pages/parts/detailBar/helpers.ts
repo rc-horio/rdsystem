@@ -177,93 +177,10 @@ export function isEmptyConsideringCandidate(candidate: Candidate): boolean {
 }
 
 export const CONSIDERING_STATUS_PRESETS = ["OK", "交渉中", "NG"] as const;
-export const CONSIDERING_STATUS_UNSET_LABEL = "未交渉";
-export const CONSIDERING_STATUS_REQUIRED_ALERT =
-  "未交渉のまま交渉の内容を変更することはできません。ステータスを選択してください。";
-export const CONSIDERING_STATUS_OK_CONFIRM =
-  "このエリアの交渉ステータスを「OK」に変更しますか？";
+export const CONSIDERING_STATUS_UNSET_LABEL = "未選択";
 
 export function isPresetConsideringStatus(name: string): boolean {
   return (CONSIDERING_STATUS_PRESETS as readonly string[]).includes(name);
-}
-
-export function consideringStatusLabel(status: string): string {
-  const trimmed = status.trim();
-  if (isPresetConsideringStatus(trimmed)) return trimmed;
-  return CONSIDERING_STATUS_UNSET_LABEL;
-}
-
-function normalizeConsideringInfo(
-  info: Partial<ConsideringInfo> | null | undefined
-): ConsideringInfo {
-  return {
-    status: (info?.status ?? "").trim(),
-    statusDetail: (info?.statusDetail ?? "").trim(),
-    manager: (info?.manager ?? "").trim(),
-    channel: (info?.channel ?? "").trim(),
-    feasibility: (info?.feasibility ?? "").trim(),
-    costEstimate: (info?.costEstimate ?? "").trim(),
-    memo: (info?.memo ?? "").trim(),
-  };
-}
-
-function consideringNonStatusEqual(
-  a: ConsideringInfo,
-  b: ConsideringInfo
-): boolean {
-  return (
-    a.statusDetail === b.statusDetail &&
-    a.manager === b.manager &&
-    a.channel === b.channel &&
-    a.feasibility === b.feasibility &&
-    a.costEstimate === b.costEstimate &&
-    a.memo === b.memo
-  );
-}
-
-export type ConsideringSaveSnapshot = {
-  considering: ConsideringInfo;
-  candidates: Candidate[];
-};
-
-export function snapshotConsideringState(
-  info: ConsideringInfo | null | undefined,
-  candidates: Candidate[] | null | undefined
-): ConsideringSaveSnapshot {
-  return {
-    considering: normalizeConsideringInfo(info),
-    candidates: JSON.parse(JSON.stringify(candidates ?? [])),
-  };
-}
-
-/** 未交渉のまま、交渉タブのステータス以外が前回SAVEから変わっていれば止める */
-export function shouldBlockUnsetConsideringStatusSave(args: {
-  current: ConsideringInfo;
-  currentCandidates: Candidate[];
-  saved: ConsideringSaveSnapshot | null;
-  consideringFigureChanged?: boolean;
-}): boolean {
-  const current = normalizeConsideringInfo(args.current);
-  if (isPresetConsideringStatus(current.status)) return false;
-
-  const saved = args.saved
-    ? {
-        considering: normalizeConsideringInfo(args.saved.considering),
-        candidates: args.saved.candidates,
-      }
-    : snapshotConsideringState(EMPTY_CONSIDERING_INFO, []);
-
-  // OK / 交渉中 / NG から未交渉へ戻す操作は通す
-  if (isPresetConsideringStatus(saved.considering.status)) return false;
-
-  if (!consideringNonStatusEqual(current, saved.considering)) return true;
-  if (
-    JSON.stringify(args.currentCandidates ?? []) !==
-    JSON.stringify(saved.candidates ?? [])
-  ) {
-    return true;
-  }
-  return !!args.consideringFigureChanged;
 }
 
 export function needsConsideringStatusDetail(status: string): boolean {
@@ -329,23 +246,47 @@ export type AreaKindFlags = {
   other: boolean;
 };
 
-export const AREA_KIND_ORDER: readonly AreaKind[] = [
-  "own",
-  "considering",
-  "other",
-];
-
 export const AREA_KIND_LABEL: Record<AreaKind, string> = {
   own: "RC",
-  considering: "交渉",
+  considering: "候補",
   other: "他社",
 };
+
+export type AreaAxis = "own" | "other";
+export type AreaAxisChoice = "any" | "yes" | "no";
+export type AreaAxisFilter = Record<AreaAxis, AreaAxisChoice>;
+
+export const AREA_AXIS_ORDER: readonly AreaAxis[] = ["own", "other"];
+
+export const AREA_AXIS_LABEL: Record<AreaAxis, string> = {
+  own: "RC",
+  other: "他社",
+};
+
+export const AREA_AXIS_TOGGLE_ORDER = ["yes", "no"] as const;
+
+export const AREA_AXIS_CHOICE_LABEL: Record<
+  (typeof AREA_AXIS_TOGGLE_ORDER)[number],
+  string
+> = {
+  yes: "あり",
+  no: "なし",
+};
+
+export const EMPTY_AREA_AXIS_FILTER: AreaAxisFilter = {
+  own: "any",
+  other: "any",
+};
+
+export function isAreaAxisFilterActive(filter: AreaAxisFilter): boolean {
+  return filter.own !== "any" || filter.other !== "any";
+}
 
 export function areaKindFlagList(
   flags: AreaKindFlags | undefined
 ): AreaKind[] {
   if (!flags) return [];
-  return AREA_KIND_ORDER.filter((kind) => flags[kind]);
+  return AREA_AXIS_ORDER.filter((kind) => flags[kind]);
 }
 
 function readHistoryPair(entry: unknown): {
@@ -378,16 +319,6 @@ export function getAreaKindFlags(raw: unknown): AreaKindFlags {
   const history = Array.isArray(row.history) ? row.history : [];
   const own = history.some((entry) => readHistoryPair(entry) != null);
 
-  const consideringRaw =
-    row.considering && typeof row.considering === "object"
-      ? (row.considering as Record<string, unknown>)
-      : {};
-  const considering =
-    !own &&
-    isPresetConsideringStatus(
-      typeof consideringRaw.status === "string" ? consideringRaw.status : ""
-    );
-
   const otherRecords = Array.isArray(row.otherRecords) ? row.otherRecords : [];
   const other = otherRecords.some(
     (record) =>
@@ -396,52 +327,19 @@ export function getAreaKindFlags(raw: unknown): AreaKindFlags {
       !isEmptyOtherRecord(record as OtherRecord)
   );
 
-  return { own, considering, other };
+  return { own, considering: false, other };
 }
 
-function readConsideringStatus(raw: unknown): string {
-  const row =
-    raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
-  const consideringRaw =
-    row.considering && typeof row.considering === "object"
-      ? (row.considering as Record<string, unknown>)
-      : {};
-  return typeof consideringRaw.status === "string"
-    ? consideringRaw.status.trim()
-    : "";
-}
-
-/** 案件が紐づいていてステータスが空なら、既存データの一括で OK にする対象 */
-export function shouldSetConsideringOkFromOwnHistory(raw: unknown): boolean {
-  return getAreaKindFlags(raw).own && readConsideringStatus(raw) === "";
-}
-
-/** considering.status だけ OK にする。他のフィールドと updated_at は触らない */
-export function withConsideringStatusOk(raw: unknown): Record<string, unknown> {
-  const row =
-    raw && typeof raw === "object" ? { ...(raw as Record<string, unknown>) } : {};
-  const consideringRaw =
-    row.considering && typeof row.considering === "object"
-      ? { ...(row.considering as Record<string, unknown>) }
-      : {};
-  consideringRaw.status = "OK";
-  row.considering = consideringRaw;
-  return row;
-}
-
-/** 未選択（空集合）はすべて表示。選択中は1つでも含むエリアを残す。excludeOwn は自社ありを除外 */
+/** 指定なしは問わない。あり/なしはその軸の有無と一致するエリアだけ残す */
 export function areaMatchesKindFilter(
   flags: AreaKindFlags | undefined,
-  selected: ReadonlySet<AreaKind>,
-  opts?: { excludeOwn?: boolean }
+  filter: AreaAxisFilter
 ): boolean {
-  if (opts?.excludeOwn) {
-    if (!flags || flags.own) return false;
-  }
-  if (selected.size === 0) return true;
+  if (!isAreaAxisFilterActive(filter)) return true;
   if (!flags) return false;
-  if (selected.has("own") && flags.own) return true;
-  if (selected.has("considering") && flags.considering) return true;
-  if (selected.has("other") && flags.other) return true;
-  return false;
+  if (filter.own === "yes" && !flags.own) return false;
+  if (filter.own === "no" && flags.own) return false;
+  if (filter.other === "yes" && !flags.other) return false;
+  if (filter.other === "no" && flags.other) return false;
+  return true;
 }

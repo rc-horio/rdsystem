@@ -102,14 +102,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   };
 
   const handleRegisterProjectInfo = () => {
-    window.dispatchEvent(
-      new CustomEvent(EV_PROJECT_MODAL_OPEN, {
-        detail: {
-          consideringStatus: considering.status,
-          consideringStatusDetail: considering.statusDetail,
-        },
-      })
-    );
+    window.dispatchEvent(new CustomEvent(EV_PROJECT_MODAL_OPEN));
   };
 
   const patchConsidering = (patch: Partial<typeof considering>) => {
@@ -593,12 +586,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   useEffect(() => {
     const onSetTab = (e: Event) => {
       const tab = (e as CustomEvent<{ tab?: TabKey }>).detail?.tab;
-      if (
-        tab === "basic" ||
-        tab === "own" ||
-        tab === "considering" ||
-        tab === "other"
-      ) {
+      if (tab === "basic" || tab === "own" || tab === "other" || tab === "considering") {
         setActive(tab);
       }
     };

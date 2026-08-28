@@ -2,13 +2,10 @@
 import { BaseModal } from "@/components";
 import { useEffect, useState } from "react";
 import { fetchProjectIndex, fetchProjectsList } from "../parts/areasApi";
-import { CONSIDERING_STATUS_OK_CONFIRM, consideringStatusLabel } from "./detailBar/helpers";
 import { EV_PROJECT_MODAL_SUBMIT } from "./constants/events";
 
 type Props = {
   open: boolean;
-  currentStatus?: string;
-  currentStatusDetail?: string;
   onClose: () => void;
 };
 
@@ -22,8 +19,6 @@ type ScheduleItem = { id: string; label: string };
 
 export function RegisterProjectModal({
   open,
-  currentStatus = "",
-  currentStatusDetail = "",
   onClose,
 }: Props) {
   const [projects, setProjects] = useState<ProjectItem[]>([]);
@@ -31,11 +26,6 @@ export function RegisterProjectModal({
   const [selectedProjectUuid, setSelectedProjectUuid] = useState<string>("");
   const [selectedScheduleUuid, setSelectedScheduleUuid] = useState<string>("");
   const [loading, setLoading] = useState(false);
-  const [askingStatusOk, setAskingStatusOk] = useState(false);
-
-  useEffect(() => {
-    if (!open) setAskingStatusOk(false);
-  }, [open]);
 
   // 初回：案件一覧を取得
   useEffect(() => {
@@ -88,13 +78,12 @@ export function RegisterProjectModal({
   }, [selectedProjectUuid]);
 
   // OK ボタンが押されたときの処理
-  const submitLink = (setConsideringOk: boolean) => {
+  const submitLink = () => {
     window.dispatchEvent(
       new CustomEvent(EV_PROJECT_MODAL_SUBMIT, {
         detail: {
           projectUuid: selectedProjectUuid,
           scheduleUuid: selectedScheduleUuid,
-          setConsideringOk,
         },
       })
     );
@@ -108,11 +97,7 @@ export function RegisterProjectModal({
       window.alert("案件とスケジュールを選択してください。");
       return;
     }
-    if (consideringStatusLabel(currentStatus) === "OK") {
-      submitLink(false);
-      return;
-    }
-    setAskingStatusOk(true);
+    submitLink();
   };
 
   // OK ボタンの活性/非活性を制御
@@ -122,44 +107,11 @@ export function RegisterProjectModal({
     <BaseModal
       open={open}
       onClose={onClose}
-      title={askingStatusOk ? "確認" : "案件情報を紐づける"}
-      dismissible={!askingStatusOk}
+      title="案件情報を紐づける"
       backdropClassName="map-modal-backdrop"
       containerClassName="map-modal-container"
     >
       <div className="register-project-modal no-caret">
-        {askingStatusOk ? (
-          <>
-            <p className="register-project-modal__confirm">
-              {CONSIDERING_STATUS_OK_CONFIRM}
-            </p>
-            <p className="register-project-modal__confirm-note">
-              現在のステータス：{consideringStatusLabel(currentStatus)}
-            </p>
-            {currentStatusDetail.trim() ? (
-              <p className="register-project-modal__confirm-note">
-                ステータス詳細：{currentStatusDetail.trim()}
-              </p>
-            ) : null}
-            <div className="register-project-modal__actions">
-              <button
-                type="button"
-                className="register-project-modal__btn register-project-modal__btn--cancel"
-                onClick={() => submitLink(false)}
-              >
-                いいえ
-              </button>
-              <button
-                type="button"
-                className="register-project-modal__btn register-project-modal__btn--ok"
-                onClick={() => submitLink(true)}
-              >
-                はい
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
             <div className="register-project-modal__row">
           <label
             htmlFor="projectName"
@@ -260,8 +212,6 @@ export function RegisterProjectModal({
             OK
           </button>
             </div>
-          </>
-        )}
       </div>
     </BaseModal>
   );
