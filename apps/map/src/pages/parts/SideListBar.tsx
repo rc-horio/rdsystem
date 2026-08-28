@@ -69,6 +69,7 @@ import {
   EV_GEOMETRY_REQUEST_DATA,
   EV_SIDEBAR_SET_ACTIVE,
   EV_SIDEBAR_VISIBLE_AREAS,
+  EV_SIDEBAR_AREA_KINDS,
   EV_DETAILBAR_RESPOND_DATA,
   EV_MAP_FOCUS_ONLY,
   EV_GEOMETRY_RESPOND_DATA,
@@ -1726,6 +1727,14 @@ function SideListBarBase({
       })
     );
   }, [visibleAreaGroups]);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent(EV_SIDEBAR_AREA_KINDS, {
+        detail: { kinds: kindCache },
+      })
+    );
+  }, [kindCache]);
 
   // 更新日をグループ化するためのヘルパー関数
   const getUpdatedAtGroup = (updatedAt: string): string => {

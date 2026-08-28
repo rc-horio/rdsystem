@@ -10,6 +10,7 @@ import html2canvas from "html2canvas";
 import { Loader } from "@googlemaps/js-api-loader";
 import {
   createMarkerIcon,
+  markerIconUrlForFlags,
   useEditableBodyClass,
   useAddAreaMode,
   useMeasurementMode,
@@ -45,6 +46,7 @@ import {
   EV_SIDEBAR_OPEN,
   EV_SIDEBAR_SET_ACTIVE,
   EV_SIDEBAR_VISIBLE_AREAS,
+  EV_SIDEBAR_AREA_KINDS,
   MARKERS_HIDE_ZOOM,
   DEFAULTS,
   EV_PROJECT_MODAL_OPEN,
@@ -1533,6 +1535,10 @@ export default function MapView({ onLoaded }: Props) {
     new WeakMap()
   );
   const selectedMarkerRef = useRef<google.maps.Marker | null>(null);
+  const kindFlagsRef = useRef<Record<string, { own: boolean; other: boolean }>>(
+    {}
+  );
+  const syncMarkerIconsRef = useRef<() => void>(() => {});
   const clearSelectedMarkerRef = useRef<() => void>(() => {});
   const changingPositionRef = useRef(false);
 
@@ -2212,25 +2218,27 @@ export default function MapView({ onLoaded }: Props) {
     pointByMarkerRef.current = new WeakMap();
     selectedMarkerRef.current = null;
 
-    const normalIcon = createMarkerIcon(gmaps, {
-      width: 30,
-      height: 36,
-      anchor: "bottom",
-    });
-    const selectedIcon = createMarkerIcon(gmaps, {
-      width: 38,
-      height: 46,
-      anchor: "bottom",
-    });
+    const iconFor = (p: Point, selected: boolean) => {
+      const flags = p.areaUuid
+        ? kindFlagsRef.current[p.areaUuid]
+        : undefined;
+      return createMarkerIcon(gmaps, {
+        url: markerIconUrlForFlags(flags),
+        width: selected ? 38 : 30,
+        height: selected ? 46 : 36,
+        anchor: "bottom",
+      });
+    };
 
     const bounds = new gmaps.LatLngBounds();
 
     const applySelection = (marker: google.maps.Marker, selected: boolean) => {
+      const p = pointByMarkerRef.current.get(marker);
+      if (!p) return;
+      marker.setIcon(iconFor(p, selected));
       if (selected) {
-        marker.setIcon(selectedIcon);
         marker.setZIndex(google.maps.Marker.MAX_ZINDEX ?? 999999);
       } else {
-        marker.setIcon(normalIcon);
         marker.setZIndex(undefined);
       }
     };
@@ -2238,6 +2246,14 @@ export default function MapView({ onLoaded }: Props) {
       if (!selectedMarkerRef.current) return;
       applySelection(selectedMarkerRef.current, false);
       selectedMarkerRef.current = null;
+    };
+    syncMarkerIconsRef.current = () => {
+      const selected = selectedMarkerRef.current;
+      markersRef.current.forEach((marker) => {
+        const p = pointByMarkerRef.current.get(marker);
+        if (!p) return;
+        marker.setIcon(iconFor(p, marker === selected));
+      });
     };
 
     /** マーカーを選択した場合に地図を寄せる */
@@ -2365,7 +2381,7 @@ export default function MapView({ onLoaded }: Props) {
         position: pos,
         map,
         title: p.name,
-        icon: normalIcon,
+        icon: iconFor(p, false),
       });
       markersRef.current.push(marker);
 
@@ -2831,6 +2847,24 @@ export default function MapView({ onLoaded }: Props) {
         onVisibleAreas as EventListener
       );
   }, [clearCurrentAreaSelection]);
+
+  useEffect(() => {
+    const onAreaKinds = (e: Event) => {
+      const d = (
+        e as CustomEvent<{
+          kinds?: Record<string, { own: boolean; other: boolean }>;
+        }>
+      ).detail;
+      kindFlagsRef.current = d?.kinds ?? {};
+      syncMarkerIconsRef.current();
+    };
+    window.addEventListener(EV_SIDEBAR_AREA_KINDS, onAreaKinds as EventListener);
+    return () =>
+      window.removeEventListener(
+        EV_SIDEBAR_AREA_KINDS,
+        onAreaKinds as EventListener
+      );
+  }, []);
 
   // 案件情報セクション（履歴）用の処理をフックに委譲
   useScheduleSection({

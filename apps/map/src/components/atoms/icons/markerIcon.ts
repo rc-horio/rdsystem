@@ -4,6 +4,21 @@ export type MarkerAnchor =
     | "center"   // 中央
     | { x: number; y: number }; // 任意px
 
+export type MarkerKindFlags = {
+    own: boolean;
+    other: boolean;
+};
+
+function markerAssetUrl(file: string) {
+    return `${import.meta.env.BASE_URL}${file}`;
+}
+
+export function markerIconUrlForFlags(flags?: MarkerKindFlags): string {
+    if (flags?.own) return markerAssetUrl("0100_icon_marker_rc.png");
+    if (flags?.other) return markerAssetUrl("0101_icon_marker_others.png");
+    return markerAssetUrl("0102_icon_marker_gray.png");
+}
+
 export function createMarkerIcon(
     gmaps: typeof google.maps,
     opts?: {
@@ -17,7 +32,7 @@ export function createMarkerIcon(
         anchor?: MarkerAnchor;
     }
 ): google.maps.Icon {
-    const iconSrc = `${import.meta.env.BASE_URL}0100_icon_marker_rc.png`;
+    const iconSrc = markerAssetUrl("0100_icon_marker_rc.png");
     const url = opts?.url ?? iconSrc;
     const w = (opts?.width ?? opts?.size ?? 28);
     const h = (opts?.height ?? opts?.size ?? 28);

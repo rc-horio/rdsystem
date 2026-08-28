@@ -7,6 +7,8 @@ export const EV_SIDEBAR_OPEN = "sidebar:open";
 export const EV_SIDEBAR_SET_ACTIVE = "sidebar:set-active";
 /** サイドバーのフィルタ結果：表示するエリア名のセットを地図に通知 */
 export const EV_SIDEBAR_VISIBLE_AREAS = "sidebar:visible-areas";
+/** サイドバーが持っている RC/他社フラグ（ピン色用） */
+export const EV_SIDEBAR_AREA_KINDS = "sidebar:area-kinds";
 
 export const EV_TAKEOFF_REF_CHANGED = "geometry:takeoff-ref-changed";
 
