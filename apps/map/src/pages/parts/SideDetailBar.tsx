@@ -201,7 +201,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       return current;
     });
     window.alert(
-      "コピー元の候補を削除しました。\nSAVEボタンで確定してください。"
+      "コピー元の飛行エリア図を削除しました。\nSAVEボタンで確定してください。"
     );
   };
 

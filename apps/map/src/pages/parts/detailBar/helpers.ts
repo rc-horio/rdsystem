@@ -168,12 +168,14 @@ export function collectDirtyAreaTabs(input: {
   basicChanged: boolean;
   ownHistoryChanged: boolean;
   consideringChanged: boolean;
+  candidateFiguresChanged?: boolean;
   otherChanged: boolean;
   figureTab?: TabKey | null;
 }): TabKey[] {
   const dirty = new Set<TabKey>();
   if (input.basicChanged) dirty.add("basic");
   if (input.ownHistoryChanged) dirty.add("own");
+  if (input.candidateFiguresChanged) dirty.add("own");
   if (input.consideringChanged) dirty.add("considering");
   if (input.otherChanged) dirty.add("other");
   if (input.figureTab) dirty.add(input.figureTab);

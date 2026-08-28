@@ -1026,7 +1026,7 @@ function SideListBarBase({
       const displayName = await getUserDisplayName();
       if (
         !consideringToSave.manager.trim() &&
-        hasConsideringContent(consideringToSave, candidatesToSave)
+        hasConsideringContent(consideringToSave, [])
       ) {
         consideringToSave.manager = displayName;
       }
@@ -1051,7 +1051,7 @@ function SideListBarBase({
         ) {
           figureTab = "other";
         } else if (typeof currentCandidateIndexRef.current === "number") {
-          figureTab = "considering";
+          figureTab = "own";
         }
       }
 
@@ -1091,7 +1091,8 @@ function SideListBarBase({
           historyPairsKey(beforePairs) !== historyPairsKey(afterPairs),
         consideringChanged:
           JSON.stringify(areaConsideringSnapshot(raw?.considering)) !==
-            JSON.stringify(areaConsideringSnapshot(consideringToSave)) ||
+          JSON.stringify(areaConsideringSnapshot(consideringToSave)),
+        candidateFiguresChanged:
           JSON.stringify(prevCandidate) !== JSON.stringify(candidatesToSave),
         otherChanged:
           JSON.stringify(prevOtherRecords) !==
@@ -2100,7 +2101,7 @@ function SideListBarBase({
                       Array.isArray(raw?.candidate) && raw.candidate.length > 0;
                     if (hasHistory || hasCandidates) {
                       confirmMsg =
-                        `このエリアには${hasHistory ? "案件" : ""}${hasHistory && hasCandidates ? "と" : ""}${hasCandidates ? "候補" : ""}が紐づいています。\n` +
+                        `このエリアには${hasHistory ? "案件" : ""}${hasHistory && hasCandidates ? "と" : ""}${hasCandidates ? "候補図" : ""}が紐づいています。\n` +
                         `削除すると紐づけが解除されます。続行しますか？`;
                     } else {
                       confirmMsg = `「${displayLabel}」を削除してもよろしいですか？`;

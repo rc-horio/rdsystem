@@ -43,9 +43,9 @@ export function AddFlightFigureModal({
 
   const groups = useMemo(() => {
     const next: { key: GroupKey; label: string }[] = [];
-    if (sources.own.length > 0) next.push({ key: "own", label: "RC" });
+    if (sources.own.length > 0) next.push({ key: "own", label: "RC案件データ" });
     if (destinationKind !== "other" && sources.considering.length > 0) {
-      next.push({ key: "considering", label: "候補" });
+      next.push({ key: "considering", label: "候補図（案件化前）" });
     }
     if (sources.other.length > 0) next.push({ key: "other", label: "他社" });
     return next;
@@ -214,7 +214,7 @@ export function AddFlightFigureModal({
             {group === "considering" && (
               <div className="register-project-modal__row">
                 <label className="register-project-modal__label">
-                  候補
+                  飛行エリア図
                   <select
                     className="register-project-modal__input register-project-modal__select"
                     value={figureIdx}
