@@ -88,18 +88,24 @@ export function useCandidateSection({
                 geometry: Geometry;
                 index?: number;
                 title?: string;
+                source?: "candidate" | "other" | "sales";
             }>;
             if (!detail) return;
 
-            // どの候補を編集しているか（何番目か）を記録
-            currentCandidateIndexRef.current =
-                typeof detail.index === "number" ? detail.index : null;
-            // 候補ラベルも記録（保存時にラベルを維持するため）
-            currentCandidateTitleRef.current =
-                typeof detail.title === "string" ? detail.title : undefined;
+            const source = detail.source ?? "candidate";
+            if (source === "candidate") {
+                currentCandidateIndexRef.current =
+                    typeof detail.index === "number" ? detail.index : null;
+                currentCandidateTitleRef.current =
+                    typeof detail.title === "string" ? detail.title : undefined;
+            } else if (source === "sales") {
+                currentCandidateIndexRef.current = null;
+                currentCandidateTitleRef.current =
+                    typeof detail.title === "string" ? detail.title : undefined;
+            }
 
             // 履歴（プロジェクト）文脈はここで確実に無効化
-            // → 以降の保存処理では「候補として保存」することになる
+            // → 以降の保存処理では「候補 / 営業 / 他社図として保存」することになる
             currentProjectUuidRef.current = undefined;
             currentScheduleUuidRef.current = undefined;
             // MapGeometry がスケジュール文脈を内部保持している場合に備え、明示的に解除

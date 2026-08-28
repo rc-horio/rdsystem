@@ -21,6 +21,7 @@ type Props = {
   selectedCandidateIdx: number | null;
   candidateDeletionLocked: boolean;
   onClearConsideringCandidates?: (sourceIndex: number) => void;
+  onClearSales?: (sourceIndex: number) => void;
   onSelectHistory: (item: HistoryItem, idx: number) => void;
   onDeleteHistory: (idx: number, item: HistoryItem) => boolean;
   onRegisterProject: () => void;
@@ -51,6 +52,7 @@ export function OwnFlightAreaPanel({
   selectedCandidateIdx,
   candidateDeletionLocked,
   onClearConsideringCandidates,
+  onClearSales,
   onSelectHistory,
   onDeleteHistory,
   onRegisterProject,
@@ -105,6 +107,7 @@ export function OwnFlightAreaPanel({
           onFigureRemoved={onFigureRemoved}
           copySources={copySources}
           onClearConsideringCandidates={onClearConsideringCandidates}
+          onClearSales={onClearSales}
         />
       </div>
       <div hidden={view !== "preProject"}>
@@ -119,6 +122,7 @@ export function OwnFlightAreaPanel({
           onActivate={onSelectCandidate}
           onPatch={onPatchCandidate}
           onCopy={onCopyFigure}
+          onClearSales={onClearSales}
           onDelete={onDeleteCandidate}
           onFigureRemoved={onCandidateFigureRemoved}
         />

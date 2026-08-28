@@ -4,7 +4,7 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "basic", label: "基本情報" },
   { key: "own", label: "RC" },
   { key: "other", label: "他社" },
-  { key: "considering", label: "候補" },
+  { key: "considering", label: "営業" },
 ];
 
 type Props = {

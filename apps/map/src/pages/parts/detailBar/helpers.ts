@@ -2,6 +2,7 @@ import type {
   Candidate,
   ConsideringInfo,
   DetailMeta,
+  HistoryItem,
   OtherFlightFigure,
   OtherRecord,
   TabKey,
@@ -36,6 +37,7 @@ export const EMPTY_DETAIL_META: DetailMeta = {
   restrictionsMemo: "",
   remarks: "",
   candidate: [],
+  sales: [],
   considering: { ...EMPTY_CONSIDERING_INFO },
   otherRecords: [],
   candidateDeletionLocked: false,
@@ -164,11 +166,34 @@ export function historyPairsKey(
     .join("\n");
 }
 
+/** RCタブ案件データの飛行エリア図比較用（紐づけの組とは別に図の増減・改名を見る） */
+export function areaOwnFiguresSnapshot(history: HistoryItem[]): string {
+  const rows = history
+    .filter((item) => item.projectUuid && item.scheduleUuid)
+    .map((item) => ({
+      projectUuid: item.projectUuid,
+      scheduleUuid: item.scheduleUuid,
+      confirmed: item.confirmed_figure_id ?? null,
+      figures: (item.flight_figures ?? []).map((figure) => ({
+        id: figure.id,
+        title: figure.title ?? "",
+        geometry: figure.geometry ?? {},
+      })),
+    }))
+    .sort((a, b) =>
+      `${a.projectUuid}::${a.scheduleUuid}`.localeCompare(
+        `${b.projectUuid}::${b.scheduleUuid}`
+      )
+    );
+  return JSON.stringify(rows);
+}
+
 export function collectDirtyAreaTabs(input: {
   basicChanged: boolean;
   ownHistoryChanged: boolean;
   consideringChanged: boolean;
   candidateFiguresChanged?: boolean;
+  salesFiguresChanged?: boolean;
   otherChanged: boolean;
   figureTab?: TabKey | null;
 }): TabKey[] {
@@ -176,6 +201,7 @@ export function collectDirtyAreaTabs(input: {
   if (input.basicChanged) dirty.add("basic");
   if (input.ownHistoryChanged) dirty.add("own");
   if (input.candidateFiguresChanged) dirty.add("own");
+  if (input.salesFiguresChanged) dirty.add("considering");
   if (input.consideringChanged) dirty.add("considering");
   if (input.otherChanged) dirty.add("other");
   if (input.figureTab) dirty.add(input.figureTab);

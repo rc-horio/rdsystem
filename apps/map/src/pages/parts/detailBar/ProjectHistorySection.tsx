@@ -22,6 +22,7 @@ type Props = {
   onFigureRemoved: (idx: number, figureId: string) => void;
   copySources: CopySourceTree;
   onClearConsideringCandidates?: (sourceIndex: number) => void;
+  onClearSales?: (sourceIndex: number) => void;
 };
 
 function openHub(item: HistoryItem) {
@@ -50,6 +51,7 @@ export function ProjectHistorySection({
   onFigureRemoved,
   copySources,
   onClearConsideringCandidates,
+  onClearSales,
 }: Props) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
 
@@ -163,6 +165,7 @@ export function ProjectHistorySection({
                       onClearConsideringCandidates={
                         onClearConsideringCandidates
                       }
+                      onClearSales={onClearSales}
                     />
                     <div className="own-record-footer">
                       <button

@@ -149,7 +149,9 @@ export interface DetailMeta {
     restrictionsMemo: string;
     remarks: string;
     candidate: Candidate[];
-    /** 候補タブの入力（エリアにつき1式）。永続化キーは index.json の considering */
+    /** 営業タブの飛行エリア図。永続化キーは index.json の sales。候補図（candidate）とは別 */
+    sales: Candidate[];
+    /** 営業タブの入力（エリアにつき1式）。永続化キーは index.json の considering */
     considering: ConsideringInfo;
     /** 他社タブの実績。永続化キーはエリア index.json の otherRecords */
     otherRecords: OtherRecord[];

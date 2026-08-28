@@ -42,6 +42,7 @@ export type OtherRecordSource = {
 export type CopySourceTree = {
   own: OwnProjectSource[];
   considering: CopySourceItem[];
+  sales: CopySourceItem[];
   other: OtherRecordSource[];
 };
 
@@ -92,6 +93,7 @@ export function hasAnyCopySource(
   return (
     tree.own.length > 0 ||
     (includeConsidering && tree.considering.length > 0) ||
+    tree.sales.length > 0 ||
     tree.other.length > 0
   );
 }
@@ -115,7 +117,8 @@ function flatSource(
 export function buildCopySourceTree(
   history: HistoryItem[],
   candidates: Candidate[],
-  otherRecords: OtherRecord[]
+  otherRecords: OtherRecord[],
+  sales: Candidate[] = []
 ): CopySourceTree {
   const own: OwnProjectSource[] = [];
   const projectIndex = new Map<string, number>();
@@ -157,5 +160,5 @@ export function buildCopySourceTree(
 
   other.sort((a, b) => compareDateDesc(a.date, b.date));
 
-  return { own, considering, other };
+  return { own, considering, sales: sales.map(flatSource), other };
 }

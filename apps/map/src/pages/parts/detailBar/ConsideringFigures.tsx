@@ -15,11 +15,13 @@ type Props = {
   editable: boolean;
   locked: boolean;
   copySources: CopySourceTree;
+  allowCopy?: boolean;
   onAdd: () => void;
   onHighlight: (idx: number) => void;
   onActivate: (idx: number) => void;
   onPatch: (idx: number, patch: Partial<Candidate>) => void;
   onCopy: (source: CopySourceItem) => void;
+  onClearSales?: (sourceIndex: number) => void;
   onDelete: (idx: number) => void;
   onFigureRemoved: (idx: number) => void;
 };
@@ -30,11 +32,13 @@ export function ConsideringFigures({
   editable,
   locked,
   copySources,
+  allowCopy = true,
   onAdd,
   onHighlight,
   onActivate,
   onPatch,
   onCopy,
+  onClearSales,
   onDelete,
   onFigureRemoved,
 }: Props) {
@@ -147,6 +151,10 @@ export function ConsideringFigures({
       const ok = commitFigureTitle();
       if (!ok) return;
     }
+    if (!allowCopy) {
+      addFigure();
+      return;
+    }
     setAddOpen(true);
   };
 
@@ -254,15 +262,18 @@ export function ConsideringFigures({
           <span className="add-icon">＋ </span>飛行エリア図を追加
         </button>
       )}
-      <AddFlightFigureModal
-        open={addOpen}
-        title="飛行エリア図を追加"
-        sources={copySources}
-        destinationKind="considering"
-        onClose={() => setAddOpen(false)}
-        onNew={addFigure}
-        onCopy={copyFigure}
-      />
+      {allowCopy && (
+        <AddFlightFigureModal
+          open={addOpen}
+          title="飛行エリア図を追加"
+          sources={copySources}
+          destinationKind="considering"
+          onClose={() => setAddOpen(false)}
+          onNew={addFigure}
+          onCopy={copyFigure}
+          onClearSales={onClearSales}
+        />
+      )}
     </div>
   );
 }

@@ -6,7 +6,7 @@ import {
   type CopySourceTree,
 } from "./flightFigureCopy";
 
-type GroupKey = "own" | "considering" | "other";
+type GroupKey = "own" | "considering" | "sales" | "other";
 
 type Props = {
   open: boolean;
@@ -17,6 +17,7 @@ type Props = {
   onNew: () => void;
   onCopy: (source: CopySourceItem) => void;
   onClearConsideringCandidates?: (sourceIndex: number) => void;
+  onClearSales?: (sourceIndex: number) => void;
 };
 
 function sourceLabel(title: string) {
@@ -32,6 +33,7 @@ export function AddFlightFigureModal({
   onNew,
   onCopy,
   onClearConsideringCandidates,
+  onClearSales,
 }: Props) {
   const [mode, setMode] = useState<"new" | "copy">("new");
   const [group, setGroup] = useState<GroupKey>("own");
@@ -47,6 +49,7 @@ export function AddFlightFigureModal({
     if (destinationKind !== "other" && sources.considering.length > 0) {
       next.push({ key: "considering", label: "候補図（案件化前）" });
     }
+    if (sources.sales.length > 0) next.push({ key: "sales", label: "営業" });
     if (sources.other.length > 0) next.push({ key: "other", label: "他社" });
     return next;
   }, [sources, destinationKind]);
@@ -80,6 +83,9 @@ export function AddFlightFigureModal({
     }
     if (group === "considering") {
       return sources.considering[figureIdx] ?? null;
+    }
+    if (group === "sales") {
+      return sources.sales[figureIdx] ?? null;
     }
     return selectedRecord?.figures[figureIdx] ?? null;
   })();
@@ -230,6 +236,25 @@ export function AddFlightFigureModal({
               </div>
             )}
 
+            {group === "sales" && (
+              <div className="register-project-modal__row">
+                <label className="register-project-modal__label">
+                  飛行エリア図
+                  <select
+                    className="register-project-modal__input register-project-modal__select"
+                    value={figureIdx}
+                    onChange={(e) => setFigureIdx(Number(e.target.value))}
+                  >
+                    {sources.sales.map((figure, idx) => (
+                      <option key={`${figure.title}-${idx}`} value={idx}>
+                        {sourceLabel(figure.title)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            )}
+
             {group === "other" && (
               <>
                 <div className="register-project-modal__row">
@@ -275,9 +300,10 @@ export function AddFlightFigureModal({
                 </div>
               </>
             )}
-            {group === "considering" &&
+            {((group === "considering" &&
               destinationKind !== "considering" &&
-              onClearConsideringCandidates && (
+              onClearConsideringCandidates) ||
+              (group === "sales" && onClearSales)) && (
                 <label className="add-figure-modal__check">
                   <input
                     type="checkbox"
@@ -309,9 +335,13 @@ export function AddFlightFigureModal({
                   group === "considering" &&
                   destinationKind !== "considering" &&
                   deleteSourceAfterCopy;
+                const clearSales = group === "sales" && deleteSourceAfterCopy;
                 onCopy(selectedSource);
                 if (clearConsidering) {
                   onClearConsideringCandidates?.(figureIdx);
+                }
+                if (clearSales) {
+                  onClearSales?.(figureIdx);
                 }
                 onClose();
               }}

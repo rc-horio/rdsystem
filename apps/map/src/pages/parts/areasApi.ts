@@ -549,6 +549,7 @@ function parseDetailMeta(info: any, fallbackAreaName?: string): DetailMeta {
         restrictionsMemo: toStr(dt.restrictionsMemo ?? dt.restrictions ?? ""),
         remarks: toStr(dt.remarks ?? ""),
         candidate,
+        sales: Array.isArray(info?.sales) ? info.sales : [],
         considering: parseConsidering(info?.considering),
         otherRecords: parseOtherRecords(info?.otherRecords),
         updated_at: typeof info?.updated_at === "string" ? info.updated_at : undefined,
@@ -945,6 +946,67 @@ export async function clearAreaCandidateGeometryAtIndex(params: {
     return ok;
 }
 
+/**
+ * エリア index.json の sales[ index ] を上書き保存（merge）します。
+ * candidate と同じ形。営業図用。
+ */
+export async function upsertAreaSalesAtIndex(params: {
+    areaUuid: string;
+    index: number;
+    figure: Partial<Candidate>;
+    preserveTitle?: boolean;
+}): Promise<boolean> {
+    const { areaUuid, index, figure, preserveTitle = true } = params;
+    if (!areaUuid || !Number.isInteger(index) || index < 0) return false;
+
+    const info = await fetchRawAreaInfo(areaUuid);
+    const list: Candidate[] = Array.isArray(info?.sales) ? info.sales : [];
+    if (index > list.length) return false;
+
+    let nextList: Candidate[];
+    if (index < list.length) {
+        const prev = list[index] ?? {};
+        const next: Candidate = {
+            ...(preserveTitle
+                ? { title: prev.title ?? figure.title ?? "飛行エリア図" }
+                : {}),
+            ...prev,
+            ...figure,
+        };
+        nextList = list.map((item, i) => (i === index ? next : item));
+    } else {
+        const next: Candidate = {
+            title: figure.title ?? "飛行エリア図",
+            ...figure,
+        } as Candidate;
+        nextList = [...list, next];
+    }
+
+    const ok = await saveAreaInfo(areaUuid, { ...info, sales: nextList });
+    if (!ok) console.error("[upsertAreaSalesAtIndex] saveAreaInfo failed");
+    return ok;
+}
+
+/** 営業図 index の要素自体を sales 配列から削除して保存します。 */
+export async function clearAreaSalesGeometryAtIndex(params: {
+    areaUuid: string;
+    index: number;
+}): Promise<boolean> {
+    const { areaUuid, index } = params;
+    if (!areaUuid || !Number.isInteger(index) || index < 0) return false;
+
+    const info = await fetchRawAreaInfo(areaUuid);
+    const list: Candidate[] = Array.isArray(info?.sales) ? info.sales : [];
+    if (index >= list.length) return false;
+
+    const ok = await saveAreaInfo(areaUuid, {
+        ...info,
+        sales: list.filter((_, i) => i !== index),
+    });
+    if (!ok) console.error("[clearAreaSalesGeometryAtIndex] saveAreaInfo failed");
+    return ok;
+}
+
 /** 指定スケジュールの geometry を削除（キーごと除去）して保存します。成功: true */
 export async function clearScheduleGeometry(params: {
     projectUuid: string;
@@ -1040,6 +1102,7 @@ export async function createNewArea(params: {
         },
         history: [],
         candidate: [],
+        sales: [],
         considering: { ...EMPTY_CONSIDERING_INFO },
         otherRecords: [],
         updated_at: now,

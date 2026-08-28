@@ -459,7 +459,7 @@ export default function MapView({ onLoaded }: Props) {
   isSelectedRef.current = isSelected;
   // 「どのセクション由来の選択か」を保持（案件 / 候補 / 他社）
   const [selectionKind, setSelectionKind] = useState<
-    "schedule" | "candidate" | "other" | null
+    "schedule" | "candidate" | "other" | "sales" | null
   >(null);
   const selectionKindRef = useRef(selectionKind);
   selectionKindRef.current = selectionKind;
@@ -2906,7 +2906,7 @@ export default function MapView({ onLoaded }: Props) {
         (
           e as CustomEvent<{
             isSelected?: boolean;
-            kind?: "schedule" | "candidate" | "other" | null;
+            kind?: "schedule" | "candidate" | "other" | "sales" | null;
           }>
         ).detail || {};
       const nextKind = detail.isSelected ? (detail.kind ?? null) : null;

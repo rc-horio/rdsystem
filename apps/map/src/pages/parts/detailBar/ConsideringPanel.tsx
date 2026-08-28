@@ -1,5 +1,6 @@
 import { InputBox, SelectBox, Textarea } from "@/components";
-import type { ConsideringInfo } from "@/features/types";
+import type { Candidate, ConsideringInfo } from "@/features/types";
+import { ConsideringFigures } from "./ConsideringFigures";
 import {
   CONSIDERING_CHANNEL_FREE_LABEL,
   CONSIDERING_CHANNEL_PRESETS,
@@ -9,15 +10,36 @@ import {
   isPresetConsideringStatus,
   needsConsideringStatusDetail,
 } from "./helpers";
+import type { CopySourceTree } from "./flightFigureCopy";
 
 type Props = {
   considering: ConsideringInfo;
+  sales: Candidate[];
+  selectedSalesIdx: number | null;
+  editable: boolean;
+  copySources: CopySourceTree;
   onConsideringPatch: (patch: Partial<ConsideringInfo>) => void;
+  onSelectSales: (idx: number) => void;
+  onHighlightSales: (idx: number) => void;
+  onPatchSales: (idx: number, patch: Partial<Candidate>) => void;
+  onDeleteSales: (idx: number) => void;
+  onAddSales: () => void;
+  onSalesFigureRemoved: (idx: number) => void;
 };
 
 export function ConsideringPanel({
   considering,
+  sales,
+  selectedSalesIdx,
+  editable,
+  copySources,
   onConsideringPatch,
+  onSelectSales,
+  onHighlightSales,
+  onPatchSales,
+  onDeleteSales,
+  onAddSales,
+  onSalesFigureRemoved,
 }: Props) {
   const channelSelectValue = isPresetConsideringChannel(considering.channel)
     ? considering.channel
@@ -27,7 +49,7 @@ export function ConsideringPanel({
     : "";
 
   return (
-    <section className="considering-panel" role="tabpanel" aria-label="候補">
+    <section className="considering-panel" role="tabpanel" aria-label="営業">
       <div className="detailbar-form">
         <div className="detailbar-form-group">
           <InputBox
@@ -104,6 +126,22 @@ export function ConsideringPanel({
           />
         </div>
       </div>
+
+      <ConsideringFigures
+        candidates={sales}
+        selectedIdx={selectedSalesIdx}
+        editable={editable}
+        locked={false}
+        copySources={copySources}
+        allowCopy={false}
+        onAdd={onAddSales}
+        onHighlight={onHighlightSales}
+        onActivate={onSelectSales}
+        onPatch={onPatchSales}
+        onCopy={() => {}}
+        onDelete={onDeleteSales}
+        onFigureRemoved={onSalesFigureRemoved}
+      />
     </section>
   );
 }

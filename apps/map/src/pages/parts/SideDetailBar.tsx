@@ -65,6 +65,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   const [selectedCandidateIdx, setSelectedCandidateIdx] = useState<
     number | null
   >(null);
+  const [selectedSalesIdx, setSelectedSalesIdx] = useState<number | null>(null);
   const [selectedOtherFigure, setSelectedOtherFigure] = useState<{
     recordIdx: number;
     figureIdx: number;
@@ -75,6 +76,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   const [meta, setMeta] = useState<DetailMeta>({ ...EMPTY_DETAIL_META });
 
   const candidates = meta.candidate ?? [];
+  const sales = meta.sales ?? [];
   const considering = meta.considering ?? EMPTY_CONSIDERING_INFO;
   const otherRecords = meta.otherRecords ?? [];
   const candidateDeletionLocked = !!meta.candidateDeletionLocked;
@@ -83,8 +85,8 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       ? meta.tabUpdates[active]
       : { updated_at: meta.updated_at, updated_by: meta.updated_by };
   const copySourceTree = useMemo(
-    () => buildCopySourceTree(history, candidates, otherRecords),
-    [history, candidates, otherRecords]
+    () => buildCopySourceTree(history, candidates, otherRecords, sales),
+    [history, candidates, otherRecords, sales]
   );
 
   const initialScheduleRef = useRef<{
@@ -162,6 +164,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     setSelectedHistoryIdx(null);
     setSelectedOwnFigureId(null);
     setSelectedCandidateIdx(nextIdx);
+    setSelectedSalesIdx(null);
     setSelectedOtherFigure(null);
     window.dispatchEvent(
       new CustomEvent(EV_DETAILBAR_SELECTED, {
@@ -205,6 +208,24 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     );
   };
 
+  const removeCopiedSales = (index: number) => {
+    setMeta((prev) => {
+      const list = Array.isArray(prev.sales) ? [...prev.sales] : [];
+      if (index < 0 || index >= list.length) return prev;
+      list.splice(index, 1);
+      return { ...prev, sales: list };
+    });
+    setSelectedSalesIdx((current) => {
+      if (current == null) return null;
+      if (current === index) return null;
+      if (current > index) return current - 1;
+      return current;
+    });
+    window.alert(
+      "コピー元の飛行エリア図を削除しました。\nSAVEボタンで確定してください。"
+    );
+  };
+
   const deleteCandidate = (idx: number) => {
     setMeta((prev) => {
       const list = Array.isArray(prev.candidate) ? [...prev.candidate] : [];
@@ -222,6 +243,51 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
 
   const onCandidateFigureRemoved = (idx: number) => {
     setSelectedCandidateIdx((current) => (current === idx ? null : current));
+  };
+
+  const handleAddSales = () => {
+    const newFigure: Candidate = {
+      title: "",
+      flightAltitude_min_m: undefined,
+      flightAltitude_Max_m: undefined,
+      takeoffArea: undefined,
+      flightArea: undefined,
+      safetyArea: undefined,
+      audienceArea: undefined,
+    };
+    setMeta((prev) => ({
+      ...prev,
+      sales: [...(prev.sales ?? []), newFigure],
+    }));
+  };
+
+  const patchSales = (idx: number, patch: Partial<Candidate>) => {
+    setMeta((prev) => {
+      const list = [...(prev.sales ?? [])];
+      const target = list[idx];
+      if (!target) return prev;
+      list[idx] = { ...target, ...patch };
+      return { ...prev, sales: list };
+    });
+  };
+
+  const deleteSales = (idx: number) => {
+    setMeta((prev) => {
+      const list = Array.isArray(prev.sales) ? [...prev.sales] : [];
+      if (idx < 0 || idx >= list.length) return prev;
+      list.splice(idx, 1);
+      return { ...prev, sales: list };
+    });
+    setSelectedSalesIdx((current) => {
+      if (current == null) return null;
+      if (current === idx) return null;
+      if (current > idx) return current - 1;
+      return current;
+    });
+  };
+
+  const onSalesFigureRemoved = (idx: number) => {
+    setSelectedSalesIdx((current) => (current === idx ? null : current));
   };
 
   const sanitizeHistory = (arrLike: unknown): HistoryItem[] => {
@@ -313,6 +379,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   const onSelectHistory = (item: HistoryItem, idx: number) => {
     setSelectedHistoryIdx(idx);
     setSelectedCandidateIdx(null);
+    setSelectedSalesIdx(null);
     setSelectedOtherFigure(null);
     const confirmed = confirmedFigureOf(item);
     setSelectedOwnFigureId(confirmed?.id ?? null);
@@ -325,6 +392,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     setSelectedHistoryIdx(idx);
     setSelectedOwnFigureId(figure.id);
     setSelectedCandidateIdx(null);
+    setSelectedSalesIdx(null);
     setSelectedOtherFigure(null);
     dispatchOwnFigure(item, idx, figure);
   };
@@ -333,6 +401,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     setSelectedHistoryIdx(idx);
     setSelectedOwnFigureId(figureId);
     setSelectedCandidateIdx(null);
+    setSelectedSalesIdx(null);
     setSelectedOtherFigure(null);
   };
 
@@ -395,6 +464,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     setSelectedCandidateIdx(idx);
     setSelectedHistoryIdx(null);
     setSelectedOwnFigureId(null);
+    setSelectedSalesIdx(null);
     setSelectedOtherFigure(null);
   };
 
@@ -402,6 +472,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     setSelectedCandidateIdx(idx);
     setSelectedHistoryIdx(null);
     setSelectedOwnFigureId(null);
+    setSelectedSalesIdx(null);
     setSelectedOtherFigure(null);
     window.dispatchEvent(
       new CustomEvent(EV_DETAILBAR_SELECTED, {
@@ -430,9 +501,51 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     }
   };
 
+  const highlightSales = (idx: number) => {
+    setSelectedSalesIdx(idx);
+    setSelectedHistoryIdx(null);
+    setSelectedOwnFigureId(null);
+    setSelectedCandidateIdx(null);
+    setSelectedOtherFigure(null);
+  };
+
+  const onSelectSales = (idx: number) => {
+    setSelectedSalesIdx(idx);
+    setSelectedHistoryIdx(null);
+    setSelectedOwnFigureId(null);
+    setSelectedCandidateIdx(null);
+    setSelectedOtherFigure(null);
+    window.dispatchEvent(
+      new CustomEvent(EV_DETAILBAR_SELECTED, {
+        detail: { isSelected: true, kind: "sales" as const },
+      })
+    );
+    const selected = meta.sales[idx];
+    if (selected) {
+      window.dispatchEvent(
+        new CustomEvent(EV_DETAILBAR_SELECT_CANDIDATE, {
+          detail: {
+            source: "sales" as const,
+            geometry: {
+              flightAltitude_min_m: selected.flightAltitude_min_m,
+              flightAltitude_Max_m: selected.flightAltitude_Max_m,
+              takeoffArea: selected.takeoffArea,
+              flightArea: selected.flightArea,
+              safetyArea: selected.safetyArea,
+              audienceArea: selected.audienceArea,
+            },
+            index: idx,
+            title: selected.title,
+          },
+        })
+      );
+    }
+  };
+
   const highlightOtherFigure = (recordIdx: number, figureIdx: number) => {
     setSelectedOtherFigure({ recordIdx, figureIdx });
     setSelectedCandidateIdx(null);
+    setSelectedSalesIdx(null);
     setSelectedHistoryIdx(null);
     setSelectedOwnFigureId(null);
   };
@@ -492,6 +605,13 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       setSelectedCandidateIdx(null);
     }
   }, [candidates?.length, selectedCandidateIdx, candidateDeletionLocked]);
+
+  useEffect(() => {
+    const salesLen = sales?.length ?? 0;
+    if (selectedSalesIdx != null && selectedSalesIdx >= salesLen) {
+      setSelectedSalesIdx(null);
+    }
+  }, [sales?.length, selectedSalesIdx]);
 
   useEffect(() => {
     const onRequest = () => {
@@ -568,6 +688,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
       setHistory(sanitized);
       setSelectedHistoryIdx(null);
       setSelectedCandidateIdx(null);
+      setSelectedSalesIdx(null);
       setSelectedOtherFigure(null);
       setSelectedOwnFigureId(null);
       window.dispatchEvent(
@@ -649,6 +770,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     const reset = () => {
       setSelectedHistoryIdx(null);
       setSelectedCandidateIdx(null);
+      setSelectedSalesIdx(null);
       setSelectedOtherFigure(null);
       setSelectedOwnFigureId(null);
       window.dispatchEvent(
@@ -727,6 +849,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
             selectedCandidateIdx={selectedCandidateIdx}
             candidateDeletionLocked={candidateDeletionLocked}
             onClearConsideringCandidates={removeCopiedConsideringCandidate}
+            onClearSales={removeCopiedSales}
             onSelectHistory={onSelectHistory}
             onDeleteHistory={onDeleteHistory}
             onRegisterProject={handleRegisterProjectInfo}
@@ -746,7 +869,17 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
         {active === "considering" && (
           <ConsideringPanel
             considering={considering}
+            sales={sales}
+            selectedSalesIdx={selectedSalesIdx}
+            editable={editable}
+            copySources={copySourceTree}
             onConsideringPatch={patchConsidering}
+            onSelectSales={onSelectSales}
+            onHighlightSales={highlightSales}
+            onPatchSales={patchSales}
+            onDeleteSales={deleteSales}
+            onAddSales={handleAddSales}
+            onSalesFigureRemoved={onSalesFigureRemoved}
           />
         )}
         {active === "other" && (
@@ -756,6 +889,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
             selectedFigure={selectedOtherFigure}
             copySources={copySourceTree}
             onClearConsideringCandidates={removeCopiedConsideringCandidate}
+            onClearSales={removeCopiedSales}
             onHighlightFigure={highlightOtherFigure}
             onActivateFigure={activateOtherFigure}
             onFigureRemoved={onOtherFigureRemoved}

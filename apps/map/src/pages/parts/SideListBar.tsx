@@ -24,6 +24,8 @@ import {
   getMaxDroneCountFromScheduleArea,
   clearAreaCandidateGeometryAtIndex,
   upsertAreaCandidateAtIndex,
+  clearAreaSalesGeometryAtIndex,
+  upsertAreaSalesAtIndex,
   upsertAreaOtherFigureAtIndex,
   upsertScheduleFlightFiguresBatch,
   isAreaNameDuplicated,
@@ -56,6 +58,7 @@ import {
   areaBasicSnapshot,
   areaConsideringSnapshot,
   historyPairsKey,
+  areaOwnFiguresSnapshot,
   collectDirtyAreaTabs,
   type AreaAxisFilter,
   type AreaKindFlags,
@@ -159,9 +162,12 @@ function SideListBarBase({
   // 現在の保存コンテキスト（エリア／候補）
   const currentAreaUuidRef = useRef<string | undefined>(undefined);
   const currentCandidateIndexRef = useRef<number | null>(null);
+  const currentSalesIndexRef = useRef<number | null>(null);
   const currentCandidateTitleRef = useRef<string | undefined>(undefined);
   const currentOtherRecordIndexRef = useRef<number | null>(null);
   const currentOtherFigureIndexRef = useRef<number | null>(null);
+  /** 最後にサーバーから読み込んだ／保存した RC 案件データの飛行エリア図 */
+  const ownFiguresBaselineRef = useRef<string>(areaOwnFiguresSnapshot([]));
 
   // エリア追加モードの状態
   const [isAddAreaMode, setIsAddAreaMode] = useState(false);
@@ -436,6 +442,7 @@ function SideListBarBase({
 
     const fullHistory = await buildAreaHistoryFromProjects(areaUuid);
     setDetailBarHistory(fullHistory);
+    ownFiguresBaselineRef.current = areaOwnFiguresSnapshot(fullHistory);
   };
 
   // 共通のエリアアクティベーション（クリック/Enter/Space）
@@ -728,6 +735,62 @@ function SideListBarBase({
     }
   };
 
+  const applySalesGeometryFromPayload = async (params: {
+    payload: GeometryPayload;
+    areaUuidToUse?: string;
+    salesIndex: number | null;
+    figureTitle?: string;
+    activeAreaName: string | null;
+  }): Promise<Candidate[] | undefined> => {
+    const { payload, areaUuidToUse, salesIndex, figureTitle, activeAreaName } =
+      params;
+    const { geometry, deleted } = payload;
+
+    const idx = salesIndex;
+    if (!areaUuidToUse || typeof idx !== "number" || idx < 0) {
+      console.warn("[save] sales context missing (areaUuid/index). Skipped.");
+      return undefined;
+    }
+
+    if (deleted === true) {
+      const okDel = await clearAreaSalesGeometryAtIndex({
+        areaUuid: areaUuidToUse,
+        index: idx,
+      });
+      if (!okDel) console.warn("[save] sales geometry delete failed");
+    } else if (geometry) {
+      const g = geometry;
+      const okSales = await upsertAreaSalesAtIndex({
+        areaUuid: areaUuidToUse,
+        index: idx,
+        figure: {
+          title: figureTitle,
+          flightAltitude_min_m: g.flightAltitude_min_m,
+          flightAltitude_Max_m: g.flightAltitude_Max_m,
+          takeoffArea: g.takeoffArea,
+          flightArea: g.flightArea,
+          safetyArea: g.safetyArea,
+          audienceArea: g.audienceArea,
+        },
+        preserveTitle: true,
+      });
+      if (!okSales) console.warn("[save] sales geometry save failed");
+    }
+
+    try {
+      if (!areaUuidToUse) return undefined;
+      const { meta: refreshedMeta } = await fetchAreaInfo(
+        areaUuidToUse,
+        activeAreaName || ""
+      );
+      setDetailBarMeta(refreshedMeta);
+      return Array.isArray(refreshedMeta.sales) ? refreshedMeta.sales : undefined;
+    } catch (e) {
+      console.warn("[save] refresh sales meta failed:", e);
+      return undefined;
+    }
+  };
+
   const applyOtherFigureGeometryFromPayload = async (params: {
     payload: GeometryPayload;
     areaUuidToUse?: string;
@@ -1011,6 +1074,11 @@ function SideListBarBase({
         : Array.isArray(raw?.candidate)
         ? raw.candidate
         : [];
+      const salesToSave: typeof data.meta.sales = Array.isArray(data.meta.sales)
+        ? data.meta.sales
+        : Array.isArray(raw?.sales)
+        ? raw.sales
+        : [];
       const consideringSource = data.meta.considering ?? EMPTY_CONSIDERING_INFO;
       const consideringToSave = {
         status: consideringSource.status ?? "",
@@ -1050,6 +1118,8 @@ function SideListBarBase({
           typeof currentOtherFigureIndexRef.current === "number"
         ) {
           figureTab = "other";
+        } else if (typeof currentSalesIndexRef.current === "number") {
+          figureTab = "considering";
         } else if (typeof currentCandidateIndexRef.current === "number") {
           figureTab = "own";
         }
@@ -1082,18 +1152,22 @@ function SideListBarBase({
         },
       });
       const prevCandidate = Array.isArray(raw?.candidate) ? raw.candidate : [];
+      const prevSales = Array.isArray(raw?.sales) ? raw.sales : [];
       const prevOtherRecords = Array.isArray(raw?.otherRecords)
         ? raw.otherRecords
         : [];
       const dirtyTabs = collectDirtyAreaTabs({
         basicChanged: JSON.stringify(prevBasic) !== JSON.stringify(nextBasic),
         ownHistoryChanged:
-          historyPairsKey(beforePairs) !== historyPairsKey(afterPairs),
+          historyPairsKey(beforePairs) !== historyPairsKey(afterPairs) ||
+          areaOwnFiguresSnapshot(uiHistory) !== ownFiguresBaselineRef.current,
         consideringChanged:
           JSON.stringify(areaConsideringSnapshot(raw?.considering)) !==
           JSON.stringify(areaConsideringSnapshot(consideringToSave)),
         candidateFiguresChanged:
           JSON.stringify(prevCandidate) !== JSON.stringify(candidatesToSave),
+        salesFiguresChanged:
+          JSON.stringify(prevSales) !== JSON.stringify(salesToSave),
         otherChanged:
           JSON.stringify(prevOtherRecords) !==
           JSON.stringify(otherRecordsToSave),
@@ -1127,6 +1201,7 @@ function SideListBarBase({
         // ここで UI 上の history（削除済み行を含めた状態）をそのまま保存
         history: historyToSave,
         candidate: candidatesToSave,
+        sales: salesToSave,
         considering: consideringToSave,
         otherRecords: otherRecordsToSave,
         updated_at: now,
@@ -1317,6 +1392,23 @@ function SideListBarBase({
               otherRecordsForMeta = refreshedOtherRecords;
             }
           } else {
+            const savedSalesCount = Array.isArray(infoToSave.sales)
+              ? infoToSave.sales.length
+              : 0;
+            const salesIdx = currentSalesIndexRef.current;
+            if (
+              typeof salesIdx === "number" &&
+              salesIdx >= 0 &&
+              salesIdx < savedSalesCount
+            ) {
+              await applySalesGeometryFromPayload({
+                payload: geomPayload,
+                areaUuidToUse: currentAreaUuidRef.current ?? areaUuid,
+                salesIndex: salesIdx,
+                figureTitle: currentCandidateTitleRef.current,
+                activeAreaName: activeKey,
+              });
+            } else {
             // （3-3）候補エリアの geometry を保存 or 削除
             // 候補リストから削除済みの index に対してはスキップ（上書きで削除が復活するのを防ぐ）
             const savedCandidateCount = Array.isArray(infoToSave.candidate)
@@ -1343,6 +1435,7 @@ function SideListBarBase({
                 savedCandidateCount
               );
             }
+            }
           }
         }
       }
@@ -1366,6 +1459,7 @@ function SideListBarBase({
         restrictionsMemo: infoToSave.details?.restrictionsMemo ?? "",
         remarks: infoToSave.details?.remarks ?? "",
         considering: consideringToSave,
+        sales: salesToSave,
         otherRecords: otherRecordsForMeta,
         updated_at: infoToSave.updated_at,
         updated_by: infoToSave.updated_by,
@@ -1376,7 +1470,9 @@ function SideListBarBase({
       try {
         const refreshedHistory = await buildAreaHistoryFromProjects(areaUuid);
         setDetailBarHistory(refreshedHistory);
+        ownFiguresBaselineRef.current = areaOwnFiguresSnapshot(refreshedHistory);
       } catch (e) {
+        ownFiguresBaselineRef.current = areaOwnFiguresSnapshot(uiHistory);
         console.warn("[save] refresh history failed:", e);
       }
 
@@ -1467,10 +1563,12 @@ function SideListBarBase({
           e as CustomEvent<{
             index?: number;
             title?: string;
-            source?: "candidate" | "other";
+            source?: "candidate" | "other" | "sales";
             recordIndex?: number;
           }>
         ).detail || {};
+      currentCandidateTitleRef.current =
+        typeof d.title === "string" ? d.title : undefined;
       if (d.source === "other") {
         currentOtherRecordIndexRef.current = Number.isInteger(d.recordIndex)
           ? (d.recordIndex as number)
@@ -1479,14 +1577,19 @@ function SideListBarBase({
           ? (d.index as number)
           : null;
         currentCandidateIndexRef.current = null;
-        currentCandidateTitleRef.current =
-          typeof d.title === "string" ? d.title : undefined;
+        currentSalesIndexRef.current = null;
+      } else if (d.source === "sales") {
+        currentSalesIndexRef.current = Number.isInteger(d.index)
+          ? (d.index as number)
+          : null;
+        currentCandidateIndexRef.current = null;
+        currentOtherRecordIndexRef.current = null;
+        currentOtherFigureIndexRef.current = null;
       } else {
         currentCandidateIndexRef.current = Number.isInteger(d.index)
           ? (d.index as number)
           : null;
-        currentCandidateTitleRef.current =
-          typeof d.title === "string" ? d.title : undefined;
+        currentSalesIndexRef.current = null;
         currentOtherRecordIndexRef.current = null;
         currentOtherFigureIndexRef.current = null;
       }
@@ -1506,6 +1609,7 @@ function SideListBarBase({
     const onHistory = () => {
       currentOtherRecordIndexRef.current = null;
       currentOtherFigureIndexRef.current = null;
+      currentSalesIndexRef.current = null;
     };
     window.addEventListener(EV_DETAILBAR_SELECT_HISTORY, onHistory);
     return () =>
@@ -2099,9 +2203,15 @@ function SideListBarBase({
                       Array.isArray(raw?.history) && raw.history.length > 0;
                     const hasCandidates =
                       Array.isArray(raw?.candidate) && raw.candidate.length > 0;
-                    if (hasHistory || hasCandidates) {
+                    const hasSales =
+                      Array.isArray(raw?.sales) && raw.sales.length > 0;
+                    const linked: string[] = [];
+                    if (hasHistory) linked.push("案件");
+                    if (hasCandidates) linked.push("候補図");
+                    if (hasSales) linked.push("営業図");
+                    if (linked.length > 0) {
                       confirmMsg =
-                        `このエリアには${hasHistory ? "案件" : ""}${hasHistory && hasCandidates ? "と" : ""}${hasCandidates ? "候補図" : ""}が紐づいています。\n` +
+                        `このエリアには${linked.join("と")}が紐づいています。\n` +
                         `削除すると紐づけが解除されます。続行しますか？`;
                     } else {
                       confirmMsg = `「${displayLabel}」を削除してもよろしいですか？`;
@@ -2221,10 +2331,12 @@ function SideListBarBase({
             setActiveKey(null);
             currentAreaUuidRef.current = undefined;
             currentCandidateIndexRef.current = null;
+            currentSalesIndexRef.current = null;
             currentCandidateTitleRef.current = undefined;
             currentOtherRecordIndexRef.current = null;
             currentOtherFigureIndexRef.current = null;
             pendingProjectLinkRef.current = null;
+            ownFiguresBaselineRef.current = areaOwnFiguresSnapshot([]);
 
             closeDetailBar();
             window.dispatchEvent(new Event("map:start-add-area"));

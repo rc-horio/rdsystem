@@ -31,6 +31,7 @@ type Props = {
   onFigureRemoved: (figureId: string) => void;
   copySources: CopySourceTree;
   onClearConsideringCandidates?: (sourceIndex: number) => void;
+  onClearSales?: (sourceIndex: number) => void;
 };
 
 function hasDuplicateFigureTitle(
@@ -57,6 +58,7 @@ export function OwnFlightFigures({
   onFigureRemoved,
   copySources,
   onClearConsideringCandidates,
+  onClearSales,
 }: Props) {
   const figureInputRef = useRef<HTMLInputElement>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -331,6 +333,7 @@ export function OwnFlightFigures({
         onNew={addFigure}
         onCopy={copyFigure}
         onClearConsideringCandidates={onClearConsideringCandidates}
+        onClearSales={onClearSales}
       />
     </div>
   );

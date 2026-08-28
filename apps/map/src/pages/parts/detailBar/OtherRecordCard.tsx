@@ -58,6 +58,7 @@ type Props = {
   onFigureRemoved: (figureIdx: number) => void;
   copySources: CopySourceTree;
   onClearConsideringCandidates?: (sourceIndex: number) => void;
+  onClearSales?: (sourceIndex: number) => void;
 };
 
 function formatHeadingDate(ymd: string) {
@@ -93,6 +94,7 @@ export function OtherRecordCard({
   onFigureRemoved,
   copySources,
   onClearConsideringCandidates,
+  onClearSales,
 }: Props) {
   const dateId = useId();
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -471,6 +473,7 @@ export function OtherRecordCard({
         onNew={addFigure}
         onCopy={copyFigure}
         onClearConsideringCandidates={onClearConsideringCandidates}
+        onClearSales={onClearSales}
       />
     </div>
   );
