@@ -78,7 +78,10 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   const considering = meta.considering ?? EMPTY_CONSIDERING_INFO;
   const otherRecords = meta.otherRecords ?? [];
   const candidateDeletionLocked = !!meta.candidateDeletionLocked;
-  const tabStamp = meta.tabUpdates?.[active];
+  const tabStamp =
+    meta.tabUpdates?.[active]?.updated_at || meta.tabUpdates?.[active]?.updated_by
+      ? meta.tabUpdates[active]
+      : { updated_at: meta.updated_at, updated_by: meta.updated_by };
   const copySourceTree = useMemo(
     () => buildCopySourceTree(history, candidates, otherRecords),
     [history, candidates, otherRecords]

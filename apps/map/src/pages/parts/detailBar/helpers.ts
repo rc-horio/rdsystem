@@ -70,6 +70,25 @@ export function parseTabUpdates(raw: unknown): TabUpdates {
   return out;
 }
 
+/** タブ専用の記録がまだ無い場合、エリア単位の最終更新を仮の値として埋める */
+export function seedMissingTabUpdates(
+  prev: TabUpdates,
+  areaAt?: string,
+  areaBy?: string
+): TabUpdates {
+  if (!(areaAt || areaBy?.trim())) return prev;
+  const next: TabUpdates = { ...prev };
+  const fallback: TabUpdateStamp = {
+    updated_at: areaAt,
+    updated_by: areaBy,
+  };
+  for (const key of DETAIL_TAB_KEYS) {
+    if (next[key]?.updated_at || next[key]?.updated_by) continue;
+    next[key] = fallback;
+  }
+  return next;
+}
+
 export function applyTabUpdateStamps(
   prev: TabUpdates,
   dirty: readonly TabKey[],

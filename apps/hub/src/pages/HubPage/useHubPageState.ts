@@ -290,10 +290,27 @@ export function useHubPageState() {
 
     json.history = nextHistory;
     const now = new Date().toISOString();
+    const prevTabUpdates = json.tabUpdates ?? {};
+    const tabKeys = ["basic", "own", "other", "considering"] as const;
+    const seededTabUpdates = { ...prevTabUpdates };
+    for (const key of tabKeys) {
+      if (
+        seededTabUpdates[key]?.updated_at ||
+        seededTabUpdates[key]?.updated_by
+      ) {
+        continue;
+      }
+      if (json.updated_at || json.updated_by) {
+        seededTabUpdates[key] = {
+          updated_at: json.updated_at,
+          updated_by: json.updated_by,
+        };
+      }
+    }
     json.updated_at = now;
     json.updated_by = updatedBy;
     json.tabUpdates = {
-      ...(json.tabUpdates ?? {}),
+      ...seededTabUpdates,
       own: { updated_at: now, updated_by: updatedBy },
     };
 

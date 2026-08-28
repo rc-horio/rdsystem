@@ -52,6 +52,7 @@ import {
   isEmptyOtherRecord,
   parseTabUpdates,
   applyTabUpdateStamps,
+  seedMissingTabUpdates,
   areaBasicSnapshot,
   areaConsideringSnapshot,
   historyPairsKey,
@@ -1130,7 +1131,11 @@ function SideListBarBase({
         updated_at: now,
         updated_by: displayName,
         tabUpdates: applyTabUpdateStamps(
-          parseTabUpdates(raw?.tabUpdates),
+          seedMissingTabUpdates(
+            parseTabUpdates(raw?.tabUpdates),
+            typeof raw?.updated_at === "string" ? raw.updated_at : undefined,
+            typeof raw?.updated_by === "string" ? raw.updated_by : undefined
+          ),
           dirtyTabs,
           now,
           displayName
