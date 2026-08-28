@@ -38,7 +38,7 @@ export function OwnFlightAreaPanel({
   onFigureRemoved,
 }: Props) {
   return (
-    <section role="tabpanel" aria-label="自社">
+    <section role="tabpanel" aria-label="RC">
       <ProjectHistorySection
         history={history}
         selectedHistoryIdx={selectedHistoryIdx}

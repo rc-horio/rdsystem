@@ -43,7 +43,7 @@ export function AddFlightFigureModal({
 
   const groups = useMemo(() => {
     const next: { key: GroupKey; label: string }[] = [];
-    if (sources.own.length > 0) next.push({ key: "own", label: "自社" });
+    if (sources.own.length > 0) next.push({ key: "own", label: "RC" });
     if (destinationKind !== "other" && sources.considering.length > 0) {
       next.push({ key: "considering", label: "候補" });
     }
