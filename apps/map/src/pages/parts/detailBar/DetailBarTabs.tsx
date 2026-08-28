@@ -17,7 +17,7 @@ export function DetailBarTabs({ active, onChange }: Props) {
     <div
       role="tablist"
       aria-label="詳細バータブ"
-      className="detailbar-tabs"
+      className={`detailbar-tabs detailbar-tabs--${active}`}
     >
       {TABS.map((tab) => (
         <button
@@ -25,7 +25,7 @@ export function DetailBarTabs({ active, onChange }: Props) {
           type="button"
           role="tab"
           aria-selected={active === tab.key}
-          className={`tab-btn ${active === tab.key ? "is-active" : ""}`}
+          className={`tab-btn tab-btn--${tab.key} ${active === tab.key ? "is-active" : ""}`}
           onClick={() => onChange(tab.key)}
         >
           {tab.label}

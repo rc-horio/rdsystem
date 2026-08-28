@@ -1116,6 +1116,22 @@ body.detailbar-open #detailbar {
   flex-wrap: nowrap;
 }
 
+.detailbar-tabs--basic {
+  border-bottom-color: rgba(255, 255, 255, 0.55);
+}
+
+.detailbar-tabs--own {
+  border-bottom-color: #ed1b24;
+}
+
+.detailbar-tabs--other {
+  border-bottom-color: #2f6fb8;
+}
+
+.detailbar-tabs--considering {
+  border-bottom-color: var(--area-kind-considering);
+}
+
 .tab-btn {
   appearance: none;
   border: 0;
@@ -1125,7 +1141,7 @@ body.detailbar-open #detailbar {
   padding: 4px 10px;
   position: relative;
   outline: none;
-  border-radius: 4px;
+  border-radius: 4px 4px 0 0;
   transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 
   display: inline-flex;
@@ -1138,9 +1154,28 @@ body.detailbar-open #detailbar {
 /* アクティブタブ */
 .tab-btn.is-active,
 .tab-btn[aria-selected="true"] {
-  background: #ed1b24;
   color: #fff;
   margin-bottom: -1px; /* 下線と底辺を同列に */
+}
+
+.tab-btn--own.is-active,
+.tab-btn--own[aria-selected="true"] {
+  background: #ed1b24;
+}
+
+.tab-btn--other.is-active,
+.tab-btn--other[aria-selected="true"] {
+  background: #2f6fb8;
+}
+
+.tab-btn--considering.is-active,
+.tab-btn--considering[aria-selected="true"] {
+  background: var(--area-kind-considering);
+}
+
+.tab-btn--basic.is-active,
+.tab-btn--basic[aria-selected="true"] {
+  background: rgba(255, 255, 255, 0.22);
 }
 
 /* 本文パネル（スクロール領域） */
