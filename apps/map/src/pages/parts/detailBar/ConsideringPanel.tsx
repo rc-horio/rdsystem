@@ -19,7 +19,7 @@ type Props = {
   editable: boolean;
   copySources: CopySourceTree;
   onConsideringPatch: (patch: Partial<ConsideringInfo>) => void;
-  onSelectSales: (idx: number) => void;
+  onSelectSales: (idx: number, title?: string) => void;
   onHighlightSales: (idx: number) => void;
   onPatchSales: (idx: number, patch: Partial<Candidate>) => void;
   onDeleteSales: (idx: number) => void;

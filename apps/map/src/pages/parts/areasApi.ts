@@ -803,6 +803,19 @@ export async function upsertScheduleGeometry(params: {
     return ok;
 }
 
+function trimmedTitle(value: unknown): string {
+    return typeof value === "string" ? value.trim() : "";
+}
+
+/** 空文字で既存タイトルを消さない。入力があればそれを使う。 */
+function mergePreservedTitle(
+    prevTitle: unknown,
+    incomingTitle: unknown,
+    fallback: string
+): string {
+    return trimmedTitle(incomingTitle) || trimmedTitle(prevTitle) || fallback;
+}
+
 /**
  * エリア index.json の candidate[ index ] を上書き保存（merge）します。
  * - index が既存配列の範囲内ならその要素を更新。
@@ -831,19 +844,26 @@ export async function upsertAreaCandidateAtIndex(params: {
         // ---- 既存 candidate の更新パス ----
         const prev = list[index] ?? {};
         const next: Candidate = {
-            ...(preserveTitle
-                ? { title: prev.title ?? candidate.title ?? `候補${index + 1}` }
-                : {}),
-            ...prev,      // 既存をベース
-            ...candidate, // 変更を上書き
+            ...prev,
+            ...candidate,
+            title: preserveTitle
+                ? mergePreservedTitle(
+                      prev.title,
+                      candidate.title,
+                      `候補${index + 1}`
+                  )
+                : trimmedTitle(candidate.title) ||
+                  trimmedTitle(prev.title) ||
+                  `候補${index + 1}`,
         };
 
         nextList = list.map((c, i) => (i === index ? next : c));
     } else {
         // ---- index === list.length → 新規候補を末尾に追加 ----
         const next: Candidate = {
-            title: candidate.title ?? `候補${index + 1}`,
             ...candidate,
+            title:
+                trimmedTitle(candidate.title) || `候補${index + 1}`,
         } as Candidate;
 
         nextList = [...list, next];
@@ -903,9 +923,11 @@ export async function upsertAreaOtherFigureAtIndex(params: {
     const next: OtherFlightFigure = {
         ...prev,
         ...figure,
-        ...(preserveTitle
-            ? { title: prev.title ?? figure.title ?? "飛行エリア図" }
-            : {}),
+        title: preserveTitle
+            ? mergePreservedTitle(prev.title, figure.title, "飛行エリア図")
+            : trimmedTitle(figure.title) ||
+              trimmedTitle(prev.title) ||
+              "飛行エリア図",
     };
     figures[figureIndex] = next;
 
@@ -967,17 +989,19 @@ export async function upsertAreaSalesAtIndex(params: {
     if (index < list.length) {
         const prev = list[index] ?? {};
         const next: Candidate = {
-            ...(preserveTitle
-                ? { title: prev.title ?? figure.title ?? "飛行エリア図" }
-                : {}),
             ...prev,
             ...figure,
+            title: preserveTitle
+                ? mergePreservedTitle(prev.title, figure.title, "飛行エリア図")
+                : trimmedTitle(figure.title) ||
+                  trimmedTitle(prev.title) ||
+                  "飛行エリア図",
         };
         nextList = list.map((item, i) => (i === index ? next : item));
     } else {
         const next: Candidate = {
-            title: figure.title ?? "飛行エリア図",
             ...figure,
+            title: trimmedTitle(figure.title) || "飛行エリア図",
         } as Candidate;
         nextList = [...list, next];
     }

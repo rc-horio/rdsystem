@@ -760,11 +760,12 @@ function SideListBarBase({
       if (!okDel) console.warn("[save] sales geometry delete failed");
     } else if (geometry) {
       const g = geometry;
+      const titled = (figureTitle ?? "").trim();
       const okSales = await upsertAreaSalesAtIndex({
         areaUuid: areaUuidToUse,
         index: idx,
         figure: {
-          title: figureTitle,
+          ...(titled ? { title: titled } : {}),
           flightAltitude_min_m: g.flightAltitude_min_m,
           flightAltitude_Max_m: g.flightAltitude_Max_m,
           takeoffArea: g.takeoffArea,
@@ -1079,6 +1080,12 @@ function SideListBarBase({
         : Array.isArray(raw?.sales)
         ? raw.sales
         : [];
+      if (
+        salesToSave.some((figure) => !(figure?.title ?? "").trim())
+      ) {
+        window.alert("営業タブの飛行エリア図にタイトルを入力してください。");
+        return;
+      }
       const consideringSource = data.meta.considering ?? EMPTY_CONSIDERING_INFO;
       const consideringToSave = {
         status: consideringSource.status ?? "",
@@ -1405,7 +1412,10 @@ function SideListBarBase({
                 payload: geomPayload,
                 areaUuidToUse: currentAreaUuidRef.current ?? areaUuid,
                 salesIndex: salesIdx,
-                figureTitle: currentCandidateTitleRef.current,
+                figureTitle:
+                  (typeof salesToSave[salesIdx]?.title === "string"
+                    ? salesToSave[salesIdx].title.trim()
+                    : "") || currentCandidateTitleRef.current,
                 activeAreaName: activeKey,
               });
             } else {

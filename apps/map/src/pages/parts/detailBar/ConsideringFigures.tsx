@@ -7,7 +7,7 @@ import {
   type CopySourceTree,
 } from "./flightFigureCopy";
 
-const DEFAULT_FIGURE_TITLE = "飛行エリア図";
+const TITLE_REQUIRED_MSG = "タイトルを入力してください。";
 
 type Props = {
   candidates: Candidate[];
@@ -18,7 +18,7 @@ type Props = {
   allowCopy?: boolean;
   onAdd: () => void;
   onHighlight: (idx: number) => void;
-  onActivate: (idx: number) => void;
+  onActivate: (idx: number, title?: string) => void;
   onPatch: (idx: number, patch: Partial<Candidate>) => void;
   onCopy: (source: CopySourceItem) => void;
   onClearSales?: (sourceIndex: number) => void;
@@ -75,7 +75,11 @@ export function ConsideringFigures({
   const commitFigureTitle = (): boolean => {
     if (editingFigureIdx == null) return false;
     const idx = editingFigureIdx;
-    const finalTitle = editingFigureTitle.trim() || DEFAULT_FIGURE_TITLE;
+    const finalTitle = editingFigureTitle.trim();
+    if (!finalTitle) {
+      window.alert(TITLE_REQUIRED_MSG);
+      return false;
+    }
 
     if (hasDuplicateCandidateTitle(candidates, finalTitle, idx)) {
       window.alert(
@@ -90,7 +94,7 @@ export function ConsideringFigures({
     setEditingFigureIdx(null);
     setEditingFigureTitle("");
     setPendingNewFigureIdx(null);
-    onActivate(idx);
+    onActivate(idx, finalTitle);
     return true;
   };
 
@@ -208,7 +212,7 @@ export function ConsideringFigures({
                     type="text"
                     className="other-figure-name-input"
                     value={editingFigureTitle}
-                    placeholder={DEFAULT_FIGURE_TITLE}
+                    placeholder="タイトルを入力"
                     onChange={(e) => setEditingFigureTitle(e.target.value)}
                     onBlur={() => {
                       const isPendingNew =
@@ -219,7 +223,10 @@ export function ConsideringFigures({
                         cancelFigureEdit();
                         return;
                       }
-                      commitFigureTitle();
+                      const ok = commitFigureTitle();
+                      if (!ok) {
+                        window.setTimeout(() => figureInputRef.current?.focus(), 0);
+                      }
                     }}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
@@ -232,7 +239,7 @@ export function ConsideringFigures({
                     }}
                   />
                 ) : (
-                  figure.title
+                  (figure.title ?? "").trim() || "（無題）"
                 )}
               </span>
               {canEditFigures && editingFigureIdx !== idx && (

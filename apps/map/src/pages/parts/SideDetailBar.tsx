@@ -468,7 +468,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     setSelectedOtherFigure(null);
   };
 
-  const onSelectCandidate = (idx: number) => {
+  const onSelectCandidate = (idx: number, titleOverride?: string) => {
     setSelectedCandidateIdx(idx);
     setSelectedHistoryIdx(null);
     setSelectedOwnFigureId(null);
@@ -494,7 +494,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
         audienceArea: selectedCandidate.audienceArea,
             },
             index: idx,
-            title: selectedCandidate.title,
+            title: titleOverride ?? selectedCandidate.title,
           },
         })
       );
@@ -509,7 +509,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
     setSelectedOtherFigure(null);
   };
 
-  const onSelectSales = (idx: number) => {
+  const onSelectSales = (idx: number, titleOverride?: string) => {
     setSelectedSalesIdx(idx);
     setSelectedHistoryIdx(null);
     setSelectedOwnFigureId(null);
@@ -535,7 +535,7 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
               audienceArea: selected.audienceArea,
             },
             index: idx,
-            title: selected.title,
+            title: titleOverride ?? selected.title,
           },
         })
       );
