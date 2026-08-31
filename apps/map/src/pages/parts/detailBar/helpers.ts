@@ -499,7 +499,7 @@ export function isAreaAxisFilterActive(filter: AreaAxisFilter): boolean {
 export function salesFilterSummary(
   selected: readonly SalesStatusFilter[]
 ): string {
-  if (selected.length === 0) return "問わない";
+  if (selected.length === 0) return "指定なし";
   return SALES_STATUS_FILTER_ORDER.filter((status) =>
     selected.includes(status)
   ).join("、");
