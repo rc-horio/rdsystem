@@ -713,6 +713,15 @@ body,
   font-weight: 400;
 }
 
+#locationList li:focus {
+  outline: none;
+}
+
+#locationList li:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.55);
+  outline-offset: -2px;
+}
+
 /* active/hover 時のドット色だけ少し明るく */
 #locationList li:hover::before,
 #locationList li.active::before {
@@ -1220,6 +1229,7 @@ body.detailbar-open #detailbar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 5px;
   flex: 0 0 auto;
   white-space: nowrap;
 }

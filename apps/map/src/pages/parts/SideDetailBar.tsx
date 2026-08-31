@@ -39,6 +39,7 @@ import {
   EMPTY_DETAIL_META,
   formatDateTime,
   geometryFromFigure,
+  getAreaKindFlags,
 } from "./detailBar/helpers";
 import { OwnFlightAreaPanel } from "./detailBar/OwnFlightAreaPanel";
 import { useDetailBarResize } from "./detailBar/useDetailBarResize";
@@ -87,6 +88,15 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
   const copySourceTree = useMemo(
     () => buildCopySourceTree(history, candidates, otherRecords, sales),
     [history, candidates, otherRecords, sales]
+  );
+  const kindFlags = useMemo(
+    () =>
+      getAreaKindFlags({
+        history,
+        otherRecords,
+        considering,
+      }),
+    [history, otherRecords, considering]
   );
 
   const initialScheduleRef = useRef<{
@@ -834,7 +844,11 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
             aria-label="エリア名称"
               />
             </div>
-        <DetailBarTabs active={active} onChange={setActive} />
+        <DetailBarTabs
+          active={active}
+          onChange={setActive}
+          kindFlags={kindFlags}
+        />
         {active === "basic" && (
           <BasicInfoSection meta={meta} onMetaPatch={patchMeta} />
         )}

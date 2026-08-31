@@ -128,6 +128,24 @@ const AREA_SORT_DEFAULT_DIR: Record<AreaSortType, AreaSortDir> = {
   name: "asc",
 };
 
+/** 地図マーカー選択時などに、サイドバー一覧でそのエリア行へフォーカスして見える位置までスクロールする */
+function revealAreaInSidebarList(area: string) {
+  const list = document.getElementById("locationList");
+  if (!list) return;
+
+  const item = Array.from(
+    list.querySelectorAll<HTMLElement>("li[data-area]")
+  ).find((el) => el.getAttribute("data-area") === area);
+  if (!item) return;
+
+  item.focus({ preventScroll: true });
+  item.scrollIntoView({
+    block: "nearest",
+    inline: "nearest",
+    behavior: "smooth",
+  });
+}
+
 function areaSortDirLabel(type: AreaSortType, dir: AreaSortDir): string {
   if (type === "prefecture") return dir === "asc" ? "北海道から" : "沖縄から";
   if (type === "updated") return dir === "desc" ? "新しい順" : "古い順";
@@ -1550,6 +1568,8 @@ function SideListBarBase({
 
       // 埋め込みモードでは自動で詳細バーを開かない
       openDetailBar();
+
+      requestAnimationFrame(() => revealAreaInSidebarList(area));
     };
 
     window.addEventListener(
@@ -2302,6 +2322,7 @@ function SideListBarBase({
         key={area}
         data-indices={indices.join(",")}
         data-area={area}
+        tabIndex={0}
         className={isActive ? "active" : undefined}
         onClick={(e) => {
           if (editingAreaKey === area) return;
@@ -2765,6 +2786,7 @@ function SideListBarBase({
                           key={area}
                           data-indices={indices.join(",")}
                           data-area={area}
+                          tabIndex={0}
                           className={isActive ? "active location-item-grouped" : "location-item-grouped"}
                           onClick={(e) => {
                             if (editingAreaKey === area) return;
@@ -2819,6 +2841,7 @@ function SideListBarBase({
                           key={area}
                           data-indices={indices.join(",")}
                           data-area={area}
+                          tabIndex={0}
                           className={isActive ? "active location-item-grouped" : "location-item-grouped"}
                           onClick={(e) => {
                             if (editingAreaKey === area) return;
@@ -2873,6 +2896,7 @@ function SideListBarBase({
                           key={area}
                           data-indices={indices.join(",")}
                           data-area={area}
+                          tabIndex={0}
                           className={isActive ? "active location-item-grouped" : "location-item-grouped"}
                           onClick={(e) => {
                             if (editingAreaKey === area) return;
