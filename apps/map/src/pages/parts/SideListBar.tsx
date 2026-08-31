@@ -67,7 +67,6 @@ import {
   collectDirtyAreaTabs,
   type AreaAxisFilter,
   type AreaKindFlags,
-  type SalesStatusFilter,
 } from "./detailBar/helpers";
 import { normalizeScheduleFlightArea } from "@/features/flightFigures";
 import type {
