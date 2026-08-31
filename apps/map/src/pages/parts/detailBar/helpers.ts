@@ -344,15 +344,44 @@ export function isEmptyConsideringCandidate(candidate: Candidate): boolean {
   return !(candidate.title ?? "").trim() && !hasConsideringGeometry(candidate);
 }
 
-export const CONSIDERING_STATUS_PRESETS = ["OK", "交渉中", "NG"] as const;
+export const CONSIDERING_STATUS_PRESETS = [
+  "未交渉",
+  "交渉中",
+  "成約",
+  "NG",
+] as const;
 export const CONSIDERING_STATUS_UNSET_LABEL = "未選択";
+
+export type SalesStatusFilter = (typeof CONSIDERING_STATUS_PRESETS)[number];
 
 export function isPresetConsideringStatus(name: string): boolean {
   return (CONSIDERING_STATUS_PRESETS as readonly string[]).includes(name);
 }
 
 export function needsConsideringStatusDetail(status: string): boolean {
-  return isPresetConsideringStatus(status);
+  const canonical = canonicalConsideringStatus(status);
+  return (
+    canonical === "交渉中" || canonical === "成約" || canonical === "NG"
+  );
+}
+
+/** 旧表記を成約に揃える。未選択は空文字 */
+export function canonicalConsideringStatus(status: unknown): string {
+  const raw = typeof status === "string" ? status.trim() : "";
+  if (!raw || raw === "未選択") return "";
+  if (raw === "制約" || raw === "OK") return "成約";
+  return raw;
+}
+
+/** 未選択以外だけフィルター対象。旧「制約」「OK」は成約 */
+export function salesStatusForFilter(
+  status: unknown
+): SalesStatusFilter | null {
+  const canonical = canonicalConsideringStatus(status);
+  if (isPresetConsideringStatus(canonical)) {
+    return canonical as SalesStatusFilter;
+  }
+  return null;
 }
 
 export const CONSIDERING_CHANNEL_PRESETS = [
@@ -412,17 +441,26 @@ export type AreaKindFlags = {
   own: boolean;
   considering: boolean;
   other: boolean;
+  consideringStatus: string;
 };
 
 export const AREA_KIND_LABEL: Record<AreaKind, string> = {
   own: "RC",
-  considering: "候補",
+  considering: "営業",
   other: "他社",
 };
 
+export const AREA_KIND_DOT_ORDER: readonly AreaKind[] = [
+  "own",
+  "considering",
+  "other",
+];
+
 export type AreaAxis = "own" | "other";
 export type AreaAxisChoice = "any" | "yes" | "no";
-export type AreaAxisFilter = Record<AreaAxis, AreaAxisChoice>;
+export type AreaAxisFilter = Record<AreaAxis, AreaAxisChoice> & {
+  sales: SalesStatusFilter[];
+};
 
 export const AREA_AXIS_ORDER: readonly AreaAxis[] = ["own", "other"];
 
@@ -430,6 +468,9 @@ export const AREA_AXIS_LABEL: Record<AreaAxis, string> = {
   own: "RC",
   other: "他社",
 };
+
+export const SALES_FILTER_LABEL = "営業";
+export const SALES_STATUS_FILTER_ORDER = CONSIDERING_STATUS_PRESETS;
 
 export const AREA_AXIS_TOGGLE_ORDER = ["yes", "no"] as const;
 
@@ -444,17 +485,36 @@ export const AREA_AXIS_CHOICE_LABEL: Record<
 export const EMPTY_AREA_AXIS_FILTER: AreaAxisFilter = {
   own: "any",
   other: "any",
+  sales: [],
 };
 
 export function isAreaAxisFilterActive(filter: AreaAxisFilter): boolean {
-  return filter.own !== "any" || filter.other !== "any";
+  return (
+    filter.own !== "any" ||
+    filter.other !== "any" ||
+    filter.sales.length > 0
+  );
+}
+
+export function salesFilterSummary(
+  selected: readonly SalesStatusFilter[]
+): string {
+  if (selected.length === 0) return "問わない";
+  return SALES_STATUS_FILTER_ORDER.filter((status) =>
+    selected.includes(status)
+  ).join("、");
 }
 
 export function areaKindFlagList(
   flags: AreaKindFlags | undefined
 ): AreaKind[] {
   if (!flags) return [];
-  return AREA_AXIS_ORDER.filter((kind) => flags[kind]);
+  return AREA_KIND_DOT_ORDER.filter((kind) => flags[kind]);
+}
+
+export function isAreaClassified(flags: AreaKindFlags | undefined): boolean {
+  if (!flags) return true;
+  return flags.own || flags.other || flags.considering;
 }
 
 function readHistoryPair(entry: unknown): {
@@ -495,7 +555,14 @@ export function getAreaKindFlags(raw: unknown): AreaKindFlags {
       !isEmptyOtherRecord(record as OtherRecord)
   );
 
-  return { own, considering: false, other };
+  const consideringRaw =
+    row.considering && typeof row.considering === "object"
+      ? (row.considering as Record<string, unknown>)
+      : {};
+  const consideringStatus = asText(consideringRaw.status);
+  const considering = salesStatusForFilter(consideringStatus) != null;
+
+  return { own, considering, other, consideringStatus };
 }
 
 /** 指定なしは問わない。あり/なしはその軸の有無と一致するエリアだけ残す */
@@ -509,5 +576,9 @@ export function areaMatchesKindFilter(
   if (filter.own === "no" && flags.own) return false;
   if (filter.other === "yes" && !flags.other) return false;
   if (filter.other === "no" && flags.other) return false;
+  if (filter.sales.length > 0) {
+    const matched = salesStatusForFilter(flags.consideringStatus);
+    if (!matched || !filter.sales.includes(matched)) return false;
+  }
   return true;
 }

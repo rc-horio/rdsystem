@@ -1535,7 +1535,9 @@ export default function MapView({ onLoaded }: Props) {
     new WeakMap()
   );
   const selectedMarkerRef = useRef<google.maps.Marker | null>(null);
-  const kindFlagsRef = useRef<Record<string, { own: boolean; other: boolean }>>(
+  const kindFlagsRef = useRef<
+    Record<string, { own: boolean; other: boolean; considering?: boolean }>
+  >(
     {}
   );
   const syncMarkerIconsRef = useRef<() => void>(() => {});
@@ -2852,7 +2854,10 @@ export default function MapView({ onLoaded }: Props) {
     const onAreaKinds = (e: Event) => {
       const d = (
         e as CustomEvent<{
-          kinds?: Record<string, { own: boolean; other: boolean }>;
+          kinds?: Record<
+            string,
+            { own: boolean; other: boolean; considering?: boolean }
+          >;
         }>
       ).detail;
       kindFlagsRef.current = d?.kinds ?? {};

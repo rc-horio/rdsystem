@@ -6,6 +6,7 @@ import {
   CONSIDERING_CHANNEL_PRESETS,
   CONSIDERING_STATUS_PRESETS,
   CONSIDERING_STATUS_UNSET_LABEL,
+  canonicalConsideringStatus,
   isPresetConsideringChannel,
   isPresetConsideringStatus,
   needsConsideringStatusDetail,
@@ -44,9 +45,14 @@ export function ConsideringPanel({
   const channelSelectValue = isPresetConsideringChannel(considering.channel)
     ? considering.channel
     : CONSIDERING_CHANNEL_FREE_LABEL;
-  const statusSelectValue = isPresetConsideringStatus(considering.status)
-    ? considering.status
-    : "";
+  const statusSelectValue = canonicalConsideringStatus(considering.status);
+  const statusOptions = [
+    { value: "", label: CONSIDERING_STATUS_UNSET_LABEL },
+    ...CONSIDERING_STATUS_PRESETS,
+    ...(!isPresetConsideringStatus(statusSelectValue) && statusSelectValue
+      ? [statusSelectValue]
+      : []),
+  ];
 
   return (
     <section className="considering-panel" role="tabpanel" aria-label="営業">
@@ -60,10 +66,7 @@ export function ConsideringPanel({
           <SelectBox
             label="ステータス"
             value={statusSelectValue}
-            options={[
-              { value: "", label: CONSIDERING_STATUS_UNSET_LABEL },
-              ...CONSIDERING_STATUS_PRESETS,
-            ]}
+            options={statusOptions}
             onChange={(e) => onConsideringPatch({ status: e.target.value })}
           />
           {needsConsideringStatusDetail(considering.status) && (

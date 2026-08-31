@@ -7,6 +7,7 @@ export type MarkerAnchor =
 export type MarkerKindFlags = {
     own: boolean;
     other: boolean;
+    considering?: boolean;
 };
 
 function markerAssetUrl(file: string) {
@@ -15,6 +16,7 @@ function markerAssetUrl(file: string) {
 
 export function markerIconUrlForFlags(flags?: MarkerKindFlags): string {
     if (flags?.own) return markerAssetUrl("0100_icon_marker_rc.png");
+    if (flags?.considering) return markerAssetUrl("0102_icon_marker_gray.png");
     if (flags?.other) return markerAssetUrl("0101_icon_marker_others.png");
     return markerAssetUrl("0102_icon_marker_gray.png");
 }

@@ -45,13 +45,18 @@ import {
   AREA_AXIS_ORDER,
   AREA_AXIS_TOGGLE_ORDER,
   AREA_KIND_LABEL,
+  SALES_FILTER_LABEL,
+  SALES_STATUS_FILTER_ORDER,
   EMPTY_AREA_AXIS_FILTER,
   areaKindFlagList,
   areaMatchesKindFilter,
+  canonicalConsideringStatus,
   getAreaKindFlags,
   hasConsideringContent,
   isAreaAxisFilterActive,
+  isAreaClassified,
   isEmptyOtherRecord,
+  salesFilterSummary,
   parseTabUpdates,
   applyTabUpdateStamps,
   seedMissingTabUpdates,
@@ -62,6 +67,7 @@ import {
   collectDirtyAreaTabs,
   type AreaAxisFilter,
   type AreaKindFlags,
+  type SalesStatusFilter,
 } from "./detailBar/helpers";
 import { normalizeScheduleFlightArea } from "@/features/flightFigures";
 import type {
@@ -193,6 +199,8 @@ function SideListBarBase({
   const [axisFilter, setAxisFilter] = useState<AreaAxisFilter>(
     EMPTY_AREA_AXIS_FILTER
   );
+  const [salesFilterOpen, setSalesFilterOpen] = useState(false);
+  const salesFilterRef = useRef<HTMLDivElement | null>(null);
   // 都道府県情報のキャッシュ（areaUuid -> prefecture）
   const [prefectureCache, setPrefectureCache] = useState<Record<string, string>>({});
   // 更新日情報のキャッシュ（areaUuid -> updated_at）
@@ -1075,7 +1083,7 @@ function SideListBarBase({
         : Array.isArray(raw?.candidate)
         ? raw.candidate
         : [];
-      const salesToSave: typeof data.meta.sales = Array.isArray(data.meta.sales)
+      const salesToSave: Candidate[] = Array.isArray(data.meta.sales)
         ? data.meta.sales
         : Array.isArray(raw?.sales)
         ? raw.sales
@@ -1088,7 +1096,7 @@ function SideListBarBase({
       }
       const consideringSource = data.meta.considering ?? EMPTY_CONSIDERING_INFO;
       const consideringToSave = {
-        status: consideringSource.status ?? "",
+        status: canonicalConsideringStatus(consideringSource.status),
         statusDetail: consideringSource.statusDetail ?? "",
         manager: consideringSource.manager ?? "",
         channel: consideringSource.channel ?? "",
@@ -1785,6 +1793,24 @@ function SideListBarBase({
       );
   }, []);
 
+  useEffect(() => {
+    if (!salesFilterOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!salesFilterRef.current?.contains(e.target as Node)) {
+        setSalesFilterOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSalesFilterOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [salesFilterOpen]);
+
   // 表示する areaGroups をフィルタ・ソートする
   const visibleAreaGroups = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -1912,15 +1938,21 @@ function SideListBarBase({
     return filtered;
   }, [areaGroups, searchQuery, areaLabelOverrides, points, prefectureCache, updatedAtCache, kindCache, droneCountCache, sortType, sortDir, axisFilter]);
 
-  // フィルタ結果を地図に通知（マーカーの表示/非表示を同期）
+  // フィルタ結果を地図に通知（未分類は地図に出さない）
   useEffect(() => {
-    const visibleAreaNames = visibleAreaGroups.map((g) => g.area);
+    const visibleAreaNames = visibleAreaGroups.flatMap(({ area, indices }) => {
+      const firstPoint = points[indices[0]];
+      const flags = firstPoint?.areaUuid
+        ? kindCache[firstPoint.areaUuid]
+        : undefined;
+      return isAreaClassified(flags) ? [area] : [];
+    });
     window.dispatchEvent(
       new CustomEvent(EV_SIDEBAR_VISIBLE_AREAS, {
         detail: { visibleAreaNames },
       })
     );
-  }, [visibleAreaGroups]);
+  }, [visibleAreaGroups, points, kindCache]);
 
   useEffect(() => {
     window.dispatchEvent(
@@ -2592,6 +2624,76 @@ function SideListBarBase({
                     </div>
                   </div>
                 ))}
+                <div
+                  className="search-axis-row search-axis-row--considering"
+                  role="group"
+                  aria-label={SALES_FILTER_LABEL}
+                >
+                  <span className="search-axis-label">
+                    <span
+                      className="area-kind-dot area-kind-dot--considering"
+                      aria-hidden="true"
+                    />
+                    {SALES_FILTER_LABEL}
+                  </span>
+                  <div
+                    className="search-axis-multiselect"
+                    ref={salesFilterRef}
+                  >
+                    <button
+                      type="button"
+                      id="salesStatusFilter"
+                      className="search-axis-multiselect-trigger"
+                      aria-haspopup="listbox"
+                      aria-expanded={salesFilterOpen}
+                      aria-label={`${SALES_FILTER_LABEL}のステータス`}
+                      onClick={() => setSalesFilterOpen((open) => !open)}
+                    >
+                      <span className="search-axis-multiselect-value">
+                        {salesFilterSummary(axisFilter.sales)}
+                      </span>
+                      <span className="search-sort-select-caret" aria-hidden="true">
+                        ▼
+                      </span>
+                    </button>
+                    {salesFilterOpen && (
+                      <div
+                        className="search-axis-multiselect-menu"
+                        role="listbox"
+                        aria-multiselectable="true"
+                        aria-label={`${SALES_FILTER_LABEL}のステータス`}
+                      >
+                        {SALES_STATUS_FILTER_ORDER.map((status) => {
+                          const checked = axisFilter.sales.includes(status);
+                          return (
+                            <label
+                              key={status}
+                              className="search-axis-multiselect-option"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => {
+                                  setAxisFilter((prev) => {
+                                    const next = prev.sales.includes(status)
+                                      ? prev.sales.filter((s) => s !== status)
+                                      : SALES_STATUS_FILTER_ORDER.filter(
+                                          (s) =>
+                                            s === status ||
+                                            prev.sales.includes(s)
+                                        );
+                                    return { ...prev, sales: next };
+                                  });
+                                }}
+                              />
+                              {status}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
             <div className="search-control-row search-control-row--clear">

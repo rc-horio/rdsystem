@@ -331,6 +331,79 @@ body,
   white-space: nowrap;
 }
 
+.search-axis-select-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.search-axis-multiselect {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.search-axis-multiselect-trigger {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 28px;
+  box-sizing: border-box;
+  padding: 4px 22px 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
+  background: transparent;
+  color: #fff;
+  font-size: 12px;
+  line-height: 20px;
+  text-align: left;
+}
+
+.search-axis-multiselect-trigger:hover {
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.search-axis-multiselect-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-axis-multiselect-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 20;
+  padding: 4px 0;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
+  background: rgba(12, 12, 12, 0.96);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.search-axis-multiselect-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #fff;
+  cursor: pointer;
+  user-select: none;
+}
+
+.search-axis-multiselect-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.search-axis-multiselect-option input {
+  margin: 0;
+  accent-color: #c8c8c8;
+}
+
 .search-axis-chip + .search-axis-chip {
   border-left: 1px solid rgba(255, 255, 255, 0.28);
 }
