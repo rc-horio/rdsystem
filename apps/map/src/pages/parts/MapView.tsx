@@ -77,6 +77,22 @@ import {
   type RestrictionOverlay,
 } from "./airportRestriction/overlays";
 
+/**
+ * Places SearchText は locationBias を円の中心として検証する。
+ * 世界地図の横繰り返しでは map.getCenter() の経度が [-180, 180] を超える。
+ */
+function placesLocationBiasFromMapCenter(
+  center: google.maps.LatLng | null | undefined
+): google.maps.LatLngLiteral | undefined {
+  if (!center) return undefined;
+  const lat = center.lat();
+  const lng = center.lng();
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return undefined;
+  if (lat < -90 || lat > 90) return undefined;
+  const wrappedLng = ((((lng + 180) % 360) + 360) % 360) - 180;
+  return { lat, lng: wrappedLng };
+}
+
 /** Data.Feature のポリゴン内に point が含まれるか */
 function isPointInDataFeature(
   point: google.maps.LatLng,
@@ -1907,13 +1923,13 @@ export default function MapView({ onLoaded }: Props) {
           "places"
         )) as google.maps.PlacesLibrary;
 
+        const locationBias = placesLocationBiasFromMapCenter(map.getCenter());
         const req = {
           textQuery: q,
           region: "JP",
           language: "ja",
           maxResultCount: 10,
-          // 任意：地図中心付近を優先（要件に合わせて調整）
-          locationBias: map.getCenter() ?? undefined,
+          ...(locationBias ? { locationBias } : {}),
           fields: ["displayName", "formattedAddress"],
         };
 
