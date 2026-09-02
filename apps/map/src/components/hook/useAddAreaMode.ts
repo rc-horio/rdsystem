@@ -1,6 +1,10 @@
 // src/pages/parts/hook/useAddAreaMode.ts
 import { useEffect, useRef, useState } from "react";
 import { SELECT_ZOOM_DESKTOP, SELECT_ZOOM_MOBILE } from "../../pages/parts/constants/events";
+import {
+    buildNearbyAreasConfirmHtml,
+    findNearbyRegisteredAreas,
+} from "../../pages/parts/nearbyRegisteredAreas";
 
 type Draft = {
     lat: number;
@@ -119,7 +123,10 @@ export function useAddAreaMode(
         let extraHtml = "";
         let heightLimitM: string | null = null;
         let djiNfzRestrictions: string | null = null;
-        if (getAddAreaConfirmExtraContent) {
+        let nearbyHtml = "";
+
+        const extraPromise = (async () => {
+            if (!getAddAreaConfirmExtraContent) return;
             try {
                 const extra = await getAddAreaConfirmExtraContent(
                     draft.lat,
@@ -135,32 +142,59 @@ export function useAddAreaMode(
             } catch {
                 extraHtml = "";
             }
-        }
+        })();
+
+        const nearbyPromise = (async () => {
+            const spherical = gmaps.geometry?.spherical;
+            if (!spherical?.computeDistanceBetween) return;
+            try {
+                const from = new gmaps.LatLng(draft.lat, draft.lng);
+                const nearby = await findNearbyRegisteredAreas({
+                    lat: draft.lat,
+                    lng: draft.lng,
+                    distanceM: (toLat, toLng) =>
+                        spherical.computeDistanceBetween(
+                            from,
+                            new gmaps.LatLng(toLat, toLng)
+                        ),
+                });
+                nearbyHtml = buildNearbyAreasConfirmHtml(nearby);
+            } catch (e) {
+                console.warn("[add-area] nearby areas lookup failed:", e);
+            }
+        })();
+
+        await Promise.all([extraPromise, nearbyPromise]);
 
         const container = document.createElement("div");
         container.style.background = "white";
-        container.style.padding = "8px 10px";
+        container.style.padding = "10px 12px";
         container.style.borderRadius = "6px";
         container.style.fontSize = "13px";
         container.style.minWidth = "180px";
+        container.style.maxWidth = "320px";
         container.style.color = "#222";
 
+        const sectionLine =
+            "border-top:1px solid #eee;padding-top:14px;margin-top:14px;";
+
         container.innerHTML = `
-      <div style="font-weight: 600; margin-bottom: 4px;">
+      <div style="font-weight: 600; font-size: 14px; color: #111;">
         このエリアを登録しますか？
       </div>
-      <div style="font-family: monospace; font-size: 12px; color: #444; margin-bottom: 8px;">
+      <div style="${sectionLine} font-size: 13px; color: #222; line-height: 1.5;">
         ${(draft.address ?? "")
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;")
             .replace(/"/g, "&quot;")}
       </div>
-      <div style="text-align: right; margin-bottom: 12px;">
-        <button type="button" id="add-area-yes-btn" style="padding: 2px 8px; margin-right: 4px;">はい</button>
-        <button type="button" id="add-area-no-btn" style="padding: 2px 8px;">いいえ</button>
+      ${extraHtml ? `<div style="${sectionLine}">${extraHtml}</div>` : ""}
+      ${nearbyHtml ? `<div style="${sectionLine}">${nearbyHtml}</div>` : ""}
+      <div style="${sectionLine} text-align: right;">
+        <button type="button" id="add-area-no-btn" style="padding: 4px 10px; margin-right: 6px; cursor: pointer;">いいえ</button>
+        <button type="button" id="add-area-yes-btn" style="padding: 4px 10px; cursor: pointer;">はい</button>
       </div>
-      ${extraHtml ? `<div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">${extraHtml}</div>` : ""}
     `;
 
         const yesBtn = container.querySelector("#add-area-yes-btn") as HTMLButtonElement;
