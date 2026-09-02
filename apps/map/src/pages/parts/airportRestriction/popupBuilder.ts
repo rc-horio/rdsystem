@@ -49,11 +49,7 @@ function buildAirportSection(result: AirportRestrictionResult): string {
 
   const lines: string[] = [];
   for (const item of result.items) {
-    const airport = getAirportById(item.airportId);
-    const airportName = airport?.name ?? item.airportId;
-    const surfaceLabel = SURFACE_TYPE_LABELS[item.surfaceType];
-    const heightStr = formatHeightM(item.heightM);
-    lines.push(`${escapeHtml(airportName)}　${escapeHtml(surfaceLabel)}　${heightStr}`);
+    lines.push(escapeHtml(airportRestrictionItemLabel(item)));
   }
 
   const links: string[] = [];
@@ -97,8 +93,43 @@ export interface DjiNfzEntry {
 export interface PopupOptions {
   /** 空港高さ制限の照会結果 */
   airportResult: AirportRestrictionResult;
-  /** DJI NFZ が ON かつ該当する場合のエントリ。空の場合は非表示 */
+  /** DJI NFZ 該当時のエントリ。空の場合は非表示 */
   djiNfzEntries?: DjiNfzEntry[];
+}
+
+function airportRestrictionItemLabel(item: AirportRestrictionResult["items"][number]): string {
+  const airport = getAirportById(item.airportId);
+  const airportName = airport?.name ?? item.airportId;
+  const surfaceLabel = SURFACE_TYPE_LABELS[item.surfaceType];
+  return `${airportName}　${surfaceLabel}　${formatHeightM(item.heightM)}`;
+}
+
+/**
+ * 新規エリアの備考欄用。制限表面内または飛行制限区域に該当するときだけ文言を返す。
+ */
+export function buildAreaRemarksFromRestrictions(options: PopupOptions): string | undefined {
+  const parts: string[] = [];
+  const { airportResult, djiNfzEntries = [] } = options;
+
+  if (!airportResult.error && airportResult.items.length > 0) {
+    parts.push(
+      [
+        "■空港高さ制限:",
+        ...airportResult.items.map(airportRestrictionItemLabel),
+      ].join("\n")
+    );
+  }
+
+  if (djiNfzEntries.length > 0) {
+    parts.push(
+      [
+        "■飛行制限区域:",
+        ...djiNfzEntries.map((e) => `${e.name}（${e.label}）`),
+      ].join("\n")
+    );
+  }
+
+  return parts.length > 0 ? parts.join("\n\n") : undefined;
 }
 
 /**
@@ -128,6 +159,9 @@ export function buildAirportHeightRestrictionPopupHtml(options: PopupOptions): s
           (e.city ? `<div>${escapeHtml(e.city)}</div>` : "") +
           `</div></div>`
       ),
+      "</div>",
+      '<div class="airport-restriction-popup__links">',
+      '<a href="https://fly-safe.dji.com/nfz/nfz-query" target="_blank" rel="noopener noreferrer" class="airport-restriction-popup__link">DJI GEO区域情報</a>',
       "</div>",
       "</div>",
     ].join("");

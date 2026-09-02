@@ -13,8 +13,8 @@ type Draft = {
     address: string | null;
     /** 高さ制限（m）。空港高さ制限照会結果から自動設定 */
     heightLimitM?: string | null;
-    /** 詳細タブ「制限」欄用。DJI NFZ 該当時の文言 */
-    djiNfzRestrictions?: string | null;
+    /** 詳細タブ「備考」欄。空港高さ制限・飛行制限区域の該当時 */
+    remarks?: string | null;
 } | null;
 
 const getGMaps = () =>
@@ -23,8 +23,8 @@ const getGMaps = () =>
 export type AddAreaConfirmExtraContent = {
     html: string;
     heightLimitM?: string;
-    /** 詳細タブ「制限」欄用。DJI NFZ 該当時の文言 */
-    djiNfzRestrictions?: string;
+    /** 詳細タブ「備考」欄。空港高さ制限・飛行制限区域の該当時 */
+    remarks?: string;
 };
 
 export type GetAddAreaConfirmExtraContent = (
@@ -122,7 +122,7 @@ export function useAddAreaMode(
 
         let extraHtml = "";
         let heightLimitM: string | null = null;
-        let djiNfzRestrictions: string | null = null;
+        let remarks: string | null = null;
         let nearbyHtml = "";
 
         const extraPromise = (async () => {
@@ -137,7 +137,7 @@ export function useAddAreaMode(
                 } else {
                     extraHtml = extra.html;
                     heightLimitM = extra.heightLimitM ?? null;
-                    djiNfzRestrictions = extra.djiNfzRestrictions ?? null;
+                    remarks = extra.remarks ?? null;
                 }
             } catch {
                 extraHtml = "";
@@ -201,7 +201,7 @@ export function useAddAreaMode(
         const noBtn = container.querySelector("#add-area-no-btn") as HTMLButtonElement;
 
         yesBtn?.addEventListener("click", () => {
-            setNewAreaDraft({ ...draft, heightLimitM, djiNfzRestrictions });
+            setNewAreaDraft({ ...draft, heightLimitM, remarks });
             setAreaNameInput("");
             setAddingAreaMode(false);
             addingAreaModeRef.current = false;

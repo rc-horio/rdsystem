@@ -69,6 +69,7 @@ import { systemError, E004_NEW_AREA_S3 } from "@/lib/errorMessages";
 import {
   calculateAirportRestriction,
   buildAirportHeightRestrictionPopupHtml,
+  buildAreaRemarksFromRestrictions,
 } from "./airportRestriction";
 import {
   createAllAirportRestrictionOverlays,
@@ -270,49 +271,35 @@ function escapePopupHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function collectDjiNfzEntriesAtPoint(
-  map: google.maps.Map,
-  latLng: google.maps.LatLng
-): Array<{
+type DjiNfzEntryHit = {
   name: string;
   city?: string;
   level: number;
   label: string;
   color: string;
-}> {
-  const featuresAtPoint: google.maps.Data.Feature[] = [];
-  map.data.forEach((f) => {
-    if (isPointInDataFeature(latLng, f)) featuresAtPoint.push(f);
-  });
+};
 
+type DjiNfzGeoJson = { type: "FeatureCollection"; features: GeoJsonFeature[] };
+
+function djiNfzEntriesFromHits(
+  hits: Array<{ name: string; city?: string; level: number }>
+): DjiNfzEntryHit[] {
   const byNameLevel = new Map<
     string,
     { name: string; city?: string; level: number; label: string }
   >();
-  for (const f of featuresAtPoint) {
-    const name = (f.getProperty("name") as string) || "—";
-    const city = f.getProperty("city") as string | undefined;
-    const levelVal = f.getProperty("level");
-    const level = levelVal != null ? Number(levelVal) : NaN;
-    if (Number.isNaN(level)) continue;
-    const key = `${String(name)}|${level}`;
+  for (const hit of hits) {
+    const key = `${String(hit.name)}|${hit.level}`;
     if (!byNameLevel.has(key)) {
       byNameLevel.set(key, {
-        name,
-        city,
-        level,
-        label: DJI_LEVEL_LABELS[level] ?? `レベル${level}`,
+        name: hit.name,
+        city: hit.city,
+        level: hit.level,
+        label: DJI_LEVEL_LABELS[hit.level] ?? `レベル${hit.level}`,
       });
     }
   }
-
-  const entries: Array<{
-    name: string;
-    city?: string;
-    level: number;
-    label: string;
-    color: string;
-  }> = [];
+  const entries: DjiNfzEntryHit[] = [];
   for (const { name, city, level, label } of byNameLevel.values()) {
     const c =
       level in DJI_LEVEL_COLORS ? DJI_LEVEL_COLORS[level] : DJI_DEFAULT_COLOR;
@@ -324,6 +311,141 @@ function collectDjiNfzEntriesAtPoint(
       DJI_LEVEL_DISPLAY_ORDER.indexOf(b.level)
   );
   return entries;
+}
+
+function collectDjiNfzEntriesAtPoint(
+  map: google.maps.Map,
+  latLng: google.maps.LatLng
+): DjiNfzEntryHit[] {
+  const hits: Array<{ name: string; city?: string; level: number }> = [];
+  map.data.forEach((f) => {
+    if (!isPointInDataFeature(latLng, f)) return;
+    const name = (f.getProperty("name") as string) || "—";
+    const city = f.getProperty("city") as string | undefined;
+    const levelVal = f.getProperty("level");
+    const level = levelVal != null ? Number(levelVal) : NaN;
+    if (Number.isNaN(level)) return;
+    hits.push({ name, city, level });
+  });
+  return djiNfzEntriesFromHits(hits);
+}
+
+function isPointInGeoJsonPolygon(
+  point: google.maps.LatLng,
+  coordinates: unknown
+): boolean {
+  if (!Array.isArray(coordinates) || coordinates.length === 0) return false;
+  try {
+    const paths = coordinates
+      .map((ring: unknown) => {
+        if (!Array.isArray(ring)) return [];
+        return ring
+          .filter(
+            (pt): pt is [number, number] =>
+              Array.isArray(pt) &&
+              typeof pt[0] === "number" &&
+              typeof pt[1] === "number"
+          )
+          .map(([lng, lat]) => ({ lat, lng }));
+      })
+      .filter((path) => path.length >= 3);
+    if (paths.length === 0) return false;
+    const poly = new google.maps.Polygon({ paths });
+    return google.maps.geometry.poly.containsLocation(point, poly);
+  } catch {
+    return false;
+  }
+}
+
+function isPointInGeoJsonFeature(
+  point: google.maps.LatLng,
+  feature: GeoJsonFeature
+): boolean {
+  const geom = feature.geometry;
+  if (!geom || geom.coordinates == null) return false;
+  if (geom.type === "Polygon") {
+    return isPointInGeoJsonPolygon(point, geom.coordinates);
+  }
+  if (geom.type === "MultiPolygon" && Array.isArray(geom.coordinates)) {
+    return geom.coordinates.some((poly) => isPointInGeoJsonPolygon(point, poly));
+  }
+  return false;
+}
+
+function collectDjiNfzEntriesFromGeoJson(
+  geoJson: DjiNfzGeoJson,
+  lat: number,
+  lng: number
+): DjiNfzEntryHit[] {
+  const point = new google.maps.LatLng(lat, lng);
+  const hits: Array<{ name: string; city?: string; level: number }> = [];
+  for (const f of geoJson.features) {
+    if (!isPointInGeoJsonFeature(point, f)) continue;
+    const props = f.properties ?? {};
+    const name = (typeof props.name === "string" && props.name) || "—";
+    const city = typeof props.city === "string" ? props.city : undefined;
+    const levelVal = props.level;
+    const level = levelVal != null ? Number(levelVal) : NaN;
+    if (Number.isNaN(level)) continue;
+    hits.push({ name, city, level });
+  }
+  return djiNfzEntriesFromHits(hits);
+}
+
+let djiNfzKmlGeoJsonPromise: Promise<DjiNfzGeoJson> | null = null;
+
+async function loadDjiNfzKmlGeoJson(): Promise<DjiNfzGeoJson> {
+  if (!djiNfzKmlGeoJsonPromise) {
+    djiNfzKmlGeoJsonPromise = (async () => {
+      const res = await fetch(DJI_NFZ_KML_URL);
+      if (!res.ok) throw new Error(`KML fetch failed: ${res.status}`);
+      const xmlText = await res.text();
+      const doc = new DOMParser().parseFromString(xmlText, "text/xml");
+      const rawGeoJson = kml(doc);
+      if (!rawGeoJson) throw new Error("KML parse failed");
+      return pointsToCirclePolygons(
+        rawGeoJson as { type: "FeatureCollection"; features?: GeoJsonFeature[] }
+      );
+    })().catch((err) => {
+      djiNfzKmlGeoJsonPromise = null;
+      throw err;
+    });
+  }
+  return djiNfzKmlGeoJsonPromise;
+}
+
+async function fetchDjiNfzApiGeoJson(
+  lat: number,
+  lng: number
+): Promise<DjiNfzGeoJson> {
+  const searchRadius = 50000;
+  const url = `${DJI_NFZ_PROXY_URL}?lng=${lng}&lat=${lat}&search_radius=${searchRadius}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`DJI API fetch failed: ${res.status}`);
+  const body = await res.json();
+  if (body.status === "422" || body.error) {
+    throw new Error(body.extra?.msg || body.error || "API error");
+  }
+  return djiApiResponseToGeoJson(body);
+}
+
+/** 地図レイヤーの表示状態に依存せず、地点の DJI NFZ 該当を照会する */
+async function lookupDjiNfzEntriesAt(
+  lat: number,
+  lng: number
+): Promise<DjiNfzEntryHit[]> {
+  let geoJson: DjiNfzGeoJson;
+  if (DJI_NFZ_PROXY_URL) {
+    try {
+      geoJson = await fetchDjiNfzApiGeoJson(lat, lng);
+    } catch (apiErr) {
+      console.warn("[map] DJI API failed, fallback to KML:", apiErr);
+      geoJson = await loadDjiNfzKmlGeoJson();
+    }
+  } else {
+    geoJson = await loadDjiNfzKmlGeoJson();
+  }
+  return collectDjiNfzEntriesFromGeoJson(geoJson, lat, lng);
 }
 
 function buildDjiNfzPopupHtml(
@@ -1339,51 +1461,18 @@ export default function MapView({ onLoaded }: Props) {
       const gmaps = getGMaps();
       if (!map || !gmaps) return { html: "" };
 
-      const djiNfzEntries: Array<{
-        name: string;
-        city?: string;
-        level: number;
-        label: string;
-        color: string;
-      }> = [];
-      if (overlayVisibility.djiNfz && map.data) {
-        const point = new gmaps.LatLng(lat, lng);
-        const featuresAtPoint: google.maps.Data.Feature[] = [];
-        map.data.forEach((f) => {
-          if (isPointInDataFeature(point, f)) featuresAtPoint.push(f);
-        });
-        const byNameLevel = new Map<
-          string,
-          { name: string; city?: string; level: number; label: string }
-        >();
-        for (const f of featuresAtPoint) {
-          const name = (f.getProperty("name") as string) || "—";
-          const city = f.getProperty("city") as string | undefined;
-          const levelVal = f.getProperty("level");
-          const level = levelVal != null ? Number(levelVal) : NaN;
-          if (Number.isNaN(level)) continue;
-          const key = `${String(name)}|${level}`;
-          if (!byNameLevel.has(key)) {
-            byNameLevel.set(key, {
-              name,
-              city,
-              level,
-              label: DJI_LEVEL_LABELS[level] ?? `レベル${level}`,
-            });
-          }
+      let djiNfzEntries: DjiNfzEntryHit[] = [];
+      try {
+        if (overlayVisibilityRef.current.djiNfz && map.data.getMap() === map) {
+          djiNfzEntries = collectDjiNfzEntriesAtPoint(
+            map,
+            new gmaps.LatLng(lat, lng)
+          );
+        } else {
+          djiNfzEntries = await lookupDjiNfzEntriesAt(lat, lng);
         }
-        for (const { name, city, level, label } of byNameLevel.values()) {
-          const c =
-            level in DJI_LEVEL_COLORS
-              ? DJI_LEVEL_COLORS[level]
-              : DJI_DEFAULT_COLOR;
-          djiNfzEntries.push({ name, city, level, label, color: c.fill });
-        }
-        djiNfzEntries.sort(
-          (a, b) =>
-            DJI_LEVEL_DISPLAY_ORDER.indexOf(a.level) -
-            DJI_LEVEL_DISPLAY_ORDER.indexOf(b.level)
-        );
+      } catch (e) {
+        console.warn("[add-area] DJI NFZ lookup failed:", e);
       }
 
       let airportResult;
@@ -1404,14 +1493,14 @@ export default function MapView({ onLoaded }: Props) {
           ? String(Math.floor(airportResult.items[0].heightM))
           : undefined;
 
-      const djiNfzRestrictions =
-        djiNfzEntries.length > 0
-          ? `DJI飛行禁止区域（${[...new Set(djiNfzEntries.map((e) => e.label))].join("、")}）に該当`
-          : undefined;
+      const remarks = buildAreaRemarksFromRestrictions({
+        airportResult,
+        djiNfzEntries,
+      });
 
-      return { html, heightLimitM, djiNfzRestrictions };
+      return { html, heightLimitM, remarks };
     },
-    [overlayVisibility.djiNfz]
+    []
   );
 
   const {
@@ -3045,17 +3134,7 @@ export default function MapView({ onLoaded }: Props) {
         }
       };
 
-      const loadKml = async () => {
-        const res = await fetch(DJI_NFZ_KML_URL);
-        if (!res.ok) throw new Error(`KML fetch failed: ${res.status}`);
-        const xmlText = await res.text();
-        const doc = new DOMParser().parseFromString(xmlText, "text/xml");
-        const rawGeoJson = kml(doc);
-        if (!rawGeoJson) throw new Error("KML parse failed");
-        return pointsToCirclePolygons(
-          rawGeoJson as { type: "FeatureCollection"; features?: GeoJsonFeature[] }
-        );
-      };
+      const loadKml = () => loadDjiNfzKmlGeoJson();
 
       setDjiNfzError(null);
       setDjiNfzLoading(true);
@@ -3592,7 +3671,7 @@ export default function MapView({ onLoaded }: Props) {
             prefecture: newAreaDraft.prefecture,
             address: newAreaDraft.address,
             heightLimitM: newAreaDraft.heightLimitM ?? undefined,
-            restrictionsMemo: newAreaDraft.djiNfzRestrictions ?? undefined,
+            remarks: newAreaDraft.remarks ?? undefined,
           });
 
           if (!result.ok) {

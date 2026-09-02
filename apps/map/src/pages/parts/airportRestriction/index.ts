@@ -27,6 +27,7 @@ export {
 } from "./calculator";
 export {
   buildAirportHeightRestrictionPopupHtml,
+  buildAreaRemarksFromRestrictions,
   type PopupOptions,
   type DjiNfzEntry,
 } from "./popupBuilder";
