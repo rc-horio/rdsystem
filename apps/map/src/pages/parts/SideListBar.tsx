@@ -2722,8 +2722,8 @@ function SideListBarBase({
                 className="search-clear-button"
                 onClick={() => {
                   setSearchQuery("");
-                  setSortType("prefecture");
-                  setSortDir(AREA_SORT_DEFAULT_DIR.prefecture);
+                  setSortType("updated");
+                  setSortDir(AREA_SORT_DEFAULT_DIR.updated);
                   setAxisFilter(EMPTY_AREA_AXIS_FILTER);
                 }}
                 aria-label="検索・並べ替え・フィルターをクリア"
