@@ -317,7 +317,7 @@ export class MapGeometry {
                 if (geom) {
                     const distance = this.calculateFlightToAudienceDistance();
                     geometryWithDistance = {
-                        ...geom,
+                        ...this.quantizeGeometryForSave(geom),
                         ...(distance !== undefined ? { distance_from_viewers_m: distance } : {}),
                     };
                 }
@@ -359,6 +359,41 @@ export class MapGeometry {
      *  ========================= */
     getCurrentGeometry(): Geometry | null {
         return this.currentGeomRef;
+    }
+
+    /**
+     * SAVE 用。右上パネルの表示と同じ丸めを保存値へ載せる。
+     * 飛行エリア直径は整数、保安距離は旧式・新式が整数・任意が小数第1位。
+     */
+    private quantizeGeometryForSave(geom: Geometry): Geometry {
+        const next: Geometry = { ...geom };
+
+        const fa = geom.flightArea;
+        if (fa?.type === "ellipse") {
+            const rx = Number(fa.radiusX_m);
+            const ry = Number(fa.radiusY_m);
+            next.flightArea = {
+                ...fa,
+                ...(Number.isFinite(rx)
+                    ? { radiusX_m: Math.round(rx * 2) / 2 }
+                    : {}),
+                ...(Number.isFinite(ry)
+                    ? { radiusY_m: Math.round(ry * 2) / 2 }
+                    : {}),
+            };
+        }
+
+        const sa = geom.safetyArea;
+        if (sa && Number.isFinite(Number(sa.buffer_m))) {
+            const raw = Math.max(0, Number(sa.buffer_m));
+            next.safetyArea = {
+                ...sa,
+                buffer_m:
+                    sa.mode === "custom" ? this.roundDec1(raw) : this.roundInt(raw),
+            };
+        }
+
+        return next;
     }
 
     /** =========================
