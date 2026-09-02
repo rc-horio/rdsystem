@@ -662,12 +662,31 @@ function SideListBarBase({
     });
   };
 
+  const canMergeOwnGeometry = (
+    historyItems: HistoryItem[],
+    geomPayload: GeometryPayload | null
+  ): boolean => {
+    if (!geomPayload || geomPayload.deleted === true || !geomPayload.geometry) {
+      return false;
+    }
+    if (!geomPayload.projectUuid || !geomPayload.scheduleUuid) return false;
+    const figureId =
+      typeof geomPayload.figureId === "string" ? geomPayload.figureId.trim() : "";
+    if (!figureId) return false;
+    return historyItems.some(
+      (item) =>
+        item.projectUuid === geomPayload.projectUuid &&
+        item.scheduleUuid === geomPayload.scheduleUuid &&
+        (item.flight_figures ?? []).some((figure) => figure.id === figureId)
+    );
+  };
+
   // projects/<projectUuid>/index.json
   // 案件に紐づく飛行エリア図を保存
   const applyOwnFlightFiguresFromHistory = async (
     historyItems: HistoryItem[],
     geomPayload: GeometryPayload | null
-  ): Promise<void> => {
+  ): Promise<boolean> => {
     const items = historyItems.flatMap((item) => {
       if (!item.projectUuid || !item.scheduleUuid) return [];
       const mergeThis =
@@ -687,9 +706,10 @@ function SideListBarBase({
         },
       ];
     });
-    if (items.length === 0) return;
+    if (items.length === 0) return true;
     const ok = await upsertScheduleFlightFiguresBatch(items);
     if (!ok) console.warn("[save] own flight figures save failed");
+    return ok;
   };
 
   // areas/<areaUuid>/index.json
@@ -700,7 +720,7 @@ function SideListBarBase({
     candidateIndex: number | null;
     candidateTitle?: string;
     activeAreaName: string | null;
-  }): Promise<Candidate[] | undefined> => {
+  }): Promise<{ writeOk: boolean | null; candidates?: Candidate[] }> => {
     const {
       payload,
       areaUuidToUse,
@@ -715,18 +735,19 @@ function SideListBarBase({
       console.warn(
         "[save] candidate context missing (areaUuid/index). Skipped."
       );
-      return undefined;
+      return { writeOk: null };
     }
 
+    let writeOk = true;
     if (deleted === true) {
-      const okDel = await clearAreaCandidateGeometryAtIndex({
+      writeOk = await clearAreaCandidateGeometryAtIndex({
         areaUuid: areaUuidToUse,
         index: idx,
       });
-      if (!okDel) console.warn("[save] candidate geometry delete failed");
+      if (!writeOk) console.warn("[save] candidate geometry delete failed");
     } else if (geometry) {
       const g = geometry;
-      const okCand = await upsertAreaCandidateAtIndex({
+      writeOk = await upsertAreaCandidateAtIndex({
         areaUuid: areaUuidToUse,
         index: idx,
         candidate: {
@@ -740,23 +761,24 @@ function SideListBarBase({
         },
         preserveTitle: true,
       });
-      if (!okCand) console.warn("[save] candidate geometry save failed");
+      if (!writeOk) console.warn("[save] candidate geometry save failed");
     }
 
-    // 保存後、candidate の更新を UI へ反映
     try {
-      if (!areaUuidToUse) return undefined;
       const { meta: refreshedMeta } = await fetchAreaInfo(
         areaUuidToUse,
         activeAreaName || ""
       );
       setDetailBarMeta(refreshedMeta);
-      return Array.isArray(refreshedMeta.candidate)
-        ? refreshedMeta.candidate
-        : undefined;
+      return {
+        writeOk,
+        candidates: Array.isArray(refreshedMeta.candidate)
+          ? refreshedMeta.candidate
+          : undefined,
+      };
     } catch (e) {
       console.warn("[save] refresh candidate meta failed:", e);
-      return undefined;
+      return { writeOk };
     }
   };
 
@@ -766,7 +788,7 @@ function SideListBarBase({
     salesIndex: number | null;
     figureTitle?: string;
     activeAreaName: string | null;
-  }): Promise<Candidate[] | undefined> => {
+  }  ): Promise<{ writeOk: boolean | null; sales?: Candidate[] }> => {
     const { payload, areaUuidToUse, salesIndex, figureTitle, activeAreaName } =
       params;
     const { geometry, deleted } = payload;
@@ -774,19 +796,20 @@ function SideListBarBase({
     const idx = salesIndex;
     if (!areaUuidToUse || typeof idx !== "number" || idx < 0) {
       console.warn("[save] sales context missing (areaUuid/index). Skipped.");
-      return undefined;
+      return { writeOk: null };
     }
 
+    let writeOk = true;
     if (deleted === true) {
-      const okDel = await clearAreaSalesGeometryAtIndex({
+      writeOk = await clearAreaSalesGeometryAtIndex({
         areaUuid: areaUuidToUse,
         index: idx,
       });
-      if (!okDel) console.warn("[save] sales geometry delete failed");
+      if (!writeOk) console.warn("[save] sales geometry delete failed");
     } else if (geometry) {
       const g = geometry;
       const titled = (figureTitle ?? "").trim();
-      const okSales = await upsertAreaSalesAtIndex({
+      writeOk = await upsertAreaSalesAtIndex({
         areaUuid: areaUuidToUse,
         index: idx,
         figure: {
@@ -800,20 +823,22 @@ function SideListBarBase({
         },
         preserveTitle: true,
       });
-      if (!okSales) console.warn("[save] sales geometry save failed");
+      if (!writeOk) console.warn("[save] sales geometry save failed");
     }
 
     try {
-      if (!areaUuidToUse) return undefined;
       const { meta: refreshedMeta } = await fetchAreaInfo(
         areaUuidToUse,
         activeAreaName || ""
       );
       setDetailBarMeta(refreshedMeta);
-      return Array.isArray(refreshedMeta.sales) ? refreshedMeta.sales : undefined;
+      return {
+        writeOk,
+        sales: Array.isArray(refreshedMeta.sales) ? refreshedMeta.sales : undefined,
+      };
     } catch (e) {
       console.warn("[save] refresh sales meta failed:", e);
-      return undefined;
+      return { writeOk };
     }
   };
 
@@ -824,7 +849,7 @@ function SideListBarBase({
     figureIndex: number;
     figureTitle?: string;
     activeAreaName: string | null;
-  }): Promise<OtherRecord[] | null> => {
+  }  ): Promise<{ writeOk: boolean | null; records?: OtherRecord[] | null }> => {
     const {
       payload,
       areaUuidToUse,
@@ -845,9 +870,10 @@ function SideListBarBase({
       console.warn(
         "[save] other-figure context missing (areaUuid/record/figure). Skipped."
       );
-      return null;
+      return { writeOk: null };
     }
 
+    let writeOk = true;
     if (deleted === true) {
       if (import.meta.env.DEV) {
         console.debug(
@@ -856,7 +882,7 @@ function SideListBarBase({
       }
     } else if (geometry) {
       const g = geometry;
-      const okFig = await upsertAreaOtherFigureAtIndex({
+      writeOk = await upsertAreaOtherFigureAtIndex({
         areaUuid: areaUuidToUse,
         recordIndex,
         figureIndex,
@@ -871,22 +897,24 @@ function SideListBarBase({
         },
         preserveTitle: true,
       });
-      if (!okFig) console.warn("[save] other-figure geometry save failed");
+      if (!writeOk) console.warn("[save] other-figure geometry save failed");
     }
 
     try {
-      if (!areaUuidToUse) return null;
       const { meta: refreshedMeta } = await fetchAreaInfo(
         areaUuidToUse,
         activeAreaName || ""
       );
       setDetailBarMeta(refreshedMeta);
-      return Array.isArray(refreshedMeta.otherRecords)
-        ? refreshedMeta.otherRecords
-        : [];
+      return {
+        writeOk,
+        records: Array.isArray(refreshedMeta.otherRecords)
+          ? refreshedMeta.otherRecords
+          : [],
+      };
     } catch (e) {
       console.warn("[save] refresh other-figure meta failed:", e);
-      return null;
+      return { writeOk, records: null };
     }
   };
 
@@ -1132,10 +1160,12 @@ function SideListBarBase({
       }
 
       let geomPayload: GeometryPayload | null = null;
+      let geomFetchFailed = false;
       try {
         geomPayload = await requestGeometryPayload();
         console.log("[SideListBar] geomPayload on save:", geomPayload);
       } catch (e) {
+        geomFetchFailed = true;
         console.warn("[save] geometry payload fetch skipped:", e);
       }
 
@@ -1371,17 +1401,27 @@ function SideListBarBase({
         ? infoToSave.otherRecords
         : [];
 
-      await applyOwnFlightFiguresFromHistory(
-        uiHistory,
+      type FigureSaveResult = "n/a" | "ok" | "skipped" | "failed";
+      let figureSave: FigureSaveResult = "n/a";
+
+      const ownPayload =
         geomPayload?.projectUuid && geomPayload.scheduleUuid
           ? geomPayload
-          : null
+          : null;
+      const ownOk = await applyOwnFlightFiguresFromHistory(
+        uiHistory,
+        ownPayload
       );
 
-      if (geomPayload) {
-        if (geomPayload.projectUuid && geomPayload.scheduleUuid) {
-          // 自社図は上で保存済み
-        } else if (geomPayload.geometry || geomPayload.deleted) {
+      if (geomFetchFailed) {
+        figureSave = "skipped";
+      } else if (ownPayload) {
+        figureSave = canMergeOwnGeometry(uiHistory, ownPayload)
+          ? ownOk
+            ? "ok"
+            : "failed"
+          : "skipped";
+      } else if (geomPayload && (geomPayload.geometry || geomPayload.deleted)) {
           const origOtherRecordIdx = currentOtherRecordIndexRef.current;
           const otherFigureIdx = currentOtherFigureIndexRef.current;
           const savedOtherRecords = Array.isArray(infoToSave.otherRecords)
@@ -1412,7 +1452,7 @@ function SideListBarBase({
             otherFigureIdx >= 0 &&
             otherFigureIdx < otherFigureCount
           ) {
-            const refreshedOtherRecords = await applyOtherFigureGeometryFromPayload({
+            const otherResult = await applyOtherFigureGeometryFromPayload({
               payload: geomPayload,
               areaUuidToUse: currentAreaUuidRef.current ?? areaUuid,
               recordIndex: otherRecordIdx,
@@ -1420,9 +1460,15 @@ function SideListBarBase({
               figureTitle: currentCandidateTitleRef.current,
               activeAreaName: activeKey,
             });
-            if (refreshedOtherRecords) {
-              otherRecordsForMeta = refreshedOtherRecords;
+            if (otherResult.records) {
+              otherRecordsForMeta = otherResult.records;
             }
+            figureSave =
+              otherResult.writeOk == null
+                ? "skipped"
+                : otherResult.writeOk
+                  ? "ok"
+                  : "failed";
           } else {
             const savedSalesCount = Array.isArray(infoToSave.sales)
               ? infoToSave.sales.length
@@ -1433,7 +1479,7 @@ function SideListBarBase({
               salesIdx >= 0 &&
               salesIdx < savedSalesCount
             ) {
-              await applySalesGeometryFromPayload({
+              const salesResult = await applySalesGeometryFromPayload({
                 payload: geomPayload,
                 areaUuidToUse: currentAreaUuidRef.current ?? areaUuid,
                 salesIndex: salesIdx,
@@ -1443,6 +1489,12 @@ function SideListBarBase({
                     : "") || currentCandidateTitleRef.current,
                 activeAreaName: activeKey,
               });
+              figureSave =
+                salesResult.writeOk == null
+                  ? "skipped"
+                  : salesResult.writeOk
+                    ? "ok"
+                    : "failed";
             } else {
             // （3-3）候補エリアの geometry を保存 or 削除
             // 候補リストから削除済みの index に対してはスキップ（上書きで削除が復活するのを防ぐ）
@@ -1455,24 +1507,32 @@ function SideListBarBase({
               candIdx >= 0 &&
               candIdx < savedCandidateCount
             ) {
-              await applyCandidateGeometryFromPayload({
+              const candResult = await applyCandidateGeometryFromPayload({
                 payload: geomPayload,
                 areaUuidToUse: currentAreaUuidRef.current ?? areaUuid,
                 candidateIndex: candIdx,
                 candidateTitle: currentCandidateTitleRef.current,
                 activeAreaName: activeKey,
               });
-            } else if (import.meta.env.DEV && (geomPayload.geometry || geomPayload.deleted)) {
+              figureSave =
+                candResult.writeOk == null
+                  ? "skipped"
+                  : candResult.writeOk
+                    ? "ok"
+                    : "failed";
+            } else {
+              figureSave = "skipped";
+              if (import.meta.env.DEV && (geomPayload.geometry || geomPayload.deleted)) {
               console.debug(
                 "[save] skip applyCandidateGeometryFromPayload: candidateIndex",
                 candIdx,
                 "out of range for saved list length",
                 savedCandidateCount
               );
+              }
             }
             }
           }
-        }
       }
 
       // （4）画面に即時反映（従来どおり）
@@ -1504,7 +1564,7 @@ function SideListBarBase({
       // 案件履歴も再取得して詳細バーに反映
       try {
         const refreshedHistory = await buildAreaHistoryFromProjects(areaUuid);
-        setDetailBarHistory(refreshedHistory);
+        setDetailBarHistory(refreshedHistory, { preserveSelection: true });
         ownFiguresBaselineRef.current = areaOwnFiguresSnapshot(refreshedHistory);
       } catch (e) {
         ownFiguresBaselineRef.current = areaOwnFiguresSnapshot(uiHistory);
@@ -1514,13 +1574,15 @@ function SideListBarBase({
       // この保存で消化したので保留リンクはクリア
       pendingProjectLinkRef.current = null;
 
-      // Undo/Redo 履歴をクリア
-      if (okAreas) {
+      const figureFailed =
+        figureSave === "skipped" || figureSave === "failed";
+
+      // Undo/Redo 履歴は図の書き込みに成功したときだけクリアする
+      if (okAreas && !figureFailed) {
         window.dispatchEvent(new Event(EV_GEOMETRY_SAVE_COMPLETE));
       }
 
-      // （5）従来メッセージを維持（UIのデグレ回避）
-      window.alert(okAreas ? "保存しました" : SAVE_TIMEOUT);
+      window.alert(okAreas && !figureFailed ? "保存しました" : SAVE_TIMEOUT);
     } catch (e) {
       console.error("[save] 保存処理中にエラー:", e);
       window.alert(

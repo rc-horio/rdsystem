@@ -693,9 +693,13 @@ export default function SideDetailBar({ open }: { open?: boolean }) {
 
   useEffect(() => {
     const onSetHistory = (e: Event) => {
-      const ce = e as CustomEvent<{ history?: unknown }>;
+      const ce = e as CustomEvent<{
+        history?: unknown;
+        preserveSelection?: boolean;
+      }>;
       const sanitized = sanitizeHistory(ce.detail?.history);
       setHistory(sanitized);
+      if (ce.detail?.preserveSelection === true) return;
       setSelectedHistoryIdx(null);
       setSelectedCandidateIdx(null);
       setSelectedSalesIdx(null);
@@ -952,9 +956,14 @@ export function setDetailBarTitle(title: string) {
   );
 }
 
-export function setDetailBarHistory(history: any[]) {
+export function setDetailBarHistory(
+  history: any[],
+  opts?: { preserveSelection?: boolean }
+) {
   window.dispatchEvent(
-    new CustomEvent(EV_DETAILBAR_SET_HISTORY, { detail: { history } })
+    new CustomEvent(EV_DETAILBAR_SET_HISTORY, {
+      detail: { history, preserveSelection: opts?.preserveSelection === true },
+    })
   );
 }
 
