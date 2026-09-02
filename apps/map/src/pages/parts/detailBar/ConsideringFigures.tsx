@@ -3,6 +3,10 @@ import type { Candidate } from "@/features/types";
 import { hasDuplicateCandidateTitle } from "./helpers";
 import { AddFlightFigureModal } from "./AddFlightFigureModal";
 import {
+  FigureTitleAssist,
+  FIGURE_TITLE_PLACEHOLDER,
+} from "./FigureTitleAssist";
+import {
   type CopySourceItem,
   type CopySourceTree,
 } from "./flightFigureCopy";
@@ -188,12 +192,17 @@ export function ConsideringFigures({
         </div>
       ) : (
         <div className="other-figure-list">
-          {candidates.map((figure, idx) => (
+          {candidates.map((figure, idx) => {
+            const showTitleAssist =
+              pendingNewFigureIdx === idx &&
+              editingFigureIdx === idx &&
+              editingFigureTitle.trim().length === 0;
+            return (
             <div
               key={idx}
               className={`other-figure-row ${
                 selectedIdx === idx ? "is-selected" : ""
-              }`}
+              } ${showTitleAssist ? "is-title-assist" : ""}`}
               role="option"
               aria-selected={selectedIdx === idx}
               onClick={() => onActivate(idx)}
@@ -212,7 +221,7 @@ export function ConsideringFigures({
                     type="text"
                     className="other-figure-name-input"
                     value={editingFigureTitle}
-                    placeholder="タイトルを入力"
+                    placeholder={FIGURE_TITLE_PLACEHOLDER}
                     onChange={(e) => setEditingFigureTitle(e.target.value)}
                     onBlur={() => {
                       const isPendingNew =
@@ -256,8 +265,10 @@ export function ConsideringFigures({
                   </button>
                 </span>
               )}
+              <FigureTitleAssist show={showTitleAssist} />
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
       {canEditFigures && (

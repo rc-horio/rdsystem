@@ -9,6 +9,10 @@ import {
 } from "@/features/flightFigures";
 import { AddFlightFigureModal } from "./AddFlightFigureModal";
 import {
+  FigureTitleAssist,
+  FIGURE_TITLE_PLACEHOLDER,
+} from "./FigureTitleAssist";
+import {
   cloneGeometry,
   makeUniqueCopyTitle,
   type CopySourceItem,
@@ -232,12 +236,18 @@ export function OwnFlightFigures({
         >
           {figures.map((figure) => {
             const confirmed = figure.id === confirmedFigureId;
+            const showTitleAssist =
+              pendingNewFigureId === figure.id &&
+              editingFigureId === figure.id &&
+              editingFigureTitle.trim().length === 0;
             return (
               <div
                 key={figure.id}
                 className={`other-figure-row own-figure-row ${
                   selectedFigureId === figure.id ? "is-selected" : ""
-                } ${confirmed ? "is-confirmed" : ""}`}
+                } ${confirmed ? "is-confirmed" : ""} ${
+                  showTitleAssist ? "is-title-assist" : ""
+                }`}
                 role="option"
                 aria-selected={selectedFigureId === figure.id}
                 onClick={() => onActivate(figure)}
@@ -269,7 +279,7 @@ export function OwnFlightFigures({
                       type="text"
                       className="other-figure-name-input"
                       value={editingFigureTitle}
-                      placeholder={DEFAULT_FIGURE_TITLE}
+                      placeholder={FIGURE_TITLE_PLACEHOLDER}
                       onChange={(e) => setEditingFigureTitle(e.target.value)}
                       onBlur={() => {
                         const isPendingNew =
@@ -310,6 +320,7 @@ export function OwnFlightFigures({
                     </button>
                   </span>
                 )}
+                <FigureTitleAssist show={showTitleAssist} />
               </div>
             );
           })}

@@ -9,6 +9,10 @@ import {
 } from "./helpers";
 import { AddFlightFigureModal } from "./AddFlightFigureModal";
 import {
+  FigureTitleAssist,
+  FIGURE_TITLE_PLACEHOLDER,
+} from "./FigureTitleAssist";
+import {
   geometryToFlatFields,
   makeUniqueCopyTitle,
   type CopySourceItem,
@@ -370,12 +374,17 @@ export function OtherRecordCard({
               </div>
             ) : (
               <div className="other-figure-list">
-                {record.figures.map((figure, idx) => (
+                {record.figures.map((figure, idx) => {
+                  const showTitleAssist =
+                    pendingNewFigureIdx === idx &&
+                    editingFigureIdx === idx &&
+                    editingFigureTitle.trim().length === 0;
+                  return (
                   <div
                     key={idx}
                     className={`other-figure-row ${
                       selectedFigureIdx === idx ? "is-selected" : ""
-                    }`}
+                    } ${showTitleAssist ? "is-title-assist" : ""}`}
                     role="option"
                     aria-selected={selectedFigureIdx === idx}
                     onClick={() => onActivateFigure(idx, figure)}
@@ -394,7 +403,7 @@ export function OtherRecordCard({
                           type="text"
                           className="other-figure-name-input"
                           value={editingFigureTitle}
-                          placeholder={DEFAULT_FIGURE_TITLE}
+                          placeholder={FIGURE_TITLE_PLACEHOLDER}
                           onChange={(e) =>
                             setEditingFigureTitle(e.target.value)
                           }
@@ -438,8 +447,10 @@ export function OtherRecordCard({
                         </button>
                       </span>
                     )}
+                    <FigureTitleAssist show={showTitleAssist} />
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
             {editable && (
