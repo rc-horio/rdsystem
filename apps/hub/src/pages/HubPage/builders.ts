@@ -32,6 +32,12 @@ export function buildSchedulesFromProjectData(pd: any): ScheduleDetail[] {
       typeof sch?.id === "string" && sch.id.trim().length > 0 ? sch.id : uuid();
 
     const photosMemo = sch?.photosMemo ?? "";
+    const photosResults = sch?.photosResults ?? "";
+    const photosSite = sch?.photosSite ?? "";
+    const photosRetrospective =
+      sch?.photosRetrospective != null
+        ? String(sch.photosRetrospective)
+        : String(photosMemo ?? "");
     const res = sch?.resources ?? {};
     const root = res.members ?? res.roles ?? {};
     const toLocalStaffRow = (x: any) => ({
@@ -159,6 +165,9 @@ export function buildSchedulesFromProjectData(pd: any): ScheduleDetail[] {
           .filter((p: PhotoItem) => p.url.length > 0)
         : [],
       photosMemo: photosMemo ?? "",
+      photosResults,
+      photosSite,
+      photosRetrospective,
       cancelled: Boolean(sch?.cancelled),
       cancelledReason: String(sch?.cancelledReason ?? ""),
     };
@@ -211,7 +220,10 @@ export function buildIndexJsonFromState(
       label: s.label ?? "",
       date: s.date ?? "",
       location: s.place ?? "",
-      photosMemo: (s as any)?.photosMemo ?? "",
+      photosMemo: s.photosMemo ?? "",
+      photosResults: s.photosResults ?? "",
+      photosSite: s.photosSite ?? "",
+      photosRetrospective: s.photosRetrospective ?? "",
       cancelled: Boolean(s.cancelled),
       cancelledReason: String(s.cancelledReason ?? ""),
       resources: {

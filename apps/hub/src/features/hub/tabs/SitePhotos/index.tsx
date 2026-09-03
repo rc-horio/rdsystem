@@ -7,10 +7,89 @@ import React, {
   useState,
 } from "react";
 import type { PhotoItem, ScheduleDetail } from "@/features/hub/types/resource";
-import { ButtonRed, DisplayOrTextarea, Modal } from "@/components";
+import { ButtonRed, Modal } from "@/components";
 import { catalogPublicUrlFromKey } from "@/features/hub/utils/catalogPublicUrl";
 
 const PHOTO_MEMO_LINE_PX = 20;
+const SUMMARY_LINE_PX = 20;
+const SUMMARY_EDIT_ROWS = 8;
+
+type SummaryFieldKey =
+  | "photosResults"
+  | "photosSite"
+  | "photosRetrospective";
+
+const SUMMARY_FIELDS: {
+  key: SummaryFieldKey;
+  label: string;
+  placeholder: string;
+}[] = [
+  {
+    key: "photosResults",
+    label: "実績",
+    placeholder: "日付 / 機数 / 墜落・離陸せず",
+  },
+  {
+    key: "photosSite",
+    label: "現場状況",
+    placeholder: "地形・磁場・天候・導線・機材",
+  },
+  {
+    key: "photosRetrospective",
+    label: "振り返り",
+    placeholder: "要因と改善点",
+  },
+];
+
+function SummaryField({
+  edit,
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  edit: boolean;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  if (!edit) {
+    return (
+      <div>
+        <div className="mb-1 text-xs text-slate-300">{label}</div>
+        <div
+          className="ui-field-shell whitespace-pre-wrap wrap-break-word text-slate-200"
+          style={{
+            fontSize: 14,
+            lineHeight: `${SUMMARY_LINE_PX}px`,
+            minHeight: SUMMARY_EDIT_ROWS * SUMMARY_LINE_PX,
+          }}
+        >
+          {value}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="mb-1 text-xs text-slate-300">{label}</div>
+      <textarea
+        rows={SUMMARY_EDIT_ROWS}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="ui-field-shell ui-field-shell--edit block w-full resize-y overflow-y-auto outline-none text-slate-100 placeholder:text-slate-500 field-sizing-fixed"
+        style={{
+          fontSize: 14,
+          lineHeight: `${SUMMARY_LINE_PX}px`,
+          minHeight: SUMMARY_EDIT_ROWS * SUMMARY_LINE_PX,
+        }}
+      />
+    </div>
+  );
+}
 
 function PhotoMemoTextarea({
   value,
@@ -134,14 +213,16 @@ export default function SitePhotosTab({
     [currentSchedule?.photos]
   );
 
-  // 全体メモ（既存）
-  const photosMemo = (currentSchedule as any)?.photosMemo ?? "";
-  const updatePhotosMemo = (v: string) => {
+  const summaryValues: Record<SummaryFieldKey, string> = {
+    photosResults: currentSchedule?.photosResults ?? "",
+    photosSite: currentSchedule?.photosSite ?? "",
+    photosRetrospective: currentSchedule?.photosRetrospective ?? "",
+  };
+
+  const updateSummaryField = (key: SummaryFieldKey, v: string) => {
     if (!selectedId) return;
     setSchedules((prev) =>
-      prev.map((s) =>
-        s.id === selectedId ? ({ ...s, photosMemo: v } as any) : s
-      )
+      prev.map((s) => (s.id === selectedId ? { ...s, [key]: v } : s))
     );
   };
 
@@ -271,49 +352,42 @@ export default function SitePhotosTab({
 
   return (
     <div className="space-y-6">
-      {/* メモ＋写真追加 */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-end gap-4">
-        <div className="flex-1 flex flex-col">
-          <DisplayOrTextarea
+      <div className="space-y-4">
+        {SUMMARY_FIELDS.map((field) => (
+          <SummaryField
+            key={field.key}
             edit={edit}
-            value={photosMemo}
-            onChange={updatePhotosMemo}
-            size="md"
-            label="Memo"
-            className="flex-1"
+            label={field.label}
+            value={summaryValues[field.key]}
+            placeholder={field.placeholder}
+            onChange={(v) => updateSummaryField(field.key, v)}
           />
-        </div>
+        ))}
+      </div>
 
-        <div className="md:w-56 shrink-0 flex self-end">
-          <div className="md:w-56 shrink-0 flex self-end">
-            {edit && (
-              <div className="w-full">
-                <input
-                  ref={inputRef}
-                  type="file"
-                  accept="image/*,.heic"
-                  multiple
-                  onChange={handleSelectFiles}
-                  className="hidden"
-                />
-                <ButtonRed
-                  type="button"
-                  onClick={() => inputRef.current?.click()}
-                  disabled={isConverting}
-                  className="w-full h-10 mt-3 md:-mt-11 disabled:opacity-60"
-                >
-                  {isConverting ? "変換中..." : "写真を追加"}
-                </ButtonRed>
-
-                {/* 追加：注意文 */}
-                <div className="mt-2 text-[11px] leading-4 text-slate-400">
-                  ※HEIC形式はiPhoneからのアップロードのみ対応
-                </div>
-              </div>
-            )}
+      {edit && (
+        <div className="md:w-56">
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*,.heic"
+            multiple
+            onChange={handleSelectFiles}
+            className="hidden"
+          />
+          <ButtonRed
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={isConverting}
+            className="w-full h-10 disabled:opacity-60"
+          >
+            {isConverting ? "変換中..." : "写真を追加"}
+          </ButtonRed>
+          <div className="mt-2 text-[11px] leading-4 text-slate-400">
+            ※HEIC形式はiPhoneからのアップロードのみ対応
           </div>
         </div>
-      </div>
+      )}
 
       {/* 写真一覧 */}
       {photos.length === 0 ? (

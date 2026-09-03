@@ -186,6 +186,10 @@ export function useHubPageState() {
         memo: "",
       },
       photos: [],
+      photosMemo: "",
+      photosResults: "",
+      photosSite: "",
+      photosRetrospective: "",
       cancelled: false,
       cancelledReason: "",
     };
