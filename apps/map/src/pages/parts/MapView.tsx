@@ -17,6 +17,7 @@ import {
   useAirportHeightRestrictionMode,
   useScheduleSection,
   useCandidateSection,
+  detectEmbedMode,
 } from "@/components";
 import type { Props, Point, Geometry } from "@/features/types";
 import {
@@ -3767,7 +3768,7 @@ export default function MapView({ onLoaded }: Props) {
   return (
     <div className="map-page app-fullscreen" ref={mapPageRef}>
       <div id="map" ref={mapDivRef} />
-      <PlaceSearchOverlay />
+      {!detectEmbedMode() && <PlaceSearchOverlay />}
       {/* フルスクリーン切替（map-page 全体を対象にし、ツールパネルも含める） */}
       <button
         type="button"
