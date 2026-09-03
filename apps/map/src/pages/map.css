@@ -24,9 +24,15 @@
 
   /* Detailbar box */
   --detailbar-w: 300px; /* 詳細バーの幅 */
-  --detailbar-h: 98%; /* 詳細バーの高さ */
+  --detailbar-h: 98%; /* 詳細バーの高さ（下端の余白計算に使用） */
   --detailbar-gap: 5px; /* サイドバーとの距離 */
   --detailbar-pad: 16px; /* 詳細バー内パディング */
+
+  /* Place search overlay（幅は詳細バーのリサイズと独立） */
+  --place-search-w: 300px;
+  --place-search-top: 12px;
+  --place-search-bar-h: 50px;
+  --place-search-detail-gap: 8px;
 
   /* RC / 交渉 / 他社（色覚差でも赤・灰・青が分かれ、点の並びでも読める） */
   --area-kind-own: #e05656;
@@ -199,6 +205,32 @@ body,
 }
 #searchBox:focus {
   border-color: rgba(255, 255, 255, 0.55);
+}
+
+.search-field:has(.search-field__clear) #searchBox {
+  padding-right: 28px;
+}
+
+.search-field__clear {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.search-field__clear:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .search-sort-filter-row {
@@ -1112,11 +1144,14 @@ body.detailbar-open #sidebarToggle {
 /* パネル本体（デフォは非表示。body.detailbar-open で表示） */
 #detailbar {
   position: absolute;
-  top: 50%;
+  top: calc(
+    var(--place-search-top) + var(--place-search-bar-h) +
+      var(--place-search-detail-gap)
+  );
+  bottom: calc((100% - var(--detailbar-h)) / 2);
   left: calc(var(--sidebar-w) + var(--detailbar-gap));
-  transform: translateY(-50%);
   width: var(--detailbar-w);
-  height: var(--detailbar-h);
+  height: auto;
 
   /* サイドバーに合わせたガラス風 */
   background: rgba(0, 0, 0, 0.75);
@@ -1129,7 +1164,7 @@ body.detailbar-open #sidebarToggle {
   z-index: 20;
   opacity: 0; /* 非表示 */
   pointer-events: none; /* 非活性 */
-  transition: opacity 0.18s ease, transform 0.18s ease;
+  transition: opacity 0.18s ease;
 }
 
 /* リサイズハンドル（右端・右にドラッグで幅を広げる） */
@@ -1170,7 +1205,6 @@ body.detailbar-resizing {
 /* 表示時（ボディに .detailbar-open が付く） */
 body.detailbar-open #detailbar {
   opacity: 1;
-  transform: translateY(-50%) translateZ(0);
   pointer-events: auto;
 
   /* 二段構成：上=閉じる、下=本文スクロール（最終更新は各タブ下部） */
@@ -2591,6 +2625,214 @@ select.rc-inp-input optgroup {
 /* 入力欄以外の場所では、ドラッグカーソル */
 .geom-metrics-panel:not(:has(input)) {
   cursor: move;
+}
+
+/* =========================================
+   10.35) 場所検索オーバーレイ（地図左上）
+   ========================================= */
+
+.place-search-overlay {
+  position: absolute;
+  top: var(--place-search-top);
+  left: 12px;
+  z-index: 23;
+  width: min(var(--place-search-w), calc(100% - 24px));
+  pointer-events: auto;
+}
+
+/* 地図は画面全体、サイドバーはその上に乗る。開いているときは詳細バーと同じ左位置 */
+body:has(#sidebar):not(.sidebar-collapsed) .place-search-overlay {
+  left: calc(var(--sidebar-w) + var(--detailbar-gap));
+}
+
+.place-search-overlay__bar {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.7);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  backdrop-filter: blur(12px) saturate(120%);
+  border: 1px solid rgba(29, 29, 29, 0.3);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.place-search-overlay__field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.place-search-overlay__bar input {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 12px;
+  box-sizing: border-box;
+}
+
+.place-search-overlay__field:has(.place-search-overlay__clear) input {
+  padding-right: 28px;
+}
+
+.place-search-overlay__bar input::placeholder {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.place-search-overlay__bar input:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+.place-search-overlay__clear {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.place-search-overlay__clear:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.place-search-overlay__submit {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid #ed1b24;
+  background: transparent;
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.place-search-overlay__submit:hover {
+  background: rgba(237, 27, 36, 0.18);
+}
+
+.place-search-overlay__dropdown {
+  margin-top: 6px;
+  max-height: min(280px, 50vh);
+  overflow: auto;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.75);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  backdrop-filter: blur(12px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-thumb) transparent;
+}
+
+.place-search-overlay__dropdown::-webkit-scrollbar {
+  width: var(--sb-size);
+}
+
+.place-search-overlay__dropdown ul {
+  margin: 0;
+  padding: 6px 0;
+}
+
+.place-search-overlay__message {
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.place-search-overlay__item {
+  list-style: none;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.place-search-overlay__item:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.place-search-overlay__item.is-selected {
+  background: rgba(237, 27, 36, 0.22);
+}
+
+.place-search-overlay__item-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.place-preview-balloon {
+  min-width: 180px;
+  max-width: 280px;
+  padding: 2px 0;
+  color: #222;
+  font-size: 13px;
+}
+
+.place-preview-balloon__place {
+  font-weight: 600;
+  line-height: 1.45;
+  margin-bottom: 8px;
+}
+
+.place-preview-balloon__place div + div {
+  font-weight: 400;
+}
+
+.place-preview-balloon__maps {
+  display: inline-block;
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: #1a73e8;
+  text-decoration: underline;
+}
+
+.place-preview-balloon__maps:last-child {
+  margin-bottom: 0;
+}
+
+.place-preview-balloon__maps:hover {
+  color: #174ea6;
+}
+
+.place-preview-balloon button {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid #ed1b24;
+  background: #fff;
+  color: #222;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.place-preview-balloon button:hover {
+  background: #fde8e9;
+}
+
+.place-preview-balloon__actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 /* =========================================

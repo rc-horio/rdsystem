@@ -36,6 +36,12 @@ export const EV_PROJECT_MODAL_OPEN = "project:open-modal";
 export const EV_PROJECT_MODAL_SUBMIT = "project-modal:submit";
 export const EV_ADD_AREA_SELECT_RESULT = "map:add-area-select-result";
 export const EV_ADD_AREA_RESULT_COORDS = "map:add-area-result-coords";
+/** 場所検索の候補選択。地図移動のみ（追加には入らない） */
+export const EV_PLACE_SEARCH_PREVIEW = "map:place-search-preview";
+/** 場所検索からこの地点でエリア追加を開始 */
+export const EV_PLACE_SEARCH_ADD = "map:place-search-add";
+/** 場所検索の入力クリア。プレビュー吹き出しを閉じる */
+export const EV_PLACE_SEARCH_CLEAR = "map:place-search-clear";
 
 export const ROTATE_HANDLE_GAP_M = 5;
 

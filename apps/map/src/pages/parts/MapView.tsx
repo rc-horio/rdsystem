@@ -55,11 +55,15 @@ import {
   EV_DETAILBAR_SELECT_CANDIDATE,
   EV_ADD_AREA_SELECT_RESULT,
   EV_ADD_AREA_RESULT_COORDS,
+  EV_PLACE_SEARCH_PREVIEW,
+  EV_PLACE_SEARCH_ADD,
+  EV_PLACE_SEARCH_CLEAR,
   EV_OVERLAY_VISIBILITY_CHANGED,
 } from "./constants/events";
 import { AddAreaModal } from "./AddAreaModal";
 import { RegisterProjectModal } from "./RegisterProjectModal";
 import MapToolsPanel from "./MapToolsPanel";
+import PlaceSearchOverlay from "./PlaceSearchOverlay";
 import {
   DEFAULT_OVERLAY_VISIBILITY,
   OTHER_FIGURE_OVERLAY_PATCH,
@@ -91,6 +95,54 @@ function placesLocationBiasFromMapCenter(
   if (lat < -90 || lat > 90) return undefined;
   const wrappedLng = ((((lng + 180) % 360) + 360) % 360) - 180;
   return { lat, lng: wrappedLng };
+}
+
+/** Google の日本語 formattedAddress から郵便番号と住所を分ける */
+function splitPlaceFormattedAddress(formatted: string): {
+  postalCode: string;
+  address: string;
+} {
+  const stripped = formatted.replace(/^日本[、,]\s*/, "").trim();
+  const matched = stripped.match(/^(〒?\d{3}-?\d{4})\s+(.*)$/);
+  if (!matched) return { postalCode: "", address: stripped };
+  const rawPostal = matched[1];
+  const postalCode = rawPostal.startsWith("〒") ? rawPostal : `〒${rawPostal}`;
+  return { postalCode, address: matched[2].trim() };
+}
+
+function placeDisplayName(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object" && "text" in value) {
+    const text = (value as { text?: unknown }).text;
+    if (typeof text === "string") return text;
+  }
+  return "";
+}
+
+function googleMapsUrlForPlace(opts: {
+  placeId?: string;
+  name?: string;
+  lat: number;
+  lng: number;
+}): string {
+  if (opts.placeId) {
+    const query = opts.name?.trim() || `${opts.lat},${opts.lng}`;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}&query_place_id=${encodeURIComponent(opts.placeId)}`;
+  }
+  return `https://www.google.com/maps?q=${opts.lat},${opts.lng}`;
+}
+
+/** 場所検索の候補一覧と吹き出しが被らないよう、地図中心から右へずらす量 */
+function placePreviewPanOffsetX(map: google.maps.Map): number {
+  const overlay = document.querySelector(".place-search-overlay__dropdown");
+  const mapDiv = map.getDiv();
+  if (!(overlay instanceof HTMLElement) || !mapDiv) return 0;
+  const overlayRight = overlay.getBoundingClientRect().right;
+  const mapRect = mapDiv.getBoundingClientRect();
+  const balloonHalfPx = 160;
+  const gapPx = 12;
+  const desiredX = overlayRight - mapRect.left + gapPx + balloonHalfPx;
+  return Math.max(0, Math.round(desiredX - mapRect.width / 2));
 }
 
 /** Data.Feature のポリゴン内に point が含まれるか */
@@ -562,7 +614,10 @@ function djiApiResponseToGeoJson(body: {
 
 type AddAreaSearchResult = {
   placeId: string;
-  label: string; // 表示用（name / formatted_address）
+  label: string;
+  name: string;
+  postalCode: string;
+  address: string;
 };
 
 /** =========================
@@ -582,6 +637,16 @@ export default function MapView({ onLoaded }: Props) {
   const djiNfzInfoRef = useRef<google.maps.InfoWindow | null>(null);
   const djiNfzClickedRef = useRef(false);
   const airportHeightRestrictionInfoRef = useRef<google.maps.InfoWindow | null>(null);
+  const placePreviewInfoRef = useRef<google.maps.InfoWindow | null>(null);
+  const placePreviewPlaceRef = useRef<{
+    lat: number;
+    lng: number;
+    label: string;
+    name: string;
+    postalCode: string;
+    address: string;
+    placeId: string;
+  } | null>(null);
   const airportRestrictionOverlaysRef = useRef<RestrictionOverlay[]>([]);
 
   const currentAreaUuidRef = useRef<string | undefined>(undefined);
@@ -1915,11 +1980,22 @@ export default function MapView({ onLoaded }: Props) {
       if (!q) return;
 
       const map = mapRef.current;
-      if (!map) return;
+      if (!map) {
+        window.dispatchEvent(
+          new CustomEvent("map:add-area-search-result", {
+            detail: {
+              status: "error" as const,
+              results: [],
+              message: ADD_AREA_ERROR_MESSAGE,
+            },
+          })
+        );
+        return;
+      }
 
       try {
         const gmaps = getGMaps();
-        const { Place } = (await gmaps.importLibrary(
+        const { Place, SearchByTextRankPreference } = (await gmaps.importLibrary(
           "places"
         )) as google.maps.PlacesLibrary;
 
@@ -1929,8 +2005,9 @@ export default function MapView({ onLoaded }: Props) {
           region: "JP",
           language: "ja",
           maxResultCount: 10,
+          rankPreference: SearchByTextRankPreference.RELEVANCE,
           ...(locationBias ? { locationBias } : {}),
-          fields: ["displayName", "formattedAddress"],
+          fields: ["id", "displayName", "formattedAddress"],
         };
 
         const { places } = await Place.searchByText(req);
@@ -1954,13 +2031,36 @@ export default function MapView({ onLoaded }: Props) {
             const placeId = p.id;
             if (!placeId) return [];
 
-            const name = typeof p.displayName === "string" ? p.displayName : "";
-            const addr =
+            const name = placeDisplayName(p.displayName);
+            const formattedAddress =
               typeof p.formattedAddress === "string" ? p.formattedAddress : "";
-            const label = `${name}${addr ? " / " + addr : ""}`.trim();
+            const { postalCode, address } =
+              splitPlaceFormattedAddress(formattedAddress);
+            const label = `${name}${address ? " / " + address : ""}`.trim();
 
-            return [{ placeId, label: label || "(名称不明)" }];
+            return [
+              {
+                placeId,
+                label: label || "(名称不明)",
+                name,
+                postalCode,
+                address,
+              },
+            ];
           });
+
+        if (formatted.length === 0) {
+          window.dispatchEvent(
+            new CustomEvent("map:add-area-search-result", {
+              detail: {
+                status: "empty" as const,
+                results: [],
+                message: ADD_AREA_EMPTY_MESSAGE,
+              },
+            })
+          );
+          return;
+        }
 
         window.dispatchEvent(
           new CustomEvent("map:add-area-search-result", {
@@ -1991,6 +2091,176 @@ export default function MapView({ onLoaded }: Props) {
         "map:search-add-area",
         onSearch as EventListener
       );
+  }, []);
+
+  // 場所検索の候補選択：地図を寄せ、最初の吹き出しで追加するか聞く
+  useEffect(() => {
+    const escapeHtml = (value: string) =>
+      value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+
+    const closePreviewBalloon = () => {
+      placePreviewInfoRef.current?.close();
+    };
+
+    const isInsidePreviewBalloon = (target: EventTarget | null) => {
+      if (!(target instanceof Node)) return false;
+      const balloon = document.querySelector(".place-preview-balloon");
+      if (!balloon) return false;
+      if (balloon.contains(target)) return true;
+      const frame = balloon.closest(
+        ".gm-style-iw-a, .gm-style-iw-t, .gm-style-iw-c, .gm-style-iw"
+      );
+      return !!frame?.contains(target);
+    };
+
+    const onPointerDownOutside = (e: PointerEvent) => {
+      if (!document.querySelector(".place-preview-balloon")) return;
+      if (isInsidePreviewBalloon(e.target)) return;
+      closePreviewBalloon();
+    };
+
+    const renderPreviewBalloon = () => {
+      const place = placePreviewPlaceRef.current;
+      const map = mapRef.current;
+      const gmaps = (window as unknown as { google?: typeof google }).google?.maps;
+      if (!place || !map || !gmaps) return;
+
+      if (!placePreviewInfoRef.current) {
+        placePreviewInfoRef.current = new gmaps.InfoWindow({
+          disableAutoPan: true,
+        });
+      }
+
+      const editOn = document.body.classList.contains("editing-on");
+
+      const heading = [
+        place.name,
+        place.postalCode,
+        place.address,
+      ]
+        .filter((line) => line.trim().length > 0)
+        .map((line) => `<div>${escapeHtml(line)}</div>`)
+        .join("");
+
+      const mapsUrl = googleMapsUrlForPlace({
+        placeId: place.placeId,
+        name: place.name,
+        lat: place.lat,
+        lng: place.lng,
+      });
+
+      const registerBlock = editOn
+        ? `
+        <div class="place-preview-balloon__actions">
+          <button type="button" data-place-preview="add">この場所で追加する</button>
+        </div>
+      `
+        : "";
+
+      const container = document.createElement("div");
+      container.className = "place-preview-balloon";
+      container.innerHTML = `
+        <div class="place-preview-balloon__place">${heading || escapeHtml(place.label)}</div>
+        <a
+          class="place-preview-balloon__maps"
+          href="${escapeHtml(mapsUrl)}"
+          target="_blank"
+          rel="noopener noreferrer"
+        >Google マップで開く</a>
+        ${registerBlock}
+      `;
+      container
+        .querySelector('[data-place-preview="add"]')
+        ?.addEventListener("click", () => {
+          window.dispatchEvent(
+            new CustomEvent(EV_PLACE_SEARCH_ADD, { detail: place })
+          );
+        });
+
+      placePreviewInfoRef.current.setContent(container);
+      placePreviewInfoRef.current.setPosition({
+        lat: place.lat,
+        lng: place.lng,
+      });
+      placePreviewInfoRef.current.open(map);
+    };
+
+    const onPreview = (e: Event) => {
+      const d =
+        (
+          e as CustomEvent<{
+            lat?: number;
+            lng?: number;
+            label?: string;
+            name?: string;
+            postalCode?: string;
+            address?: string;
+            placeId?: string;
+          }>
+        ).detail || {};
+      if (typeof d.lat !== "number" || typeof d.lng !== "number") return;
+      const map = mapRef.current;
+      if (!map) return;
+
+      placePreviewPlaceRef.current = {
+        lat: d.lat,
+        lng: d.lng,
+        label: d.label?.trim() || "",
+        name: d.name?.trim() || "",
+        postalCode: d.postalCode?.trim() || "",
+        address: d.address?.trim() || "",
+        placeId: d.placeId?.trim() || "",
+      };
+
+      map.panTo({ lat: d.lat, lng: d.lng });
+      const target = window.matchMedia?.("(max-width: 767px)").matches
+        ? SELECT_ZOOM_MOBILE
+        : SELECT_ZOOM_DESKTOP;
+      window.setTimeout(() => {
+        map.setZoom(target);
+        const dx = placePreviewPanOffsetX(map);
+        if (dx > 0) map.panBy(-dx, 0);
+      }, 120);
+
+      renderPreviewBalloon();
+    };
+
+    const onAdd = () => closePreviewBalloon();
+    const onClear = () => closePreviewBalloon();
+
+    let editWasOn = document.body.classList.contains("editing-on");
+    const onEditModeClass = () => {
+      const editOn = document.body.classList.contains("editing-on");
+      if (editOn === editWasOn) return;
+      editWasOn = editOn;
+      if (!document.querySelector(".place-preview-balloon")) return;
+      renderPreviewBalloon();
+    };
+    const editModeObserver = new MutationObserver(onEditModeClass);
+    editModeObserver.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
+    window.addEventListener(EV_PLACE_SEARCH_PREVIEW, onPreview as EventListener);
+    window.addEventListener(EV_PLACE_SEARCH_ADD, onAdd);
+    window.addEventListener(EV_PLACE_SEARCH_CLEAR, onClear);
+    document.addEventListener("pointerdown", onPointerDownOutside, true);
+    return () => {
+      window.removeEventListener(
+        EV_PLACE_SEARCH_PREVIEW,
+        onPreview as EventListener
+      );
+      window.removeEventListener(EV_PLACE_SEARCH_ADD, onAdd);
+      window.removeEventListener(EV_PLACE_SEARCH_CLEAR, onClear);
+      document.removeEventListener("pointerdown", onPointerDownOutside, true);
+      editModeObserver.disconnect();
+      closePreviewBalloon();
+    };
   }, []);
 
   // 検索結果を選択した場合の座標を取得
@@ -3061,6 +3331,7 @@ export default function MapView({ onLoaded }: Props) {
   useEffect(() => {
     const onStartAddArea = () => {
       clearCurrentAreaSelection();
+      placePreviewInfoRef.current?.close();
     };
     window.addEventListener("map:start-add-area", onStartAddArea);
     return () => window.removeEventListener("map:start-add-area", onStartAddArea);
@@ -3496,6 +3767,7 @@ export default function MapView({ onLoaded }: Props) {
   return (
     <div className="map-page app-fullscreen" ref={mapPageRef}>
       <div id="map" ref={mapDivRef} />
+      <PlaceSearchOverlay />
       {/* フルスクリーン切替（map-page 全体を対象にし、ツールパネルも含める） */}
       <button
         type="button"

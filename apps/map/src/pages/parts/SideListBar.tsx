@@ -1,5 +1,5 @@
 // apps/map/src/pages/parts/SideListBar.tsx
-import React, { memo, useEffect, useRef, useState, useMemo } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState, useMemo } from "react";
 import {
   ONButton,
   OFFButton,
@@ -91,10 +91,8 @@ import {
   EV_GEOMETRY_RESPOND_DATA,
   EV_PROJECT_MODAL_SUBMIT,
   EV_DETAILBAR_REQUEST_DATA,
-  ADD_AREA_EMPTY_MESSAGE,
-  ADD_AREA_ERROR_MESSAGE,
-  EV_ADD_AREA_SELECT_RESULT,
-  EV_ADD_AREA_RESULT_COORDS,
+  EV_PLACE_SEARCH_ADD,
+  EV_SIDEBAR_OPEN,
   EV_GEOMETRY_SAVE_COMPLETE,
 } from "./constants/events";
 import {
@@ -105,18 +103,6 @@ import {
   E003_SAVE_PROCESS,
   E005_AREA_UUID,
 } from "@/lib/errorMessages";
-
-type AddAreaSearchStatus = "idle" | "ok" | "empty" | "error";
-type AddAreaSearchResult = {
-  placeId: string;
-  label: string;
-};
-
-type AddAreaSearchEventDetail = {
-  status?: "ok" | "empty" | "error";
-  results?: AddAreaSearchResult[];
-  message?: string | null;
-};
 
 type AreaSortType = "name" | "prefecture" | "updated" | "droneCount";
 type AreaSortDir = "asc" | "desc";
@@ -194,17 +180,6 @@ function SideListBarBase({
 
   // エリア追加モードの状態
   const [isAddAreaMode, setIsAddAreaMode] = useState(false);
-  // エリア追加モード時の検索クエリ
-  const [addAreaSearchQuery, setAddAreaSearchQuery] = useState("");
-  // エリア追加モード時の検索結果
-  const [addAreaSearchResults, setAddAreaSearchResults] = useState<
-    AddAreaSearchResult[]
-  >([]);
-  const [addAreaSearchStatus, setAddAreaSearchStatus] =
-    useState<AddAreaSearchStatus>("idle");
-  const [addAreaSearchMessage, setAddAreaSearchMessage] = useState<
-    string | null
-  >(null);
   // 検索クエリ state
   const [searchQuery, setSearchQuery] = useState("");
   // ソート種類 state
@@ -303,73 +278,49 @@ function SideListBarBase({
     });
   }, [points]);
 
-  // エリア追加モード時の検索を送信
-  const submitAddAreaSearch = () => {
-    const q = addAreaSearchQuery.trim();
-    if (!q) return;
+  const beginAddAreaMode = useCallback(() => {
+    setActiveKey(null);
+    currentAreaUuidRef.current = undefined;
+    currentCandidateIndexRef.current = null;
+    currentSalesIndexRef.current = null;
+    currentCandidateTitleRef.current = undefined;
+    currentOtherRecordIndexRef.current = null;
+    currentOtherFigureIndexRef.current = null;
+    pendingProjectLinkRef.current = null;
+    ownFiguresBaselineRef.current = areaOwnFiguresSnapshot([]);
 
-    window.dispatchEvent(
-      new CustomEvent("map:search-add-area", {
-        detail: { query: q },
-      })
+    closeDetailBar();
+    window.dispatchEvent(new Event("map:start-add-area"));
+  }, []);
+
+  useEffect(() => {
+    const onPlaceSearchAdd = (e: Event) => {
+      const d =
+        (
+          e as CustomEvent<{ lat?: number; lng?: number; label?: string }>
+        ).detail || {};
+      if (typeof d.lat !== "number" || typeof d.lng !== "number") return;
+
+      setIsOn(true);
+      window.dispatchEvent(new Event(EV_SIDEBAR_OPEN));
+      beginAddAreaMode();
+      window.dispatchEvent(
+        new CustomEvent("map:add-area-picked", {
+          detail: { lat: d.lat, lng: d.lng, label: d.label },
+        })
+      );
+    };
+
+    window.addEventListener(
+      EV_PLACE_SEARCH_ADD,
+      onPlaceSearchAdd as EventListener
     );
-  };
-
-  // placeId から座標を取得（MapView に問い合わせ）
-  const requestPlaceCoords = async (
-    placeId: string
-  ): Promise<{ lat: number; lng: number } | null> => {
-    const coords = await new Promise<{ lat: number; lng: number } | null>(
-      (resolve, reject) => {
-        let timer: number | null = null;
-
-        const onResp = (e: Event) => {
-          const d =
-            (
-              e as CustomEvent<{
-                placeId?: string;
-                lat?: number;
-                lng?: number;
-              }>
-            ).detail || {};
-
-          // 別リクエストの応答を拾わない
-          if (d.placeId !== placeId) return;
-
-          window.removeEventListener(
-            EV_ADD_AREA_RESULT_COORDS,
-            onResp as EventListener
-          );
-          if (timer != null) window.clearTimeout(timer);
-
-          if (typeof d.lat === "number" && typeof d.lng === "number") {
-            resolve({ lat: d.lat, lng: d.lng });
-          } else {
-            resolve(null);
-          }
-        };
-
-        window.addEventListener(
-          EV_ADD_AREA_RESULT_COORDS,
-          onResp as EventListener
-        );
-
-        window.dispatchEvent(
-          new CustomEvent(EV_ADD_AREA_SELECT_RESULT, { detail: { placeId } })
-        );
-
-        timer = window.setTimeout(() => {
-          window.removeEventListener(
-            EV_ADD_AREA_RESULT_COORDS,
-            onResp as EventListener
-          );
-          reject(new Error("map からの座標応答がありません"));
-        }, 1500);
-      }
-    );
-
-    return coords;
-  };
+    return () =>
+      window.removeEventListener(
+        EV_PLACE_SEARCH_ADD,
+        onPlaceSearchAdd as EventListener
+      );
+  }, [beginAddAreaMode]);
 
   // 案件紐づけモーダルで選ばれた「案件・スケジュール」を保持
   const pendingProjectLinkRef = useRef<{
@@ -1819,13 +1770,6 @@ function SideListBarBase({
       const d = (e as CustomEvent<{ active?: boolean }>).detail;
       const active = !!d?.active;
       setIsAddAreaMode(active);
-
-      if (!active) {
-        setAddAreaSearchQuery("");
-        setAddAreaSearchResults([]);
-        setAddAreaSearchStatus("idle");
-        setAddAreaSearchMessage(null);
-      }
     };
 
     window.addEventListener(
@@ -1836,41 +1780,6 @@ function SideListBarBase({
       window.removeEventListener(
         "map:add-area-mode-changed",
         onModeChange as EventListener
-      );
-  }, []);
-
-  // エリア追加モード時の検索結果を受け取る
-  useEffect(() => {
-    const onResult = (e: Event) => {
-      const d = (e as CustomEvent<AddAreaSearchEventDetail>).detail || {};
-      const results = Array.isArray(d.results) ? d.results : [];
-      const status = d.status ?? (results.length > 0 ? "ok" : "empty");
-
-      setAddAreaSearchResults(results);
-
-      if (status === "error") {
-        setAddAreaSearchStatus("error");
-        setAddAreaSearchMessage(d.message ?? ADD_AREA_ERROR_MESSAGE);
-        return;
-      }
-      if (status === "empty") {
-        setAddAreaSearchStatus("empty");
-        setAddAreaSearchMessage(d.message ?? ADD_AREA_EMPTY_MESSAGE);
-        return;
-      }
-
-      setAddAreaSearchStatus("ok");
-      setAddAreaSearchMessage(null);
-    };
-
-    window.addEventListener(
-      "map:add-area-search-result",
-      onResult as EventListener
-    );
-    return () =>
-      window.removeEventListener(
-        "map:add-area-search-result",
-        onResult as EventListener
       );
   }, []);
 
@@ -2451,20 +2360,7 @@ function SideListBarBase({
         <button
           type="button"
           className="add-area-button add-area-button--sidebar"
-          onClick={() => {
-            setActiveKey(null);
-            currentAreaUuidRef.current = undefined;
-            currentCandidateIndexRef.current = null;
-            currentSalesIndexRef.current = null;
-            currentCandidateTitleRef.current = undefined;
-            currentOtherRecordIndexRef.current = null;
-            currentOtherFigureIndexRef.current = null;
-            pendingProjectLinkRef.current = null;
-            ownFiguresBaselineRef.current = areaOwnFiguresSnapshot([]);
-
-            closeDetailBar();
-            window.dispatchEvent(new Event("map:start-add-area"));
-          }}
+          onClick={beginAddAreaMode}
         >
           <span className="add-icon">＋ </span>
           エリアを追加する
@@ -2476,7 +2372,7 @@ function SideListBarBase({
           {/* ヒント */}
           <div className="sidebar-add-area-hint" aria-live="polite">
             <div className="hint-text">
-              追加したいエリアを地図上でクリックするか、名称・住所で検索してください。
+              追加したいエリアを地図上でクリックしてください。
             </div>
             <button
               type="button"
@@ -2487,116 +2383,6 @@ function SideListBarBase({
             >
               キャンセル
             </button>
-          </div>
-
-          {/* 検索 */}
-          <div className="sidebar-add-area-search" role="search">
-            <input
-              type="text"
-              placeholder="地名・施設名・住所で検索"
-              value={addAreaSearchQuery}
-              onChange={(e) => setAddAreaSearchQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  submitAddAreaSearch();
-                } else if (e.key === "Escape") {
-                  e.preventDefault();
-                  window.dispatchEvent(new Event("map:cancel-add-area"));
-                }
-              }}
-            />
-            <button
-              type="button"
-              disabled={!addAreaSearchQuery.trim()}
-              onClick={submitAddAreaSearch}
-            >
-              検索
-            </button>
-          </div>
-          <div className="sidebar-add-area-search-results">
-            {addAreaSearchStatus === "idle" && (
-              <div className="location-empty" aria-live="polite">
-                検索すると候補が表示されます。
-              </div>
-            )}
-
-            {addAreaSearchStatus === "error" && (
-              <div className="location-empty" aria-live="polite">
-                {addAreaSearchMessage}
-              </div>
-            )}
-
-            {addAreaSearchStatus === "empty" && (
-              <div className="location-empty" aria-live="polite">
-                {addAreaSearchMessage}
-              </div>
-            )}
-
-            {addAreaSearchStatus === "ok" &&
-              addAreaSearchResults.length > 0 && (
-                <ul className="no-caret">
-                  {addAreaSearchResults.map((r) => (
-                    <li
-                      key={r.placeId}
-                      className="location-item"
-                      tabIndex={0}
-                      role="button"
-                      onClick={async () => {
-                        try {
-                          const coords = await requestPlaceCoords(r.placeId);
-                          if (!coords) return;
-
-                          // 既存③へ統合（useAddAreaMode に渡す）
-                          window.dispatchEvent(
-                            new CustomEvent("map:add-area-picked", {
-                              detail: {
-                                lat: coords.lat,
-                                lng: coords.lng,
-                                label: r.label, // 「表示名/住所」をそのまま候補として渡す
-                              },
-                            })
-                          );
-                        } catch (e) {
-                          console.warn(
-                            "[add-area] failed to resolve coords:",
-                            r,
-                            e
-                          );
-                        }
-                      }}
-                      onKeyDown={async (e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          try {
-                            const coords = await requestPlaceCoords(r.placeId);
-                            if (!coords) return;
-
-                            // 既存③へ統合（useAddAreaMode に渡す）
-                            window.dispatchEvent(
-                              new CustomEvent("map:add-area-picked", {
-                                detail: {
-                                  lat: coords.lat,
-                                  lng: coords.lng,
-                                  label: r.label, // 「表示名/住所」をそのまま候補として渡す
-                                },
-                              })
-                            );
-                          } catch (err) {
-                            console.warn(
-                              "[add-area] failed to resolve coords:",
-                              r,
-                              err
-                            );
-                          }
-                        }
-                      }}
-                    >
-                      <span className="location-item__label">{r.label}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
           </div>
         </div>
       )}
@@ -2808,6 +2594,19 @@ function SideListBarBase({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            {searchQuery.length > 0 && (
+              <button
+                type="button"
+                className="search-field__clear"
+                aria-label="検索ワードをクリア"
+                onClick={() => {
+                  setSearchQuery("");
+                  document.getElementById("searchBox")?.focus();
+                }}
+              >
+                ×
+              </button>
+            )}
           </div>
         </div>
       )}
