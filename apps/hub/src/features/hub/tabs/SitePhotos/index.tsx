@@ -7,7 +7,75 @@ import React, {
   useState,
 } from "react";
 import type { PhotoItem, ScheduleDetail } from "@/features/hub/types/resource";
-import { FormModal, ButtonRed, DisplayOrTextarea } from "@/components";
+import { ButtonRed, DisplayOrTextarea, Modal } from "@/components";
+import { catalogPublicUrlFromKey } from "@/features/hub/utils/catalogPublicUrl";
+
+const PHOTO_MEMO_LINE_PX = 20;
+
+function PhotoMemoTextarea({
+  value,
+  onChange,
+  rows,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  rows: number;
+}) {
+  return (
+    <div className="ui-field-shell ui-field-shell--edit">
+      <textarea
+        rows={rows}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="memo"
+        className="block w-full resize-none overflow-y-auto bg-transparent outline-none border-0 p-0 text-slate-100 placeholder:text-slate-500"
+        style={{
+          fontSize: 14,
+          lineHeight: `${PHOTO_MEMO_LINE_PX}px`,
+          height: rows * PHOTO_MEMO_LINE_PX,
+          fieldSizing: "fixed",
+        }}
+      />
+    </div>
+  );
+}
+
+function PhotoMemoBlock({
+  edit,
+  value,
+  onChange,
+  compact,
+}: {
+  edit: boolean;
+  value: string;
+  onChange: (v: string) => void;
+  compact?: boolean;
+}) {
+  const trimmed = value.trim();
+
+  if (compact) {
+    if (edit) {
+      return (
+        <PhotoMemoTextarea value={value} onChange={onChange} rows={2} />
+      );
+    }
+    return (
+      <p className="h-10 text-[14px] leading-5 text-slate-200 line-clamp-2 wrap-break-word">
+        {trimmed ? value : "\u00a0"}
+      </p>
+    );
+  }
+
+  if (!edit) {
+    if (!trimmed) return null;
+    return (
+      <p className="text-[14px] leading-5 text-slate-200 whitespace-pre-wrap wrap-break-word">
+        {value}
+      </p>
+    );
+  }
+  return <PhotoMemoTextarea value={value} onChange={onChange} rows={4} />;
+}
 
 interface Props {
   edit: boolean;
@@ -59,6 +127,7 @@ export default function SitePhotosTab({
 }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [isConverting, setIsConverting] = useState(false);
+  const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
 
   const photos: PhotoItem[] = useMemo(
     () =>
@@ -66,7 +135,7 @@ export default function SitePhotosTab({
     [currentSchedule?.photos]
   );
 
-  // メモ欄の値（既存）
+  // 全体メモ（既存）
   const photosMemo = (currentSchedule as any)?.photosMemo ?? "";
   const updatePhotosMemo = (v: string) => {
     if (!selectedId) return;
@@ -74,6 +143,20 @@ export default function SitePhotosTab({
       prev.map((s) =>
         s.id === selectedId ? ({ ...s, photosMemo: v } as any) : s
       )
+    );
+  };
+
+  const updatePhotoMemo = (idx: number, v: string) => {
+    if (!selectedId) return;
+    setSchedules((prev) =>
+      prev.map((s) => {
+        if (s.id !== selectedId) return s;
+        const nextPhotos = [...(s.photos ?? [])];
+        const target = nextPhotos[idx];
+        if (!target) return s;
+        nextPhotos[idx] = { ...target, memo: v };
+        return { ...s, photos: nextPhotos };
+      })
     );
   };
 
@@ -96,10 +179,29 @@ export default function SitePhotosTab({
     setPreviewIndex((i) => (i + 1) % photos.length);
   }, [photos.length]);
 
+  const cancelDelete = () => setDeleteIndex(null);
+  const confirmDelete = () => {
+    if (deleteIndex === null) return;
+    const idx = deleteIndex;
+    setDeleteIndex(null);
+    if (previewOpen) {
+      if (previewIndex === idx) setPreviewOpen(false);
+      else if (previewIndex > idx) setPreviewIndex((i) => i - 1);
+    }
+    void removeAt(idx);
+  };
+
   useEffect(() => {
     if (!previewOpen) return;
     const onKey = (ev: KeyboardEvent) => {
+      const t = ev.target as HTMLElement | null;
+      const typing =
+        t &&
+        (t.tagName === "TEXTAREA" ||
+          t.tagName === "INPUT" ||
+          t.isContentEditable);
       if (ev.key === "Escape") closePreview();
+      if (typing) return;
       if (ev.key === "ArrowLeft") showPrev();
       if (ev.key === "ArrowRight") showNext();
     };
@@ -146,6 +248,7 @@ export default function SitePhotosTab({
           ({
             url: URL.createObjectURL(file),
             caption: file.name,
+            memo: "",
             __file: file,
           } as any)
       );
@@ -220,94 +323,131 @@ export default function SitePhotosTab({
         </div>
       ) : (
         <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {photos.map((p, i) => (
-            <li
-              key={`${p.url}-${i}`}
-              className="group rounded-xl overflow-hidden bg-slate-900 border border-slate-800"
-            >
-              <div className="w-full block">
-                <button
-                  type="button"
-                  onClick={() => openPreview(i)}
-                  className="w-full block cursor-zoom-in"
-                  aria-label={`拡大表示: ${p.caption ?? `photo-${i + 1}`}`}
-                >
-                  <img
-                    src={p.url}
-                    alt={p.caption ?? `photo-${i}`}
-                    className="w-full h-40 object-cover"
-                    loading="lazy"
-                  />
-                </button>
-              </div>
+          {photos.map((p, i) => {
+            const memoText = p.memo ?? "";
+            return (
+              <li
+                key={`${p.url}-${i}`}
+                className="group rounded-xl overflow-hidden bg-slate-900 border border-slate-800"
+              >
+                <div className="w-full block">
+                  <button
+                    type="button"
+                    onClick={() => openPreview(i)}
+                    className="w-full block cursor-zoom-in"
+                    aria-label={`拡大表示: ${p.caption ?? `photo-${i + 1}`}`}
+                  >
+                    <img
+                      src={catalogPublicUrlFromKey(p.key ?? "") || p.url}
+                      alt={p.caption ?? `photo-${i}`}
+                      className="w-full h-40 object-cover"
+                      loading="lazy"
+                    />
+                  </button>
+                </div>
 
-              <div className="px-3 py-2 text-xs text-slate-300 border-t border-slate-800 bg-slate-900/60 flex items-center justify-between gap-2">
-                <span className="truncate" title={p.caption}>
-                  {p.caption || `photo-${i + 1}`}
-                </span>
-
-                <div className="flex items-center gap-2">
+                <div className="px-3 py-2 flex items-end gap-2">
+                  <div className="flex-1 min-w-0">
+                    <PhotoMemoBlock
+                      edit={edit}
+                      value={memoText}
+                      onChange={(v) => updatePhotoMemo(i, v)}
+                      compact
+                    />
+                  </div>
                   {edit && (
                     <button
                       type="button"
-                      onClick={() => removeAt(i)}
-                      className="opacity-70 hover:opacity-100 text-[11px] border border-slate-600 rounded px-2 py-1"
+                      onClick={() => setDeleteIndex(i)}
+                      className="shrink-0 opacity-70 hover:opacity-100 text-[11px] border border-slate-600 rounded px-2 py-1"
                     >
                       削除
                     </button>
                   )}
                 </div>
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
       {/* プレビュー（既存） */}
       {previewOpen && photos[previewIndex] && (
-        <FormModal
+        <Modal
           show
           onClose={closePreview}
-          title=""
           panelClassName="relative w-[92vw] max-w-[900px] h-[85vh] flex flex-col"
-          footer={null}
         >
-          <div className="flex-1 overflow-auto flex items-center justify-center pb-16">
-            <div className="flex flex-col items-center justify-center w-full max-w-[min(92vw,880px)]">
-              {photos[previewIndex].caption && (
-                <div className="mb-3 text-sm text-slate-200 text-center w-full">
-                  {photos[previewIndex].caption}
-                </div>
-              )}
+          <div className="flex min-h-0 flex-1 flex-col gap-4">
+            <div className="flex min-h-0 flex-1 items-center justify-center">
               <img
-                src={photos[previewIndex].url}
+                src={
+                  catalogPublicUrlFromKey(photos[previewIndex].key ?? "") ||
+                  photos[previewIndex].url
+                }
                 alt={
                   photos[previewIndex].caption ?? `photo-${previewIndex + 1}`
                 }
-                className="w-auto max-w-full h-auto max-h-[60vh] object-contain rounded-lg"
+                className="max-h-full max-w-full object-contain rounded-lg"
               />
             </div>
-          </div>
 
-          <div className="absolute bottom-0 left-0 right-0 mb-3 px-4 flex items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={showPrev}
-              className="px-3 h-10 rounded-lg border border-slate-600 text-slate-200 text-sm"
-            >
-              ◀
-            </button>
-            <div className="text-xs text-slate-400">
-              {previewIndex + 1} / {photos.length}
+            {(edit ||
+              (photos[previewIndex].memo ?? "").trim().length > 0) && (
+              <div className="w-full shrink-0 px-1">
+                <PhotoMemoBlock
+                  edit={edit}
+                  value={photos[previewIndex].memo ?? ""}
+                  onChange={(v) => updatePhotoMemo(previewIndex, v)}
+                />
+              </div>
+            )}
+
+            <div className="flex shrink-0 items-center justify-between gap-3 px-1 pb-1">
+              <button
+                type="button"
+                onClick={showPrev}
+                className="px-3 h-10 rounded-lg border border-slate-600 text-slate-200 text-sm"
+              >
+                ◀
+              </button>
+              <div className="text-xs text-slate-400">
+                {previewIndex + 1} / {photos.length}
+              </div>
+              <button
+                type="button"
+                onClick={showNext}
+                className="px-3 h-10 rounded-lg border border-slate-600 text-slate-200 text-sm"
+              >
+                ▶
+              </button>
             </div>
+          </div>
+        </Modal>
+      )}
+
+      {deleteIndex !== null && (
+        <Modal
+          show
+          onClose={cancelDelete}
+          showCloseButton={false}
+          panelClassName="relative w-[min(92vw,400px)] h-auto max-h-[90vh] p-8"
+        >
+          <p className="text-center text-lg text-slate-100">
+            写真を削除しますか？
+          </p>
+          <div className="mt-8 flex items-center justify-center gap-4">
             <button
               type="button"
-              onClick={showNext}
-              className="px-3 h-10 rounded-lg border border-slate-600 text-slate-200 text-sm"
+              onClick={cancelDelete}
+              className="rounded-md border border-slate-500 bg-transparent px-6 py-2 text-sm font-semibold text-slate-200 hover:bg-white/5"
             >
-              ▶
+              いいえ
             </button>
+            <ButtonRed type="button" onClick={confirmDelete}>
+              はい
+            </ButtonRed>
           </div>
-        </FormModal>
+        </Modal>
       )}
     </div>
   );

@@ -161,6 +161,8 @@ export interface PhotoItem {
   url: string;
   caption?: string;
   key?: string;
+  /** 写真ごとの詳細メモ。空なら画面には出さない */
+  memo?: string;
 }
 
 export interface ScheduleDetail {

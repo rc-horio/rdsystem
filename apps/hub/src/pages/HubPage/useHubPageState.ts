@@ -11,6 +11,7 @@ import {
 } from "./builders";
 import { v4 as uuid } from "uuid";
 import { collapseUniformSpacing } from "@/features/hub/utils/spacing";
+import { catalogPublicUrlFromKey } from "@/features/hub/utils/catalogPublicUrl";
 
 // 環境変数からCatalogのベースURLを取得
 const CATALOG = String(import.meta.env.VITE_CATALOG_BASE_URL || "").replace(/\/+$/, "");
@@ -917,7 +918,7 @@ export function useHubPageState() {
     });
     const put = await fetch(uploadUrl, { method: "PUT", body: file });
     if (!put.ok) throw new Error(await put.text());
-    return { key, publicUrl };
+    return { key, publicUrl: catalogPublicUrlFromKey(key) || publicUrl };
   };
 
   const deleteManyFromS3 = async (keys: string[]) => {
@@ -996,6 +997,7 @@ export function useHubPageState() {
           .map((p: any) => ({
             url: String(p?.url ?? ""),
             caption: p?.caption ?? "",
+            memo: p?.memo ?? "",
             ...(p?.key ? { key: String(p.key) } : {}),
           }))
           .filter((p: any) => p.url.length > 0)

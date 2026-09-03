@@ -7,6 +7,7 @@ import type {
   PhotoItem,
 } from "@/features/hub/types/resource";
 import { collapseUniformSpacing } from "@/features/hub/utils/spacing";
+import { catalogPublicUrlFromKey } from "@/features/hub/utils/catalogPublicUrl";
 
 /** 旧形式: スケジュール単位の lostDeal を案件へ寄せる（読み込み時に1回） */
 export function normalizeIndexJsonForProjectLostDeal(data: any): any {
@@ -144,11 +145,16 @@ export function buildSchedulesFromProjectData(pd: any): ScheduleDetail[] {
       photos: Array.isArray(sch?.photos)
         ? sch.photos
           .map(
-            (p: any): PhotoItem => ({
-              url: String(p?.url ?? ""),
-              caption: p?.caption ?? "",
-              ...(p?.key ? { key: String(p.key) } : {}), // ← 追加
-            })
+            (p: any): PhotoItem => {
+              const key = p?.key ? String(p.key) : "";
+              const catalogUrl = key ? catalogPublicUrlFromKey(key) : "";
+              return {
+                url: catalogUrl || String(p?.url ?? ""),
+                caption: p?.caption ?? "",
+                memo: p?.memo ?? "",
+                ...(key ? { key } : {}),
+              };
+            }
           )
           .filter((p: PhotoItem) => p.url.length > 0)
         : [],
@@ -266,11 +272,16 @@ export function buildIndexJsonFromState(
         : prevSch?.area ?? undefined,
       photos: Array.isArray(s.photos)
         ? s.photos
-          .map((p: any) => ({
-            url: String(p?.url ?? ""),
-            caption: p?.caption ?? "",
-            ...(p?.key ? { key: String(p.key) } : {}),
-          }))
+          .map((p: any) => {
+            const key = p?.key ? String(p.key) : "";
+            const catalogUrl = key ? catalogPublicUrlFromKey(key) : "";
+            return {
+              url: catalogUrl || String(p?.url ?? ""),
+              caption: p?.caption ?? "",
+              memo: p?.memo ?? "",
+              ...(key ? { key } : {}),
+            };
+          })
           .filter((p: any) => p.url.length > 0)
         : [],
     };

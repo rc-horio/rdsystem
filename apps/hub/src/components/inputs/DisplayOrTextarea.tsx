@@ -15,11 +15,18 @@ type Props = {
   heightClass?: string;
 };
 
+/** 行高 20px の整数倍。h-full だと Chrome でキャレットが欄の高さまで伸びる */
 const HEIGHT_BY_SIZE = {
-  sm: "h-24",
-  md: "h-32",
+  sm: "h-20",
+  md: "h-[120px]",
   lg: "h-40",
 } as const;
+
+const TEXT_STYLE: React.CSSProperties = {
+  fontSize: 14,
+  lineHeight: "20px",
+  fieldSizing: "fixed",
+};
 
 export function DisplayOrTextarea({
   edit,
@@ -33,19 +40,16 @@ export function DisplayOrTextarea({
   textClassName = "",
   heightClass,
 }: Props) {
+  const bodyHeightClass = heightClass ?? HEIGHT_BY_SIZE[size];
+
   return (
     <div className={className}>
       {label ? (
         <div className="text-xs text-slate-300 mb-1">{label}</div>
       ) : null}
 
-      {/* 外殻：枠/背景/高さを常にここで描く（編集オン/オフで固定） */}
       <div
-        className={clsx(
-          "ui-field-shell",
-          edit && "ui-field-shell--edit",
-          heightClass ?? HEIGHT_BY_SIZE[size]
-        )}
+        className={clsx("ui-field-shell", edit && "ui-field-shell--edit")}
       >
         {edit ? (
           <textarea
@@ -54,18 +58,22 @@ export function DisplayOrTextarea({
             onBlur={onBlur}
             placeholder={placeholder}
             className={clsx(
-              "ui-textarea",
-              "[scrollbar-gutter:stable]",
+              "block w-full resize-none overflow-y-auto bg-transparent outline-none border-0 p-0",
+              "text-slate-100 placeholder:text-slate-200 [scrollbar-gutter:stable]",
+              bodyHeightClass,
               textClassName
             )}
+            style={TEXT_STYLE}
           />
         ) : (
           <div
             className={clsx(
-              "ui-textarea-readonly",
-              "[scrollbar-gutter:stable]",
+              "overflow-y-auto whitespace-pre-wrap cursor-default select-none caret-transparent",
+              "text-slate-200 [scrollbar-gutter:stable]",
+              bodyHeightClass,
               textClassName
             )}
+            style={TEXT_STYLE}
             tabIndex={-1}
             aria-readonly="true"
           >

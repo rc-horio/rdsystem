@@ -39,10 +39,14 @@ export const handler = async (event) => {
 
     const uploadUrl = await getSignedUrl(s3, putCmd, { expiresIn: 300 });
 
-    // URL 用には key 全体を encode
-    const publicUrl = `https://${BUCKET}.s3.ap-northeast-1.amazonaws.com/${encodeURI(
-      key
-    )}`;
+    // ブラウザ表示は CloudFront（バケット直リンクは非公開で 403 になる）
+    const publicBase = String(process.env.PUBLIC_BASE_URL || "").replace(
+      /\/+$/,
+      ""
+    );
+    const publicUrl = publicBase
+      ? `${publicBase}/${encodeURI(key)}`
+      : `https://${BUCKET}.s3.ap-northeast-1.amazonaws.com/${encodeURI(key)}`;
 
     return {
       statusCode: 200,
