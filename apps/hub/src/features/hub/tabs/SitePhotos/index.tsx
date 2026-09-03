@@ -28,12 +28,11 @@ function PhotoMemoTextarea({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="memo"
-        className="block w-full resize-none overflow-y-auto bg-transparent outline-none border-0 p-0 text-slate-100 placeholder:text-slate-500"
+        className="block w-full resize-none overflow-y-auto bg-transparent outline-none border-0 p-0 text-slate-100 placeholder:text-slate-500 [field-sizing:fixed]"
         style={{
           fontSize: 14,
           lineHeight: `${PHOTO_MEMO_LINE_PX}px`,
           height: rows * PHOTO_MEMO_LINE_PX,
-          fieldSizing: "fixed",
         }}
       />
     </div>

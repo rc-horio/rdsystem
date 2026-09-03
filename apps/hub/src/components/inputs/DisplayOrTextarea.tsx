@@ -25,7 +25,6 @@ const HEIGHT_BY_SIZE = {
 const TEXT_STYLE: React.CSSProperties = {
   fontSize: 14,
   lineHeight: "20px",
-  fieldSizing: "fixed",
 };
 
 export function DisplayOrTextarea({
@@ -59,7 +58,7 @@ export function DisplayOrTextarea({
             placeholder={placeholder}
             className={clsx(
               "block w-full resize-none overflow-y-auto bg-transparent outline-none border-0 p-0",
-              "text-slate-100 placeholder:text-slate-200 [scrollbar-gutter:stable]",
+              "text-slate-100 placeholder:text-slate-200 [scrollbar-gutter:stable] [field-sizing:fixed]",
               bodyHeightClass,
               textClassName
             )}
