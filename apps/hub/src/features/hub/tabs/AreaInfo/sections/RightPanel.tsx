@@ -44,6 +44,15 @@ export function formatTurn(turn: any): string {
     : `時計回りに${turn.angle_deg}度回転`;
 }
 
+/** 保安エリア距離。小数第1位まで。整数は .0 を付けない */
+function formatDec1(n: unknown): string {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return "";
+  const rounded = Math.round(v * 10) / 10;
+  if (rounded % 1 === 0) return String(Math.round(rounded));
+  return rounded.toFixed(1);
+}
+
 export function RightPanel({
   edit,
   area,
@@ -311,7 +320,7 @@ export function RightPanel({
           <span className="w-4 text-2xl leading-none text-center mr-3">:</span>
           <DisplayOrInput
             edit={false}
-            value={(safetyArea.buffer_m ?? "").toString()}
+            value={formatDec1(safetyArea.buffer_m)}
             // onChange={(e) =>
             //   patch(["geometry", "safetyArea", "buffer_m"], num(e.target.value))
             // }

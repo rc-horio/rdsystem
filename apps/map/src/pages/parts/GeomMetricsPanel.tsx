@@ -391,7 +391,7 @@ export default function GeomMetricsPanel() {
                   className="v geom-input"
                   type="text"
                   placeholder="-"
-                  value={toInput(m.safetyDistanceNew_m)}
+                  value={toInputDec1(m.safetyDistanceNew_m)}
                   readOnly
                   disabled
                   aria-label="保安距離(新式)"
@@ -425,7 +425,7 @@ export default function GeomMetricsPanel() {
                 className="v geom-input"
                 type="text"
                 placeholder="-"
-                value={toInput(m.safetyDistanceOld_m)}
+                value={toInputDec1(m.safetyDistanceOld_m)}
                 readOnly
                 disabled
                 aria-label="保安距離(旧式)"

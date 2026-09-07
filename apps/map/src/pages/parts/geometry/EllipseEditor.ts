@@ -72,6 +72,11 @@ export class EllipseEditor {
         this.opts = opts;
     }
 
+    /** 保安距離は小数第1位 */
+    private roundDec1(n: number) {
+        return Math.round(n * 10) / 10;
+    }
+
     /** 飛行・保安・直径線の表示切り替え */
     setOverlayVisibility(opts: { flight: boolean; safety: boolean; diameterLines: boolean }) {
         // 表示切替パネルの状態を内部に保持
@@ -844,7 +849,7 @@ export class EllipseEditor {
 
             if (mode === "custom") {
                 // 「任」: buffer_m を変更、飛行エリアは固定
-                const newBuffer = Math.max(0, safetyRadiusX - (Number(cur.radiusX_m) || 0));
+                const newBuffer = this.roundDec1(Math.max(0, safetyRadiusX - (Number(cur.radiusX_m) || 0)));
                 this.updateOverlays(cur.center, cur.radiusX_m, cur.radiusY_m, cur.rotation_deg || 0, { skipMetrics: true, bufferOverride: newBuffer });
                 this.opts.onSafetyBufferChanged?.(newBuffer);
             } else if (mode === "new" || mode === "old") {
@@ -874,7 +879,7 @@ export class EllipseEditor {
             const mode = this.opts.getSafetyMode?.();
 
             if (mode === "custom") {
-                const newBuffer = Math.max(0, safetyRadiusX - (Number(cur.radiusX_m) || 0));
+                const newBuffer = this.roundDec1(Math.max(0, safetyRadiusX - (Number(cur.radiusX_m) || 0)));
                 const next = {
                     ...geom,
                     safetyArea: { ...geom.safetyArea, type: "ellipse" as const, mode: "custom" as const, buffer_m: newBuffer },
@@ -910,7 +915,7 @@ export class EllipseEditor {
             const mode = this.opts.getSafetyMode?.();
 
             if (mode === "custom") {
-                const newBuffer = Math.max(0, safetyRadiusY - (Number(cur.radiusY_m) || 0));
+                const newBuffer = this.roundDec1(Math.max(0, safetyRadiusY - (Number(cur.radiusY_m) || 0)));
                 this.updateOverlays(cur.center, cur.radiusX_m, cur.radiusY_m, cur.rotation_deg || 0, { skipMetrics: true, bufferOverride: newBuffer });
                 this.opts.onSafetyBufferChanged?.(newBuffer);
             } else if (mode === "new" || mode === "old") {
@@ -939,7 +944,7 @@ export class EllipseEditor {
             const mode = this.opts.getSafetyMode?.();
 
             if (mode === "custom") {
-                const newBuffer = Math.max(0, safetyRadiusY - (Number(cur.radiusY_m) || 0));
+                const newBuffer = this.roundDec1(Math.max(0, safetyRadiusY - (Number(cur.radiusY_m) || 0)));
                 const next = {
                     ...geom,
                     safetyArea: { ...geom.safetyArea, type: "ellipse" as const, mode: "custom" as const, buffer_m: newBuffer },

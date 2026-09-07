@@ -185,8 +185,8 @@ export class RectEditor {
         let rectRotation_deg: number | undefined;
         const mRL = this.computeRightLeftLengths(cs, takeoff.referencePointIndex);
         if (mRL) {
-            rectWidth_m = Math.round(mRL.right_m);
-            rectDepth_m = Math.round(mRL.left_m);
+            rectWidth_m = this.roundDec1(mRL.right_m);
+            rectDepth_m = this.roundDec1(mRL.left_m);
         }
         
         // 角度を取得
@@ -261,6 +261,11 @@ export class RectEditor {
     }
 
     // ========================= 内部実装 =========================
+
+    /** 幅・奥行は小数第1位（SAVE後の再描画でも整数にしない） */
+    private roundDec1(n: number) {
+        return Math.round(n * 10) / 10;
+    }
 
     /** インデックスをクランプ */
     private clampIndex(len: number, idx?: number) {
@@ -478,8 +483,8 @@ export class RectEditor {
                 const rectParams = this.rectParamsFromCoords(finalCoords);
                 if (mRL) {
                     this.opts.onMetrics({
-                        rectWidth_m: mRL.right_m,
-                        rectDepth_m: mRL.left_m,
+                        rectWidth_m: this.roundDec1(mRL.right_m),
+                        rectDepth_m: this.roundDec1(mRL.left_m),
                         rectRotation_deg: rectParams ? Math.round(rectParams.rotation_deg) : undefined,
                     });
                 }
@@ -638,8 +643,8 @@ export class RectEditor {
                 const mRL = this.computeRightLeftLengths(rotatedCoords, edit.refIndex);
                 if (mRL) {
                     this.opts.onMetrics({
-                        rectWidth_m: mRL.right_m,
-                        rectDepth_m: mRL.left_m,
+                        rectWidth_m: this.roundDec1(mRL.right_m),
+                        rectDepth_m: this.roundDec1(mRL.left_m),
                         rectRotation_deg: Math.round(newRot),
                     });
                 }
@@ -711,8 +716,8 @@ export class RectEditor {
             const rectParams = this.rectParamsFromCoords(coords);
             if (mRL) {
                 this.opts.onMetrics({
-                    rectWidth_m: mRL.right_m,
-                    rectDepth_m: mRL.left_m,
+                    rectWidth_m: this.roundDec1(mRL.right_m),
+                    rectDepth_m: this.roundDec1(mRL.left_m),
                     rectRotation_deg: rectParams ? Math.round(rectParams.rotation_deg) : undefined,
                 });
             }

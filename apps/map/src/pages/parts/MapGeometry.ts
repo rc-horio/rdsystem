@@ -214,11 +214,12 @@ export class MapGeometry {
                 });
             },
             onSafetyBufferChanged: (buffer_m) => {
+                const rounded = this.roundDec1(buffer_m);
                 setDetailBarMetrics({
                     safetyMode: "custom",
-                    buffer_m,
-                    safetyDistance_m: buffer_m,
-                    safetyCustom_m: buffer_m,
+                    buffer_m: rounded,
+                    safetyDistance_m: rounded,
+                    safetyCustom_m: rounded,
                 } as any);
             },
             constrainFlightCenterForShiftDrag: (oldTo, newTo, from) =>
@@ -363,7 +364,7 @@ export class MapGeometry {
 
     /**
      * SAVE 用。右上パネルの表示と同じ丸めを保存値へ載せる。
-     * 飛行エリア直径は整数、保安距離は旧式・新式が整数・任意が小数第1位。
+     * 飛行エリア直径は整数、保安距離は小数第1位。
      */
     private quantizeGeometryForSave(geom: Geometry): Geometry {
         const next: Geometry = { ...geom };
@@ -388,8 +389,7 @@ export class MapGeometry {
             const raw = Math.max(0, Number(sa.buffer_m));
             next.safetyArea = {
                 ...sa,
-                buffer_m:
-                    sa.mode === "custom" ? this.roundDec1(raw) : this.roundInt(raw),
+                buffer_m: this.roundDec1(raw),
             };
         }
 
@@ -685,29 +685,29 @@ export class MapGeometry {
             const { dist_m: distNew } = this.safetyDistanceByTableNew(altForSafety);
             const { dist_m: distOld } = this.safetyDistanceByTableOld(altForSafety);
 
-            (metrics as any).safetyDistanceNew_m = distNew;
-            (metrics as any).safetyDistanceOld_m = distOld;
+            (metrics as any).safetyDistanceNew_m = this.roundDec1(distNew);
+            (metrics as any).safetyDistanceOld_m = this.roundDec1(distOld);
         }
 
         // 選択モードに応じて「表示用」の距離も埋める
         const safetyArea = (geom as any)?.safetyArea;
         if (safetyMode === "custom" && safetyArea?.buffer_m != null) {
             // カスタムモードの場合は保存されているbuffer_mを使用
-            (metrics as any).safetyDistance_m = safetyArea.buffer_m;
-            (metrics as any).buffer_m = safetyArea.buffer_m;
-            (metrics as any).safetyCustom_m = safetyArea.buffer_m;
+            (metrics as any).safetyDistance_m = this.roundDec1(safetyArea.buffer_m);
+            (metrics as any).buffer_m = this.roundDec1(safetyArea.buffer_m);
+            (metrics as any).safetyCustom_m = this.roundDec1(safetyArea.buffer_m);
             // カスタムモードでも新式・旧式の値は計算済み（上記のif文で）
         } else if (altForSafety != null) {
             // 新式・旧式の場合は計算値を使用
             const selected = safetyMode === "old" ?
                 (metrics as any).safetyDistanceOld_m :
                 (metrics as any).safetyDistanceNew_m;
-            (metrics as any).safetyDistance_m = selected;
-            (metrics as any).buffer_m = selected;
+            (metrics as any).safetyDistance_m = this.roundDec1(selected);
+            (metrics as any).buffer_m = this.roundDec1(selected);
         } else if (safetyArea?.buffer_m != null) {
             // 高度が無い場合でもbuffer_mがあればそれを使用
-            (metrics as any).safetyDistance_m = safetyArea.buffer_m;
-            (metrics as any).buffer_m = safetyArea.buffer_m;
+            (metrics as any).safetyDistance_m = this.roundDec1(safetyArea.buffer_m);
+            (metrics as any).buffer_m = this.roundDec1(safetyArea.buffer_m);
         }
 
         // --- Arrow（from: takeoff基準点 → to: flight.center） ---
@@ -948,7 +948,7 @@ export class MapGeometry {
 
             // カスタム値が指定されている場合はそれを使用
             const customBuffer = typeof (d as any).buffer_m === "number" && Number.isFinite((d as any).buffer_m)
-                ? Math.max(0, (d as any).buffer_m)
+                ? Math.max(0, this.roundDec1((d as any).buffer_m))
                 : undefined;
 
             // altMin/altMax は prev からも引き継ぐので、これで「高度が既にある」ケースも true になる
@@ -998,7 +998,7 @@ export class MapGeometry {
                     ...prevSafetyArea,
                     type: "ellipse",
                     mode: nextMode,     // 保存先はここ
-                    buffer_m: buffer,   // 必ず number
+                    buffer_m: this.roundDec1(buffer),   // 必ず number
                 },
             };
 
@@ -1022,21 +1022,23 @@ export class MapGeometry {
                 flightAltitude_min_m: altMin,
                 flightAltitude_Max_m: altMax,
                 safetyMode: nextMode,     // UI 表示用途なら残してOK（保存は safetyArea.mode）
-                buffer_m: buffer,
-                safetyDistance_m: buffer,
+                buffer_m: this.roundDec1(buffer),
+                safetyDistance_m: this.roundDec1(buffer),
             };
 
             // 高度がある場合は新式・旧式の値を計算（カスタムモードでも計算）
             if (hasAlt) {
-                metrics.safetyDistanceNew_m = distNew;
-                metrics.safetyDistanceOld_m = distOld;
+                metrics.safetyDistanceNew_m =
+                    distNew != null ? this.roundDec1(distNew) : distNew;
+                metrics.safetyDistanceOld_m =
+                    distOld != null ? this.roundDec1(distOld) : distOld;
             }
             // 高度がない場合でも、カスタムモードの時は新式・旧式の値を保持するため
             // （GeomMetricsPanelの状態管理で既存の値が保持される）
 
             // カスタムモードの場合はカスタム値も含める
             if (nextMode === "custom") {
-                metrics.safetyCustom_m = buffer;
+                metrics.safetyCustom_m = this.roundDec1(buffer);
             }
 
             setDetailBarMetrics(metrics);
@@ -1419,7 +1421,7 @@ export class MapGeometry {
         const usedAlt = this.ceil10(clamped);
         const row =
             table.find((r) => r.h === usedAlt) ?? table[table.length - 1];
-        return { usedAlt, dist_m: row.d };
+        return { usedAlt, dist_m: this.roundDec1(row.d) };
     }
 
     // 新式テーブル
