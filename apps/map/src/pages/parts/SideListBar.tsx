@@ -2326,24 +2326,20 @@ function SideListBarBase({
 
   return (
     <div id="sidebar" ref={rootRef} role="complementary" aria-label="Sidebar">
-      <div className="mb-3">
+      <div className="sidebar-header">
         <LogoButton size={70} />
-      </div>
-
-      {/* toolbar */}
-      <div
-        className="toolbar no-caret"
-        contentEditable={false}
-        onMouseDown={blurActiveInput}
-      >
-        <div className="toolbar-group">
-          <div className="spacer" />
-          {isOn ? (
-            <ONButton onClick={() => setIsOn(false)} height={iconH} />
-          ) : (
-            <OFFButton onClick={() => setIsOn(true)} height={iconH} />
-          )}
-          {isOn && (
+        <div
+          className="toolbar no-caret"
+          contentEditable={false}
+          onMouseDown={blurActiveInput}
+        >
+          <div className="toolbar-group">
+            {isOn ? (
+              <ONButton onClick={() => setIsOn(false)} height={iconH} />
+            ) : (
+              <OFFButton onClick={() => setIsOn(true)} height={iconH} />
+            )}
+            {isOn && (
               <SaveButton
                 onClick={handleSave}
                 height={iconH}
@@ -2352,6 +2348,7 @@ function SideListBarBase({
                 className="active:scale-95 transition-transform"
               />
             )}
+          </div>
         </div>
       </div>
 
