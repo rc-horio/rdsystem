@@ -51,11 +51,11 @@ export function AddAreaModal({
 
         <div className="new-area-modal__row">
           <span className="new-area-modal__label">住所:</span>
-          <span>{draft.address ?? "不明"}</span>
+          <span className="new-area-modal__value">{draft.address ?? "不明"}</span>
         </div>
         <div className="new-area-modal__row">
           <span className="new-area-modal__label">座標:</span>
-          <span>
+          <span className="new-area-modal__value">
             {draft.lat.toFixed(6)}, {draft.lng.toFixed(6)}
           </span>
         </div>

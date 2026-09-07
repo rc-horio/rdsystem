@@ -3480,8 +3480,17 @@ body:has(#sidebar):not(.sidebar-collapsed) .place-search-overlay {
   cursor: pointer;
 }
 
-/* 住所/座標の行もカーソルは通常矢印に */
-.new-area-modal__row span,
+/* 住所/座標は一部をエリア名に使えるよう選択・コピー可 */
+.new-area-modal__value {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -ms-user-select: text !important;
+  caret-color: auto !important;
+  cursor: text;
+}
+
+/* 住所/座標の行もカーソルは通常矢印に（値は上で上書き） */
+.new-area-modal__row span:not(.new-area-modal__value),
 .register-project-modal__row span {
   cursor: default;
 }
