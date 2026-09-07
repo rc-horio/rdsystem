@@ -11,6 +11,7 @@ import { AddFlightFigureModal } from "./AddFlightFigureModal";
 import {
   FigureTitleAssist,
   FIGURE_TITLE_PLACEHOLDER,
+  FIGURE_TITLE_REQUIRED_MSG,
 } from "./FigureTitleAssist";
 import {
   cloneGeometry,
@@ -89,7 +90,11 @@ export function OwnFlightFigures({
   const commitFigureTitle = (): boolean => {
     if (editingFigureId == null) return false;
     const id = editingFigureId;
-    const finalTitle = editingFigureTitle.trim() || DEFAULT_FIGURE_TITLE;
+    const finalTitle = editingFigureTitle.trim();
+    if (!finalTitle) {
+      window.alert(FIGURE_TITLE_REQUIRED_MSG);
+      return false;
+    }
     if (hasDuplicateFigureTitle(figures, finalTitle, id)) {
       window.alert(
         "同じタイトルの飛行エリア図が既にあります。別のタイトルを入力してください。"
@@ -290,7 +295,10 @@ export function OwnFlightFigures({
                           cancelFigureEdit();
                           return;
                         }
-                        commitFigureTitle();
+                        const ok = commitFigureTitle();
+                        if (!ok) {
+                          window.setTimeout(() => figureInputRef.current?.focus(), 0);
+                        }
                       }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {

@@ -1,5 +1,6 @@
 export const FIGURE_TITLE_PLACEHOLDER = "タイトルを入力";
 export const FIGURE_TITLE_ASSIST_MSG = "タイトルを入力してください";
+export const FIGURE_TITLE_REQUIRED_MSG = "タイトルを入力してください。";
 
 type Props = {
   show: boolean;

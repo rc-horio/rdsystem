@@ -11,6 +11,7 @@ import { AddFlightFigureModal } from "./AddFlightFigureModal";
 import {
   FigureTitleAssist,
   FIGURE_TITLE_PLACEHOLDER,
+  FIGURE_TITLE_REQUIRED_MSG,
 } from "./FigureTitleAssist";
 import {
   geometryToFlatFields,
@@ -139,7 +140,11 @@ export function OtherRecordCard({
   const commitFigureTitle = (): boolean => {
     if (editingFigureIdx == null) return false;
     const idx = editingFigureIdx;
-    const finalTitle = editingFigureTitle.trim() || DEFAULT_FIGURE_TITLE;
+    const finalTitle = editingFigureTitle.trim();
+    if (!finalTitle) {
+      window.alert(FIGURE_TITLE_REQUIRED_MSG);
+      return false;
+    }
 
     if (hasDuplicateFigureTitle(record.figures, finalTitle, idx)) {
       window.alert(
@@ -417,7 +422,13 @@ export function OtherRecordCard({
                               cancelFigureEdit();
                               return;
                             }
-                            commitFigureTitle();
+                            const ok = commitFigureTitle();
+                            if (!ok) {
+                              window.setTimeout(
+                                () => figureInputRef.current?.focus(),
+                                0
+                              );
+                            }
                           }}
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {

@@ -5,13 +5,12 @@ import { AddFlightFigureModal } from "./AddFlightFigureModal";
 import {
   FigureTitleAssist,
   FIGURE_TITLE_PLACEHOLDER,
+  FIGURE_TITLE_REQUIRED_MSG,
 } from "./FigureTitleAssist";
 import {
   type CopySourceItem,
   type CopySourceTree,
 } from "./flightFigureCopy";
-
-const TITLE_REQUIRED_MSG = "タイトルを入力してください。";
 
 type Props = {
   candidates: Candidate[];
@@ -81,7 +80,7 @@ export function ConsideringFigures({
     const idx = editingFigureIdx;
     const finalTitle = editingFigureTitle.trim();
     if (!finalTitle) {
-      window.alert(TITLE_REQUIRED_MSG);
+      window.alert(FIGURE_TITLE_REQUIRED_MSG);
       return false;
     }
 
