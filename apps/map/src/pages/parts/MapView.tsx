@@ -2585,7 +2585,8 @@ export default function MapView({ onLoaded }: Props) {
   /** =========================
    *  Marker rendering
    *  ========================= */
-  function renderMarkers(points: Point[]) {
+  function renderMarkers(points: Point[], opts?: { fit?: boolean }) {
+    const shouldFit = opts?.fit !== false;
     const map = mapRef.current!;
     const gmaps = getGMaps();
 
@@ -2789,8 +2790,8 @@ export default function MapView({ onLoaded }: Props) {
       });
     });
 
-    // 地図の初期方位を適用
-    if (!bounds.isEmpty()) {
+    // 初回読込だけ全マーカーに合わせる。エリア追加後は今の位置・ズームを保つ
+    if (shouldFit && !bounds.isEmpty()) {
       if (desiredHeadingRef.current !== 0) {
         const h = desiredHeadingRef.current;
         const start = performance.now();
@@ -3983,9 +3984,10 @@ export default function MapView({ onLoaded }: Props) {
           }
 
           // ② 最新の areas.json を読み込み直してマーカー再描画
+          //    地図の位置・ズームは変えない
           const points = await loadAreasPoints();
           onLoaded?.(points);
-          renderMarkers(points);
+          renderMarkers(points, { fit: false });
 
           // ③ 入力状態リセット & トースト表示
           resetDraft();
