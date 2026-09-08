@@ -13,7 +13,13 @@ import {
   extractProjectDeleteKeys,
 } from "@/lib/catalogApi";
 import { v4 as uuidv4 } from "uuid";
-import { FullHeightSelect } from "@/components";
+import { FullHeightSelect, ProjectSearchControls } from "@/components";
+import type {
+  ProjectFilterKey,
+  ProjectSortDir,
+  ProjectSortType,
+} from "@/components/ProjectSearchControls";
+import { PROJECT_SORT_DEFAULT_DIR } from "@/components/ProjectSearchControls";
 import {
   partitionProjectsForDropdown,
   PROJECT_SELECT_DIVIDER_LABEL,
@@ -179,6 +185,30 @@ export default function SelectProject() {
   const nextMode = () => setModeIndex((i) => (i + 1) % modes.length);
   const prevMode = () =>
     setModeIndex((i) => (i - 1 + modes.length) % modes.length);
+
+  const [sortType, setSortType] = useState<ProjectSortType>("date");
+  const [sortDir, setSortDir] = useState<ProjectSortDir>("desc");
+  const [filters, setFilters] = useState<Record<ProjectFilterKey, boolean>>({
+    flash: false,
+    fireworks: false,
+    takeoffBox: false,
+  });
+
+  const renderSearchControls = () => (
+    <ProjectSearchControls
+      sortType={sortType}
+      sortDir={sortDir}
+      filters={filters}
+      onSortTypeChange={(next) => {
+        setSortType(next);
+        setSortDir(PROJECT_SORT_DEFAULT_DIR[next]);
+      }}
+      onSortDirChange={setSortDir}
+      onFilterToggle={(key) =>
+        setFilters((prev) => ({ ...prev, [key]: !prev[key] }))
+      }
+    />
+  );
 
   const modeLabel = mode === "Hub" ? "RD Hub" : mode === "Map" ? "RD Map" : mode;
 
@@ -495,6 +525,7 @@ export default function SelectProject() {
                         onChange={setSelectedProject}
                         placeholder="-- Select a project --"
                         fullHeight={false}
+                        menuToolbar={renderSearchControls()}
                       />
                     </label>
                   </div>
@@ -595,14 +626,17 @@ export default function SelectProject() {
                 <p className="w-full text-center text-red-400">{error}</p>
               ) : mode === "Hub" ? (
                 <div className="w-full">
-                  <label className="block space-y-1 mt-2">
-                    <FullHeightSelect
-                      optionGroups={projectOptionGroups}
-                      value={selectedProject}
-                      onChange={setSelectedProject}
-                      placeholder="-- Select a project --"
-                    />
-                  </label>
+                  <div className="mt-2">
+                    <label className="block space-y-1">
+                      <FullHeightSelect
+                        optionGroups={projectOptionGroups}
+                        value={selectedProject}
+                        onChange={setSelectedProject}
+                        placeholder="-- Select a project --"
+                        menuToolbar={renderSearchControls()}
+                      />
+                    </label>
+                  </div>
                 </div>
               ) : (
                 <div className="w-full text-center text-slate-400">

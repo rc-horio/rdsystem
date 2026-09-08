@@ -1,8 +1,10 @@
 // apps/auth/src/components/FullHeightSelect.tsx
-import { useMemo } from "react";
+import { useMemo, useRef, type ReactNode } from "react";
 import Select, {
+  components,
   type GroupBase,
   type GroupHeadingProps,
+  type MenuListProps,
   type StylesConfig,
 } from "react-select";
 import { PROJECT_SELECT_DIVIDER_LABEL } from "@/lib/sortProjectsForDropdown";
@@ -37,6 +39,8 @@ type Props = {
   menuOffsetFromCenter?: number;
   /** false=通常のプルダウン（SP向け） */
   fullHeight?: boolean;
+  /** メニュー先頭に固定するツールバー（並べ替え・フィルターなど） */
+  menuToolbar?: ReactNode;
 };
 
 function findOption(
@@ -75,13 +79,16 @@ function DividerGroupHeading(
 }
 
 /** プルダウン：画面上部〜下部まで伸ばして表示 */
-function createFullHeightMenu(config: {
-  top: number;
-  bottom: number;
-  width: string;
-  align: "center" | "right";
-  offsetFromCenter: number;
-}) {
+function createFullHeightMenu(
+  config: {
+    top: number;
+    bottom: number;
+    width: string;
+    align: "center" | "right";
+    offsetFromCenter: number;
+  },
+  toolbarRef: { current: ReactNode }
+) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function FullHeightMenu(props: any) {
     const positionStyle =
@@ -111,8 +118,32 @@ function createFullHeightMenu(config: {
           flexDirection: "column",
         }}
       >
-        {props.children}
+        {toolbarRef.current}
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {props.children}
+        </div>
       </div>
+    );
+  };
+}
+
+function createMenuList(toolbarRef: { current: ReactNode }) {
+  return function MenuList(
+    props: MenuListProps<SelectOption, false, GroupBase<SelectOption>>
+  ) {
+    return (
+      <>
+        {toolbarRef.current}
+        <components.MenuList {...props} />
+      </>
     );
   };
 }
@@ -128,7 +159,7 @@ const createStyles = (fullHeight: boolean): StylesConfig<SelectOption, false> =>
   menu: (base) => ({ ...base, backgroundColor: "#020617" }),
   menuList: (base) => ({
     ...base,
-    maxHeight: fullHeight ? "calc(100vh - 96px)" : 300,
+    maxHeight: fullHeight ? "100%" : 300,
   }),
   groupHeading: (base) => ({
     ...base,
@@ -137,8 +168,9 @@ const createStyles = (fullHeight: boolean): StylesConfig<SelectOption, false> =>
   }),
   option: (base, state) => ({
     ...base,
-    padding: "8px 12px",
+    padding: "10px 14px",
     fontSize: "14px",
+    lineHeight: 1.4,
     backgroundColor: state.isFocused ? "#1e293b" : "transparent",
     color: "#e5e7eb",
     overflow: "hidden",
@@ -160,26 +192,33 @@ export function FullHeightSelect({
   isSearchable = true,
   menuTop = 72,
   menuBottom = 24,
-  menuWidth = "min(320px, 90vw)",
+  menuWidth = "min(380px, 92vw)",
   menuAlign = "right",
   menuOffsetFromCenter = 200,
   fullHeight = true,
+  menuToolbar,
 }: Props) {
   const selected = useMemo(
     () => findOption(value, options, optionGroups),
     [value, options, optionGroups]
   );
 
+  const toolbarRef = useRef<ReactNode>(null);
+  toolbarRef.current = menuToolbar ?? null;
+
   const Menu = useMemo(
     () =>
       fullHeight
-        ? createFullHeightMenu({
-            top: menuTop,
-            bottom: menuBottom,
-            width: menuWidth,
-            align: menuAlign,
-            offsetFromCenter: menuOffsetFromCenter,
-          })
+        ? createFullHeightMenu(
+            {
+              top: menuTop,
+              bottom: menuBottom,
+              width: menuWidth,
+              align: menuAlign,
+              offsetFromCenter: menuOffsetFromCenter,
+            },
+            toolbarRef
+          )
         : undefined,
     [
       fullHeight,
@@ -191,8 +230,19 @@ export function FullHeightSelect({
     ]
   );
 
+  const MenuList = useMemo(
+    () => (fullHeight ? undefined : createMenuList(toolbarRef)),
+    [fullHeight]
+  );
+
   const selectOptions = optionGroups ?? options ?? [];
   const useGroups = !!optionGroups;
+
+  const extraComponents = {
+    ...(Menu ? { Menu } : {}),
+    ...(MenuList ? { MenuList } : {}),
+    ...(useGroups ? { GroupHeading: DividerGroupHeading } : {}),
+  };
 
   return (
     <Select<SelectOption, false, GroupBase<SelectOption>>
@@ -207,14 +257,7 @@ export function FullHeightSelect({
       menuPortalTarget={fullHeight ? document.body : undefined}
       menuPosition={fullHeight ? "fixed" : undefined}
       components={
-        useGroups
-          ? {
-              ...(Menu ? { Menu } : {}),
-              GroupHeading: DividerGroupHeading,
-            }
-          : Menu
-            ? { Menu }
-            : undefined
+        Object.keys(extraComponents).length > 0 ? extraComponents : undefined
       }
       styles={createStyles(fullHeight)}
     />
