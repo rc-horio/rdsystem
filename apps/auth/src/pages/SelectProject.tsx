@@ -25,8 +25,8 @@ import {
   sortProjectsByEventDate,
 } from "@/lib/sortProjectsForDropdown";
 import {
-  indexMaxDroneCount,
-  indexUsesTakeoffLandingBox,
+  indexProjectCatalogFlags,
+  projectMatchesFilters,
 } from "@/lib/projectIndexFlags";
 
 // 環境変数からHub・Map・ストックコンテンツのベースURLを取得
@@ -63,6 +63,8 @@ interface ProjectMeta {
   projectName: string;
   usesTakeoffLandingBox?: boolean;
   droneCount?: number;
+  hasFlash?: boolean;
+  hasFireworks?: boolean;
 }
 
 type ListRow = {
@@ -71,6 +73,8 @@ type ListRow = {
   projectName: string;
   usesTakeoffLandingBox?: boolean;
   droneCount?: number;
+  hasFlash?: boolean;
+  hasFireworks?: boolean;
 };
 
 const toSlug = (s: string) =>
@@ -222,25 +226,30 @@ export default function SelectProject() {
   const navigate = useNavigate();
 
   const listedProjects = useMemo(() => {
-    const filtered = filters.takeoffBox
-      ? projects.filter((p) => Boolean(p.usesTakeoffLandingBox))
-      : projects;
+    const filtered = projects.filter((p) => projectMatchesFilters(p, filters));
     if (sortType === "date") return sortProjectsByEventDate(filtered, sortDir);
     if (sortType === "droneCount") return sortProjectsByDroneCount(filtered, sortDir);
     return filtered;
-  }, [projects, filters.takeoffBox, sortType, sortDir]);
+  }, [projects, filters, sortType, sortDir]);
 
   const needBoxFlags = filters.takeoffBox;
+  const needFlashFlags = filters.flash;
+  const needFireworksFlags = filters.fireworks;
   const needDroneCounts = sortType === "droneCount";
   const resolvingCatalogFlags =
     (needBoxFlags && projects.some((p) => p.usesTakeoffLandingBox == null)) ||
+    (needFlashFlags && projects.some((p) => p.hasFlash == null)) ||
+    (needFireworksFlags && projects.some((p) => p.hasFireworks == null)) ||
     (needDroneCounts && projects.some((p) => p.droneCount == null));
 
   useEffect(() => {
-    if (!needBoxFlags && !needDroneCounts) return;
+    if (!needBoxFlags && !needFlashFlags && !needFireworksFlags && !needDroneCounts)
+      return;
     const missing = projects.filter((p) => {
       if (!p.uuid) return false;
       if (needBoxFlags && p.usesTakeoffLandingBox == null) return true;
+      if (needFlashFlags && p.hasFlash == null) return true;
+      if (needFireworksFlags && p.hasFireworks == null) return true;
       if (needDroneCounts && p.droneCount == null) return true;
       return false;
     });
@@ -250,13 +259,7 @@ export default function SelectProject() {
       const pairs = await Promise.all(
         missing.map(async (p) => {
           const data = await fetchProjectIndex(p.uuid);
-          return [
-            p.uuid,
-            {
-              usesTakeoffLandingBox: indexUsesTakeoffLandingBox(data),
-              droneCount: indexMaxDroneCount(data),
-            },
-          ] as const;
+          return [p.uuid, indexProjectCatalogFlags(data)] as const;
         })
       );
       if (cancelled) return;
@@ -270,6 +273,8 @@ export default function SelectProject() {
             usesTakeoffLandingBox:
               p.usesTakeoffLandingBox ?? flags.usesTakeoffLandingBox,
             droneCount: p.droneCount ?? flags.droneCount,
+            hasFlash: p.hasFlash ?? flags.hasFlash,
+            hasFireworks: p.hasFireworks ?? flags.hasFireworks,
           };
         })
       );
@@ -277,7 +282,7 @@ export default function SelectProject() {
     return () => {
       cancelled = true;
     };
-  }, [needBoxFlags, needDroneCounts, projects]);
+  }, [needBoxFlags, needFlashFlags, needFireworksFlags, needDroneCounts, projects]);
 
   const toProjectOption = (p: ProjectMeta) => ({
     value: p.projectId,

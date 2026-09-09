@@ -9,6 +9,7 @@ import {
 import { SectionTitle, DividerRed } from "@/components";
 import type { OperationMultiBlockViewModel } from "@/features/hub/tabs/Operation/utils/operationMultiBlockGrid";
 import { OPERATION_MAX_MODULES } from "@/features/hub/tabs/Operation/constants";
+import type { OperationModuleKind } from "@/features/hub/types/resource";
 import { useEffect, useState } from "react";
 
 export function MobilePanel(props: {
@@ -23,6 +24,7 @@ export function MobilePanel(props: {
   setMemoValue: (v: string) => void;
   modules: {
     name: string;
+    kind?: OperationModuleKind;
     input: string;
     appliedIds: number[];
     validationMessage?: string;
@@ -30,6 +32,7 @@ export function MobilePanel(props: {
   onAddModule: () => void;
   onRemoveModule: (index: number) => void;
   onChangeModuleName: (index: number, v: string) => void;
+  onChangeModuleKind: (index: number, v: OperationModuleKind | undefined) => void;
   onChangeModuleInput: (index: number, v: string) => void;
   onNumbersBlurModule: (index: number, normalized: string) => void;
   appliedM1: number[];
@@ -53,6 +56,7 @@ export function MobilePanel(props: {
     onAddModule,
     onRemoveModule,
     onChangeModuleName,
+    onChangeModuleKind,
     onChangeModuleInput,
     onNumbersBlurModule,
     appliedM1,
@@ -194,13 +198,14 @@ export function MobilePanel(props: {
             moduleLabel={`モジュール${idx + 1}`}
             title={m.name}
             onTitleChange={(v) => onChangeModuleName(idx, v)}
+            kind={m.kind}
+            onKindChange={(v) => onChangeModuleKind(idx, v)}
             input={m.input}
             onInputChange={(v) => onChangeModuleInput(idx, v)}
             appliedNums={m.appliedIds}
             validationMessage={m.validationMessage}
             onNumbersBlur={(normalized) => onNumbersBlurModule(idx, normalized)}
             onRemove={() => onRemoveModule(idx)}
-            showModuleLabel={false}
             className="mb-4"
           />
         ))}

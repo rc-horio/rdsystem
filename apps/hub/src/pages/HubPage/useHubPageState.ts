@@ -13,6 +13,8 @@ import { v4 as uuid } from "uuid";
 import { collapseUniformSpacing } from "@/features/hub/utils/spacing";
 import { catalogPublicUrlFromKey } from "@/features/hub/utils/catalogPublicUrl";
 import {
+  projectHasFireworks,
+  projectHasFlash,
   projectMaxDroneCount,
   projectUsesTakeoffLandingBox,
 } from "@/features/hub/utils/projectListFlags";
@@ -793,6 +795,8 @@ export function useHubPageState() {
             usesTakeoffLandingBox:
               projectUsesTakeoffLandingBox(schedulesAfterUpload),
             droneCount: projectMaxDroneCount(schedulesAfterUpload) ?? 0,
+            hasFlash: projectHasFlash(schedulesAfterUpload),
+            hasFireworks: projectHasFireworks(schedulesAfterUpload),
           };
           if (idx >= 0) {
             list[idx] = updatedRow;

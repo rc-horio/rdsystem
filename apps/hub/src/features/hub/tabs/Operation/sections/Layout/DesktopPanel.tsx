@@ -3,6 +3,7 @@ import { MeasureSection, ModuleSection, TableSection, MemoSection } from "..";
 import { DividerRed } from "@/components";
 import type { OperationMultiBlockViewModel } from "@/features/hub/tabs/Operation/utils/operationMultiBlockGrid";
 import { OPERATION_MAX_MODULES } from "@/features/hub/tabs/Operation/constants";
+import type { OperationModuleKind } from "@/features/hub/types/resource";
 
 export function DesktopPanel(props: {
   edit: boolean;
@@ -16,6 +17,7 @@ export function DesktopPanel(props: {
   setMemoValue: (v: string) => void;
   modules: {
     name: string;
+    kind?: OperationModuleKind;
     input: string;
     appliedIds: number[];
     validationMessage?: string;
@@ -23,6 +25,7 @@ export function DesktopPanel(props: {
   onAddModule: () => void;
   onRemoveModule: (index: number) => void;
   onChangeModuleName: (index: number, v: string) => void;
+  onChangeModuleKind: (index: number, v: OperationModuleKind | undefined) => void;
   onChangeModuleInput: (index: number, v: string) => void;
   onNumbersBlurModule: (index: number, normalized: string) => void;
   appliedM1: number[];
@@ -44,6 +47,7 @@ export function DesktopPanel(props: {
     onAddModule,
     onRemoveModule,
     onChangeModuleName,
+    onChangeModuleKind,
     onChangeModuleInput,
     onNumbersBlurModule,
     appliedM1,
@@ -129,6 +133,8 @@ export function DesktopPanel(props: {
                   moduleLabel={`モジュール${index}`}
                   title={m.name}
                   onTitleChange={(v) => onChangeModuleName(idx, v)}
+                  kind={m.kind}
+                  onKindChange={(v) => onChangeModuleKind(idx, v)}
                   input={m.input}
                   onInputChange={(v) => onChangeModuleInput(idx, v)}
                   appliedNums={m.appliedIds}

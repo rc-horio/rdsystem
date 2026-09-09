@@ -4,10 +4,12 @@ import { DesktopPanel, MobilePanel } from "./sections";
 import { useGrid } from "./hooks/useGrid";
 import { parseNums, normalizeInput } from "./utils/format";
 import { buildOperationMultiBlockViewModel } from "./utils/operationMultiBlockGrid";
-import { OPERATION_MAX_MODULES } from "./constants";
+import { OPERATION_MAX_MODULES, parseOperationModuleKind } from "./constants";
+import type { OperationModuleKind } from "@/features/hub/types/resource";
 
 type UiModule = {
   name: string;
+  kind?: OperationModuleKind;
   input: string;
   appliedIds: number[];
   validationMessage?: string;
@@ -209,6 +211,7 @@ export default function OperationTab({
     const payload = nextModules.map((m) => ({
       name: m.name,
       ids: parseNums(normalizeInput(m.input ?? "")),
+      ...(m.kind ? { kind: m.kind } : {}),
     }));
     onPatchOperation({ modules: payload });
   };
@@ -239,6 +242,19 @@ export default function OperationTab({
       const next = [...prev];
       if (!next[index]) return prev;
       next[index] = { ...next[index], name: v };
+      patchModulesToOperation(next);
+      return next;
+    });
+  };
+
+  const handleChangeModuleKind = (
+    index: number,
+    v: OperationModuleKind | undefined
+  ) => {
+    setModules((prev) => {
+      const next = [...prev];
+      if (!next[index]) return prev;
+      next[index] = { ...next[index], kind: v };
       patchModulesToOperation(next);
       return next;
     });
@@ -313,14 +329,12 @@ export default function OperationTab({
     if (snapshot !== lastInitRef.current) {
       lastInitRef.current = snapshot;
 
-      const mods: { name?: string; ids?: number[] }[] = Array.isArray(
-        operation?.modules
-      )
-        ? operation!.modules
-        : [];
+      const mods: { name?: string; ids?: number[]; kind?: unknown }[] =
+        Array.isArray(operation?.modules) ? operation!.modules : [];
       setModules(
         mods.slice(0, OPERATION_MAX_MODULES).map((m, idx) => ({
           name: typeof m?.name === "string" ? m.name : `モジュール${idx + 1}`,
+          kind: parseOperationModuleKind(m?.kind),
           input: Array.isArray(m?.ids) ? m.ids.join(" ") : "",
           appliedIds: Array.isArray(m?.ids) ? m.ids : [],
           validationMessage: undefined,
@@ -384,6 +398,7 @@ export default function OperationTab({
         onAddModule={handleAddModule}
         onRemoveModule={handleRemoveModule}
         onChangeModuleName={handleChangeModuleName}
+        onChangeModuleKind={handleChangeModuleKind}
         onChangeModuleInput={handleChangeModuleInput}
         onNumbersBlurModule={handleNumbersBlurModule}
         appliedM1={appliedM1}
@@ -420,6 +435,7 @@ export default function OperationTab({
         onAddModule={handleAddModule}
         onRemoveModule={handleRemoveModule}
         onChangeModuleName={handleChangeModuleName}
+        onChangeModuleKind={handleChangeModuleKind}
         onChangeModuleInput={handleChangeModuleInput}
         onNumbersBlurModule={handleNumbersBlurModule}
         appliedM1={appliedM1}

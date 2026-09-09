@@ -1,6 +1,12 @@
 // src/features/hub/tabs/Operation/sections/ModuleSection.tsx
 import { DisplayOrInput, DisplayOrTextarea, CopyButton } from "@/components";
 import { normalizeInput } from "../utils/format";
+import {
+  OPERATION_MODULE_KIND_OPTIONS,
+  operationModuleKindLabel,
+} from "../constants";
+import type { OperationModuleKind } from "@/features/hub/types/resource";
+import clsx from "clsx";
 
 type Props = {
   edit: boolean;
@@ -8,6 +14,8 @@ type Props = {
   moduleLabel?: string;
   title: string;
   onTitleChange: (v: string) => void;
+  kind?: OperationModuleKind;
+  onKindChange: (v: OperationModuleKind | undefined) => void;
   input: string;
   onInputChange: (v: string) => void;
   compact?: boolean;
@@ -25,6 +33,8 @@ export function ModuleSection({
   moduleLabel = "モジュール",
   title,
   onTitleChange,
+  kind,
+  onKindChange,
   input,
   onInputChange,
   compact = false,
@@ -56,9 +66,42 @@ export function ModuleSection({
   return (
     <section className={className}>
       <div className={compact ? "space-y-1.5 mb-2" : "space-y-2 mb-4"}>
-        {showModuleLabel && (
-          <p className="text-xs text-slate-300">{moduleLabel}</p>
-        )}
+        <div className="flex min-w-0 items-center gap-1.5">
+          {showModuleLabel && (
+            <p className="shrink-0 text-xs text-slate-300">{moduleLabel}</p>
+          )}
+          {edit ? (
+            <div className="ml-auto flex flex-wrap justify-end gap-1">
+              {OPERATION_MODULE_KIND_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  aria-pressed={kind === opt.value}
+                  onClick={() =>
+                    onKindChange(kind === opt.value ? undefined : opt.value)
+                  }
+                  className={clsx(
+                    "rounded border px-2 py-1 text-xs leading-none",
+                    kind === opt.value
+                      ? "border-red-600 bg-red-600 text-white"
+                      : "border-slate-700 text-slate-200 bg-slate-900/40 hover:bg-slate-900/60"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p
+              className={clsx(
+                "ml-auto text-xs",
+                kind ? "text-slate-200" : "text-slate-500"
+              )}
+            >
+              {operationModuleKindLabel(kind)}
+            </p>
+          )}
+        </div>
 
         <div className="flex items-center gap-2">
           <DisplayOrInput

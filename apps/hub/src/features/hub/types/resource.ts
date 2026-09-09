@@ -82,6 +82,8 @@ export type Placement = {
   spacing_m: number;
 };
 
+export type OperationModuleKind = "flash" | "fireworks";
+
 export type Area = {
   area_name: string;
   drone_count: {
@@ -149,6 +151,8 @@ export type Operation = {
   modules: {
     name: string;
     ids: number[];
+    /** 検索用。フラッシュ / 花火。未設定は検索に載らない */
+    kind?: OperationModuleKind;
   }[];
   measurement: {
     target_id: string | null;

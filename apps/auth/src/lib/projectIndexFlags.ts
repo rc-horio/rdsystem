@@ -9,6 +9,35 @@ export function indexUsesTakeoffLandingBox(
   );
 }
 
+function scheduleOperationModules(schedule: unknown): { kind?: unknown }[] {
+  if (!schedule || typeof schedule !== "object") return [];
+  const s = schedule as {
+    operation?: { modules?: unknown };
+    operations?: { modules?: unknown };
+  };
+  const op = s.operation ?? s.operations;
+  const mods = op?.modules;
+  return Array.isArray(mods) ? (mods as { kind?: unknown }[]) : [];
+}
+
+function indexHasModuleKind(
+  data: Record<string, unknown> | null,
+  kind: "flash" | "fireworks"
+): boolean {
+  const schedules = Array.isArray(data?.schedules) ? data.schedules : [];
+  return schedules.some((s) =>
+    scheduleOperationModules(s).some((m) => m?.kind === kind)
+  );
+}
+
+export function indexHasFlash(data: Record<string, unknown> | null): boolean {
+  return indexHasModuleKind(data, "flash");
+}
+
+export function indexHasFireworks(data: Record<string, unknown> | null): boolean {
+  return indexHasModuleKind(data, "fireworks");
+}
+
 function scheduleDroneCount(area: unknown): number | undefined {
   if (!area || typeof area !== "object") return undefined;
   const a = area as {
@@ -41,4 +70,29 @@ export function indexMaxDroneCount(data: Record<string, unknown> | null): number
     max = max == null ? n : Math.max(max, n);
   }
   return max ?? 0;
+}
+
+export function indexProjectCatalogFlags(data: Record<string, unknown> | null) {
+  return {
+    usesTakeoffLandingBox: indexUsesTakeoffLandingBox(data),
+    droneCount: indexMaxDroneCount(data),
+    hasFlash: indexHasFlash(data),
+    hasFireworks: indexHasFireworks(data),
+  };
+}
+
+export function projectMatchesFilters(
+  project: {
+    hasFlash?: boolean;
+    hasFireworks?: boolean;
+    usesTakeoffLandingBox?: boolean;
+  },
+  filters: { flash: boolean; fireworks: boolean; takeoffBox: boolean }
+): boolean {
+  const anyOn = filters.flash || filters.fireworks || filters.takeoffBox;
+  if (!anyOn) return true;
+  if (filters.flash && Boolean(project.hasFlash)) return true;
+  if (filters.fireworks && Boolean(project.hasFireworks)) return true;
+  if (filters.takeoffBox && Boolean(project.usesTakeoffLandingBox)) return true;
+  return false;
 }

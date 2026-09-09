@@ -41,3 +41,28 @@ export function projectMaxDroneCount(
   }
   return max;
 }
+
+function scheduleOperationModules(
+  schedule: { operation?: { modules?: { kind?: unknown }[] } } | null | undefined
+): { kind?: unknown }[] {
+  const mods = schedule?.operation?.modules;
+  return Array.isArray(mods) ? mods : [];
+}
+
+/** どれかの日のオペレーションにフラッシュがあれば true */
+export function projectHasFlash(
+  schedules: Pick<ScheduleDetail, "operation">[] | null | undefined
+): boolean {
+  return (schedules ?? []).some((s) =>
+    scheduleOperationModules(s).some((m) => m?.kind === "flash")
+  );
+}
+
+/** どれかの日のオペレーションに花火があれば true */
+export function projectHasFireworks(
+  schedules: Pick<ScheduleDetail, "operation">[] | null | undefined
+): boolean {
+  return (schedules ?? []).some((s) =>
+    scheduleOperationModules(s).some((m) => m?.kind === "fireworks")
+  );
+}
