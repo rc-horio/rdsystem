@@ -58,12 +58,14 @@ interface ProjectMeta {
   uuid: string;
   projectId: string;
   projectName: string;
+  usesTakeoffLandingBox?: boolean;
 }
 
 type ListRow = {
   uuid: string;
   projectId: string;
   projectName: string;
+  usesTakeoffLandingBox?: boolean;
 };
 
 const toSlug = (s: string) =>
@@ -76,6 +78,14 @@ const toSlug = (s: string) =>
 
 const FETCH_LIST_ERROR_MSG =
   "プロジェクト一覧の取得に失敗しました。ネットワークを確認して、しばらく待ってから再試行してください。";
+
+function indexUsesTakeoffLandingBox(data: Record<string, unknown> | null): boolean {
+  const schedules = Array.isArray(data?.schedules) ? data.schedules : [];
+  return schedules.some(
+    (s: { area?: { use_takeoff_landing_box?: boolean } }) =>
+      Boolean(s?.area?.use_takeoff_landing_box)
+  );
+}
 
 async function upsertProjectList(row: ListRow): Promise<ListRow[]> {
   let list: ListRow[] = [];
@@ -219,6 +229,54 @@ export default function SelectProject() {
     [projects]
   );
 
+  const listedActive = useMemo(
+    () =>
+      filters.takeoffBox
+        ? activeProjects.filter((p) => Boolean(p.usesTakeoffLandingBox))
+        : activeProjects,
+    [activeProjects, filters.takeoffBox]
+  );
+  const listedOld = useMemo(
+    () =>
+      filters.takeoffBox
+        ? oldProjects.filter((p) => Boolean(p.usesTakeoffLandingBox))
+        : oldProjects,
+    [oldProjects, filters.takeoffBox]
+  );
+
+  const resolvingBoxFlags =
+    filters.takeoffBox &&
+    projects.some((p) => p.usesTakeoffLandingBox == null);
+
+  useEffect(() => {
+    if (!filters.takeoffBox) return;
+    const missing = projects.filter(
+      (p) => p.uuid && p.usesTakeoffLandingBox == null
+    );
+    if (missing.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const pairs = await Promise.all(
+        missing.map(async (p) => {
+          const data = await fetchProjectIndex(p.uuid);
+          return [p.uuid, indexUsesTakeoffLandingBox(data)] as const;
+        })
+      );
+      if (cancelled) return;
+      const byUuid = new Map(pairs);
+      setProjects((prev) =>
+        prev.map((p) =>
+          byUuid.has(p.uuid)
+            ? { ...p, usesTakeoffLandingBox: byUuid.get(p.uuid) }
+            : p
+        )
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [filters.takeoffBox, projects]);
+
   const sortedProjects = useMemo(
     () => [...activeProjects, ...oldProjects],
     [activeProjects, oldProjects]
@@ -230,8 +288,8 @@ export default function SelectProject() {
   });
 
   const projectOptionGroups = useMemo((): SelectOptionGroup[] => {
-    const activeOpts = activeProjects.map(toProjectOption);
-    const oldOpts = oldProjects.map(toProjectOption);
+    const activeOpts = listedActive.map(toProjectOption);
+    const oldOpts = listedOld.map(toProjectOption);
     if (activeOpts.length === 0) {
       return [{ label: "", options: oldOpts }];
     }
@@ -242,7 +300,15 @@ export default function SelectProject() {
       { label: "", options: activeOpts },
       { label: PROJECT_SELECT_DIVIDER_LABEL, options: oldOpts },
     ];
-  }, [activeProjects, oldProjects]);
+  }, [listedActive, listedOld]);
+
+  useEffect(() => {
+    if (!selectedProject) return;
+    const visible = [...listedActive, ...listedOld].some(
+      (p) => p.projectId === selectedProject
+    );
+    if (!visible) setSelectedProject("");
+  }, [selectedProject, listedActive, listedOld]);
 
   const showProjectDivider =
     activeProjects.length > 0 && oldProjects.length > 0;
@@ -526,6 +592,12 @@ export default function SelectProject() {
                         placeholder="-- Select a project --"
                         fullHeight={false}
                         menuToolbar={renderSearchControls()}
+                        isLoading={resolvingBoxFlags}
+                        noOptionsMessage={
+                          resolvingBoxFlags
+                            ? "読込中…"
+                            : "該当する案件がありません"
+                        }
                       />
                     </label>
                   </div>
@@ -634,6 +706,12 @@ export default function SelectProject() {
                         onChange={setSelectedProject}
                         placeholder="-- Select a project --"
                         menuToolbar={renderSearchControls()}
+                        isLoading={resolvingBoxFlags}
+                        noOptionsMessage={
+                          resolvingBoxFlags
+                            ? "読込中…"
+                            : "該当する案件がありません"
+                        }
                       />
                     </label>
                   </div>

@@ -41,6 +41,8 @@ type Props = {
   fullHeight?: boolean;
   /** メニュー先頭に固定するツールバー（並べ替え・フィルターなど） */
   menuToolbar?: ReactNode;
+  isLoading?: boolean;
+  noOptionsMessage?: string;
 };
 
 function findOption(
@@ -197,6 +199,8 @@ export function FullHeightSelect({
   menuOffsetFromCenter = 200,
   fullHeight = true,
   menuToolbar,
+  isLoading = false,
+  noOptionsMessage = "該当する案件がありません",
 }: Props) {
   const selected = useMemo(
     () => findOption(value, options, optionGroups),
@@ -254,6 +258,8 @@ export function FullHeightSelect({
       placeholder={placeholder}
       isClearable={isClearable}
       isSearchable={isSearchable}
+      isLoading={isLoading}
+      noOptionsMessage={() => noOptionsMessage}
       menuPortalTarget={fullHeight ? document.body : undefined}
       menuPosition={fullHeight ? "fixed" : undefined}
       components={

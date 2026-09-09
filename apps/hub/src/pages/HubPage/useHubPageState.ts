@@ -12,6 +12,7 @@ import {
 import { v4 as uuid } from "uuid";
 import { collapseUniformSpacing } from "@/features/hub/utils/spacing";
 import { catalogPublicUrlFromKey } from "@/features/hub/utils/catalogPublicUrl";
+import { projectUsesTakeoffLandingBox } from "@/features/hub/utils/projectListFlags";
 
 // 環境変数からCatalogのベースURLを取得
 const CATALOG = String(import.meta.env.VITE_CATALOG_BASE_URL || "").replace(/\/+$/, "");
@@ -777,10 +778,17 @@ export function useHubPageState() {
 
           // 現在のUUID行を探して更新 or 追加
           const idx = list.findIndex((x) => x.uuid === currentUuid);
+          const prevRow =
+            idx >= 0 && list[idx] && typeof list[idx] === "object"
+              ? list[idx]
+              : {};
           const updatedRow = {
+            ...prevRow,
             uuid: currentUuid,
             projectId: body.project.id,
             projectName: body.project.name,
+            usesTakeoffLandingBox:
+              projectUsesTakeoffLandingBox(schedulesAfterUpload),
           };
           if (idx >= 0) {
             list[idx] = updatedRow;
