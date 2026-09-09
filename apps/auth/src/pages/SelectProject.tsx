@@ -21,10 +21,13 @@ import type {
 } from "@/components/ProjectSearchControls";
 import { PROJECT_SORT_DEFAULT_DIR } from "@/components/ProjectSearchControls";
 import {
-  partitionProjectsForDropdown,
-  PROJECT_SELECT_DIVIDER_LABEL,
+  sortProjectsByDroneCount,
+  sortProjectsByEventDate,
 } from "@/lib/sortProjectsForDropdown";
-import type { SelectOptionGroup } from "@/components/FullHeightSelect";
+import {
+  indexMaxDroneCount,
+  indexUsesTakeoffLandingBox,
+} from "@/lib/projectIndexFlags";
 
 // 環境変数からHub・Map・ストックコンテンツのベースURLを取得
 const HUB_BASE = String(import.meta.env.VITE_HUB_BASE_URL || "");
@@ -59,6 +62,7 @@ interface ProjectMeta {
   projectId: string;
   projectName: string;
   usesTakeoffLandingBox?: boolean;
+  droneCount?: number;
 }
 
 type ListRow = {
@@ -66,6 +70,7 @@ type ListRow = {
   projectId: string;
   projectName: string;
   usesTakeoffLandingBox?: boolean;
+  droneCount?: number;
 };
 
 const toSlug = (s: string) =>
@@ -78,14 +83,6 @@ const toSlug = (s: string) =>
 
 const FETCH_LIST_ERROR_MSG =
   "プロジェクト一覧の取得に失敗しました。ネットワークを確認して、しばらく待ってから再試行してください。";
-
-function indexUsesTakeoffLandingBox(data: Record<string, unknown> | null): boolean {
-  const schedules = Array.isArray(data?.schedules) ? data.schedules : [];
-  return schedules.some(
-    (s: { area?: { use_takeoff_landing_box?: boolean } }) =>
-      Boolean(s?.area?.use_takeoff_landing_box)
-  );
-}
 
 async function upsertProjectList(row: ListRow): Promise<ListRow[]> {
   let list: ListRow[] = [];
@@ -224,94 +221,79 @@ export default function SelectProject() {
 
   const navigate = useNavigate();
 
-  const { active: activeProjects, old: oldProjects } = useMemo(
-    () => partitionProjectsForDropdown(projects),
-    [projects]
-  );
+  const listedProjects = useMemo(() => {
+    const filtered = filters.takeoffBox
+      ? projects.filter((p) => Boolean(p.usesTakeoffLandingBox))
+      : projects;
+    if (sortType === "date") return sortProjectsByEventDate(filtered, sortDir);
+    if (sortType === "droneCount") return sortProjectsByDroneCount(filtered, sortDir);
+    return filtered;
+  }, [projects, filters.takeoffBox, sortType, sortDir]);
 
-  const listedActive = useMemo(
-    () =>
-      filters.takeoffBox
-        ? activeProjects.filter((p) => Boolean(p.usesTakeoffLandingBox))
-        : activeProjects,
-    [activeProjects, filters.takeoffBox]
-  );
-  const listedOld = useMemo(
-    () =>
-      filters.takeoffBox
-        ? oldProjects.filter((p) => Boolean(p.usesTakeoffLandingBox))
-        : oldProjects,
-    [oldProjects, filters.takeoffBox]
-  );
-
-  const resolvingBoxFlags =
-    filters.takeoffBox &&
-    projects.some((p) => p.usesTakeoffLandingBox == null);
+  const needBoxFlags = filters.takeoffBox;
+  const needDroneCounts = sortType === "droneCount";
+  const resolvingCatalogFlags =
+    (needBoxFlags && projects.some((p) => p.usesTakeoffLandingBox == null)) ||
+    (needDroneCounts && projects.some((p) => p.droneCount == null));
 
   useEffect(() => {
-    if (!filters.takeoffBox) return;
-    const missing = projects.filter(
-      (p) => p.uuid && p.usesTakeoffLandingBox == null
-    );
+    if (!needBoxFlags && !needDroneCounts) return;
+    const missing = projects.filter((p) => {
+      if (!p.uuid) return false;
+      if (needBoxFlags && p.usesTakeoffLandingBox == null) return true;
+      if (needDroneCounts && p.droneCount == null) return true;
+      return false;
+    });
     if (missing.length === 0) return;
     let cancelled = false;
     (async () => {
       const pairs = await Promise.all(
         missing.map(async (p) => {
           const data = await fetchProjectIndex(p.uuid);
-          return [p.uuid, indexUsesTakeoffLandingBox(data)] as const;
+          return [
+            p.uuid,
+            {
+              usesTakeoffLandingBox: indexUsesTakeoffLandingBox(data),
+              droneCount: indexMaxDroneCount(data),
+            },
+          ] as const;
         })
       );
       if (cancelled) return;
       const byUuid = new Map(pairs);
       setProjects((prev) =>
-        prev.map((p) =>
-          byUuid.has(p.uuid)
-            ? { ...p, usesTakeoffLandingBox: byUuid.get(p.uuid) }
-            : p
-        )
+        prev.map((p) => {
+          const flags = byUuid.get(p.uuid);
+          if (!flags) return p;
+          return {
+            ...p,
+            usesTakeoffLandingBox:
+              p.usesTakeoffLandingBox ?? flags.usesTakeoffLandingBox,
+            droneCount: p.droneCount ?? flags.droneCount,
+          };
+        })
       );
     })();
     return () => {
       cancelled = true;
     };
-  }, [filters.takeoffBox, projects]);
-
-  const sortedProjects = useMemo(
-    () => [...activeProjects, ...oldProjects],
-    [activeProjects, oldProjects]
-  );
+  }, [needBoxFlags, needDroneCounts, projects]);
 
   const toProjectOption = (p: ProjectMeta) => ({
     value: p.projectId,
     label: `${p.projectId.slice(0, 6)}-${p.projectName}`,
   });
 
-  const projectOptionGroups = useMemo((): SelectOptionGroup[] => {
-    const activeOpts = listedActive.map(toProjectOption);
-    const oldOpts = listedOld.map(toProjectOption);
-    if (activeOpts.length === 0) {
-      return [{ label: "", options: oldOpts }];
-    }
-    if (oldOpts.length === 0) {
-      return [{ label: "", options: activeOpts }];
-    }
-    return [
-      { label: "", options: activeOpts },
-      { label: PROJECT_SELECT_DIVIDER_LABEL, options: oldOpts },
-    ];
-  }, [listedActive, listedOld]);
+  const projectOptions = useMemo(
+    () => listedProjects.map(toProjectOption),
+    [listedProjects]
+  );
 
   useEffect(() => {
     if (!selectedProject) return;
-    const visible = [...listedActive, ...listedOld].some(
-      (p) => p.projectId === selectedProject
-    );
+    const visible = listedProjects.some((p) => p.projectId === selectedProject);
     if (!visible) setSelectedProject("");
-  }, [selectedProject, listedActive, listedOld]);
-
-  const showProjectDivider =
-    activeProjects.length > 0 && oldProjects.length > 0;
+  }, [selectedProject, listedProjects]);
 
   useEffect(() => {
     (async () => {
@@ -586,15 +568,15 @@ export default function SelectProject() {
                   <div className="w-10/12 max-w-80 mx-auto mt-2">
                     <label className="block space-y-1">
                       <FullHeightSelect
-                        optionGroups={projectOptionGroups}
+                        options={projectOptions}
                         value={selectedProject}
                         onChange={setSelectedProject}
                         placeholder="-- Select a project --"
                         fullHeight={false}
                         menuToolbar={renderSearchControls()}
-                        isLoading={resolvingBoxFlags}
+                        isLoading={resolvingCatalogFlags}
                         noOptionsMessage={
-                          resolvingBoxFlags
+                          resolvingCatalogFlags
                             ? "読込中…"
                             : "該当する案件がありません"
                         }
@@ -701,14 +683,14 @@ export default function SelectProject() {
                   <div className="mt-2">
                     <label className="block space-y-1">
                       <FullHeightSelect
-                        optionGroups={projectOptionGroups}
+                        options={projectOptions}
                         value={selectedProject}
                         onChange={setSelectedProject}
                         placeholder="-- Select a project --"
                         menuToolbar={renderSearchControls()}
-                        isLoading={resolvingBoxFlags}
+                        isLoading={resolvingCatalogFlags}
                         noOptionsMessage={
-                          resolvingBoxFlags
+                          resolvingCatalogFlags
                             ? "読込中…"
                             : "該当する案件がありません"
                         }
@@ -856,17 +838,7 @@ export default function SelectProject() {
                     className="w-full rounded-lg border border-slate-600 bg-slate-900/60 px-3 py-2 text-slate-100 focus:border-red-500 focus:ring-2 focus:ring-red-500 outline-none transition"
                   >
                     <option value="">-- Select a project --</option>
-                    {activeProjects.map((p) => (
-                      <option key={p.projectId} value={p.projectId}>
-                        {`${p.projectId.slice(0, 6)}-${p.projectName}`}
-                      </option>
-                    ))}
-                    {showProjectDivider && (
-                      <option disabled value="" className="text-slate-500">
-                        — Old —
-                      </option>
-                    )}
-                    {oldProjects.map((p) => (
+                    {listedProjects.map((p) => (
                       <option key={p.projectId} value={p.projectId}>
                         {`${p.projectId.slice(0, 6)}-${p.projectName}`}
                       </option>

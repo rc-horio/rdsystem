@@ -12,7 +12,10 @@ import {
 import { v4 as uuid } from "uuid";
 import { collapseUniformSpacing } from "@/features/hub/utils/spacing";
 import { catalogPublicUrlFromKey } from "@/features/hub/utils/catalogPublicUrl";
-import { projectUsesTakeoffLandingBox } from "@/features/hub/utils/projectListFlags";
+import {
+  projectMaxDroneCount,
+  projectUsesTakeoffLandingBox,
+} from "@/features/hub/utils/projectListFlags";
 
 // 環境変数からCatalogのベースURLを取得
 const CATALOG = String(import.meta.env.VITE_CATALOG_BASE_URL || "").replace(/\/+$/, "");
@@ -789,6 +792,7 @@ export function useHubPageState() {
             projectName: body.project.name,
             usesTakeoffLandingBox:
               projectUsesTakeoffLandingBox(schedulesAfterUpload),
+            droneCount: projectMaxDroneCount(schedulesAfterUpload) ?? 0,
           };
           if (idx >= 0) {
             list[idx] = updatedRow;

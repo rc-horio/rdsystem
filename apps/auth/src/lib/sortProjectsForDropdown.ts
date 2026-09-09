@@ -77,6 +77,57 @@ export function partitionProjectsForDropdown<T extends WithProjectId>(
   };
 }
 
+/** 開催日（projectId 先頭 yymmdd）。日付が取れない案件は末尾 */
+export function sortProjectsByEventDate<T extends WithProjectId>(
+  projects: T[],
+  dir: "asc" | "desc"
+): T[] {
+  const dated: { project: T; time: number }[] = [];
+  const undated: T[] = [];
+
+  for (const project of projects) {
+    const date = parseProjectDateFromId(project.projectId);
+    if (!date) {
+      undated.push(project);
+      continue;
+    }
+    dated.push({ project, time: date.getTime() });
+  }
+
+  const byProjectId = (a: T, b: T) =>
+    (a.projectId || "").localeCompare(b.projectId || "");
+
+  dated.sort((a, b) => {
+    const diff = a.time - b.time;
+    if (diff !== 0) return dir === "asc" ? diff : -diff;
+    return byProjectId(a.project, b.project);
+  });
+  undated.sort(byProjectId);
+
+  return [...dated.map((x) => x.project), ...undated];
+}
+
+type WithDroneCount = WithProjectId & { droneCount?: number };
+
+/** 機体数。未設定は末尾 */
+export function sortProjectsByDroneCount<T extends WithDroneCount>(
+  projects: T[],
+  dir: "asc" | "desc"
+): T[] {
+  const byProjectId = (a: T, b: T) =>
+    (a.projectId || "").localeCompare(b.projectId || "");
+
+  return [...projects].sort((a, b) => {
+    const missingA = a.droneCount == null;
+    const missingB = b.droneCount == null;
+    if (missingA !== missingB) return missingA ? 1 : -1;
+    if (missingA && missingB) return byProjectId(a, b);
+    const diff = (a.droneCount ?? 0) - (b.droneCount ?? 0);
+    if (diff !== 0) return dir === "asc" ? diff : -diff;
+    return byProjectId(a, b);
+  });
+}
+
 /**
  * プルダウン表示用: アクティブ（cutoff 以降）を日付昇順、Old を日付降順で結合。
  */
