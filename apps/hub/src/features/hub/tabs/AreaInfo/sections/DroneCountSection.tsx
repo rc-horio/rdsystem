@@ -141,11 +141,7 @@ export function DroneCountSection({
                     ...(A ?? {}),
                     use_takeoff_landing_box: e.target.checked,
                   };
-                  if (
-                    e.target.checked &&
-                    next.takeoff_landing_box_yx !== "4x2" &&
-                    next.takeoff_landing_box_yx !== "2x4"
-                  ) {
+                  if (e.target.checked) {
                     next.takeoff_landing_box_yx = "4x2";
                   }
                   onPatchArea(next);
@@ -154,47 +150,6 @@ export function DroneCountSection({
               />
               離発着ボックス
             </label>
-          </div>
-        )}
-
-        {isEmoModel && Boolean(A.use_takeoff_landing_box) && (
-          <div className={rowCls}>
-            <span className={`${MODEL_LABEL_W} shrink-0`} aria-hidden />
-            <span className={COLON_CLS} aria-hidden />
-            <div className="flex flex-col items-start gap-1 pl-3">
-            <label
-              className={`flex items-center gap-2 text-sm text-slate-200 select-none ${
-                edit ? "cursor-pointer" : "cursor-default"
-              }`}
-            >
-              <input
-                type="radio"
-                name="takeoff-landing-box-yx"
-                disabled={!edit}
-                checked={
-                  (A.takeoff_landing_box_yx ?? "4x2") === "4x2"
-                }
-                onChange={() => patch(["takeoff_landing_box_yx"], "4x2")}
-                className="accent-red-600 h-4 w-4 shrink-0 disabled:opacity-50"
-              />
-              Y４機×X２機
-            </label>
-            <label
-              className={`flex items-center gap-2 text-sm text-slate-200 select-none ${
-                edit ? "cursor-pointer" : "cursor-default"
-              }`}
-            >
-              <input
-                type="radio"
-                name="takeoff-landing-box-yx"
-                disabled={!edit}
-                checked={A.takeoff_landing_box_yx === "2x4"}
-                onChange={() => patch(["takeoff_landing_box_yx"], "2x4")}
-                className="accent-red-600 h-4 w-4 shrink-0 disabled:opacity-50"
-              />
-              Y２機×X４機
-            </label>
-            </div>
           </div>
         )}
 

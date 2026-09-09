@@ -298,7 +298,6 @@ type ModalState = {
   showBlockLabels: boolean;
   showRuler: boolean;
   useTakeoffLandingBox: boolean;
-  takeoffLandingBoxYx: "4x2" | "2x4";
   model: string;
 };
 
@@ -376,7 +375,6 @@ function initialStateFromArea(area: Area | null | undefined): ModalState {
       typeof savedShowBlockLabels === "boolean" ? savedShowBlockLabels : true,
     showRuler: typeof savedShowRuler === "boolean" ? savedShowRuler : true,
     useTakeoffLandingBox: Boolean(area?.use_takeoff_landing_box),
-    takeoffLandingBoxYx: area?.takeoff_landing_box_yx === "2x4" ? "2x4" : "4x2",
     model: ((area?.drone_count as { model?: string } | undefined)?.model ?? "").toString(),
   };
 }
@@ -456,7 +454,7 @@ export function MultiBlockEditModal({
           model: state.model,
         },
     use_takeoff_landing_box: state.model === "EMO" && state.useTakeoffLandingBox,
-    takeoff_landing_box_yx: state.takeoffLandingBoxYx,
+    takeoff_landing_box_yx: "4x2",
   };
 
   const m = buildLandingFigureModel(areaForPreview);
@@ -875,7 +873,7 @@ export function MultiBlockEditModal({
         block_layout: undefined,
         landing_figure_display: figureDisplay as any,
         use_takeoff_landing_box: isEmoModel && state.useTakeoffLandingBox,
-        takeoff_landing_box_yx: state.takeoffLandingBoxYx,
+        takeoff_landing_box_yx: "4x2",
       } as Area;
     } else {
       // 複数ブロック時は blocks / block_layout を正とする。機種など drone_count の属性は残す
@@ -893,7 +891,7 @@ export function MultiBlockEditModal({
         } as any,
         landing_figure_display: figureDisplay as any,
         use_takeoff_landing_box: isEmoModel && state.useTakeoffLandingBox,
-        takeoff_landing_box_yx: state.takeoffLandingBoxYx,
+        takeoff_landing_box_yx: "4x2",
       } as Area;
     }
 
@@ -1109,56 +1107,12 @@ export function MultiBlockEditModal({
                       setState((prev) => ({
                         ...prev,
                         useTakeoffLandingBox: checked,
-                        takeoffLandingBoxYx:
-                          checked &&
-                          prev.takeoffLandingBoxYx !== "4x2" &&
-                          prev.takeoffLandingBoxYx !== "2x4"
-                            ? "4x2"
-                            : prev.takeoffLandingBoxYx,
                       }));
                     }}
                     className="accent-red-600 h-4 w-4 shrink-0 disabled:opacity-50"
                   />
                   離発着ボックス
                 </label>
-                {state.useTakeoffLandingBox && (
-                  <div className="mt-1.5 flex flex-col items-start gap-1">
-                    <label
-                      className={`flex items-center gap-2 text-sm text-slate-200 select-none ${
-                        edit ? "cursor-pointer" : "cursor-default"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="mb-takeoff-landing-box-yx"
-                        disabled={!edit}
-                        checked={state.takeoffLandingBoxYx === "4x2"}
-                        onChange={() =>
-                          setState((prev) => ({ ...prev, takeoffLandingBoxYx: "4x2" }))
-                        }
-                        className="accent-red-600 h-4 w-4 shrink-0 disabled:opacity-50"
-                      />
-                      Y４機×X２機
-                    </label>
-                    <label
-                      className={`flex items-center gap-2 text-sm text-slate-200 select-none ${
-                        edit ? "cursor-pointer" : "cursor-default"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="mb-takeoff-landing-box-yx"
-                        disabled={!edit}
-                        checked={state.takeoffLandingBoxYx === "2x4"}
-                        onChange={() =>
-                          setState((prev) => ({ ...prev, takeoffLandingBoxYx: "2x4" }))
-                        }
-                        className="accent-red-600 h-4 w-4 shrink-0 disabled:opacity-50"
-                      />
-                      Y２機×X４機
-                    </label>
-                  </div>
-                )}
               </>
             )}
           </div>

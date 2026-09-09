@@ -1,19 +1,19 @@
 import type { MultiBlockOccupancyGrid } from "@/features/hub/tabs/AreaInfo/figure/multiBlockOccupancyGrid";
 
-/** Y×X。未設定・不正値は 4x2（Y４機×X２機） */
-export type TakeoffLandingBoxYx = "4x2" | "2x4";
+/** 離発着ボックスは縦長 4x2（Y４機×X２機）のみ */
+export type TakeoffLandingBoxYx = "4x2";
 
 export const TAKEOFF_LANDING_BOX_GAP_PX = 2;
 
-export function parseTakeoffLandingBoxYx(raw: unknown): TakeoffLandingBoxYx {
-  return raw === "2x4" ? "2x4" : "4x2";
+export function parseTakeoffLandingBoxYx(_raw?: unknown): TakeoffLandingBoxYx {
+  return "4x2";
 }
 
-export function takeoffLandingBoxCellSize(yx: TakeoffLandingBoxYx): {
+export function takeoffLandingBoxCellSize(_yx?: TakeoffLandingBoxYx): {
   cols: number;
   rows: number;
 } {
-  return yx === "2x4" ? { cols: 4, rows: 2 } : { cols: 2, rows: 4 };
+  return { cols: 2, rows: 4 };
 }
 
 export type LandingBoxTile = {
@@ -31,7 +31,7 @@ export type LandingBoxTile = {
 type LocalCell = { localCol: number; localRow: number; gc: number; gr: number };
 
 /**
- * 占有グリッドを 2×4 / 4×2 でタイルする。満杯は 8 機、端数は占有セルの外接枠。
+ * 占有グリッドを 4×2（縦4×横2）でタイルする。満杯は 8 機、端数は占有セルの外接枠。
  */
 export function collectLandingBoxTiles(
   occ: MultiBlockOccupancyGrid,

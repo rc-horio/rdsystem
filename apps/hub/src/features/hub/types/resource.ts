@@ -92,8 +92,8 @@ export type Area = {
   };
   /** EMO の離発着ボックスを使う */
   use_takeoff_landing_box?: boolean;
-  /** 離発着ボックスの向き。Y×X。未設定は 4x2 */
-  takeoff_landing_box_yx?: "4x2" | "2x4";
+  /** 離発着ボックスの向き。縦長 4x2 のみ */
+  takeoff_landing_box_yx?: "4x2";
   // flight_area: {
   //   altitude_min_m: number | null;
   //   altitude_max_m: number | null;
