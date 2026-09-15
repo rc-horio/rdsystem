@@ -63,6 +63,7 @@ export function LandingAreaFigure({ edit, area, onPatchArea, spacingBoxRef }: Pr
   const showCornerNumbers = figureDisplay.show_corner_numbers ?? true;
   const showBlockLabels = figureDisplay.show_block_labels ?? true;
   const showRuler = figureDisplay.show_ruler ?? true;
+  const showBoxSeparators = figureDisplay.show_box_separators ?? true;
 
   const firstBlockId = getEffectiveBlocks(area)[0]?.id;
 
@@ -72,6 +73,7 @@ export function LandingAreaFigure({ edit, area, onPatchArea, spacingBoxRef }: Pr
         showCornerNumbers,
         showBlockLabels,
         showRuler,
+        showBoxSeparators,
         cornerByBlockId,
         ruler: {
           leftXOffsetPx: Number.isFinite(ruler.leftXOffsetPx) ? Number(ruler.leftXOffsetPx) : 0,
@@ -82,6 +84,7 @@ export function LandingAreaFigure({ edit, area, onPatchArea, spacingBoxRef }: Pr
         theme: "ui",
         showCornerNumbers,
         showRuler,
+        showBoxSeparators,
         cornerDisplay:
           (firstBlockId && cornerByBlockId[firstBlockId]) || {
             placement: "inside",

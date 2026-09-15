@@ -1,6 +1,8 @@
 // src/features/hub/tabs/AreaInfo/exports/danceSpec/texts.ts
 import { collapseUniformSpacing } from "@/features/hub/utils/spacing";
 import { resolveConfirmedGeometry } from "@/features/hub/utils/flightFigures";
+import { derivedLandingBoxCount } from "@/features/hub/tabs/AreaInfo/figure/landingBoxOccupancy";
+import { getEffectiveBlocks, hasBlocks } from "@/features/hub/utils/areaBlocks";
 
 /** ファイル名に使えない文字を安全化 */
 export const sanitize = (name: string) =>
@@ -92,7 +94,27 @@ export function getAircraftText(areaInput: any): string {
                 : "—";
 
     if (aircraftVal !== "—" && model) aircraftVal = `${model}：${aircraftVal}`;
-    return aircraftVal;
+    return appendLandingBoxCountLine(area, aircraftVal);
+}
+
+/** 離発着ボックス使用時のみ。PDF/PPTX の機体数欄の次行 */
+export function getLandingBoxCountLine(areaInput: any): string | null {
+    const area = normalizeArea(areaInput);
+    if (!area?.use_takeoff_landing_box) return null;
+    const n = hasBlocks(area)
+        ? getEffectiveBlocks(area).reduce(
+              (sum, b) => sum + (derivedLandingBoxCount(b.count) ?? 0),
+              0
+          )
+        : derivedLandingBoxCount(area?.drone_count?.count);
+    if (n == null || n <= 0) return null;
+    return `離発着BOX：${n.toLocaleString("ja-JP")}個`;
+}
+
+export function appendLandingBoxCountLine(areaInput: any, aircraftVal: string): string {
+    if (aircraftVal === "—") return aircraftVal;
+    const line = getLandingBoxCountLine(areaInput);
+    return line ? `${aircraftVal}\n${line}` : aircraftVal;
 }
 
 /** アニメーションサイズ（width/depth が無ければ geometry.flightArea から救済してもよい） */

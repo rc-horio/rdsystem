@@ -124,6 +124,8 @@ export type Area = {
     show_corner_numbers?: boolean;
     show_block_labels?: boolean;
     show_ruler?: boolean;
+    /** 離発着ボックス時、箱の境の隙間。未指定は表示 */
+    show_box_separators?: boolean;
     corner_by_block_id?: Record<
       string,
       {

@@ -7,7 +7,11 @@ import {
   landingBoxRectSvg,
   parseTakeoffLandingBoxYx,
 } from "@/features/hub/tabs/AreaInfo/figure/landingBoxTiles";
-import { landingBoxBlocksContradictionMessage } from "@/features/hub/tabs/AreaInfo/figure/landingBoxOccupancy";
+import {
+  buildLandingBoxOccupancy,
+  landingBoxBlocksContradictionMessage,
+} from "@/features/hub/tabs/AreaInfo/figure/landingBoxOccupancy";
+import { createLandingBoxVisualLayout } from "@/features/hub/tabs/AreaInfo/figure/landingBoxVisualLayout";
 
 type Theme = "ui" | "export";
 
@@ -30,6 +34,8 @@ export function buildMultiBlockLandingFigureSvg(
     showCornerNumbers?: boolean;
     showBlockLabels?: boolean;
     showRuler?: boolean;
+    /** 離発着ボックス時の箱の境。未指定は隙間あり */
+    showBoxSeparators?: boolean;
     /** 全ブロック共通の既定（ブロック別で上書き可） */
     corner?: CornerDisplayOptions;
     /** ブロック ID ごとの機体番号（四隅）表示オプション */
@@ -46,6 +52,7 @@ export function buildMultiBlockLandingFigureSvg(
   const showCornerNumbers = opts?.showCornerNumbers ?? true;
   const showBlockLabels = opts?.showBlockLabels ?? true;
   const showRuler = opts?.showRuler ?? true;
+  const showBoxSeparators = opts?.showBoxSeparators ?? true;
 
   const rulerOpts = opts?.ruler ?? {};
   const leftXOffsetPx = Number.isFinite(rulerOpts.leftXOffsetPx)
@@ -221,6 +228,27 @@ export function buildMultiBlockLandingFigureSvg(
     const countX = Math.trunc(b.xCount);
     const countY = Math.trunc(b.yCount);
     const totalCount = Math.trunc(b.totalCount);
+    const locOcc =
+      useBoxes && countX > 0 && totalCount > 0
+        ? buildLandingBoxOccupancy(countX, totalCount)
+        : null;
+    const boxVis =
+      locOcc && locOcc.gridCols > 0 && locOcc.gridRows > 0
+        ? createLandingBoxVisualLayout({
+            x,
+            y,
+            w,
+            h,
+            gridCols: locOcc.gridCols,
+            gridRows: locOcc.gridRows,
+            seqX,
+            seqY,
+            fallback,
+            seqFromCol: b.colStart,
+            seqFromRow: b.rowBase,
+            gutters: showBoxSeparators,
+          })
+        : null;
 
     const fullRectCount = countX * countY;
     const actualRowCount =
@@ -357,8 +385,12 @@ export function buildMultiBlockLandingFigureSvg(
       corner != null && "trCol" in corner
         ? Number((corner as { trCol?: number }).trCol)
         : NaN;
-    const boxTrX =
-      useBoxes && occ && Number.isFinite(trCol) && occ.gridCols > 0
+    const trCell = locOcc?.cornerCell.tr;
+    const trBox =
+      boxVis && trCell ? boxVis.cellRect(trCell.col, trCell.row) : null;
+    const boxTrX = trBox
+      ? trBox.x + trBox.w
+      : useBoxes && occ && Number.isFinite(trCol) && occ.gridCols > 0
         ? figureLeft + ((trCol + 1) / occ.gridCols) * figureW
         : topRightX;
 
@@ -404,21 +436,21 @@ export function buildMultiBlockLandingFigureSvg(
     const rightInsetX = Math.min(rightInsetRaw, maxInsetX);
 
     const shape = (() => {
-      if (useBoxes && occ && occ.gridCols > 0 && occ.gridRows > 0) {
-        const cellW = figureW / occ.gridCols;
-        const cellH = figureH / occ.gridRows;
+      if (useBoxes && boxVis) {
         return boxTiles
           .filter((t) => t.blockId === b.blockId)
           .map((t) => {
-            const bw = (t.col1 - t.col0 + 1) * cellW;
-            const bh = (t.row1 - t.row0 + 1) * cellH;
-            const bx = figureLeft + t.col0 * cellW;
-            const by = figureTop + (occ.gridRows - 1 - t.row1) * cellH;
+            const r = boxVis.tileRect({
+              col0: t.col0 - b.colStart,
+              col1: t.col1 - b.colStart,
+              row0: t.row0 - b.rowBase,
+              row1: t.row1 - b.rowBase,
+            });
             return landingBoxRectSvg({
-              x: bx,
-              y: by,
-              w: bw,
-              h: bh,
+              x: r.x,
+              y: r.y,
+              w: r.w,
+              h: r.h,
               count: t.count,
               isFull: t.isFull,
               stroke: rectStroke,

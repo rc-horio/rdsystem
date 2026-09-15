@@ -13,6 +13,7 @@ type LandingFigureDisplay = {
   show_corner_numbers?: boolean;
   show_block_labels?: boolean;
   show_ruler?: boolean;
+  show_box_separators?: boolean;
   corner_by_block_id?: Record<string, CornerDisplay>;
   ruler?: {
     leftXOffsetPx?: number;
@@ -28,6 +29,7 @@ export function buildLandingFigureExportSvg(area: any): string {
   const showCornerNumbers = figureDisplay.show_corner_numbers ?? true;
   const showBlockLabels = figureDisplay.show_block_labels ?? true;
   const showRuler = figureDisplay.show_ruler ?? true;
+  const showBoxSeparators = figureDisplay.show_box_separators ?? true;
 
   const leftXOffsetPx = Number.isFinite(ruler.leftXOffsetPx)
     ? Number(ruler.leftXOffsetPx)
@@ -42,6 +44,7 @@ export function buildLandingFigureExportSvg(area: any): string {
       showCornerNumbers,
       showBlockLabels,
       showRuler,
+      showBoxSeparators,
       cornerByBlockId,
       ruler: {
         leftXOffsetPx,
@@ -60,6 +63,7 @@ export function buildLandingFigureExportSvg(area: any): string {
     theme: "export",
     showCornerNumbers,
     showRuler,
+    showBoxSeparators,
     cornerDisplay: singleCorner,
     ruler: {
       leftXOffsetPx,

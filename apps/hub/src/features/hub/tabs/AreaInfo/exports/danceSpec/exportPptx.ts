@@ -4,7 +4,7 @@ import type { ExportOpts } from "./types";
 import { loadDanceSpecHtml } from "./template";
 import { canvasToDataUri, captureElement } from "./capture";
 import PptxGenJS from "pptxgenjs";
-import { buildFileBaseName, formatTurnText, getSpacingBetweenDronesText } from "./texts";
+import { buildFileBaseName, formatTurnText, getSpacingBetweenDronesText, appendLandingBoxCountLine } from "./texts";
 import { buildLandingFigureExportSvg } from "./buildLandingFigureExportSvg";
 import { applyDroneOrientationToPage2 } from "./applyDroneOrientation";
 import { getEffectiveBlocks, hasBlocks } from "@/features/hub/utils/areaBlocks";
@@ -533,6 +533,7 @@ function buildRightPaneRows(area: any): RightPaneRow[] {
                     : "—";
     }
     if (aircraftVal !== "—" && model) aircraftVal = `${model}：${aircraftVal}`;
+    aircraftVal = appendLandingBoxCountLine(area, aircraftVal);
 
     const altitudeVal =
         `最高高度: ${textOr(area?.geometry?.flightAltitude_Max_m, "—")} m\n` +

@@ -4,8 +4,6 @@ import { buildLandingBoxOccupancy } from "@/features/hub/tabs/AreaInfo/figure/la
 /** 離発着ボックスは縦長 4x2（Y４機×X２機）のみ */
 export type TakeoffLandingBoxYx = "4x2";
 
-export const TAKEOFF_LANDING_BOX_GAP_PX = 2;
-
 export function parseTakeoffLandingBoxYx(_raw?: unknown): TakeoffLandingBoxYx {
   return "4x2";
 }
@@ -132,8 +130,10 @@ export function landingBoxRectSvg(opts: {
   isFull: boolean;
   stroke: string;
   fill: string;
+  /** 未指定は 0。箱の境の空きは visual layout 側で取る */
+  gapPx?: number;
 }): string {
-  const gap = TAKEOFF_LANDING_BOX_GAP_PX;
+  const gap = opts.gapPx ?? 0;
   const w = Math.max(1, opts.w - gap);
   const h = Math.max(1, opts.h - gap);
   const x = opts.x + gap / 2;

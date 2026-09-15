@@ -304,6 +304,7 @@ type ModalState = {
   showCornerNumbers: boolean;
   showBlockLabels: boolean;
   showRuler: boolean;
+  showBoxSeparators: boolean;
   useTakeoffLandingBox: boolean;
   model: string;
 };
@@ -353,6 +354,7 @@ function initialStateFromArea(area: Area | null | undefined): ModalState {
   const savedShowCornerNumbers = savedDisplay.show_corner_numbers;
   const savedShowBlockLabels = savedDisplay.show_block_labels;
   const savedShowRuler = savedDisplay.show_ruler;
+  const savedShowBoxSeparators = savedDisplay.show_box_separators;
 
   const cornerDisplayByBlockId: Record<string, CornerDisplayForBlock> = {};
   const cd0 = defaultCornerDisplay();
@@ -381,6 +383,8 @@ function initialStateFromArea(area: Area | null | undefined): ModalState {
     showBlockLabels:
       typeof savedShowBlockLabels === "boolean" ? savedShowBlockLabels : true,
     showRuler: typeof savedShowRuler === "boolean" ? savedShowRuler : true,
+    showBoxSeparators:
+      typeof savedShowBoxSeparators === "boolean" ? savedShowBoxSeparators : true,
     useTakeoffLandingBox: Boolean(area?.use_takeoff_landing_box),
     model: ((area?.drone_count as { model?: string } | undefined)?.model ?? "").toString(),
   };
@@ -501,6 +505,7 @@ export function MultiBlockEditModal({
             showCornerNumbers: state.showCornerNumbers,
             showBlockLabels: state.showBlockLabels,
             showRuler: state.showRuler,
+            showBoxSeparators: state.showBoxSeparators,
             cornerByBlockId: cornerByBlockIdForPreview,
             ruler: {
               leftXOffsetPx: state.rulerDisplay.leftXOffsetPx,
@@ -512,6 +517,7 @@ export function MultiBlockEditModal({
           theme: "ui",
           showCornerNumbers: state.showCornerNumbers,
           showRuler: state.showRuler,
+          showBoxSeparators: state.showBoxSeparators,
           cornerDisplay:
             figureSource.blocks[0] &&
             state.cornerDisplayByBlockId[figureSource.blocks[0].id]
@@ -831,7 +837,7 @@ export function MultiBlockEditModal({
   const updateFigureVisibility = useCallback(
     (
       patch: Partial<
-        Pick<ModalState, "showCornerNumbers" | "showBlockLabels" | "showRuler">
+        Pick<ModalState, "showCornerNumbers" | "showBlockLabels" | "showRuler" | "showBoxSeparators">
       >
     ) => {
       setState((prev) => ({ ...prev, ...patch }));
@@ -859,6 +865,7 @@ export function MultiBlockEditModal({
       show_corner_numbers: state.showCornerNumbers,
       show_block_labels: state.showBlockLabels,
       show_ruler: state.showRuler,
+      show_box_separators: state.showBoxSeparators,
       corner_by_block_id: state.cornerDisplayByBlockId,
       ruler: {
         leftXOffsetPx: state.rulerDisplay.leftXOffsetPx,
@@ -1853,6 +1860,28 @@ export function MultiBlockEditModal({
                         />
                       </button>
                     </div>
+                    {state.model === "EMO" && state.useTakeoffLandingBox && (
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-xs text-slate-200 whitespace-nowrap">ボックス区切り</span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={state.showBoxSeparators}
+                        onClick={() =>
+                          updateFigureVisibility({ showBoxSeparators: !state.showBoxSeparators })
+                        }
+                        className={`relative inline-flex h-4 w-8 shrink-0 items-center rounded-full transition-colors ${
+                          state.showBoxSeparators ? "bg-red-500/80" : "bg-slate-600/70"
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-slate-100 transition-transform ${
+                            state.showBoxSeparators ? "translate-x-4" : "translate-x-0.5"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                    )}
 
                     <div className="pt-1 space-y-3">
                       <div className="flex items-center gap-2 min-w-0">

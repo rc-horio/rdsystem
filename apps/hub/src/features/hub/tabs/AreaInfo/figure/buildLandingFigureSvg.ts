@@ -4,6 +4,7 @@ import { fmtMeters } from "@/features/hub/utils/spacing";
 import { buildLandingFigureModel } from "@/features/hub/tabs/AreaInfo/figure/landingFigureModel";
 import { landingBoxRectSvg } from "@/features/hub/tabs/AreaInfo/figure/landingBoxTiles";
 import { buildLandingBoxOccupancy } from "@/features/hub/tabs/AreaInfo/figure/landingBoxOccupancy";
+import { createLandingBoxVisualLayout } from "@/features/hub/tabs/AreaInfo/figure/landingBoxVisualLayout";
 
 type Theme = "ui" | "export";
 
@@ -28,6 +29,8 @@ export function buildLandingFigureSvg(
         theme?: Theme;
         showCornerNumbers?: boolean;
         showRuler?: boolean;
+        /** 離発着ボックス時の箱の境。未指定は隙間あり */
+        showBoxSeparators?: boolean;
         /** 単一ブロック時の四隅機体番号の表示（multiBlock の Corner と同趣旨） */
         cornerDisplay?: CornerDisplayForSvg;
         ruler?: {
@@ -39,6 +42,7 @@ export function buildLandingFigureSvg(
     const theme: Theme = opts?.theme ?? "export";
     const showCornerNumbers = opts?.showCornerNumbers ?? true;
     const showRuler = opts?.showRuler ?? true;
+    const showBoxSeparators = opts?.showBoxSeparators ?? true;
     const rulerOpts = opts?.ruler ?? {};
     const leftXOffsetPx = Number.isFinite(rulerOpts.leftXOffsetPx)
         ? Number(rulerOpts.leftXOffsetPx)
@@ -105,14 +109,30 @@ export function buildLandingFigureSvg(
         const cells = m.cornerCells;
         const gridRows = m.boxOccupancy?.gridRows ?? m.countY;
         const gridCols = m.countX;
+        const boxVis =
+            m.boxOccupancy && gridCols > 0 && gridRows > 0
+                ? createLandingBoxVisualLayout({
+                      x: m.rx,
+                      y: m.ry,
+                      w: m.rectW,
+                      h: m.rectH,
+                      gridCols,
+                      gridRows,
+                      seqX: m.seqX,
+                      seqY: m.seqY,
+                      fallback: m.fallback,
+                      gutters: showBoxSeparators,
+                  })
+                : null;
         const cellW = gridCols > 0 ? m.rectW / gridCols : m.rectW;
         const cellH = gridRows > 0 ? m.rectH / gridRows : m.rectH;
-        const cellBox = (col: number, row: number) => ({
-            x: m.rx + col * cellW,
-            y: m.ry + (gridRows - 1 - row) * cellH,
-            w: cellW,
-            h: cellH,
-        });
+        const cellBox = (col: number, row: number) =>
+            boxVis?.cellRect(col, row) ?? {
+                x: m.rx + col * cellW,
+                y: m.ry + (gridRows - 1 - row) * cellH,
+                w: cellW,
+                h: cellH,
+            };
         const tlBox = cells ? cellBox(cells.tl.col, cells.tl.row) : null;
         const trBox = cells ? cellBox(cells.tr.col, cells.tr.row) : null;
         const blBox = cells ? cellBox(cells.bl.col, cells.bl.row) : null;
@@ -192,22 +212,35 @@ export function buildLandingFigureSvg(
     const boxRows = boxOcc?.gridRows ?? 0;
     const blockShape =
       m.canRenderFigure && boxOcc && m.countX > 0 && boxRows > 0
-        ? boxOcc.tiles
-            .map((t) => {
-              const cellW = m.rectW / m.countX;
-              const cellH = m.rectH / boxRows;
-              return landingBoxRectSvg({
-                x: m.rx + t.col0 * cellW,
-                y: m.ry + (boxRows - 1 - t.row1) * cellH,
-                w: (t.col1 - t.col0 + 1) * cellW,
-                h: (t.row1 - t.row0 + 1) * cellH,
-                count: t.count,
-                isFull: t.isFull,
-                stroke: rectStroke,
-                fill: rectFill,
-              });
-            })
-            .join("\n")
+        ? (() => {
+            const vis = createLandingBoxVisualLayout({
+              x: m.rx,
+              y: m.ry,
+              w: m.rectW,
+              h: m.rectH,
+              gridCols: m.countX,
+              gridRows: boxRows,
+              seqX: m.seqX,
+              seqY: m.seqY,
+              fallback: m.fallback,
+              gutters: showBoxSeparators,
+            });
+            return boxOcc.tiles
+              .map((t) => {
+                const r = vis.tileRect(t);
+                return landingBoxRectSvg({
+                  x: r.x,
+                  y: r.y,
+                  w: r.w,
+                  h: r.h,
+                  count: t.count,
+                  isFull: t.isFull,
+                  stroke: rectStroke,
+                  fill: rectFill,
+                });
+              })
+              .join("\n");
+          })()
         : m.canRenderFigure
           ? m.polygonPoints
             ? `<polygon

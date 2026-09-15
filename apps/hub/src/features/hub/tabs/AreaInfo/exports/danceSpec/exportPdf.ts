@@ -4,7 +4,7 @@ import type { ExportOpts } from "./types";
 import { loadDanceSpecHtml } from "./template";
 import { captureElement } from "./capture";
 import { jsPDF } from "jspdf";
-import { sanitize, formatTurnText, getSpacingBetweenDronesText } from "./texts";
+import { sanitize, formatTurnText, getSpacingBetweenDronesText, appendLandingBoxCountLine } from "./texts";
 import { buildLandingFigureExportSvg } from "./buildLandingFigureExportSvg";
 import { applyDroneOrientationToPage2 } from "./applyDroneOrientation";
 import { getEffectiveBlocks, hasBlocks } from "@/features/hub/utils/areaBlocks";
@@ -116,7 +116,7 @@ export async function exportDanceSpecPdfFromHtml(opts?: ExportOpts) {
     if (aircraftVal !== "—" && model) {
         aircraftVal = `${model}：${aircraftVal}`;
     }
-    setTxt("#v-aircraft", aircraftVal);
+    setTxt("#v-aircraft", appendLandingBoxCountLine(area, aircraftVal));
 
     // ■最低、最高高度
     setTxt(
