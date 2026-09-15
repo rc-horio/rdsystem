@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { DesktopPanel, MobilePanel } from "./sections";
 import { useGrid } from "./hooks/useGrid";
 import { parseNums, normalizeInput } from "./utils/format";
-import { buildOperationMultiBlockViewModel } from "./utils/operationMultiBlockGrid";
+import { buildOperationOccupiedViewModel } from "./utils/operationMultiBlockGrid";
 import { OPERATION_MAX_MODULES, parseOperationModuleKind } from "./constants";
 import type { OperationModuleKind } from "@/features/hub/types/resource";
 
@@ -147,7 +147,7 @@ export default function OperationTab({
     y: Number.isFinite(counts.y) ? counts.y : undefined,
   };
 
-  const operationMultiBlock = buildOperationMultiBlockViewModel(area);
+  const occupiedLayout = buildOperationOccupiedViewModel(area);
 
   // 計測は即時OK
   const [measureNum, setMeasureNum] = useState<number | "">("");
@@ -164,7 +164,7 @@ export default function OperationTab({
   const [modules, setModules] = useState<UiModule[]>([]);
 
   const maxIdExclusive = (() => {
-    const mb = operationMultiBlock?.occ.totalOccupied;
+    const mb = occupiedLayout?.totalOccupied;
     if (typeof mb === "number" && Number.isFinite(mb) && mb > 0) return mb;
     const t = safeCounts.total;
     if (typeof t === "number" && Number.isFinite(t) && t > 0) return t;
@@ -407,7 +407,7 @@ export default function OperationTab({
         spacingXY={spacingXY}
         spacingSeqX={spacingSeqX}
         spacingSeqY={spacingSeqY}
-        operationMultiBlock={operationMultiBlock}
+        occupiedLayout={occupiedLayout}
       />
 
       <MobilePanel
@@ -444,7 +444,7 @@ export default function OperationTab({
         spacingXY={spacingXY}
         spacingSeqX={spacingSeqX}
         spacingSeqY={spacingSeqY}
-        operationMultiBlock={operationMultiBlock}
+        occupiedLayout={occupiedLayout}
       />
     </div>
   );

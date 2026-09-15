@@ -2,11 +2,8 @@
 
 import { fmtMeters } from "@/features/hub/utils/spacing";
 import { buildLandingFigureModel } from "@/features/hub/tabs/AreaInfo/figure/landingFigureModel";
-import {
-  collectSingleBlockBoxTiles,
-  landingBoxRectSvg,
-  parseTakeoffLandingBoxYx,
-} from "@/features/hub/tabs/AreaInfo/figure/landingBoxTiles";
+import { landingBoxRectSvg } from "@/features/hub/tabs/AreaInfo/figure/landingBoxTiles";
+import { buildLandingBoxOccupancy } from "@/features/hub/tabs/AreaInfo/figure/landingBoxOccupancy";
 
 type Theme = "ui" | "export";
 
@@ -65,9 +62,14 @@ export function buildLandingFigureSvg(
     };
     const xHint = Number(area?.drone_count?.x_count);
     const yHint = Number(area?.drone_count?.y_count);
+    const totalHint = Number(area?.drone_count?.count);
+    const boxRowsHint = Boolean(area?.use_takeoff_landing_box)
+        ? buildLandingBoxOccupancy(xHint, totalHint)?.gridRows
+        : undefined;
+    const yForAspect = boxRowsHint ?? yHint;
     const uiAspectHint =
-        Number.isFinite(xHint) && Number.isFinite(yHint) && xHint > 0 && yHint > 0
-            ? xHint / yHint
+        Number.isFinite(xHint) && Number.isFinite(yForAspect) && xHint > 0 && yForAspect > 0
+            ? xHint / yForAspect
             : 1;
     const m = buildLandingFigureModel(area, {
         viewH: theme === "ui" ? calcUiViewH(uiAspectHint) : undefined,
@@ -100,23 +102,48 @@ export function buildLandingFigureSvg(
         const outsidePadY = Math.max(2, fontSize * 0.65);
         const leftInsetX = 4;
         const rightInsetX = 4;
-        const topRightX = m.cornerTrX;
+        const cells = m.cornerCells;
+        const gridRows = m.boxOccupancy?.gridRows ?? m.countY;
+        const gridCols = m.countX;
+        const cellW = gridCols > 0 ? m.rectW / gridCols : m.rectW;
+        const cellH = gridRows > 0 ? m.rectH / gridRows : m.rectH;
+        const cellBox = (col: number, row: number) => ({
+            x: m.rx + col * cellW,
+            y: m.ry + (gridRows - 1 - row) * cellH,
+            w: cellW,
+            h: cellH,
+        });
+        const tlBox = cells ? cellBox(cells.tl.col, cells.tl.row) : null;
+        const trBox = cells ? cellBox(cells.tr.col, cells.tr.row) : null;
+        const blBox = cells ? cellBox(cells.bl.col, cells.bl.row) : null;
+        const brBox = cells ? cellBox(cells.br.col, cells.br.row) : null;
+        const topRightX = trBox ? trBox.x + trBox.w : m.cornerTrX;
         const xMid = m.rx + m.rectW / 2;
         const yMid = m.ry + m.rectH / 2;
-        const tlX = useOutsideH ? m.rx - outsidePadX : m.rx + leftInsetX;
-        const tlY = useOutsideV ? m.ry - outsidePadY : m.ry + insetY;
+        const tlX = useOutsideH
+            ? (tlBox?.x ?? m.rx) - outsidePadX
+            : (tlBox?.x ?? m.rx) + leftInsetX;
+        const tlY = useOutsideV
+            ? (tlBox?.y ?? m.ry) - outsidePadY
+            : (tlBox?.y ?? m.ry) + insetY;
         const trX = useOutsideH
             ? topRightX + outsidePadX
             : topRightX - rightInsetX;
-        const trY = tlY;
-        const blX = tlX;
+        const trY = useOutsideV
+            ? (trBox?.y ?? m.ry) - outsidePadY
+            : (trBox?.y ?? m.ry) + insetY;
+        const blX = useOutsideH
+            ? (blBox?.x ?? m.rx) - outsidePadX
+            : (blBox?.x ?? m.rx) + leftInsetX;
         const blY = useOutsideV
-            ? m.ry + m.rectH + outsidePadY
-            : m.ry + m.rectH - insetY;
+            ? (blBox ? blBox.y + blBox.h : m.ry + m.rectH) + outsidePadY
+            : (blBox ? blBox.y + blBox.h : m.ry + m.rectH) - insetY;
         const brX = useOutsideH
-            ? m.rx + m.rectW + outsidePadX
-            : m.rx + m.rectW - rightInsetX;
-        const brY = blY;
+            ? (brBox ? brBox.x + brBox.w : m.rx + m.rectW) + outsidePadX
+            : (brBox ? brBox.x + brBox.w : m.rx + m.rectW) - rightInsetX;
+        const brY = useOutsideV
+            ? (brBox ? brBox.y + brBox.h : m.ry + m.rectH) + outsidePadY
+            : (brBox ? brBox.y + brBox.h : m.ry + m.rectH) - insetY;
         const topY = tlY;
         const bottomY = blY;
         const anchorTL = useOutsideH ? "end" : "start";
@@ -129,16 +156,21 @@ export function buildLandingFigureSvg(
         ) =>
             `<text x="${x}" y="${y}" font-size="${fontSize}" fill="${labelColor}" text-anchor="${anchor}" dominant-baseline="middle" pointer-events="none" style="user-select: none;">${value}</text>`;
 
-        if (m.countX === 1 && m.countY === 1) {
+        const oneCol = cells
+            ? cells.tl.col === cells.tr.col
+            : m.countX === 1;
+        const oneRow = cells
+            ? cells.tl.row === cells.bl.row
+            : m.countY === 1;
+
+        if (oneCol && oneRow) {
             cornerNumberTexts = cornerText(xMid, yMid, "middle", m.corner.bl);
-        } else if (m.countX === 1) {
-            // 1列: 上下のみ（左右は同じ番号になる）
+        } else if (oneCol) {
             cornerNumberTexts = `
             ${cornerText(xMid, topY, "middle", m.corner.tl)}
             ${cornerText(xMid, bottomY, "middle", m.corner.bl)}
         `;
-        } else if (m.countY === 1) {
-            // 1行: 左右のみ（上下は同じ番号になる）
+        } else if (oneRow) {
             cornerNumberTexts = `
             ${cornerText(tlX, yMid, anchorTL, m.corner.bl)}
             ${cornerText(trX, yMid, anchorTR, m.corner.br)}
@@ -156,22 +188,17 @@ export function buildLandingFigureSvg(
     const rectStroke = "#ed1b24";
     const rectFill = "#ed1b24";
 
-    const useBoxes = Boolean(area?.use_takeoff_landing_box);
-    const actualRows =
-      m.countX > 0 && m.totalCount > 0 ? Math.ceil(m.totalCount / m.countX) : 0;
+    const boxOcc = m.boxOccupancy;
+    const boxRows = boxOcc?.gridRows ?? 0;
     const blockShape =
-      m.canRenderFigure && useBoxes && m.countX > 0 && actualRows > 0
-        ? collectSingleBlockBoxTiles(
-            m.countX,
-            m.totalCount,
-            parseTakeoffLandingBoxYx(area?.takeoff_landing_box_yx)
-          )
+      m.canRenderFigure && boxOcc && m.countX > 0 && boxRows > 0
+        ? boxOcc.tiles
             .map((t) => {
               const cellW = m.rectW / m.countX;
-              const cellH = m.rectH / actualRows;
+              const cellH = m.rectH / boxRows;
               return landingBoxRectSvg({
                 x: m.rx + t.col0 * cellW,
-                y: m.ry + (actualRows - 1 - t.row1) * cellH,
+                y: m.ry + (boxRows - 1 - t.row1) * cellH,
                 w: (t.col1 - t.col0 + 1) * cellW,
                 h: (t.row1 - t.row0 + 1) * cellH,
                 count: t.count,
@@ -208,7 +235,9 @@ export function buildLandingFigureSvg(
     const msg =
         m.cannotRenderReason === "contradiction" && m.contradictionMessage
             ? m.contradictionMessage
-            : "x機体数 / y機体数 / 間隔 を入力してください。";
+            : Boolean(area?.use_takeoff_landing_box)
+                ? "総機体数 / X方向 / 間隔 を入力してください。"
+                : "x機体数 / y機体数 / 間隔 を入力してください。";
     const msgLines = msg
         .split("\n")
         .map((s) => s.trim())

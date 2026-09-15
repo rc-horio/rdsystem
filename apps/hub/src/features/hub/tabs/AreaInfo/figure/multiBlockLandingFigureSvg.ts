@@ -266,6 +266,48 @@ export function buildMultiBlockLandingFigureSvg(
 
     // ブロック内の四隅ID（占有グリッド。空白セルは採番しない）
     const corner = (() => {
+      if (useBoxes && occ) {
+        let minRow = Number.POSITIVE_INFINITY;
+        let maxRow = Number.NEGATIVE_INFINITY;
+        let minColAtMin = Number.POSITIVE_INFINITY;
+        let maxColAtMin = Number.NEGATIVE_INFINITY;
+        let minColAtMax = Number.POSITIVE_INFINITY;
+        let maxId = Number.NEGATIVE_INFINITY;
+        let trCol = 0;
+        for (let gr = 0; gr < occ.gridRows; gr++) {
+          for (let gc = 0; gc < occ.gridCols; gc++) {
+            const loc = occ.locateOccupied(gr, gc);
+            if (!loc || loc.blockId !== b.blockId) continue;
+            const id = idAt(gr, gc);
+            if (id == null) continue;
+            if (gr < minRow) {
+              minRow = gr;
+              minColAtMin = gc;
+              maxColAtMin = gc;
+            } else if (gr === minRow) {
+              minColAtMin = Math.min(minColAtMin, gc);
+              maxColAtMin = Math.max(maxColAtMin, gc);
+            }
+            if (gr > maxRow) {
+              maxRow = gr;
+              minColAtMax = gc;
+            } else if (gr === maxRow) {
+              minColAtMax = Math.min(minColAtMax, gc);
+            }
+            if (id > maxId) {
+              maxId = id;
+              trCol = gc;
+            }
+          }
+        }
+        if (!Number.isFinite(minRow) || !Number.isFinite(maxId)) return null;
+        const bl = idAt(minRow, minColAtMin);
+        const br = idAt(minRow, maxColAtMin);
+        const tl = idAt(maxRow, minColAtMax);
+        if (bl == null || br == null || tl == null) return null;
+        return { tl, tr: maxId, bl, br, trCol };
+      }
+
       if (!Number.isFinite(countX) || !Number.isFinite(countY) || !Number.isFinite(totalCount)) return null;
       if (countX <= 0 || countY <= 0 || totalCount <= 0) return null;
 
@@ -295,6 +337,11 @@ export function buildMultiBlockLandingFigureSvg(
         br,
       };
     })();
+
+    const boxTrX =
+      useBoxes && occ && corner && "trCol" in corner && occ.gridCols > 0
+        ? figureLeft + ((corner.trCol + 1) / occ.gridCols) * figureW
+        : topRightX;
 
     const autoFontSize = Math.max(8, Math.min(10, Math.min(w, h) / 5));
     const rawFontSize = cornerOpts.fontSize;
@@ -480,7 +527,7 @@ export function buildMultiBlockLandingFigureSvg(
     ${corner.bl}
   </text>
   <text
-    x="${useOutsideH ? topRightX + outsidePadX : topRightX - rightInsetX}"
+    x="${useOutsideH ? boxTrX + outsidePadX : boxTrX - rightInsetX}"
     y="${yMid}"
     font-size="${fontSize}"
     fill="${labelColor}"
@@ -538,7 +585,7 @@ export function buildMultiBlockLandingFigureSvg(
     ${corner.tl}
   </text>
   <text
-    x="${useOutsideH ? topRightX + outsidePadX : topRightX - rightInsetX}"
+    x="${useOutsideH ? boxTrX + outsidePadX : boxTrX - rightInsetX}"
     y="${useOutsideV ? y - outsidePadY : y + insetY}"
     font-size="${fontSize}"
     fill="${labelColor}"

@@ -1,5 +1,6 @@
 import type { Area } from "@/features/hub/types/resource";
 import { emptyCellsForGapFrom, parseSpacingSeq } from "@/features/hub/utils/spacing";
+import { buildLandingBoxOccupancy } from "@/features/hub/tabs/AreaInfo/figure/landingBoxOccupancy";
 
 type OccupiedInterval = {
   start: number;
@@ -58,6 +59,8 @@ export function buildMultiBlockOccupancyGrid(
   if (!spacingX.length || !spacingY.length) return null;
   const fallback = 1;
 
+  const useBoxes = Boolean(area?.use_takeoff_landing_box);
+
   const metas: BlockOccMeta[] = [];
   layout.rows.forEach((row, layoutRowIndex) => {
     for (const bid of row.block_ids) {
@@ -112,7 +115,9 @@ export function buildMultiBlockOccupancyGrid(
         );
       }
       if (countX > 0 && totalCount > 0) {
-        const actualRows = Math.ceil(totalCount / countX);
+        const actualRows = useBoxes
+          ? (buildLandingBoxOccupancy(countX, totalCount)?.gridRows ?? 0)
+          : Math.ceil(totalCount / countX);
         if (actualRows > maxRowsInRow) maxRowsInRow = actualRows;
       }
     }
@@ -148,6 +153,43 @@ export function buildMultiBlockOccupancyGrid(
 
     const rowBase = rowBaseByRowIndex.get(m.layoutRowIndex) ?? 0;
     const colStart = colStartByBlockId.get(m.blockId) ?? 0;
+
+    const pushInterval = (
+      localRow: number,
+      localStart: number,
+      localEnd: number
+    ) => {
+      if (localEnd < localStart) return;
+      const gRow = rowBase + localRow;
+      const intervals = occupiedDetailByGlobalRow.get(gRow) ?? [];
+      intervals.push({
+        start: colStart + localStart,
+        end: colStart + localEnd,
+        blockId: m.blockId,
+        localRow,
+      });
+      intervals.sort((a, c) => a.start - c.start);
+      occupiedDetailByGlobalRow.set(gRow, intervals);
+    };
+
+    if (useBoxes) {
+      const boxOcc = buildLandingBoxOccupancy(countX, totalCount);
+      if (!boxOcc) continue;
+      for (let r = 0; r < boxOcc.gridRows; r++) {
+        let runStart = -1;
+        for (let c = 0; c <= boxOcc.gridCols; c++) {
+          const filled =
+            c < boxOcc.gridCols && boxOcc.idAt(r, c) != null;
+          if (filled && runStart < 0) runStart = c;
+          if (!filled && runStart >= 0) {
+            pushInterval(r, runStart, c - 1);
+            runStart = -1;
+          }
+        }
+      }
+      continue;
+    }
+
     const actualRows = Math.ceil(totalCount / countX);
     const lastRowCount = totalCount - (actualRows - 1) * countX;
     const fullRectCount = countX * Math.max(1, m.yCount);
@@ -159,16 +201,7 @@ export function buildMultiBlockOccupancyGrid(
     for (let r = 0; r < actualRows; r++) {
       const rowWidth = isHexagon && r === actualRows - 1 ? lastRowCount : countX;
       if (rowWidth <= 0) continue;
-      const gRow = rowBase + r;
-      const intervals = occupiedDetailByGlobalRow.get(gRow) ?? [];
-      intervals.push({
-        start: colStart,
-        end: colStart + rowWidth - 1,
-        blockId: m.blockId,
-        localRow: r,
-      });
-      intervals.sort((a, c) => a.start - c.start);
-      occupiedDetailByGlobalRow.set(gRow, intervals);
+      pushInterval(r, 0, rowWidth - 1);
     }
   }
 
@@ -252,10 +285,11 @@ export function buildMultiBlockOccupancyGrid(
       if (globalCol < iv.start || globalCol > iv.end) continue;
       const meta = metaById.get(iv.blockId);
       if (!meta) return null;
+      const colStart = colStartByBlockId.get(iv.blockId) ?? iv.start;
       return {
         blockId: iv.blockId,
         localRow: iv.localRow,
-        localCol: globalCol - iv.start,
+        localCol: globalCol - colStart,
         layoutRowIndex: meta.layoutRowIndex,
       };
     }

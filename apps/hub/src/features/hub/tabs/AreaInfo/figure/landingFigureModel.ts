@@ -1,6 +1,12 @@
 // src/features/hub/tabs/AreaInfo/figure/landingFigureModel.ts
 
 import { cumDist, parseSpacingSeq } from "@/features/hub/utils/spacing";
+import {
+    buildLandingBoxOccupancy,
+    landingBoxOccupancyError,
+    type GridCell,
+    type LandingBoxOccupancy,
+} from "@/features/hub/tabs/AreaInfo/figure/landingBoxOccupancy";
 
 export type LandingFigureModel = {
     // 入力妥当性
@@ -27,6 +33,15 @@ export type LandingFigureModel = {
 
     // 四隅ID
     corner: null | { tl: number; tr: number; bl: number; br: number };
+    /** 離発着ボックス時の四隅セル（row は最下段が 0） */
+    cornerCells: null | {
+        tl: GridCell;
+        tr: GridCell;
+        bl: GridCell;
+        br: GridCell;
+    };
+    /** 離発着ボックス ON かつ占有が作れたとき */
+    boxOccupancy: LandingBoxOccupancy | null;
 
     /** 端数ありで六角形になる場合 true */
     isHexagon: boolean;
@@ -86,43 +101,62 @@ export function buildLandingFigureModel(
 
     // 機体数入力
     const countX = Number(area?.drone_count?.x_count);
-    const countY = Number(area?.drone_count?.y_count);
+    const countYInput = Number(area?.drone_count?.y_count);
     const totalCount = Number(area?.drone_count?.count);
     const xOk = Number.isFinite(countX) && countX > 0;
-    const yOk = Number.isFinite(countY) && countY > 0;
+    const hasTotalCount = Number.isFinite(totalCount) && totalCount > 0;
+    const useBoxes = Boolean(area?.use_takeoff_landing_box);
+    const boxOccupancy =
+        useBoxes && xOk && hasTotalCount
+            ? buildLandingBoxOccupancy(countX, totalCount)
+            : null;
+    const yOk = useBoxes
+        ? boxOccupancy != null
+        : Number.isFinite(countYInput) && countYInput > 0;
+    const countY = useBoxes ? (boxOccupancy?.gridRows ?? 0) : countYInput;
 
     // 間隔入力の妥当性
     const spacingOk = seqX.length > 0 && seqY.length > 0;
 
     // 全機体数を優先してレイアウトを決定。矛盾があれば描画しない
-    const fullRectCount = countX * countY;
-    const hasTotalCount = Number.isFinite(totalCount) && totalCount > 0;
-
-    // 矛盾チェック：全機体数 > X×Y は不可、必要な行数 > Y機体数 も不可
-    const actualRowCount = hasTotalCount
-        ? Math.ceil(totalCount / countX)
-        : countY;
+    const fullRectCount = countX * countYInput;
+    const actualRowCount = useBoxes
+        ? (boxOccupancy?.gridRows ?? 0)
+        : hasTotalCount
+            ? Math.ceil(totalCount / countX)
+            : countYInput;
     const lastRowCount = hasTotalCount
         ? totalCount - (actualRowCount - 1) * countX
         : countX;
-    const countExceedsGrid = hasTotalCount && totalCount > fullRectCount;
-    const rowsExceedY = hasTotalCount && actualRowCount > countY;
-    // Y機体数が1行以上余分（必要な行数より多い）も矛盾とする
-    const rowsUnderY = hasTotalCount && actualRowCount < countY;
+    const countExceedsGrid =
+        !useBoxes && hasTotalCount && totalCount > fullRectCount;
+    const rowsExceedY =
+        !useBoxes && hasTotalCount && actualRowCount > countYInput;
+    const rowsUnderY =
+        !useBoxes && hasTotalCount && actualRowCount < countYInput;
+    const boxContradictionMessage = useBoxes
+        ? landingBoxOccupancyError(countX, totalCount)
+        : null;
 
-    const hasContradiction =
-        countExceedsGrid || rowsExceedY || rowsUnderY;
-    const canRenderFigure =
-        xOk && yOk && spacingOk && !hasContradiction;
+    const hasContradiction = useBoxes
+        ? boxContradictionMessage != null
+        : countExceedsGrid || rowsExceedY || rowsUnderY;
+    const canRenderFigure = useBoxes
+        ? boxOccupancy != null && spacingOk
+        : xOk && yOk && spacingOk && !hasContradiction;
     const cannotRenderReason =
         hasContradiction
             ? "contradiction"
-            : !xOk || !yOk || !spacingOk
-                ? "input_required"
-                : null;
-    // 具体的な数値で状況を示す忠告
-    const contradictionMessage =
-        rowsExceedY
+            : useBoxes
+                ? !xOk || !hasTotalCount || !spacingOk
+                    ? "input_required"
+                    : null
+                : !xOk || !yOk || !spacingOk
+                    ? "input_required"
+                    : null;
+    const contradictionMessage = useBoxes
+        ? boxContradictionMessage
+        : rowsExceedY
             ? `全機体数(${totalCount})がX機体数×Y機体数(${fullRectCount})を超えています。\n数値を見直してください。`
             : rowsUnderY
                 ? `X機体数×Y機体数(${fullRectCount})が全機体数(${totalCount})を超えています。\n数値を見直してください。`
@@ -131,12 +165,13 @@ export function buildLandingFigureModel(
     // 実寸計算（全機体数優先時は actualRowCount で高さを算出）
     const widthM = xOk && countX >= 2 ? cumDist(countX - 1, seqX, fallback) : 0;
     const heightM =
-        yOk && actualRowCount >= 2
+        actualRowCount >= 2
             ? cumDist(actualRowCount - 1, seqY, fallback)
             : 0;
 
     // 端数チェック：全機体数がフル矩形より少なく、最後の行が途中で切れる場合
     const isHexagon =
+        !useBoxes &&
         hasTotalCount &&
         totalCount < fullRectCount &&
         lastRowCount > 0 &&
@@ -144,6 +179,7 @@ export function buildLandingFigureModel(
 
     // 四隅ID計算（全機体数優先で tr = totalCount-1、tl も actualRowCount ベース）
     const corner = (() => {
+        if (useBoxes) return boxOccupancy?.corner ?? null;
         if (!xOk || !yOk) return null;
         const bl = 0;
         // 1行の六角形では最後の行が端数なので br = totalCount-1
@@ -155,6 +191,7 @@ export function buildLandingFigureModel(
         const tr = hasTotalCount ? totalCount - 1 : fullRectCount - 1;
         return { tl, tr, bl, br };
     })();
+    const cornerCells = useBoxes ? boxOccupancy?.cornerCell ?? null : null;
 
     // usableW/H を pad で確保
     const usableW = viewW - pad.left - pad.right;
@@ -234,9 +271,12 @@ export function buildLandingFigureModel(
             [rx, ry] as [number, number], // 6: 左上
         ];
     })();
-    const cornerTrX = isHexagon && polygonPoints
-        ? rx + topRowWidthScaled
-        : rx + rectW;
+    const cornerTrX = (() => {
+        if (useBoxes && cornerCells && countX > 0) {
+            return rx + ((cornerCells.tr.col + 1) / countX) * rectW;
+        }
+        return isHexagon && polygonPoints ? rx + topRowWidthScaled : rx + rectW;
+    })();
 
     // 表示計算（SVG）
     return {
@@ -255,6 +295,8 @@ export function buildLandingFigureModel(
         widthM,
         heightM,
         corner,
+        cornerCells,
+        boxOccupancy,
         isHexagon,
         lastRowCount,
         polygonPoints,

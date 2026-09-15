@@ -22,6 +22,18 @@ import {
 } from "@/features/hub/utils/blockGapPattern";
 import { LandingFigureHtml } from "./LandingFigureHtml";
 import type { Block, BlockLayout, BlockLayoutRow, Area } from "@/features/hub/types/resource";
+import {
+  derivedLandingBoxRowCount,
+  isValidLandingBoxCountX,
+  landingBoxOccupancyError,
+} from "@/features/hub/tabs/AreaInfo/figure/landingBoxOccupancy";
+
+function applyDerivedBoxY(blocks: Block[]): Block[] {
+  return blocks.map((b) => {
+    const y = derivedLandingBoxRowCount(Number(b.x_count), Number(b.count));
+    return y != null ? { ...b, y_count: y } : b;
+  });
+}
 
 const DRONE_MODEL_OPTIONS = [
   { value: "EMO", label: "EMO" },
@@ -851,14 +863,18 @@ export function MultiBlockEditModal({
       },
     };
 
+    const blocksForSave = state.useTakeoffLandingBox
+      ? applyDerivedBoxY(state.blocks)
+      : state.blocks;
+
     let nextArea: Area;
     const preservedDroneCount = {
       ...((area?.drone_count as Record<string, unknown> | undefined) ?? {}),
     };
 
-    if (state.blocks.length === 1) {
+    if (blocksForSave.length === 1) {
       // blocks が 1 件のときは単一ブロック形式に正規化（drone_count に変換し blocks / block_layout は持たない）
-      const b = state.blocks[0];
+      const b = blocksForSave[0];
       nextArea = {
         ...base,
         drone_count: {
@@ -879,7 +895,7 @@ export function MultiBlockEditModal({
       // 複数ブロック時は blocks / block_layout を正とする。機種など drone_count の属性は残す
       nextArea = {
         ...base,
-        blocks: state.blocks,
+        blocks: blocksForSave,
         block_layout: {
           rows: state.rows,
           gaps_between_rows_m: state.gapsBetweenRowsM,
@@ -887,7 +903,7 @@ export function MultiBlockEditModal({
         drone_count: {
           ...preservedDroneCount,
           model: state.model,
-          count: state.blocks.reduce((s, b) => s + (Number(b.count) || 0), 0),
+          count: blocksForSave.reduce((s, b) => s + (Number(b.count) || 0), 0),
         } as any,
         landing_figure_display: figureDisplay as any,
         use_takeoff_landing_box: isEmoModel && state.useTakeoffLandingBox,
@@ -918,8 +934,13 @@ export function MultiBlockEditModal({
     const x = Number(b.x_count);
     const y = Number(b.y_count);
     const c = Number(b.count);
-    const xOk = isPositiveInt(x) && digitCount(x) <= BLOCK_SIDE_MAX_DIGITS;
-    const yOk = isPositiveInt(y) && digitCount(y) <= BLOCK_SIDE_MAX_DIGITS;
+    const xOk =
+      isPositiveInt(x) &&
+      digitCount(x) <= BLOCK_SIDE_MAX_DIGITS &&
+      (!state.useTakeoffLandingBox || isValidLandingBoxCountX(x));
+    const yOk = state.useTakeoffLandingBox
+      ? true
+      : isPositiveInt(y) && digitCount(y) <= BLOCK_SIDE_MAX_DIGITS;
     const cOk = isPositiveInt(c) && digitCount(c) <= BLOCK_COUNT_MAX_DIGITS;
     return {
       xOk,
@@ -984,16 +1005,18 @@ export function MultiBlockEditModal({
       const x = Number(b.x_count);
       const y = Number(b.y_count);
       const total = Number(b.count);
+      const label = BLOCK_LABELS[i] ?? `${i + 1}`;
+      if (figureSource.useTakeoffLandingBox) {
+        const boxErr = landingBoxOccupancyError(x, total);
+        return boxErr ? `ブロック${label}: ${boxErr}` : null;
+      }
       if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(total)) return null;
       if (x <= 0 || y <= 0 || total <= 0) return null;
       const fullRect = x * y;
-      const label = BLOCK_LABELS[i] ?? `${i + 1}`;
 
       if (total > fullRect) {
         return `ブロック${label}: 全機体数(${total})がX機体数×Y機体数(${fullRect})を超えています。数値を見直してください。`;
       }
-      // 端数あり（六角形）を許容するため、landingFigureModel と同様に
-      // 「必要な行数」と Y機体数の関係で矛盾を判定する
       const actualRowCount = Math.ceil(total / x);
       if (actualRowCount > y) {
         return `ブロック${label}: 必要な行数(${actualRowCount})がY機体数(${y})を超えています。数値を見直してください。`;
@@ -1107,6 +1130,9 @@ export function MultiBlockEditModal({
                       setState((prev) => ({
                         ...prev,
                         useTakeoffLandingBox: checked,
+                        blocks: checked
+                          ? applyDerivedBoxY(prev.blocks)
+                          : prev.blocks,
                       }));
                     }}
                     className="accent-red-600 h-4 w-4 shrink-0 disabled:opacity-50"
@@ -1375,16 +1401,27 @@ export function MultiBlockEditModal({
                           </span>
                           <input
                             type="number"
-                            value={Number.isFinite(block.y_count) ? block.y_count : ""}
+                            value={
+                              state.useTakeoffLandingBox
+                                ? derivedLandingBoxRowCount(
+                                    Number(block.x_count),
+                                    Number(block.count)
+                                  ) ?? ""
+                                : Number.isFinite(block.y_count)
+                                  ? block.y_count
+                                  : ""
+                            }
                             onChange={(e) => {
+                              if (state.useTakeoffLandingBox) return;
                               const raw = e.target.value;
                               if (isOverDigitLimit(raw, BLOCK_SIDE_MAX_DIGITS)) return;
                               const num = raw === "" ? (NaN as any) : Number(raw);
                               updateBlock(block.id, { y_count: num });
                             }}
+                            readOnly={state.useTakeoffLandingBox}
                             className={`${inputBase} w-20 px-2 py-0.5 text-xs ${
                               yError ? "border-red-500" : ""
-                            }`}
+                            } ${state.useTakeoffLandingBox ? "opacity-80" : ""}`}
                             min="1"
                           />
                         </div>
@@ -1887,7 +1924,11 @@ export function MultiBlockEditModal({
             <button
               type="button"
               onClick={() => {
-                setCommittedForFigure(JSON.parse(JSON.stringify(state)));
+                const next = state.useTakeoffLandingBox
+                  ? { ...state, blocks: applyDerivedBoxY(state.blocks) }
+                  : state;
+                if (state.useTakeoffLandingBox) setState(next);
+                setCommittedForFigure(JSON.parse(JSON.stringify(next)));
               }}
               disabled={layoutCountsMismatch || hasRowWithZeroBlocks}
               className="h-9 md:h-10 px-3 md:px-4 py-2 rounded border border-slate-600 text-sm whitespace-nowrap text-slate-200 hover:bg-slate-700 hover:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed"

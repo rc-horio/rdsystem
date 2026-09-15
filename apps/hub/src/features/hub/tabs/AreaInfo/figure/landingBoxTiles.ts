@@ -1,4 +1,5 @@
 import type { MultiBlockOccupancyGrid } from "@/features/hub/tabs/AreaInfo/figure/multiBlockOccupancyGrid";
+import { buildLandingBoxOccupancy } from "@/features/hub/tabs/AreaInfo/figure/landingBoxOccupancy";
 
 /** 離発着ボックスは縦長 4x2（Y４機×X２機）のみ */
 export type TakeoffLandingBoxYx = "4x2";
@@ -117,53 +118,9 @@ export type LocalLandingBoxTile = {
 export function collectSingleBlockBoxTiles(
   countX: number,
   totalCount: number,
-  yx: TakeoffLandingBoxYx
+  _yx?: TakeoffLandingBoxYx
 ): LocalLandingBoxTile[] {
-  const x = Math.max(0, Math.trunc(countX));
-  const total = Math.max(0, Math.trunc(totalCount));
-  if (x <= 0 || total <= 0) return [];
-
-  const actualRows = Math.ceil(total / x);
-  const lastRowCount = total - (actualRows - 1) * x;
-  const occupied = new Set<string>();
-  for (let r = 0; r < actualRows; r++) {
-    const width = r === actualRows - 1 ? lastRowCount : x;
-    for (let c = 0; c < width; c++) occupied.add(`${c},${r}`);
-  }
-
-  const { cols: boxCols, rows: boxRows } = takeoffLandingBoxCellSize(yx);
-  const tiles: LocalLandingBoxTile[] = [];
-
-  for (let ty = 0; ty < actualRows; ty += boxRows) {
-    for (let tx = 0; tx < x; tx += boxCols) {
-      let count = 0;
-      let col0 = Number.POSITIVE_INFINITY;
-      let col1 = Number.NEGATIVE_INFINITY;
-      let row0 = Number.POSITIVE_INFINITY;
-      let row1 = Number.NEGATIVE_INFINITY;
-      for (let r = ty; r < ty + boxRows; r++) {
-        for (let c = tx; c < tx + boxCols; c++) {
-          if (!occupied.has(`${c},${r}`)) continue;
-          count += 1;
-          col0 = Math.min(col0, c);
-          col1 = Math.max(col1, c);
-          row0 = Math.min(row0, r);
-          row1 = Math.max(row1, r);
-        }
-      }
-      if (count === 0) continue;
-      tiles.push({
-        col0,
-        col1,
-        row0,
-        row1,
-        count,
-        isFull: count === boxCols * boxRows,
-      });
-    }
-  }
-
-  return tiles;
+  return buildLandingBoxOccupancy(countX, totalCount)?.tiles ?? [];
 }
 
 export function landingBoxRectSvg(opts: {

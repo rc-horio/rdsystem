@@ -2,6 +2,10 @@
 import { useEffect, useState } from "react";
 import { DisplayOrInput, DisplayOrSelect, SectionTitle, type SelectOption } from "@/components";
 import { getEffectiveBlocks, hasBlocks } from "@/features/hub/utils/areaBlocks";
+import {
+  derivedLandingBoxRowCount,
+  landingBoxOccupancyError,
+} from "@/features/hub/tabs/AreaInfo/figure/landingBoxOccupancy";
 
 const DRONE_MODEL_OPTIONS: SelectOption[] = [
   { value: "EMO", label: "EMO" },
@@ -70,14 +74,34 @@ export function DroneCountSection({
     return Number.isFinite(v) ? v : null;
   };
 
+  const useBoxes = Boolean(A.use_takeoff_landing_box);
+  const countForBox = num(edit ? localCount : (droneCnt.count ?? "").toString());
+  const xForBox = num(edit ? localXCount : (droneCnt.x_count ?? "").toString());
+  const derivedY =
+    useBoxes && countForBox != null && xForBox != null
+      ? derivedLandingBoxRowCount(xForBox, countForBox)
+      : null;
+  const boxXError =
+    useBoxes && countForBox != null && xForBox != null
+      ? landingBoxOccupancyError(xForBox, countForBox)
+      : null;
+
   const applyDroneCount = () => {
+    if (boxXError) return;
+    const total = num(localCount);
+    const x = num(localXCount);
+    const y = useBoxes
+      ? (x != null && total != null
+          ? derivedLandingBoxRowCount(x, total)
+          : null) ?? num(localYCount)
+      : num(localYCount);
     const next = {
       ...(area ?? {}),
       drone_count: {
         ...(area?.drone_count ?? {}),
-        count: num(localCount),
-        x_count: num(localXCount),
-        y_count: num(localYCount),
+        count: total,
+        x_count: x,
+        y_count: y,
       },
     };
     onPatchArea(next);
@@ -86,7 +110,10 @@ export function DroneCountSection({
   const hasDroneCountChange =
     (droneCnt.count ?? "").toString() !== localCount ||
     (droneCnt.x_count ?? "").toString() !== localXCount ||
-    (droneCnt.y_count ?? "").toString() !== localYCount;
+    (!useBoxes && (droneCnt.y_count ?? "").toString() !== localYCount) ||
+    (useBoxes &&
+      derivedY != null &&
+      (droneCnt.y_count ?? "").toString() !== String(derivedY));
 
   const isEmoModel = droneCnt.model === "EMO";
 
@@ -137,12 +164,22 @@ export function DroneCountSection({
                 disabled={!edit}
                 checked={Boolean(A.use_takeoff_landing_box)}
                 onChange={(e) => {
+                  const checked = e.target.checked;
                   const next = {
                     ...(A ?? {}),
-                    use_takeoff_landing_box: e.target.checked,
+                    use_takeoff_landing_box: checked,
                   };
-                  if (e.target.checked) {
+                  if (checked) {
                     next.takeoff_landing_box_yx = "4x2";
+                    const x = Number(droneCnt.x_count);
+                    const total = Number(droneCnt.count);
+                    const y = derivedLandingBoxRowCount(x, total);
+                    if (y != null) {
+                      next.drone_count = {
+                        ...(droneCnt ?? {}),
+                        y_count: y,
+                      };
+                    }
                   }
                   onPatchArea(next);
                 }}
@@ -206,15 +243,28 @@ export function DroneCountSection({
                 type="number"
                 className={numericInputW}
               />
-              <span className="w-6 ml-1">機</span>
+              <span className={`w-6 ml-1 ${boxXError ? "text-red-400" : ""}`}>
+                機
+              </span>
             </div>
+            {boxXError && (
+              <p className={`${actionRowCls} text-xs text-red-400`}>{boxXError}</p>
+            )}
 
             <div className={rowCls}>
               <span className={`${MODEL_LABEL_W} text-sm`}>Y方向</span>
               <span className={COLON_CLS}>:</span>
               <DisplayOrInput
-                edit={edit}
-                value={edit ? localYCount : (droneCnt.y_count ?? "").toString()}
+                edit={edit && !useBoxes}
+                value={
+                  useBoxes
+                    ? derivedY != null
+                      ? String(derivedY)
+                      : ""
+                    : edit
+                      ? localYCount
+                      : (droneCnt.y_count ?? "").toString()
+                }
                 onChange={(e) => setLocalYCount(e.target.value)}
                 inputMode="numeric"
                 type="number"
@@ -228,7 +278,7 @@ export function DroneCountSection({
                 <button
                   type="button"
                   onClick={applyDroneCount}
-                  disabled={!hasDroneCountChange}
+                  disabled={!hasDroneCountChange || Boolean(boxXError)}
                   className="px-3 py-1.5 rounded-md border border-slate-600 text-sm text-slate-100 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   図を更新

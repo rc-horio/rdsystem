@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test:landing-box": "node --experimental-strip-types --test src/features/hub/tabs/AreaInfo/figure/landingBoxOccupancy.test.ts",
     "deploy": "pnpm build && pnpm -s deploy:s3",
     "deploy:s3": "pnpm -s deploy:s3:assets && pnpm -s deploy:s3:html",
     "deploy:s3:assets": "aws s3 sync dist s3://rc-rdsystem-dev --region ap-northeast-1 --profile dev-developer --delete --exclude \"index.html\" --exclude \"*.html\" --cache-control \"public, max-age=31536000, immutable\"",

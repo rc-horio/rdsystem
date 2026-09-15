@@ -1,7 +1,7 @@
 // src/features/hub/tabs/Operation/sections/Layout/DesktopPanel.tsx
 import { MeasureSection, ModuleSection, TableSection, MemoSection } from "..";
 import { DividerRed } from "@/components";
-import type { OperationMultiBlockViewModel } from "@/features/hub/tabs/Operation/utils/operationMultiBlockGrid";
+import type { OperationOccupiedViewModel } from "@/features/hub/tabs/Operation/utils/operationMultiBlockGrid";
 import { OPERATION_MAX_MODULES } from "@/features/hub/tabs/Operation/constants";
 import type { OperationModuleKind } from "@/features/hub/types/resource";
 
@@ -34,7 +34,7 @@ export function DesktopPanel(props: {
   spacingXY?: { x?: number | string | ""; y?: number | string | "" };
   spacingSeqX?: number[];
   spacingSeqY?: number[];
-  operationMultiBlock?: OperationMultiBlockViewModel | null;
+  occupiedLayout?: OperationOccupiedViewModel | null;
 }) {
   const {
     edit,
@@ -56,7 +56,7 @@ export function DesktopPanel(props: {
     spacingXY,
     spacingSeqX,
     spacingSeqY,
-    operationMultiBlock,
+    occupiedLayout,
   } = props;
 
   const moduleSlotCount = modules.length;
@@ -81,11 +81,11 @@ export function DesktopPanel(props: {
               spacingSeqX={spacingSeqX}
               spacingSeqY={spacingSeqY}
               multiBlock={
-                operationMultiBlock
+                occupiedLayout
                   ? {
-                      maxIdExclusive: operationMultiBlock.occ.totalOccupied,
+                      maxIdExclusive: occupiedLayout.totalOccupied,
                       measureMetersFromOrigin:
-                        operationMultiBlock.measureMetersFromOrigin,
+                        occupiedLayout.measureMetersFromOrigin,
                     }
                   : undefined
               }
@@ -170,11 +170,11 @@ export function DesktopPanel(props: {
           spacingSeqX={spacingSeqX}
           spacingSeqY={spacingSeqY}
           virtualGrid={
-            operationMultiBlock
+            occupiedLayout
               ? {
-                  cols: operationMultiBlock.occ.gridCols,
-                  rows: operationMultiBlock.occ.gridRows,
-                  cellIdAtVisualRow: operationMultiBlock.occ.cellIdAtVisualRow,
+                  cols: occupiedLayout.cols,
+                  rows: occupiedLayout.rows,
+                  cellIdAtVisualRow: occupiedLayout.cellIdAtVisualRow,
                 }
               : undefined
           }

@@ -7,7 +7,7 @@ import {
   MemoSection,
 } from "..";
 import { SectionTitle, DividerRed } from "@/components";
-import type { OperationMultiBlockViewModel } from "@/features/hub/tabs/Operation/utils/operationMultiBlockGrid";
+import type { OperationOccupiedViewModel } from "@/features/hub/tabs/Operation/utils/operationMultiBlockGrid";
 import { OPERATION_MAX_MODULES } from "@/features/hub/tabs/Operation/constants";
 import type { OperationModuleKind } from "@/features/hub/types/resource";
 import { useEffect, useState } from "react";
@@ -41,7 +41,7 @@ export function MobilePanel(props: {
   spacingXY?: { x?: number | string | ""; y?: number | string | "" };
   spacingSeqX?: number[];
   spacingSeqY?: number[];
-  operationMultiBlock?: OperationMultiBlockViewModel | null;
+  occupiedLayout?: OperationOccupiedViewModel | null;
 }) {
   const {
     edit,
@@ -65,21 +65,21 @@ export function MobilePanel(props: {
     spacingXY,
     spacingSeqX,
     spacingSeqY,
-    operationMultiBlock,
+    occupiedLayout,
   } = props;
 
-  const virtualGridProps = operationMultiBlock
+  const virtualGridProps = occupiedLayout
     ? {
-        cols: operationMultiBlock.occ.gridCols,
-        rows: operationMultiBlock.occ.gridRows,
-        cellIdAtVisualRow: operationMultiBlock.occ.cellIdAtVisualRow,
+        cols: occupiedLayout.cols,
+        rows: occupiedLayout.rows,
+        cellIdAtVisualRow: occupiedLayout.cellIdAtVisualRow,
       }
     : undefined;
 
-  const multiBlockMeasureProps = operationMultiBlock
+  const multiBlockMeasureProps = occupiedLayout
     ? {
-        maxIdExclusive: operationMultiBlock.occ.totalOccupied,
-        measureMetersFromOrigin: operationMultiBlock.measureMetersFromOrigin,
+        maxIdExclusive: occupiedLayout.totalOccupied,
+        measureMetersFromOrigin: occupiedLayout.measureMetersFromOrigin,
       }
     : undefined;
 
