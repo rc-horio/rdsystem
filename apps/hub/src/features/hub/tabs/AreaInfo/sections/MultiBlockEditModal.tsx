@@ -23,17 +23,11 @@ import {
 import { LandingFigureHtml } from "./LandingFigureHtml";
 import type { Block, BlockLayout, BlockLayoutRow, Area } from "@/features/hub/types/resource";
 import {
-  derivedLandingBoxRowCount,
+  derivedLandingBoxCount,
   isValidLandingBoxCountX,
+  landingBoxBlocksContradictionMessage,
   landingBoxOccupancyError,
 } from "@/features/hub/tabs/AreaInfo/figure/landingBoxOccupancy";
-
-function applyDerivedBoxY(blocks: Block[]): Block[] {
-  return blocks.map((b) => {
-    const y = derivedLandingBoxRowCount(Number(b.x_count), Number(b.count));
-    return y != null ? { ...b, y_count: y } : b;
-  });
-}
 
 const DRONE_MODEL_OPTIONS = [
   { value: "EMO", label: "EMO" },
@@ -47,7 +41,7 @@ const BLOCK_COUNT_MAX = 10;
 const BLOCK_COUNT_MAX_DIGITS = 5;
 const BLOCK_SIDE_MAX_DIGITS = 4;
 const MAX_SPACING_GAPS = 8;
-const SPACING_INPUT_W_PX = 52;
+const SPACING_INPUT_W_PX = 64;
 const MODAL_DRONE_ICON_PX = 24;
 const MODAL_DRONE_GAP_PX = 48;
 
@@ -140,8 +134,9 @@ function reassignBlocksFromCounts(
 function isValidSpacingValue(v: number): boolean {
   if (!Number.isFinite(v)) return false;
   if (v <= 0 || v > 999) return false;
-  // 小数第1位まで
-  return Math.round(v * 10) === v * 10;
+  // 小数第3位まで（0.395m = 395mm）
+  const scaled = v * 1000;
+  return Math.abs(scaled - Math.round(scaled)) < 1e-6;
 }
 
 function isGapValueHardError(gap: number): boolean {
@@ -168,7 +163,7 @@ function GapMetersInput({
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<string | null>(null);
   const rootRef = useRef<HTMLSpanElement>(null);
-  const current = Number.isFinite(value) ? String(value) : "";
+  const current = Number.isFinite(value) ? fmtMeters(value) : "";
   const display = draft ?? current;
 
   const closeAndCommit = () => {
@@ -200,7 +195,7 @@ function GapMetersInput({
         value={display}
         onChange={(e) => {
           const raw = e.target.value;
-          if (hasMinusSign(raw) || isOverCharLimit(raw, 5)) return;
+          if (hasMinusSign(raw) || isOverCharLimit(raw, 7)) return;
           setDraft(raw);
           if (raw === "") {
             onChange(NaN);
@@ -450,8 +445,12 @@ export function MultiBlockEditModal({
       gaps_between_rows_m: figureSource.gapsBetweenRowsM,
     },
     spacing_between_drones_m: {
-      horizontal: figureSource.spacingHorizontal.join(","),
-      vertical: figureSource.spacingVertical.join(","),
+      horizontal: figureSource.spacingHorizontal
+        .map((n) => (Number.isFinite(n) ? fmtMeters(n) : ""))
+        .join(","),
+      vertical: figureSource.spacingVertical
+        .map((n) => (Number.isFinite(n) ? fmtMeters(n) : ""))
+        .join(","),
       unequal: figureSource.spacingUnequal,
     },
     drone_count: figureSource.blocks[0]
@@ -846,8 +845,12 @@ export function MultiBlockEditModal({
     const base: Area = {
       ...(area ?? ({} as Area)),
       spacing_between_drones_m: {
-        horizontal: state.spacingHorizontal.join(","),
-        vertical: state.spacingVertical.join(","),
+        horizontal: state.spacingHorizontal
+          .map((n) => (Number.isFinite(n) ? fmtMeters(n) : ""))
+          .join(","),
+        vertical: state.spacingVertical
+          .map((n) => (Number.isFinite(n) ? fmtMeters(n) : ""))
+          .join(","),
         unequal: state.spacingUnequal,
       },
     };
@@ -863,9 +866,7 @@ export function MultiBlockEditModal({
       },
     };
 
-    const blocksForSave = state.useTakeoffLandingBox
-      ? applyDerivedBoxY(state.blocks)
-      : state.blocks;
+    const blocksForSave = state.blocks;
 
     let nextArea: Area;
     const preservedDroneCount = {
@@ -938,9 +939,13 @@ export function MultiBlockEditModal({
       isPositiveInt(x) &&
       digitCount(x) <= BLOCK_SIDE_MAX_DIGITS &&
       (!state.useTakeoffLandingBox || isValidLandingBoxCountX(x));
-    const yOk = state.useTakeoffLandingBox
-      ? true
-      : isPositiveInt(y) && digitCount(y) <= BLOCK_SIDE_MAX_DIGITS;
+    const yOk =
+      isPositiveInt(y) &&
+      digitCount(y) <= BLOCK_SIDE_MAX_DIGITS &&
+      (!state.useTakeoffLandingBox ||
+        !isValidLandingBoxCountX(x) ||
+        !isPositiveInt(c) ||
+        landingBoxOccupancyError(x, c, y) == null);
     const cOk = isPositiveInt(c) && digitCount(c) <= BLOCK_COUNT_MAX_DIGITS;
     return {
       xOk,
@@ -1000,33 +1005,31 @@ export function MultiBlockEditModal({
     betweenRowGapHardErrors.some(Boolean);
 
   // 各ブロックの x*y と count の整合性チェック（左パネルの警告用）
-  const blockContradictionMessages = figureSource.blocks
-    .map((b, i) => {
-      const x = Number(b.x_count);
-      const y = Number(b.y_count);
-      const total = Number(b.count);
-      const label = BLOCK_LABELS[i] ?? `${i + 1}`;
-      if (figureSource.useTakeoffLandingBox) {
-        const boxErr = landingBoxOccupancyError(x, total);
-        return boxErr ? `ブロック${label}: ${boxErr}` : null;
-      }
-      if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(total)) return null;
-      if (x <= 0 || y <= 0 || total <= 0) return null;
-      const fullRect = x * y;
+  const blockContradictionMessages = figureSource.useTakeoffLandingBox
+    ? (landingBoxBlocksContradictionMessage(figureSource.blocks)?.split("\n") ?? [])
+    : figureSource.blocks
+        .map((b, i) => {
+          const x = Number(b.x_count);
+          const y = Number(b.y_count);
+          const total = Number(b.count);
+          const label = BLOCK_LABELS[i] ?? `${i + 1}`;
+          if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(total)) return null;
+          if (x <= 0 || y <= 0 || total <= 0) return null;
+          const fullRect = x * y;
 
-      if (total > fullRect) {
-        return `ブロック${label}: 全機体数(${total})がX機体数×Y機体数(${fullRect})を超えています。数値を見直してください。`;
-      }
-      const actualRowCount = Math.ceil(total / x);
-      if (actualRowCount > y) {
-        return `ブロック${label}: 必要な行数(${actualRowCount})がY機体数(${y})を超えています。数値を見直してください。`;
-      }
-      if (actualRowCount < y) {
-        return `ブロック${label}: X機体数×Y機体数(${fullRect})が全機体数(${total})を超えています。数値を見直してください。`;
-      }
-      return null;
-    })
-    .filter((msg): msg is string => !!msg);
+          if (total > fullRect) {
+            return `ブロック${label}: 全機体数(${total})がX機体数×Y機体数(${fullRect})を超えています。数値を見直してください。`;
+          }
+          const actualRowCount = Math.ceil(total / x);
+          if (actualRowCount > y) {
+            return `ブロック${label}: 必要な行数(${actualRowCount})がY機体数(${y})を超えています。数値を見直してください。`;
+          }
+          if (actualRowCount < y) {
+            return `ブロック${label}: X機体数×Y機体数(${fullRect})が全機体数(${total})を超えています。数値を見直してください。`;
+          }
+          return null;
+        })
+        .filter((msg): msg is string => !!msg);
 
   const hasBlockContradiction = blockContradictionMessages.length > 0;
 
@@ -1130,9 +1133,6 @@ export function MultiBlockEditModal({
                       setState((prev) => ({
                         ...prev,
                         useTakeoffLandingBox: checked,
-                        blocks: checked
-                          ? applyDerivedBoxY(prev.blocks)
-                          : prev.blocks,
                       }));
                     }}
                     className="accent-red-600 h-4 w-4 shrink-0 disabled:opacity-50"
@@ -1146,7 +1146,9 @@ export function MultiBlockEditModal({
             {hasBlockContradiction ? (
               <div className="space-y-1 text-xs text-amber-300">
                 {blockContradictionMessages.map((msg, idx) => (
-                  <p key={idx}>{msg}</p>
+                  <p key={idx} className="whitespace-pre-line">
+                    {msg}
+                  </p>
                 ))}
               </div>
             ) : m.canRenderFigure ? (
@@ -1155,7 +1157,7 @@ export function MultiBlockEditModal({
                 className="w-full h-full"
               />
             ) : (
-              <span className="text-slate-200 text-sm text-center">
+              <span className="whitespace-pre-line text-slate-200 text-sm text-center">
                 {m.cannotRenderReason === "contradiction" && m.contradictionMessage
                   ? m.contradictionMessage
                   : "入力値を設定してください"}
@@ -1241,15 +1243,15 @@ export function MultiBlockEditModal({
                                   value={Number.isFinite(val) ? val : ""}
                                   onChange={(e) => {
                                     const raw = e.target.value;
-                                    if (hasMinusSign(raw) || isOverCharLimit(raw, 4)) return;
+                                    if (hasMinusSign(raw) || isOverCharLimit(raw, 7)) return;
                                     const num = raw === "" ? NaN : Number(raw);
                                     updateSpacingVertical(actualI, num);
                                   }}
-                                  className={`${inputBase} w-[52px] px-1 py-1 text-sm text-center ${
+                                  className={`${inputBase} w-[64px] px-1 py-1 text-sm text-center ${
                                     invalidSpacingVertical[actualI] ? "border-red-500" : ""
                                   }`}
                                   inputMode="decimal"
-                                  step="0.1"
+                                  step="0.001"
                                   min="0"
                                 />
                                 <span className="absolute left-full ml-1 text-slate-100 text-sm">
@@ -1278,34 +1280,40 @@ export function MultiBlockEditModal({
                           }}
                         >
                           {seqX.map((val, i) => {
-                            const isLast = i === seqX.length - 1;
                             return (
                               <div
                                 key={`x-${i}`}
-                                className="relative flex items-center justify-center"
+                                className="flex items-center"
                                 style={{
-                                  width: MODAL_DRONE_GAP_PX,
+                                  width: MODAL_DRONE_GAP_PX + MODAL_DRONE_ICON_PX,
                                   height: MODAL_DRONE_GAP_PX,
-                                  marginRight: isLast ? 0 : MODAL_DRONE_ICON_PX,
                                 }}
                               >
-                                <input
-                                  type="number"
-                                  value={Number.isFinite(val) ? val : ""}
-                                  onChange={(e) => {
-                                    const raw = e.target.value;
-                                    if (hasMinusSign(raw) || isOverCharLimit(raw, 4)) return;
-                                    const num = raw === "" ? NaN : Number(raw);
-                                    updateSpacingHorizontal(i, num);
-                                  }}
-                                  className={`${inputBase} w-[52px] px-1 py-1 text-sm text-center ${
-                                    invalidSpacingHorizontal[i] ? "border-red-500" : ""
-                                  }`}
-                                  inputMode="decimal"
-                                  step="0.1"
-                                  min="0"
-                                />
-                                <span className="absolute left-full ml-1 text-slate-100 text-sm">
+                                <div
+                                  className="flex items-center justify-center"
+                                  style={{ width: MODAL_DRONE_GAP_PX }}
+                                >
+                                  <input
+                                    type="number"
+                                    value={Number.isFinite(val) ? val : ""}
+                                    onChange={(e) => {
+                                      const raw = e.target.value;
+                                      if (hasMinusSign(raw) || isOverCharLimit(raw, 7)) return;
+                                      const num = raw === "" ? NaN : Number(raw);
+                                      updateSpacingHorizontal(i, num);
+                                    }}
+                                    className={`${inputBase} w-full px-1 py-1 text-sm text-center ${
+                                      invalidSpacingHorizontal[i] ? "border-red-500" : ""
+                                    }`}
+                                    inputMode="decimal"
+                                    step="0.001"
+                                    min="0"
+                                  />
+                                </div>
+                                <span
+                                  className="flex shrink-0 items-center pl-1 text-sm text-slate-100"
+                                  style={{ width: MODAL_DRONE_ICON_PX }}
+                                >
                                   m
                                 </span>
                               </div>
@@ -1402,26 +1410,17 @@ export function MultiBlockEditModal({
                           <input
                             type="number"
                             value={
-                              state.useTakeoffLandingBox
-                                ? derivedLandingBoxRowCount(
-                                    Number(block.x_count),
-                                    Number(block.count)
-                                  ) ?? ""
-                                : Number.isFinite(block.y_count)
-                                  ? block.y_count
-                                  : ""
+                              Number.isFinite(block.y_count) ? block.y_count : ""
                             }
                             onChange={(e) => {
-                              if (state.useTakeoffLandingBox) return;
                               const raw = e.target.value;
                               if (isOverDigitLimit(raw, BLOCK_SIDE_MAX_DIGITS)) return;
                               const num = raw === "" ? (NaN as any) : Number(raw);
                               updateBlock(block.id, { y_count: num });
                             }}
-                            readOnly={state.useTakeoffLandingBox}
                             className={`${inputBase} w-20 px-2 py-0.5 text-xs ${
                               yError ? "border-red-500" : ""
-                            } ${state.useTakeoffLandingBox ? "opacity-80" : ""}`}
+                            }`}
                             min="1"
                           />
                         </div>
@@ -1444,6 +1443,16 @@ export function MultiBlockEditModal({
                             min="1"
                           />
                         </div>
+                        {state.useTakeoffLandingBox && (
+                          <div className="flex items-center gap-2">
+                            <span className="w-5 text-slate-200">箱</span>
+                            <span
+                              className={`${inputBase} inline-flex h-6 w-20 items-center justify-center px-2 text-xs opacity-80`}
+                            >
+                              {derivedLandingBoxCount(Number(block.count)) ?? ""}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -1462,6 +1471,7 @@ export function MultiBlockEditModal({
             </section>
 
             {/* ③ 配置（行は上に追加。行4→行1の順で、行間隔を各間に表示） */}
+            {state.blocks.length > 1 && (
             <section>
               <h3 className="text-sm font-medium text-slate-200 mb-1.5">配置</h3>
               {spacingPatternIncomplete && (
@@ -1635,6 +1645,7 @@ export function MultiBlockEditModal({
               </button>
               )}
             </section>
+            )}
 
             </fieldset>
           </div>
@@ -1924,13 +1935,9 @@ export function MultiBlockEditModal({
             <button
               type="button"
               onClick={() => {
-                const next = state.useTakeoffLandingBox
-                  ? { ...state, blocks: applyDerivedBoxY(state.blocks) }
-                  : state;
-                if (state.useTakeoffLandingBox) setState(next);
-                setCommittedForFigure(JSON.parse(JSON.stringify(next)));
+                setCommittedForFigure(JSON.parse(JSON.stringify(state)));
               }}
-              disabled={layoutCountsMismatch || hasRowWithZeroBlocks}
+              disabled={layoutCountsMismatch || hasRowWithZeroBlocks || hasHardError}
               className="h-9 md:h-10 px-3 md:px-4 py-2 rounded border border-slate-600 text-sm whitespace-nowrap text-slate-200 hover:bg-slate-700 hover:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               図を更新

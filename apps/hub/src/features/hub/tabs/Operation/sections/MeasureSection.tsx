@@ -1,5 +1,6 @@
 // features/hub/tabs/Operation/sections/MeasureSection.tsx
 import { SectionTitle, DisplayOrInput, ButtonRed } from "@/components";
+import { fmtMeters } from "@/features/hub/utils/spacing";
 import { useState } from "react";
 
 // TODO(measure-refactor / tomorrow):
@@ -154,7 +155,7 @@ export function MeasureSection({
               setMeasureXY(pos);
               onCommitMeasurement?.(
                 Number(measureNum),
-                pos ? `x:${pos.x.toFixed(1)}m　y:${pos.y.toFixed(1)}m` : null
+                pos ? `x:${fmtMeters(pos.x)}m　y:${fmtMeters(pos.y)}m` : null
               );
             } else {
               setMeasureXY(null);
@@ -175,7 +176,7 @@ export function MeasureSection({
             <span className="tabular-nums">
               選択した機体の距離は0番から
               <br />
-              x:{measureXY.x.toFixed(1)}m　y:{measureXY.y.toFixed(1)}mです
+              x:{fmtMeters(measureXY.x)}m　y:{fmtMeters(measureXY.y)}mです
             </span>
           ) : (
             <span className="text-slate-500">計測結果はありません</span>

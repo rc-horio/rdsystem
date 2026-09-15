@@ -42,17 +42,56 @@ export function isValidLandingBoxCountX(countX: number): boolean {
   return Number.isInteger(countX) && countX >= 2 && countX % 2 === 0;
 }
 
+/** 離発着ボックスは縦 4 機なので、Y は 4 以上の 4 の倍数 */
+export function isValidLandingBoxCountY(countY: number): boolean {
+  return Number.isInteger(countY) && countY >= 4 && countY % 4 === 0;
+}
+
+/**
+ * BOX ON の入力エラー。Y 未入力（0 以下・非数）のときは X だけ見る。
+ * 配置は総機と X で決まり、Y はその高さと一致しなければならない。
+ */
 export function landingBoxOccupancyError(
   countX: number,
-  totalCount: number
+  totalCount: number,
+  countY?: number | null
 ): string | null {
   const xOk = Number.isFinite(countX) && countX > 0;
   const totalOk = Number.isFinite(totalCount) && totalCount > 0;
   if (!xOk || !totalOk) return null;
   if (!isValidLandingBoxCountX(countX)) {
-    return `X方向は2以上の偶数にしてください。離発着ボックスは横2機です。`;
+    return `X方向は2以上の偶数にしてください。`;
+  }
+  const y = Number(countY);
+  if (!Number.isFinite(y) || y <= 0) return null;
+  if (!isValidLandingBoxCountY(y)) {
+    return `Y方向は4以上の4の倍数にしてください。`;
+  }
+  const neededY = derivedLandingBoxRowCount(countX, totalCount);
+  if (neededY != null && y !== neededY) {
+    return `総機体数とX方向からY方向は${neededY}機です。\n入力値を見直してください。`;
+  }
+  if (totalCount > countX * y) {
+    return `全機体数(${totalCount})がX機体数×Y機体数(${countX * y})を超えています。数値を見直してください。`;
   }
   return null;
+}
+
+export function landingBoxBlocksContradictionMessage(
+  blocks: { count?: number; x_count?: number; y_count?: number }[]
+): string | null {
+  const labels = "ABCDEFGHIJ";
+  const msgs: string[] = [];
+  for (let i = 0; i < blocks.length; i++) {
+    const b = blocks[i]!;
+    const err = landingBoxOccupancyError(
+      Number(b.x_count),
+      Number(b.count),
+      Number(b.y_count)
+    );
+    if (err) msgs.push(`ブロック${labels[i] ?? i + 1}: ${err}`);
+  }
+  return msgs.length > 0 ? msgs.join("\n") : null;
 }
 
 export function derivedLandingBoxRowCount(
@@ -60,6 +99,13 @@ export function derivedLandingBoxRowCount(
   totalCount: number
 ): number | null {
   return buildLandingBoxOccupancy(countX, totalCount)?.gridRows ?? null;
+}
+
+/** BOX 数 = ceil(総機 ÷ 8)。X は不要 */
+export function derivedLandingBoxCount(totalCount: number): number | null {
+  const total = Number(totalCount);
+  if (!Number.isInteger(total) || total <= 0) return null;
+  return Math.ceil(total / BOX_CAPACITY);
 }
 
 /**

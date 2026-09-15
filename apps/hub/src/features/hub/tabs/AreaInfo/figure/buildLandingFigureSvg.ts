@@ -236,7 +236,7 @@ export function buildLandingFigureSvg(
         m.cannotRenderReason === "contradiction" && m.contradictionMessage
             ? m.contradictionMessage
             : Boolean(area?.use_takeoff_landing_box)
-                ? "総機体数 / X方向 / 間隔 を入力してください。"
+                ? "総機体数 / X方向 / Y方向 / 間隔 を入力してください。"
                 : "x機体数 / y機体数 / 間隔 を入力してください。";
     const msgLines = msg
         .split("\n")

@@ -110,10 +110,10 @@ export function buildLandingFigureModel(
         useBoxes && xOk && hasTotalCount
             ? buildLandingBoxOccupancy(countX, totalCount)
             : null;
-    const yOk = useBoxes
-        ? boxOccupancy != null
-        : Number.isFinite(countYInput) && countYInput > 0;
-    const countY = useBoxes ? (boxOccupancy?.gridRows ?? 0) : countYInput;
+    const yOk = Number.isFinite(countYInput) && countYInput > 0;
+    const countY = useBoxes
+        ? (boxOccupancy?.gridRows ?? countYInput)
+        : countYInput;
 
     // 間隔入力の妥当性
     const spacingOk = seqX.length > 0 && seqY.length > 0;
@@ -135,20 +135,20 @@ export function buildLandingFigureModel(
     const rowsUnderY =
         !useBoxes && hasTotalCount && actualRowCount < countYInput;
     const boxContradictionMessage = useBoxes
-        ? landingBoxOccupancyError(countX, totalCount)
+        ? landingBoxOccupancyError(countX, totalCount, countYInput)
         : null;
 
     const hasContradiction = useBoxes
         ? boxContradictionMessage != null
         : countExceedsGrid || rowsExceedY || rowsUnderY;
     const canRenderFigure = useBoxes
-        ? boxOccupancy != null && spacingOk
+        ? boxOccupancy != null && yOk && spacingOk && !hasContradiction
         : xOk && yOk && spacingOk && !hasContradiction;
     const cannotRenderReason =
         hasContradiction
             ? "contradiction"
             : useBoxes
-                ? !xOk || !hasTotalCount || !spacingOk
+                ? !xOk || !hasTotalCount || !yOk || !spacingOk
                     ? "input_required"
                     : null
                 : !xOk || !yOk || !spacingOk

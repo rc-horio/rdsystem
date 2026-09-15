@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { DisplayOrInput, DisplayOrSelect, SectionTitle, type SelectOption } from "@/components";
 import { getEffectiveBlocks, hasBlocks } from "@/features/hub/utils/areaBlocks";
 import {
-  derivedLandingBoxRowCount,
+  derivedLandingBoxCount,
   landingBoxOccupancyError,
 } from "@/features/hub/tabs/AreaInfo/figure/landingBoxOccupancy";
 
@@ -14,7 +14,7 @@ const DRONE_MODEL_OPTIONS: SelectOption[] = [
   { value: "Hula", label: "Hula" },
   { value: "TAKE", label: "TAKE" },
 ];
-const MODEL_LABEL_W = "w-[4.75rem] shrink-0";
+const MODEL_LABEL_W = "w-[5.5rem] shrink-0";
 const MODEL_SELECT_W = "!w-[140px] w-[140px] shrink-0";
 const COLON_CLS = "w-3 shrink-0 text-center text-slate-200";
 
@@ -77,24 +77,21 @@ export function DroneCountSection({
   const useBoxes = Boolean(A.use_takeoff_landing_box);
   const countForBox = num(edit ? localCount : (droneCnt.count ?? "").toString());
   const xForBox = num(edit ? localXCount : (droneCnt.x_count ?? "").toString());
-  const derivedY =
-    useBoxes && countForBox != null && xForBox != null
-      ? derivedLandingBoxRowCount(xForBox, countForBox)
+  const yForBox = num(edit ? localYCount : (droneCnt.y_count ?? "").toString());
+  const derivedBoxCount =
+    useBoxes && countForBox != null
+      ? derivedLandingBoxCount(countForBox)
       : null;
-  const boxXError =
+  const boxError =
     useBoxes && countForBox != null && xForBox != null
-      ? landingBoxOccupancyError(xForBox, countForBox)
+      ? landingBoxOccupancyError(xForBox, countForBox, yForBox)
       : null;
 
   const applyDroneCount = () => {
-    if (boxXError) return;
+    if (boxError) return;
     const total = num(localCount);
     const x = num(localXCount);
-    const y = useBoxes
-      ? (x != null && total != null
-          ? derivedLandingBoxRowCount(x, total)
-          : null) ?? num(localYCount)
-      : num(localYCount);
+    const y = num(localYCount);
     const next = {
       ...(area ?? {}),
       drone_count: {
@@ -110,10 +107,7 @@ export function DroneCountSection({
   const hasDroneCountChange =
     (droneCnt.count ?? "").toString() !== localCount ||
     (droneCnt.x_count ?? "").toString() !== localXCount ||
-    (!useBoxes && (droneCnt.y_count ?? "").toString() !== localYCount) ||
-    (useBoxes &&
-      derivedY != null &&
-      (droneCnt.y_count ?? "").toString() !== String(derivedY));
+    (droneCnt.y_count ?? "").toString() !== localYCount;
 
   const isEmoModel = droneCnt.model === "EMO";
 
@@ -171,15 +165,6 @@ export function DroneCountSection({
                   };
                   if (checked) {
                     next.takeoff_landing_box_yx = "4x2";
-                    const x = Number(droneCnt.x_count);
-                    const total = Number(droneCnt.count);
-                    const y = derivedLandingBoxRowCount(x, total);
-                    if (y != null) {
-                      next.drone_count = {
-                        ...(droneCnt ?? {}),
-                        y_count: y,
-                      };
-                    }
                   }
                   onPatchArea(next);
                 }}
@@ -201,7 +186,11 @@ export function DroneCountSection({
             </div>
 
             <div className={`${blockListCls} space-y-0.5`}>
-              {getEffectiveBlocks(area).map((block, i) => (
+              {getEffectiveBlocks(area).map((block, i) => {
+                const boxCount = useBoxes
+                  ? derivedLandingBoxCount(block.count)
+                  : null;
+                return (
                 <div key={block.id} className="flex items-center gap-2">
                   <span
                     className={`${MODEL_LABEL_W} text-right text-sm font-semibold text-slate-100`}
@@ -212,9 +201,28 @@ export function DroneCountSection({
                   <span className="w-[4.75rem] text-right text-sm tabular-nums text-slate-400">
                     {block.count}機
                   </span>
+                  {boxCount != null && (
+                    <span className="text-sm tabular-nums text-slate-500">
+                      / {boxCount}箱
+                    </span>
+                  )}
                 </div>
-              ))}
+                );
+              })}
             </div>
+            {useBoxes && (
+              <div className={rowCls}>
+                <span className={`${MODEL_LABEL_W} text-sm font-medium`}>ボックス数</span>
+                <span className={COLON_CLS}>:</span>
+                <span className="w-[4.75rem] text-right text-sm font-medium tabular-nums text-slate-100">
+                  {getEffectiveBlocks(area).reduce(
+                    (s, b) => s + (derivedLandingBoxCount(b.count) ?? 0),
+                    0
+                  )}
+                  箱
+                </span>
+              </div>
+            )}
           </>
         ) : (
           <>
@@ -243,42 +251,51 @@ export function DroneCountSection({
                 type="number"
                 className={numericInputW}
               />
-              <span className={`w-6 ml-1 ${boxXError ? "text-red-400" : ""}`}>
+              <span className={`w-6 ml-1 ${boxError ? "text-red-400" : ""}`}>
                 機
               </span>
             </div>
-            {boxXError && (
-              <p className={`${actionRowCls} text-xs text-red-400`}>{boxXError}</p>
-            )}
 
             <div className={rowCls}>
               <span className={`${MODEL_LABEL_W} text-sm`}>Y方向</span>
               <span className={COLON_CLS}>:</span>
               <DisplayOrInput
-                edit={edit && !useBoxes}
-                value={
-                  useBoxes
-                    ? derivedY != null
-                      ? String(derivedY)
-                      : ""
-                    : edit
-                      ? localYCount
-                      : (droneCnt.y_count ?? "").toString()
-                }
+                edit={edit}
+                value={edit ? localYCount : (droneCnt.y_count ?? "").toString()}
                 onChange={(e) => setLocalYCount(e.target.value)}
                 inputMode="numeric"
                 type="number"
                 className={numericInputW}
               />
-              <span className="w-6 ml-1">機</span>
+              <span className={`w-6 ml-1 ${boxError ? "text-red-400" : ""}`}>
+                機
+              </span>
             </div>
+            {boxError && (
+              <p className={`${actionRowCls} whitespace-pre-line text-xs text-red-400`}>
+                {boxError}
+              </p>
+            )}
+
+            {useBoxes && (
+              <div className={rowCls}>
+                <span className={`${MODEL_LABEL_W} text-sm`}>ボックス数</span>
+                <span className={COLON_CLS}>:</span>
+                <DisplayOrInput
+                  edit={false}
+                  value={derivedBoxCount != null ? String(derivedBoxCount) : ""}
+                  className={numericInputW}
+                />
+                <span className="w-6 ml-1">箱</span>
+              </div>
+            )}
 
             {edit && (
               <div className={`${actionRowCls} flex justify-end`}>
                 <button
                   type="button"
                   onClick={applyDroneCount}
-                  disabled={!hasDroneCountChange || Boolean(boxXError)}
+                  disabled={!hasDroneCountChange || Boolean(boxError)}
                   className="px-3 py-1.5 rounded-md border border-slate-600 text-sm text-slate-100 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   図を更新

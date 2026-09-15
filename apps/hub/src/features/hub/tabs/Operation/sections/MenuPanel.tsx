@@ -1,5 +1,6 @@
 // 先頭のインポートを拡張
 import { useState, useEffect } from "react";
+import { fmtMeters } from "@/features/hub/utils/spacing";
 
 // 既存の MenuPanel を差し替え
 export function MenuPanel({
@@ -183,7 +184,7 @@ export function MenuPanel({
                   onCommitMeasurement?.(
                     Number(measureNum),
                     pos
-                      ? `x:${pos.x.toFixed(1)}m　y:${pos.y.toFixed(1)}m`
+                      ? `x:${fmtMeters(pos.x)}m　y:${fmtMeters(pos.y)}m`
                       : null
                   );
                 } else {
@@ -200,7 +201,7 @@ export function MenuPanel({
           <div className="text-sm min-h-[20px]" aria-live="polite">
             {measureXY ? (
               <span className="tabular-nums">
-                0番から　x:{measureXY.x.toFixed(1)}m　y:{measureXY.y.toFixed(1)}
+                0番から　x:{fmtMeters(measureXY.x)}m　y:{fmtMeters(measureXY.y)}
                 m
               </span>
             ) : (

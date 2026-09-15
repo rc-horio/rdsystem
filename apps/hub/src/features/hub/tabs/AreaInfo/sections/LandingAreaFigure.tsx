@@ -14,6 +14,7 @@ import { DroneCountSection } from "./DroneCountSection";
 import { MultiBlockEditModal } from "./MultiBlockEditModal";
 import { LandingFigureHtml } from "./LandingFigureHtml";
 import { ButtonRed } from "@/components/atoms/buttons/RedButton";
+import { fmtMeters } from "@/features/hub/utils/spacing";
 import { useState, type Ref } from "react";
 
 type Props = {
@@ -25,13 +26,19 @@ type Props = {
 };
 
 const MAX_SPACING_GAPS = 8;
-const SPACING_INPUT_W_PX = 52;
+const SPACING_INPUT_W_PX = 64;
 
 function splitSpacingFields(v: string): string[] {
   if (typeof v !== "string" || v.trim() === "") return [""];
   const parts = v.split(",").map((s) => s.trim());
   while (parts.length > 1 && parts[parts.length - 1] === "") parts.pop();
   return parts.length > 0 ? parts : [""];
+}
+
+function spacingFieldDisplay(val: string, edit: boolean): string {
+  if (edit) return val;
+  const n = Number(val);
+  return Number.isFinite(n) && n > 0 ? fmtMeters(n) : val;
 }
 
 export function LandingAreaFigure({ edit, area, onPatchArea, spacingBoxRef }: Props) {
@@ -295,9 +302,9 @@ export function LandingAreaFigure({ edit, area, onPatchArea, spacingBoxRef }: Pr
                         >
                           <DisplayOrInput
                             edit={edit}
-                            value={val}
+                            value={spacingFieldDisplay(val, edit)}
                             onChange={(e) => setSeqYAt(actualI, e.target.value)}
-                            className="w-[52px]! text-center"
+                            className="w-[64px]! text-center"
                           />
                           <span className="absolute left-full ml-1 text-slate-100 text-sm">
                             m
@@ -323,24 +330,30 @@ export function LandingAreaFigure({ edit, area, onPatchArea, spacingBoxRef }: Pr
                     }}
                   >
                     {seqXFields.map((val, i) => {
-                      const isLast = i === seqXFields.length - 1;
                       return (
                         <div
                           key={`x-${i}`}
-                          className="relative flex items-center justify-center"
+                          className="flex items-center"
                           style={{
-                            width: DRONE_SPACING_GAP_PX,
+                            width: DRONE_SPACING_GAP_PX + DRONE_SPACING_ICON_PX,
                             height: DRONE_SPACING_GAP_PX,
-                            marginRight: isLast ? 0 : DRONE_SPACING_ICON_PX,
                           }}
                         >
-                          <DisplayOrInput
-                            edit={edit}
-                            value={val}
-                            onChange={(e) => setSeqXAt(i, e.target.value)}
-                            className="w-[52px]! text-center"
-                          />
-                          <span className="absolute left-full ml-1 text-slate-100 text-sm">
+                          <div
+                            className="flex items-center justify-center"
+                            style={{ width: DRONE_SPACING_GAP_PX }}
+                          >
+                            <DisplayOrInput
+                              edit={edit}
+                              value={spacingFieldDisplay(val, edit)}
+                              onChange={(e) => setSeqXAt(i, e.target.value)}
+                              className="w-full! px-1! text-center"
+                            />
+                          </div>
+                          <span
+                            className="flex shrink-0 items-center pl-1 text-sm text-slate-100"
+                            style={{ width: DRONE_SPACING_ICON_PX }}
+                          >
                             m
                           </span>
                         </div>

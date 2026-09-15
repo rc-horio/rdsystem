@@ -7,6 +7,7 @@ import {
   landingBoxRectSvg,
   parseTakeoffLandingBoxYx,
 } from "@/features/hub/tabs/AreaInfo/figure/landingBoxTiles";
+import { landingBoxBlocksContradictionMessage } from "@/features/hub/tabs/AreaInfo/figure/landingBoxOccupancy";
 
 type Theme = "ui" | "export";
 
@@ -94,8 +95,19 @@ export function buildMultiBlockLandingFigureSvg(
   const rectStroke = "#ed1b24";
   const rectFill = "#ed1b24";
 
-  if (!model) {
-    const msg = "ブロック配置と機体間隔を設定してください";
+  const boxMsg =
+    useBoxes && area.blocks?.length
+      ? landingBoxBlocksContradictionMessage(area.blocks)
+      : null;
+  if (boxMsg || !model) {
+    const msg = boxMsg ?? "ブロック配置と機体間隔を設定してください";
+    const msgLines = msg
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const lineH = 18;
+    const startY =
+      viewH / 2 - ((msgLines.length - 1) * lineH) / 2;
     return `
 <svg
   viewBox="0 0 ${viewW} ${viewH}"
@@ -103,17 +115,20 @@ export function buildMultiBlockLandingFigureSvg(
   width="100%"
   height="100%"
 >
+  ${msgLines
+    .map(
+      (line, i) => `
   <text
     x="${viewW / 2}"
-    y="${viewH / 2}"
+    y="${startY + i * lineH}"
     dominant-baseline="middle"
     text-anchor="middle"
     font-size="15"
     fill="${labelColor}"
     opacity="0.9"
-  >
-    ${msg}
-  </text>
+  >${line}</text>`
+    )
+    .join("")}
 </svg>
     `.trim();
   }
@@ -338,9 +353,13 @@ export function buildMultiBlockLandingFigureSvg(
       };
     })();
 
+    const trCol =
+      corner != null && "trCol" in corner
+        ? Number((corner as { trCol?: number }).trCol)
+        : NaN;
     const boxTrX =
-      useBoxes && occ && corner && "trCol" in corner && occ.gridCols > 0
-        ? figureLeft + ((corner.trCol + 1) / occ.gridCols) * figureW
+      useBoxes && occ && Number.isFinite(trCol) && occ.gridCols > 0
+        ? figureLeft + ((trCol + 1) / occ.gridCols) * figureW
         : topRightX;
 
     const autoFontSize = Math.max(8, Math.min(10, Math.min(w, h) / 5));

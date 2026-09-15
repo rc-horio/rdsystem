@@ -3,7 +3,7 @@ import {
   buildMultiBlockOccupancyGrid,
   type MultiBlockOccupancyGrid,
 } from "@/features/hub/tabs/AreaInfo/figure/multiBlockOccupancyGrid";
-import { buildLandingBoxOccupancy } from "@/features/hub/tabs/AreaInfo/figure/landingBoxOccupancy";
+import { buildLandingBoxOccupancy, landingBoxOccupancyError } from "@/features/hub/tabs/AreaInfo/figure/landingBoxOccupancy";
 import { hasBlocks } from "@/features/hub/utils/areaBlocks";
 import { cumDist, parseSpacingSeq } from "@/features/hub/utils/spacing";
 
@@ -76,8 +76,13 @@ export function buildOperationOccupiedViewModel(
 
   if (!area?.use_takeoff_landing_box || hasBlocks(area)) return null;
 
-  const x = Number(area?.drone_count?.x_count);
-  const total = Number(area?.drone_count?.count);
+  const dc = area?.drone_count as
+    | { count?: number; x_count?: number; y_count?: number }
+    | undefined;
+  const x = Number(dc?.x_count);
+  const total = Number(dc?.count);
+  const y = Number(dc?.y_count);
+  if (landingBoxOccupancyError(x, total, y)) return null;
   const occ = buildLandingBoxOccupancy(x, total);
   if (!occ) return null;
 

@@ -1,8 +1,17 @@
 // src/features/hub/utils/spacing.ts
 
-// 表示用フォーマッタ：整数ならそのまま、小数は小数1桁
-export const fmtMeters = (n: number) =>
-    Math.abs(n - Math.round(n)) < 1e-6 ? String(Math.round(n)) : n.toFixed(1);
+const METER_DECIMALS = 3;
+const METER_SCALE = 10 ** METER_DECIMALS;
+
+export const roundMeters = (n: number) => Math.round(n * METER_SCALE) / METER_SCALE;
+
+// 表示用：小数は第3位まで。末尾の0は付けない（0.800 → 0.8、0.395 はそのまま）
+export const fmtMeters = (n: number) => {
+    if (!Number.isFinite(n)) return "";
+    const rounded = roundMeters(n);
+    if (Math.abs(rounded - Math.round(rounded)) < 1e-9) return String(Math.round(rounded));
+    return rounded.toFixed(METER_DECIMALS).replace(/0+$/, "").replace(/\.$/, "");
+};
 
 // CSV文字列を数値配列に（空/不正/0以下は除外）
 export const parseSpacingSeq = (v: unknown): number[] => {
@@ -89,7 +98,7 @@ export const gapOptionsFrom = (
     for (let steps = 1; steps <= maxSteps; steps++) {
         const d = spanOnSeq(fromIndex, steps, seq, fallback);
         if (!Number.isFinite(d) || d <= 0) continue;
-        const rounded = Math.round(d * 10) / 10;
+        const rounded = roundMeters(d);
         if (opts.some((o) => Math.abs(o - rounded) < 1e-6)) continue;
         opts.push(rounded);
     }
@@ -103,7 +112,7 @@ export const adjacentGapM = (
 ): number => {
     const d = spanOnSeq(fromIndex, 1, seq, fallback);
     if (!Number.isFinite(d) || d <= 0) return seq[0] ?? fallback;
-    return Math.round(d * 10) / 10;
+    return roundMeters(d);
 };
 
 const SPACING_EQ_EPS = 1e-6;

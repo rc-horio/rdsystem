@@ -1,6 +1,6 @@
 import type { Area } from "@/features/hub/types/resource";
 import { emptyCellsForGapFrom, parseSpacingSeq } from "@/features/hub/utils/spacing";
-import { buildLandingBoxOccupancy } from "@/features/hub/tabs/AreaInfo/figure/landingBoxOccupancy";
+import { buildLandingBoxOccupancy, landingBoxOccupancyError } from "@/features/hub/tabs/AreaInfo/figure/landingBoxOccupancy";
 
 type OccupiedInterval = {
   start: number;
@@ -77,6 +77,15 @@ export function buildMultiBlockOccupancyGrid(
   });
 
   const metaById = new Map(metas.map((m) => [m.blockId, m] as const));
+
+  if (useBoxes) {
+    for (const m of metas) {
+      if (m.yCount <= 0) return null;
+      if (landingBoxOccupancyError(m.xCount, m.totalCount, m.yCount) != null) {
+        return null;
+      }
+    }
+  }
 
   const blocksByRow = new Map<number, BlockOccMeta[]>();
   for (const m of metas) {

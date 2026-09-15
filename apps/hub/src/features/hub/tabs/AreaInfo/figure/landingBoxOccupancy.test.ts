@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   buildLandingBoxOccupancy,
+  derivedLandingBoxCount,
   derivedLandingBoxRowCount,
   isValidLandingBoxCountX,
   landingBoxOccupancyError,
@@ -19,6 +20,7 @@ describe("buildLandingBoxOccupancy 300機 X=20", () => {
     assert.equal(occ.gridRows, 16);
     assert.equal(occ.occupiedRowCount, 16);
     assert.equal(derivedLandingBoxRowCount(20, 300), 16);
+    assert.equal(derivedLandingBoxCount(300), 38);
   });
 
   it("欠けるのは最後の 1 BOX だけ（4機）", () => {
@@ -114,5 +116,14 @@ describe("入力", () => {
     assert.equal(buildLandingBoxOccupancy(20, 0), null);
     assert.equal(landingBoxOccupancyError(20, 0), null);
     assert.equal(landingBoxOccupancyError(3, 0), null);
+    assert.equal(derivedLandingBoxCount(0), null);
+    assert.equal(derivedLandingBoxCount(-1), null);
+  });
+
+  it("Y が総機と X から決まる高さと違うとエラー", () => {
+    assert.equal(landingBoxOccupancyError(20, 300, 16), null);
+    assert.equal(landingBoxOccupancyError(20, 300), null);
+    assert.match(landingBoxOccupancyError(20, 300, 15) ?? "", /4の倍数/);
+    assert.match(landingBoxOccupancyError(20, 300, 20) ?? "", /16機/);
   });
 });
