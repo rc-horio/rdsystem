@@ -1675,9 +1675,14 @@ function SideListBarBase({
           scheduleUuid?: string;
         }>).detail || {};
 
-      if (d.projectUuid && d.scheduleUuid) {
+      const projectUuid = d.projectUuid;
+      const scheduleUuid = d.scheduleUuid;
+      if (projectUuid && scheduleUuid) {
         if (import.meta.env.DEV) {
-          console.debug("[sidebar] pending project link set", d);
+          console.debug("[sidebar] pending project link set", {
+            projectUuid,
+            scheduleUuid,
+          });
         }
 
         // ★ ここから「④〜⑤の間に DetailBar の案件履歴に即時反映」する処理
@@ -1686,7 +1691,7 @@ function SideListBarBase({
           if (!currentAreaUuidRef.current) return;
 
           // プロジェクト index を取得
-          const proj = await fetchProjectIndex(d.projectUuid!);
+          const proj = await fetchProjectIndex(projectUuid);
           if (!proj) return;
 
           const projectName: string =
@@ -1695,7 +1700,7 @@ function SideListBarBase({
               : "(不明な案件)";
 
           const sch = Array.isArray(proj?.schedules)
-            ? proj.schedules.find((s: any) => s?.id === d.scheduleUuid)
+            ? proj.schedules.find((s: any) => s?.id === scheduleUuid)
             : null;
           if (!sch) return;
 
@@ -1741,14 +1746,14 @@ function SideListBarBase({
           // すでに同じ projectUuid / scheduleUuid があれば重複追加しない
           const exists = currentHistory.some(
             (h) =>
-              h.projectUuid === d.projectUuid &&
-              h.scheduleUuid === d.scheduleUuid
+              h.projectUuid === projectUuid &&
+              h.scheduleUuid === scheduleUuid
           );
           if (exists) return;
 
           pendingProjectLinkRef.current = {
-            projectUuid: d.projectUuid,
-            scheduleUuid: d.scheduleUuid,
+            projectUuid,
+            scheduleUuid,
           };
 
           const nextHistory: HistoryItem[] = [
@@ -1757,8 +1762,8 @@ function SideListBarBase({
               date,
               projectName,
               scheduleName,
-              projectUuid: d.projectUuid!,
-              scheduleUuid: d.scheduleUuid!,
+              projectUuid,
+              scheduleUuid,
               ...normalizeScheduleFlightArea(sch?.area, scheduleName),
             },
           ];
