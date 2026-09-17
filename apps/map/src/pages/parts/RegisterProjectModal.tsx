@@ -87,8 +87,6 @@ export function RegisterProjectModal({
         },
       })
     );
-
-    window.alert("案件情報を紐づけました。\nSAVEボタンで確定してください。");
     onClose();
   };
 

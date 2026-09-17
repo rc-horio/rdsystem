@@ -33,10 +33,15 @@ import {
   removeAreasListEntryByUuid,
   deleteAreaFromCatalog,
   fetchProjectIndex,
-  upsertScheduleAreaRef,
   clearScheduleAreaRef,
+  moveScheduleAreaRefsToArea,
   FETCH_AREAS_LIST_ERROR_MSG,
 } from "./areasApi";
+import {
+  confirmScheduleAreaRelink,
+  readScheduleAreaName,
+  readScheduleAreaUuid,
+} from "./scheduleAreaLink";
 import { PREFECTURES } from "./constants/events";
 import {
   EMPTY_CONSIDERING_INFO,
@@ -170,6 +175,7 @@ function SideListBarBase({
 
   // 現在の保存コンテキスト（エリア／候補）
   const currentAreaUuidRef = useRef<string | undefined>(undefined);
+  const currentAreaNameRef = useRef<string | undefined>(undefined);
   const currentCandidateIndexRef = useRef<number | null>(null);
   const currentSalesIndexRef = useRef<number | null>(null);
   const currentCandidateTitleRef = useRef<string | undefined>(undefined);
@@ -281,6 +287,7 @@ function SideListBarBase({
   const beginAddAreaMode = useCallback(() => {
     setActiveKey(null);
     currentAreaUuidRef.current = undefined;
+    currentAreaNameRef.current = undefined;
     currentCandidateIndexRef.current = null;
     currentSalesIndexRef.current = null;
     currentCandidateTitleRef.current = undefined;
@@ -431,6 +438,7 @@ function SideListBarBase({
 
     const areaUuid = getAreaUuidByAreaName(area);
     currentAreaUuidRef.current = areaUuid;
+    currentAreaNameRef.current = areaLabelOverrides[area] || area;
 
     window.dispatchEvent(
       new CustomEvent(EV_MAP_FOCUS_ONLY, {
@@ -1231,6 +1239,27 @@ function SideListBarBase({
         ),
       };
 
+      const relinkTargets = historyToSave.flatMap((h: any) => {
+        const projectUuid =
+          typeof h?.projectuuid === "string" ? h.projectuuid : null;
+        const scheduleUuid =
+          typeof h?.scheduleuuid === "string" ? h.scheduleuuid : null;
+        return projectUuid && scheduleUuid
+          ? [{ projectUuid, scheduleUuid }]
+          : [];
+      });
+      const relinkOk = await moveScheduleAreaRefsToArea({
+        areaUuid,
+        areaName: newTitle,
+        targets: relinkTargets,
+      });
+      if (!relinkOk) {
+        window.alert(
+          "案件のエリア付け替えに失敗したため、保存を中止しました。しばらく時間をおいて、もう一度お試しください。"
+        );
+        return;
+      }
+
       // （2-3）areas/<areaUuid>/index.json を保存
       const okInfo = await saveAreaInfo(areaUuid!, infoToSave);
       if (!okInfo) {
@@ -1272,36 +1301,6 @@ function SideListBarBase({
             }
           );
         }
-      }
-
-      // （2-3.5）projects/<projectUuid>/index.json に area_uuid / area_name を反映
-      // UI 上の紐づけ履歴（historyToSave）を正として、各 schedule の area を更新する
-      try {
-        const areaNameToWrite = newTitle; // 保存後のエリア名で統一
-
-        // historyToSave は { projectuuid, scheduleuuid } 形式なのでそれを使う
-        const targets = historyToSave.flatMap((h: any) => {
-          const projectUuid =
-            typeof h?.projectuuid === "string" ? h.projectuuid : null;
-          const scheduleUuid =
-            typeof h?.scheduleuuid === "string" ? h.scheduleuuid : null;
-          return projectUuid && scheduleUuid
-            ? [{ projectUuid, scheduleUuid }]
-            : [];
-        });
-
-        await Promise.all(
-          targets.map(({ projectUuid, scheduleUuid }) =>
-            upsertScheduleAreaRef({
-              projectUuid,
-              scheduleUuid,
-              areaUuid,
-              areaName: areaNameToWrite,
-            })
-          )
-        );
-      } catch (e) {
-        console.warn("[save] project schedule area ref update failed:", e);
       }
 
       // （2-4）areas.json エリア一覧を更新
@@ -1574,6 +1573,7 @@ function SideListBarBase({
 
       const area = normArea(points[idx]);
       currentAreaUuidRef.current = points[idx].areaUuid;
+      currentAreaNameRef.current = areaLabelOverrides[area] || area;
       setActiveKey(area);
 
       const titleOverride = areaLabelOverrides[area];
@@ -1676,11 +1676,6 @@ function SideListBarBase({
         }>).detail || {};
 
       if (d.projectUuid && d.scheduleUuid) {
-        // まず SAVE 用に保持（従来どおり）
-        pendingProjectLinkRef.current = {
-          projectUuid: d.projectUuid,
-          scheduleUuid: d.scheduleUuid,
-        };
         if (import.meta.env.DEV) {
           console.debug("[sidebar] pending project link set", d);
         }
@@ -1711,6 +1706,29 @@ function SideListBarBase({
               ? sch.date
               : new Date().toISOString().slice(0, 10); // 日付がなかった場合のフォールバック
 
+          const currentAreaUuid = currentAreaUuidRef.current;
+          const linkedAreaUuid = readScheduleAreaUuid(sch?.area);
+          if (linkedAreaUuid && linkedAreaUuid !== currentAreaUuid) {
+            let oldAreaName = readScheduleAreaName(sch?.area);
+            if (!oldAreaName) {
+              try {
+                const oldInfo = await fetchRawAreaInfo(linkedAreaUuid);
+                oldAreaName =
+                  typeof oldInfo?.areaName === "string" ? oldInfo.areaName : "";
+              } catch (err) {
+                console.warn("[sidebar] old area name fetch failed:", err);
+              }
+            }
+            const newAreaName = currentAreaNameRef.current ?? "";
+            const ok = confirmScheduleAreaRelink({
+              projectName,
+              scheduleName,
+              oldAreaName,
+              newAreaName,
+            });
+            if (!ok) return;
+          }
+
           // 今の DetailBar の history を取得
           let currentHistory: HistoryItem[] = [];
           try {
@@ -1728,6 +1746,11 @@ function SideListBarBase({
           );
           if (exists) return;
 
+          pendingProjectLinkRef.current = {
+            projectUuid: d.projectUuid,
+            scheduleUuid: d.scheduleUuid,
+          };
+
           const nextHistory: HistoryItem[] = [
             ...currentHistory,
             {
@@ -1742,6 +1765,9 @@ function SideListBarBase({
 
           // DetailBar に即時反映（あくまでフロントの state だけ）
           setDetailBarHistory(nextHistory);
+          window.alert(
+            "案件情報を紐づけました。\nSAVEボタンで確定してください。"
+          );
         };
 
         // 非同期処理を起動

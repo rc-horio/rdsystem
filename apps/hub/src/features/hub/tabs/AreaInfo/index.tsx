@@ -104,6 +104,8 @@ export default function AreaInfoTab({
           areaName={areaName}
           projectUuid={projectUuid}
           scheduleUuid={scheduleUuid}
+          scheduleLabel={scheduleLabel}
+          projectName={projectName}
           mapCardRef={mapCardRef}
         />
       </div>
@@ -119,6 +121,8 @@ export default function AreaInfoTab({
           areaName={areaName}
           projectUuid={projectUuid}
           scheduleUuid={scheduleUuid}
+          scheduleLabel={scheduleLabel}
+          projectName={projectName}
           mapCardRef={mapCardRef}
         />
       </div>

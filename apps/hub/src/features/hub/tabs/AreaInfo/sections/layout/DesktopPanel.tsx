@@ -19,6 +19,8 @@ type Props = {
   geometry?: any | null;
   onScreenshotCaptured?: (dataUrl: string) => void;
   mapCardRef?: RefObject<MapCardHandle>;
+  scheduleLabel?: string;
+  projectName?: string;
 };
 
 const COL_GAP_PX = 4;
@@ -35,6 +37,8 @@ export default function DesktopPanel({
   geometry,
   onScreenshotCaptured,
   mapCardRef,
+  scheduleLabel,
+  projectName,
 }: Props) {
   const rowRef = useRef<HTMLDivElement>(null);
   const spacingBoxRef = useRef<HTMLDivElement>(null);
@@ -134,7 +138,13 @@ export default function DesktopPanel({
       </div>
 
       <div data-area-right-pane className="pl-3 lg:pl-4">
-        <RightPanel edit={edit} area={area} onPatchArea={onPatchArea} />
+        <RightPanel
+          edit={edit}
+          area={area}
+          onPatchArea={onPatchArea}
+          scheduleLabel={scheduleLabel}
+          projectName={projectName}
+        />
       </div>
     </div>
   );

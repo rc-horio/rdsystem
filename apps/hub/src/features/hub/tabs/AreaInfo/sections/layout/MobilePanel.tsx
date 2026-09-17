@@ -18,6 +18,8 @@ type Props = {
   geometry?: any | null;
   onScreenshotCaptured?: (dataUrl: string) => void;
   mapCardRef?: RefObject<MapCardHandle>;
+  scheduleLabel?: string;
+  projectName?: string;
 };
 
 export default function MobilePanel({
@@ -32,6 +34,8 @@ export default function MobilePanel({
   geometry,
   onScreenshotCaptured,
   mapCardRef,
+  scheduleLabel,
+  projectName,
 }: Props) {
   return (
     <div className="space-y-6 overflow-x-hidden">
@@ -61,7 +65,13 @@ export default function MobilePanel({
           </div>
         </div>
       </div>
-      <RightPanel edit={edit} area={area} onPatchArea={onPatchArea} />
+      <RightPanel
+        edit={edit}
+        area={area}
+        onPatchArea={onPatchArea}
+        scheduleLabel={scheduleLabel}
+        projectName={projectName}
+      />
       <MapCard
         ref={mapCardRef}
         areaName={areaName}

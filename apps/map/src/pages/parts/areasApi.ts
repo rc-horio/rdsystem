@@ -3,7 +3,13 @@ import type { HistoryLite, DetailMeta, Candidate, ConsideringInfo, OtherRecord, 
 import { getUserDisplayName } from "@/lib/auditHeaders";
 import { getAuditHeaders } from "@/lib/auditHeaders";
 import { getCurrentTurnMetrics } from "./geometry/orientationDebug";
-import { EMPTY_CONSIDERING_INFO, isEmptyOtherRecord, parseTabUpdates } from "./detailBar/helpers";
+import {
+    applyTabUpdateStamps,
+    EMPTY_CONSIDERING_INFO,
+    isEmptyOtherRecord,
+    parseTabUpdates,
+    seedMissingTabUpdates,
+} from "./detailBar/helpers";
 import {
     applyFlightAreaToScheduleArea,
     createFlightFigure,
@@ -1256,4 +1262,124 @@ export async function clearScheduleAreaRef(params: {
     const ok = await saveProjectIndex(projectUuid, next);
     if (!ok) console.error("[clearScheduleAreaRef] saveProjectIndex failed");
     return ok;
+}
+
+export function readScheduleAreaUuidFromArea(area: unknown): string {
+    if (!area || typeof area !== "object") return "";
+    const uuid = (area as { area_uuid?: unknown }).area_uuid;
+    return typeof uuid === "string" ? uuid.trim() : "";
+}
+
+/** エリア history から指定の (project, schedule) を外す。該当が無い場合も成功扱い。 */
+export async function removeSchedulesFromAreaHistory(params: {
+    areaUuid: string;
+    pairs: Array<{ projectUuid: string; scheduleUuid: string }>;
+}): Promise<boolean> {
+    const { areaUuid, pairs } = params;
+    if (!areaUuid || pairs.length === 0) return true;
+
+    const info = await fetchRawAreaInfo(areaUuid);
+    const history: any[] = Array.isArray(info?.history) ? info.history : [];
+    const removeKeys = new Set(
+        pairs
+            .filter((p) => p.projectUuid && p.scheduleUuid)
+            .map((p) => `${p.projectUuid}::${p.scheduleUuid}`)
+    );
+    if (removeKeys.size === 0) return true;
+
+    const nextHistory = history.filter((h) => {
+        const projectUuid =
+            typeof h?.projectuuid === "string" ? h.projectuuid : "";
+        const scheduleUuid =
+            typeof h?.scheduleuuid === "string" ? h.scheduleuuid : "";
+        return !removeKeys.has(`${projectUuid}::${scheduleUuid}`);
+    });
+    if (nextHistory.length === history.length) return true;
+
+    const now = new Date().toISOString();
+    const displayName = await getUserDisplayName();
+    const nextInfo = {
+        ...info,
+        history: nextHistory,
+        updated_at: now,
+        updated_by: displayName,
+        tabUpdates: applyTabUpdateStamps(
+            seedMissingTabUpdates(
+                parseTabUpdates(info?.tabUpdates),
+                typeof info?.updated_at === "string" ? info.updated_at : undefined,
+                typeof info?.updated_by === "string" ? info.updated_by : undefined
+            ),
+            ["own"],
+            now,
+            displayName
+        ),
+    };
+    const ok = await saveAreaInfo(areaUuid, nextInfo);
+    if (!ok) {
+        console.error("[removeSchedulesFromAreaHistory] saveAreaInfo failed", areaUuid);
+    }
+    return ok;
+}
+
+/**
+ * 対象スケジュールをこのエリアへ付け替える。
+ * 別エリアに紐づいていた場合は、先に旧エリアの history から外してから area_uuid を更新する。
+ */
+export async function moveScheduleAreaRefsToArea(params: {
+    areaUuid: string;
+    areaName: string;
+    targets: Array<{ projectUuid: string; scheduleUuid: string }>;
+}): Promise<boolean> {
+    const { areaUuid, areaName, targets } = params;
+    if (!areaUuid) return false;
+    if (targets.length === 0) return true;
+
+    const uniqueProjectUuids = Array.from(
+        new Set(targets.map((t) => t.projectUuid).filter((id) => !!id))
+    );
+    const projectByUuid = new Map<string, any>();
+    for (const projectUuid of uniqueProjectUuids) {
+        const proj = await fetchProjectIndex(projectUuid);
+        if (!proj) {
+            console.error("[moveScheduleAreaRefsToArea] fetchProjectIndex failed", projectUuid);
+            return false;
+        }
+        projectByUuid.set(projectUuid, proj);
+    }
+
+    const pairsByOldArea = new Map<
+        string,
+        Array<{ projectUuid: string; scheduleUuid: string }>
+    >();
+    for (const target of targets) {
+        const proj = projectByUuid.get(target.projectUuid);
+        const sch = Array.isArray(proj?.schedules)
+            ? proj.schedules.find((s: any) => s?.id === target.scheduleUuid)
+            : null;
+        const oldAreaUuid = readScheduleAreaUuidFromArea(sch?.area);
+        if (!oldAreaUuid || oldAreaUuid === areaUuid) continue;
+        const list = pairsByOldArea.get(oldAreaUuid) ?? [];
+        list.push(target);
+        pairsByOldArea.set(oldAreaUuid, list);
+    }
+
+    for (const [oldAreaUuid, pairs] of pairsByOldArea) {
+        const ok = await removeSchedulesFromAreaHistory({
+            areaUuid: oldAreaUuid,
+            pairs,
+        });
+        if (!ok) return false;
+    }
+
+    const upsertResults = await Promise.all(
+        targets.map(({ projectUuid, scheduleUuid }) =>
+            upsertScheduleAreaRef({
+                projectUuid,
+                scheduleUuid,
+                areaUuid,
+                areaName,
+            })
+        )
+    );
+    return upsertResults.every(Boolean);
 }

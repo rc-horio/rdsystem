@@ -8,6 +8,7 @@ import {
 } from "@/components";
 import { useEffect, useState } from "react";
 import { resolveConfirmedGeometry } from "@/features/hub/utils/flightFigures";
+import { confirmHubVenueChange } from "../scheduleAreaLink";
 
 // 開発用のCatalogのベースURL
 // const S3_BASE =
@@ -23,6 +24,8 @@ type Props = {
   onPatchArea: (patch: any) => void;
   // エリア名変更時のコールバック
   onChangeAreaName?: (name: string) => void;
+  scheduleLabel?: string;
+  projectName?: string;
 };
 
 // RDMap 側のエリア JSON 形式
@@ -58,6 +61,8 @@ export function RightPanel({
   area,
   onPatchArea,
   onChangeAreaName,
+  scheduleLabel = "",
+  projectName = "",
 }: Props) {
   // --- 開催地プルダウン用の状態 ---
   const [areaOptions, setAreaOptions] = useState<SelectOption[]>([]);
@@ -93,6 +98,25 @@ export function RightPanel({
 
   // uuid を受け取って、area_uuid / area_name 両方更新
   const handleAreaUuidChange = (uuid: string) => {
+    const currentUuid =
+      typeof A.area_uuid === "string" ? A.area_uuid.trim() : "";
+    if (uuid === currentUuid) return;
+
+    if (currentUuid) {
+      const oldAreaName =
+        (typeof A.area_name === "string" && A.area_name.trim()) ||
+        rdMapAreas.find((a) => a.uuid === currentUuid)?.areaName ||
+        "";
+      const newAreaName = rdMapAreas.find((a) => a.uuid === uuid)?.areaName ?? "";
+      const ok = confirmHubVenueChange({
+        projectName,
+        scheduleName: scheduleLabel,
+        oldAreaName,
+        newAreaName,
+      });
+      if (!ok) return;
+    }
+
     const found = rdMapAreas.find((a) => a.uuid === uuid);
     const areaName = found?.areaName ?? "";
 
