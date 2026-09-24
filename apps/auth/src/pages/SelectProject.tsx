@@ -180,6 +180,7 @@ export default function SelectProject() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const creatingRef = useRef(false);
   const [creating, setCreating] = useState(false);
+  const deletingRef = useRef(false);
   const [createMode, setCreateMode] = useState<"blank" | "duplicate">("blank");
   const [newName, setNewName] = useState("");
   const [newDate, setNewDate] = useState("");
@@ -367,7 +368,7 @@ export default function SelectProject() {
   };
 
   const confirmCreate = () => {
-    if (creatingRef.current) return;
+    if (creatingRef.current || deletingRef.current) return;
     if (!newId.trim()) {
       setIdError("IDを入力してください");
       return;
@@ -441,6 +442,7 @@ export default function SelectProject() {
 
   // === 削除クリック ===
   const handleDeleteClick = async () => {
+    if (deletingRef.current || creatingRef.current) return;
     if (!selectedProject) {
       alert("プロジェクトを選択してください");
       return;
@@ -453,46 +455,47 @@ export default function SelectProject() {
     const label = `${meta.projectId} - ${meta.projectName}`;
     const projectUuid = meta.uuid;
 
-    // 1. 紐づきチェック（全エリアを並列取得）
-    const areasList = await fetchAreasList();
-    const areaEntries = areasList
-      .map((a) => a?.uuid)
-      .filter((uuid): uuid is string => !!uuid);
-
-    const areaInfos = await Promise.all(
-      areaEntries.map((uuid) => fetchRawAreaInfo(uuid))
-    );
-
-    const linkedAreas: { uuid: string; areaName: string; info: Record<string, unknown> }[] = [];
-    for (let i = 0; i < areaEntries.length; i++) {
-      const uuid = areaEntries[i];
-      const info = areaInfos[i] ?? {};
-      const history = Array.isArray(info?.history) ? info.history : [];
-      const hasRef = history.some(
-        (h: { projectuuid?: string }) => (h?.projectuuid || "") === projectUuid
-      );
-      if (hasRef) {
-        const a = areasList.find((x) => x?.uuid === uuid);
-        linkedAreas.push({
-          uuid,
-          areaName: (a?.areaName as string) || uuid,
-          info,
-        });
-      }
-    }
-
-    // 2. 確認ポップアップ
-    let msg: string;
-    if (linkedAreas.length > 0) {
-      const names = linkedAreas.map((a) => a.areaName).join(", ");
-      msg = `このプロジェクトは以下のエリアに紐づいています。削除すると紐づきが解除されます。\n\nエリア: ${names}\n\nプロジェクト「${label}」を削除しますか？\nこの操作は取り消せません。`;
-    } else {
-      msg = `プロジェクト「${label}」を削除しますか？\nこの操作は取り消せません。`;
-    }
-    if (!confirm(msg)) return;
-
+    deletingRef.current = true;
     setDeleting(true);
     try {
+      // 1. 紐づきチェック（全エリアを並列取得）
+      const areasList = await fetchAreasList();
+      const areaEntries = areasList
+        .map((a) => a?.uuid)
+        .filter((uuid): uuid is string => !!uuid);
+
+      const areaInfos = await Promise.all(
+        areaEntries.map((uuid) => fetchRawAreaInfo(uuid))
+      );
+
+      const linkedAreas: { uuid: string; areaName: string; info: Record<string, unknown> }[] = [];
+      for (let i = 0; i < areaEntries.length; i++) {
+        const uuid = areaEntries[i];
+        const info = areaInfos[i] ?? {};
+        const history = Array.isArray(info?.history) ? info.history : [];
+        const hasRef = history.some(
+          (h: { projectuuid?: string }) => (h?.projectuuid || "") === projectUuid
+        );
+        if (hasRef) {
+          const a = areasList.find((x) => x?.uuid === uuid);
+          linkedAreas.push({
+            uuid,
+            areaName: (a?.areaName as string) || uuid,
+            info,
+          });
+        }
+      }
+
+      // 2. 確認ポップアップ
+      let msg: string;
+      if (linkedAreas.length > 0) {
+        const names = linkedAreas.map((a) => a.areaName).join(", ");
+        msg = `このプロジェクトは以下のエリアに紐づいています。削除すると紐づきが解除されます。\n\nエリア: ${names}\n\nプロジェクト「${label}」を削除しますか？\nこの操作は取り消せません。`;
+      } else {
+        msg = `プロジェクト「${label}」を削除しますか？\nこの操作は取り消せません。`;
+      }
+      if (!confirm(msg)) return;
+
       // 3a. エリアの history から projectuuid を除去（1で取得済みの info を利用）
       const areaUpdates = linkedAreas.map(({ uuid: areaUuid, info }) => {
         const history = Array.isArray(info?.history) ? info.history : [];
@@ -524,6 +527,7 @@ export default function SelectProject() {
         e instanceof Error ? e.message : "削除ができませんでした。担当者にお問い合わせください。（エラー内容: プロジェクト削除に失敗）"
       );
     } finally {
+      deletingRef.current = false;
       setDeleting(false);
     }
   };
@@ -918,7 +922,7 @@ export default function SelectProject() {
         </div>
       )}
 
-      {creating && (
+      {(creating || deleting) && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/80">
           <div className="relative flex items-center justify-center px-7 py-6 text-white">
             <RdCompanyLogo />
