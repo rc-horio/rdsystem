@@ -1,7 +1,7 @@
 // apps/auth/src/pages/SelectProject.tsx
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { BrandHeader, validateProjectId } from "@/components";
+import { BrandHeader, RdCompanyLogo, validateProjectId } from "@/components";
 import { signOut } from "aws-amplify/auth";
 import { getAuditHeaders } from "@/lib/auditHeaders";
 import {
@@ -178,6 +178,8 @@ export default function SelectProject() {
   const [selectedProject, setSelectedProject] = useState("");
 
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const creatingRef = useRef(false);
+  const [creating, setCreating] = useState(false);
   const [createMode, setCreateMode] = useState<"blank" | "duplicate">("blank");
   const [newName, setNewName] = useState("");
   const [newDate, setNewDate] = useState("");
@@ -353,6 +355,8 @@ export default function SelectProject() {
   };
 
   const openCreateModal = () => {
+    creatingRef.current = false;
+    setCreating(false);
     setCreateMode("blank");
     setNewName("");
     setNewDate("");
@@ -363,6 +367,7 @@ export default function SelectProject() {
   };
 
   const confirmCreate = () => {
+    if (creatingRef.current) return;
     if (!newId.trim()) {
       setIdError("IDを入力してください");
       return;
@@ -370,6 +375,9 @@ export default function SelectProject() {
     const err = validateProjectId(newId);
     setIdError(err);
     if (err) return;
+
+    creatingRef.current = true;
+    setCreating(true);
 
     const newUuid = uuidv4();
     const qp = new URLSearchParams({ source: "s3", init: "1" });
@@ -425,8 +433,8 @@ export default function SelectProject() {
         alert(
           e instanceof Error ? e.message : FETCH_LIST_ERROR_MSG
         );
-      } finally {
-        setShowCreateModal(false);
+        creatingRef.current = false;
+        setCreating(false);
       }
     })();
   };
@@ -906,6 +914,14 @@ export default function SelectProject() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {creating && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/80">
+          <div className="relative flex items-center justify-center px-7 py-6 text-white">
+            <RdCompanyLogo />
           </div>
         </div>
       )}

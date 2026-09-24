@@ -1,5 +1,6 @@
 // layout
 export * from "./layout/BrandHeader";
+export * from "./layout/LodingLogo";
 // inputs
 export * from "./FullHeightSelect";
 export * from "./ProjectSearchControls";
