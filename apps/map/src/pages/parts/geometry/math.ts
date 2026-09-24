@@ -17,11 +17,20 @@ export const metersPerDegreeLat = 111320;
 // 経度1度あたりのメートル数
 export const metersPerDegreeLonAt = (lat: number) => 111320 * Math.cos(toRad(lat));
 
+// 経度差を -180〜180 に折る。ドラッグ中に経度が 360° ずれて返っても、東西距離が地球1周分にならないようにする。
+const wrapLngDelta = (delta: number) => {
+    if (!Number.isFinite(delta)) return delta;
+    let d = delta;
+    while (d > 180) d -= 360;
+    while (d < -180) d += 360;
+    return d;
+};
+
 // 緯度経度をローカルXYに変換
 export const toLocalXY = (origin: [number, number], p: [number, number]) => {
     const lat0 = origin[1];
     return {
-        x: (p[0] - origin[0]) * metersPerDegreeLonAt(lat0),
+        x: wrapLngDelta(p[0] - origin[0]) * metersPerDegreeLonAt(lat0),
         y: (p[1] - origin[1]) * metersPerDegreeLat,
     };
 };
