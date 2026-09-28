@@ -1,0 +1,1204 @@
+{
+  "note": "現在の calculator.ts を、Google Maps geometry ライブラリ上で実行した結果。分割後もこの値と一致させる。",
+  "caseCount": 97,
+  "cases": [
+    {
+      "kind": "dispatcher",
+      "id": "haneda",
+      "place": "reference",
+      "lat": 35.55325248,
+      "lng": 139.78122849,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "haneda",
+          "surfaceType": "horizontal",
+          "heightM": 51.4
+        }
+      ]
+    },
+    {
+      "kind": "direct",
+      "id": "haneda",
+      "place": "reference",
+      "lat": 35.55325248,
+      "lng": 139.78122849,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "haneda",
+          "surfaceType": "horizontal",
+          "heightM": 51.4
+        }
+      ]
+    },
+    {
+      "kind": "dispatcher",
+      "id": "haneda",
+      "place": "outer-boundary",
+      "lat": 35.76884814818869,
+      "lng": 139.78122849,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "haneda",
+      "place": "outer-boundary",
+      "lat": 35.76884814818869,
+      "lng": 139.78122849,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "haneda",
+      "place": "beyond-outer",
+      "lat": 35.77783130102988,
+      "lng": 139.78122849,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "haneda",
+      "place": "beyond-outer",
+      "lat": 35.77783130102988,
+      "lng": 139.78122849,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "narita",
+      "place": "reference",
+      "lat": 35.7652777777778,
+      "lng": 140.385555555556,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "narita",
+          "surfaceType": "horizontal",
+          "heightM": 86
+        }
+      ]
+    },
+    {
+      "kind": "direct",
+      "id": "narita",
+      "place": "reference",
+      "lat": 35.7652777777778,
+      "lng": 140.385555555556,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "narita",
+          "surfaceType": "horizontal",
+          "heightM": 86
+        }
+      ]
+    },
+    {
+      "kind": "dispatcher",
+      "id": "narita",
+      "place": "outer-boundary",
+      "lat": 35.98087344596648,
+      "lng": 140.385555555556,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "narita",
+      "place": "outer-boundary",
+      "lat": 35.98087344596648,
+      "lng": 140.385555555556,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "narita",
+      "place": "beyond-outer",
+      "lat": 35.98985659880767,
+      "lng": 140.385555555556,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "narita",
+      "place": "beyond-outer",
+      "lat": 35.98985659880767,
+      "lng": 140.385555555556,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "kansai",
+      "place": "reference",
+      "lat": 34.4341666666667,
+      "lng": 135.232777777778,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "kansai",
+          "surfaceType": "horizontal",
+          "heightM": 50.3
+        }
+      ]
+    },
+    {
+      "kind": "direct",
+      "id": "kansai",
+      "place": "reference",
+      "lat": 34.4341666666667,
+      "lng": 135.232777777778,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "kansai",
+          "surfaceType": "horizontal",
+          "heightM": 50.3
+        }
+      ]
+    },
+    {
+      "kind": "dispatcher",
+      "id": "kansai",
+      "place": "outer-boundary",
+      "lat": 34.64976233485539,
+      "lng": 135.23277777777804,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "kansai",
+      "place": "outer-boundary",
+      "lat": 34.64976233485539,
+      "lng": 135.23277777777804,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "kansai",
+      "place": "beyond-outer",
+      "lat": 34.65874548769657,
+      "lng": 135.23277777777804,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "kansai",
+      "place": "beyond-outer",
+      "lat": 34.65874548769657,
+      "lng": 135.23277777777804,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "itami",
+      "place": "reference",
+      "lat": 34.78435333,
+      "lng": 135.43913805,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "itami",
+          "surfaceType": "landing_strip",
+          "heightM": 0
+        }
+      ]
+    },
+    {
+      "kind": "direct",
+      "id": "itami",
+      "place": "reference",
+      "lat": 34.78435333,
+      "lng": 135.43913805,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "itami",
+          "surfaceType": "landing_strip",
+          "heightM": 0
+        }
+      ]
+    },
+    {
+      "kind": "dispatcher",
+      "id": "itami",
+      "place": "outer-boundary",
+      "lat": 34.999948998188685,
+      "lng": 135.43913805,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "itami",
+      "place": "outer-boundary",
+      "lat": 34.999948998188685,
+      "lng": 135.43913805,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "itami",
+      "place": "beyond-outer",
+      "lat": 35.00893215102988,
+      "lng": 135.43913805,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "itami",
+      "place": "beyond-outer",
+      "lat": 35.00893215102988,
+      "lng": 135.43913805,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "centrair",
+      "place": "reference",
+      "lat": 34.8584158805556,
+      "lng": 136.805394605556,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "centrair",
+          "surfaceType": "landing_strip",
+          "heightM": 0
+        }
+      ]
+    },
+    {
+      "kind": "direct",
+      "id": "centrair",
+      "place": "reference",
+      "lat": 34.8584158805556,
+      "lng": 136.805394605556,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "centrair",
+          "surfaceType": "landing_strip",
+          "heightM": 0
+        }
+      ]
+    },
+    {
+      "kind": "dispatcher",
+      "id": "centrair",
+      "place": "outer-boundary",
+      "lat": 35.07401154874429,
+      "lng": 136.805394605556,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "centrair",
+      "place": "outer-boundary",
+      "lat": 35.07401154874429,
+      "lng": 136.805394605556,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "centrair",
+          "surfaceType": "outer_horizontal",
+          "heightM": 298.79
+        }
+      ]
+    },
+    {
+      "kind": "dispatcher",
+      "id": "centrair",
+      "place": "beyond-outer",
+      "lat": 35.08299470158546,
+      "lng": 136.805394605556,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "centrair",
+      "place": "beyond-outer",
+      "lat": 35.08299470158546,
+      "lng": 136.805394605556,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "fukuoka",
+      "place": "reference",
+      "lat": 33.584402925,
+      "lng": 130.451556381,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "fukuoka",
+          "surfaceType": "landing_strip",
+          "heightM": 0
+        }
+      ]
+    },
+    {
+      "kind": "direct",
+      "id": "fukuoka",
+      "place": "reference",
+      "lat": 33.584402925,
+      "lng": 130.451556381,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "fukuoka",
+          "surfaceType": "landing_strip",
+          "heightM": 0
+        }
+      ]
+    },
+    {
+      "kind": "dispatcher",
+      "id": "fukuoka",
+      "place": "outer-boundary",
+      "lat": 33.79999859318868,
+      "lng": 130.451556381,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "fukuoka",
+      "place": "outer-boundary",
+      "lat": 33.79999859318868,
+      "lng": 130.451556381,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "fukuoka",
+          "surfaceType": "outer_horizontal",
+          "heightM": 304.1
+        }
+      ]
+    },
+    {
+      "kind": "dispatcher",
+      "id": "fukuoka",
+      "place": "beyond-outer",
+      "lat": 33.80898174602988,
+      "lng": 130.451556381,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "fukuoka",
+      "place": "beyond-outer",
+      "lat": 33.80898174602988,
+      "lng": 130.451556381,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "matsuyama",
+      "place": "reference",
+      "lat": 33.8272013888889,
+      "lng": 132.699692777778,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "matsuyama",
+          "surfaceType": "landing_strip",
+          "heightM": 0
+        }
+      ]
+    },
+    {
+      "kind": "direct",
+      "id": "matsuyama",
+      "place": "reference",
+      "lat": 33.8272013888889,
+      "lng": 132.699692777778,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "matsuyama",
+          "surfaceType": "landing_strip",
+          "heightM": 0
+        }
+      ]
+    },
+    {
+      "kind": "dispatcher",
+      "id": "matsuyama",
+      "place": "outer-boundary",
+      "lat": 34.042797057077586,
+      "lng": 132.69969277777798,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "matsuyama",
+      "place": "outer-boundary",
+      "lat": 34.042797057077586,
+      "lng": 132.69969277777798,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "matsuyama",
+      "place": "beyond-outer",
+      "lat": 34.05178020991878,
+      "lng": 132.69969277777798,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "matsuyama",
+      "place": "beyond-outer",
+      "lat": 34.05178020991878,
+      "lng": 132.69969277777798,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "sendai",
+      "place": "reference",
+      "lat": 38.13972222,
+      "lng": 140.91694444,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "sendai",
+          "surfaceType": "landing_strip",
+          "heightM": 0
+        }
+      ]
+    },
+    {
+      "kind": "direct",
+      "id": "sendai",
+      "place": "reference",
+      "lat": 38.13972222,
+      "lng": 140.91694444,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "sendai",
+          "surfaceType": "landing_strip",
+          "heightM": 0
+        }
+      ]
+    },
+    {
+      "kind": "dispatcher",
+      "id": "sendai",
+      "place": "outer-boundary",
+      "lat": 38.35531788818869,
+      "lng": 140.91694444,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "sendai",
+      "place": "outer-boundary",
+      "lat": 38.35531788818869,
+      "lng": 140.91694444,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "sendai",
+      "place": "beyond-outer",
+      "lat": 38.364301041029876,
+      "lng": 140.91694444,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "sendai",
+      "place": "beyond-outer",
+      "lat": 38.364301041029876,
+      "lng": 140.91694444,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "yao",
+      "place": "reference",
+      "lat": 34.5966666666667,
+      "lng": 135.600555555556,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "yao",
+          "surfaceType": "landing_strip",
+          "heightM": 0
+        }
+      ]
+    },
+    {
+      "kind": "direct",
+      "id": "yao",
+      "place": "reference",
+      "lat": 34.5966666666667,
+      "lng": 135.600555555556,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "yao",
+          "surfaceType": "landing_strip",
+          "heightM": 0
+        }
+      ]
+    },
+    {
+      "kind": "dispatcher",
+      "id": "yao",
+      "place": "outer-boundary",
+      "lat": 34.64158243087268,
+      "lng": 135.60055555555604,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "itami",
+          "surfaceType": "outer_horizontal",
+          "heightM": 307
+        }
+      ]
+    },
+    {
+      "kind": "direct",
+      "id": "yao",
+      "place": "outer-boundary",
+      "lat": 34.64158243087268,
+      "lng": 135.60055555555604,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "yao",
+      "place": "beyond-outer",
+      "lat": 34.65056558371387,
+      "lng": 135.60055555555604,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "itami",
+          "surfaceType": "outer_horizontal",
+          "heightM": 307
+        }
+      ]
+    },
+    {
+      "kind": "direct",
+      "id": "yao",
+      "place": "beyond-outer",
+      "lat": 34.65056558371387,
+      "lng": 135.60055555555604,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "shinchitose",
+      "place": "reference",
+      "lat": 42.77527778,
+      "lng": 141.6925,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "shinchitose",
+          "surfaceType": "landing_strip",
+          "heightM": 0
+        }
+      ]
+    },
+    {
+      "kind": "direct",
+      "id": "shinchitose",
+      "place": "reference",
+      "lat": 42.77527778,
+      "lng": 141.6925,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "shinchitose",
+          "surfaceType": "landing_strip",
+          "heightM": 0
+        }
+      ]
+    },
+    {
+      "kind": "dispatcher",
+      "id": "shinchitose",
+      "place": "outer-boundary",
+      "lat": 42.82199017477422,
+      "lng": 141.6925,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "shinchitose",
+      "place": "outer-boundary",
+      "lat": 42.82199017477422,
+      "lng": 141.6925,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "shinchitose",
+      "place": "beyond-outer",
+      "lat": 42.83097332761542,
+      "lng": 141.6925,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "shinchitose",
+      "place": "beyond-outer",
+      "lat": 42.83097332761542,
+      "lng": 141.6925,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "hakodate",
+      "place": "reference",
+      "lat": 41.77,
+      "lng": 140.821944,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "hakodate",
+          "surfaceType": "landing_strip",
+          "heightM": 0
+        }
+      ]
+    },
+    {
+      "kind": "direct",
+      "id": "hakodate",
+      "place": "reference",
+      "lat": 41.77,
+      "lng": 140.821944,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "hakodate",
+          "surfaceType": "landing_strip",
+          "heightM": 0
+        }
+      ]
+    },
+    {
+      "kind": "dispatcher",
+      "id": "hakodate",
+      "place": "outer-boundary",
+      "lat": 41.98559566818869,
+      "lng": 140.821944,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "hakodate",
+      "place": "outer-boundary",
+      "lat": 41.98559566818869,
+      "lng": 140.821944,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "hakodate",
+      "place": "beyond-outer",
+      "lat": 41.99457882102988,
+      "lng": 140.821944,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "hakodate",
+      "place": "beyond-outer",
+      "lat": 41.99457882102988,
+      "lng": 140.821944,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "niigata",
+      "place": "reference",
+      "lat": 37.95583333333334,
+      "lng": 139.11166666666665,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "niigata",
+          "surfaceType": "landing_strip",
+          "heightM": 0
+        }
+      ]
+    },
+    {
+      "kind": "direct",
+      "id": "niigata",
+      "place": "reference",
+      "lat": 37.95583333333334,
+      "lng": 139.11166666666665,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "niigata",
+          "surfaceType": "landing_strip",
+          "heightM": 0
+        }
+      ]
+    },
+    {
+      "kind": "dispatcher",
+      "id": "niigata",
+      "place": "outer-boundary",
+      "lat": 38.00524067395991,
+      "lng": 139.11166666666665,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "niigata",
+      "place": "outer-boundary",
+      "lat": 38.00524067395991,
+      "lng": 139.11166666666665,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "niigata",
+      "place": "beyond-outer",
+      "lat": 38.014223826801114,
+      "lng": 139.11166666666665,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "niigata",
+      "place": "beyond-outer",
+      "lat": 38.014223826801114,
+      "lng": 139.11166666666665,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "nagasaki",
+      "place": "reference",
+      "lat": 32.91694444,
+      "lng": 129.91361111,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "nagasaki",
+          "surfaceType": "landing_strip",
+          "heightM": 0
+        }
+      ]
+    },
+    {
+      "kind": "direct",
+      "id": "nagasaki",
+      "place": "reference",
+      "lat": 32.91694444,
+      "lng": 129.91361111,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "nagasaki",
+          "surfaceType": "landing_strip",
+          "heightM": 0
+        }
+      ]
+    },
+    {
+      "kind": "dispatcher",
+      "id": "nagasaki",
+      "place": "outer-boundary",
+      "lat": 33.13254010818868,
+      "lng": 129.91361111,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "nagasaki",
+      "place": "outer-boundary",
+      "lat": 33.13254010818868,
+      "lng": 129.91361111,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "nagasaki",
+      "place": "beyond-outer",
+      "lat": 33.14152326102987,
+      "lng": 129.91361111,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "nagasaki",
+      "place": "beyond-outer",
+      "lat": 33.14152326102987,
+      "lng": 129.91361111,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "kumamoto",
+      "place": "reference",
+      "lat": 32.8372597222222,
+      "lng": 130.855152633333,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "kumamoto",
+          "surfaceType": "landing_strip",
+          "heightM": 0
+        }
+      ]
+    },
+    {
+      "kind": "direct",
+      "id": "kumamoto",
+      "place": "reference",
+      "lat": 32.8372597222222,
+      "lng": 130.855152633333,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "kumamoto",
+          "surfaceType": "landing_strip",
+          "heightM": 0
+        }
+      ]
+    },
+    {
+      "kind": "dispatcher",
+      "id": "kumamoto",
+      "place": "outer-boundary",
+      "lat": 33.05285539041088,
+      "lng": 130.855152633333,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "kumamoto",
+      "place": "outer-boundary",
+      "lat": 33.05285539041088,
+      "lng": 130.855152633333,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "kumamoto",
+          "surfaceType": "outer_horizontal",
+          "heightM": 487.7
+        }
+      ]
+    },
+    {
+      "kind": "dispatcher",
+      "id": "kumamoto",
+      "place": "beyond-outer",
+      "lat": 33.06183854325208,
+      "lng": 130.855152633333,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "kumamoto",
+      "place": "beyond-outer",
+      "lat": 33.06183854325208,
+      "lng": 130.855152633333,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "naha",
+      "place": "reference",
+      "lat": 26.1933333333333,
+      "lng": 127.639722222222,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "naha",
+          "surfaceType": "outer_horizontal",
+          "heightM": 298.3
+        }
+      ]
+    },
+    {
+      "kind": "direct",
+      "id": "naha",
+      "place": "reference",
+      "lat": 26.1933333333333,
+      "lng": 127.639722222222,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "naha",
+          "surfaceType": "outer_horizontal",
+          "heightM": 298.3
+        }
+      ]
+    },
+    {
+      "kind": "dispatcher",
+      "id": "naha",
+      "place": "outer-boundary",
+      "lat": 26.408929001521987,
+      "lng": 127.63972222222199,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "naha",
+      "place": "outer-boundary",
+      "lat": 26.408929001521987,
+      "lng": 127.63972222222199,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "naha",
+          "surfaceType": "outer_horizontal",
+          "heightM": 298.3
+        }
+      ]
+    },
+    {
+      "kind": "dispatcher",
+      "id": "naha",
+      "place": "beyond-outer",
+      "lat": 26.41791215436318,
+      "lng": 127.63972222222199,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "naha",
+      "place": "beyond-outer",
+      "lat": 26.41791215436318,
+      "lng": 127.63972222222199,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "miyazaki",
+      "place": "reference",
+      "lat": 31.8770919444444,
+      "lng": 131.448473055556,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "miyazaki",
+          "surfaceType": "landing_strip",
+          "heightM": 0
+        }
+      ]
+    },
+    {
+      "kind": "direct",
+      "id": "miyazaki",
+      "place": "reference",
+      "lat": 31.8770919444444,
+      "lng": 131.448473055556,
+      "error": false,
+      "itemCount": 1,
+      "items": [
+        {
+          "airportId": "miyazaki",
+          "surfaceType": "landing_strip",
+          "heightM": 0
+        }
+      ]
+    },
+    {
+      "kind": "dispatcher",
+      "id": "miyazaki",
+      "place": "outer-boundary",
+      "lat": 32.092687612633085,
+      "lng": 131.448473055556,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "miyazaki",
+      "place": "outer-boundary",
+      "lat": 32.092687612633085,
+      "lng": 131.448473055556,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "miyazaki",
+      "place": "beyond-outer",
+      "lat": 32.10167076547428,
+      "lng": 131.448473055556,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "direct",
+      "id": "miyazaki",
+      "place": "beyond-outer",
+      "lat": 32.10167076547428,
+      "lng": 131.448473055556,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    },
+    {
+      "kind": "dispatcher",
+      "id": "none",
+      "place": "far",
+      "lat": 20,
+      "lng": 140,
+      "error": false,
+      "itemCount": 0,
+      "items": []
+    }
+  ]
+}
