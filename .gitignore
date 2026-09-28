@@ -21,3 +21,6 @@ pnpm-debug.log*
 
 # Coverage
 coverage/
+
+# Docs (commit しない)
+docs/
