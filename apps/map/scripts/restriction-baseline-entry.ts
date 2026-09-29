@@ -16,7 +16,7 @@ import {
   calculateSendaiRestriction,
   calculateShinchitoseRestriction,
   calculateYaoRestriction,
-} from "../src/pages/parts/airportRestriction/calculator.ts";
+} from "../src/pages/parts/airportRestriction/calculator/index.ts";
 import {
   HANEDA_REFERENCE_POINT,
   OUTER_HORIZONTAL_SURFACE_RADIUS_M as HANEDA_OUTER,
