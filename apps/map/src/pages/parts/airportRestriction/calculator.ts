@@ -1,248 +1,50 @@
-import type { AirportRestrictionResult } from "./types";
-import {
-  HANEDA_REFERENCE_POINT,
-  OUTER_HORIZONTAL_SURFACE_RADIUS_M,
-} from "./data/haneda";
 import { calculateHanedaRestriction } from "./calculator/haneda";
 export { calculateHanedaRestriction };
 
-import {
-  NARITA_REFERENCE_POINT,
-  RADIUS_OF_OUTER_HORIZONTAL_SURFACE as NARITA_OUTER_RADIUS,
-} from "./data/narita";
 import { calculateNaritaRestriction } from "./calculator/narita";
 export { calculateNaritaRestriction };
 
-import {
-  KANSAI_REFERENCE_POINT,
-  RADIUS_OF_OUTER_HORIZONTAL_SURFACE as KANSAI_OUTER_RADIUS,
-} from "./data/kansai";
 import { calculateKansaiRestriction } from "./calculator/kansai";
 export { calculateKansaiRestriction };
 
-import {
-  NAHA_REFERENCE_POINT,
-  RADIUS_OF_OUTER_HORIZONTAL_SURFACE as NAHA_OUTER_RADIUS,
-} from "./data/naha";
 import { calculateNahaRestriction } from "./calculator/naha";
 export { calculateNahaRestriction };
 
-import {
-  FUKUOKA_REFERENCE_POINT,
-  RADIUS_OF_OUTER_HORIZONTAL_SURFACE as FUKUOKA_OUTER_RADIUS,
-} from "./data/fukuoka";
 import { calculateFukuokaRestriction } from "./calculator/fukuoka";
 export { calculateFukuokaRestriction };
 
-import {
-  MATSUYAMA_REFERENCE_POINT,
-  RADIUS_OF_OUTER_HORIZONTAL_SURFACE as MATSUYAMA_OUTER_RADIUS,
-} from "./data/matsuyama";
 import { calculateMatsuyamaRestriction } from "./calculator/matsuyama";
 export { calculateMatsuyamaRestriction };
 
-import {
-  SENDAI_REFERENCE_POINT,
-  RADIUS_OF_OUTER_HORIZONTAL_SURFACE as SENDAI_OUTER_RADIUS,
-} from "./data/sendai";
 import { calculateSendaiRestriction } from "./calculator/sendai";
 export { calculateSendaiRestriction };
 
-import {
-  YAO_REFERENCE_POINT,
-  YAO_SURFACE_EXTENT_M,
-} from "./data/yao";
 import { calculateYaoRestriction } from "./calculator/yao";
 export { calculateYaoRestriction };
 
-import {
-  SHINCHITOSE_REFERENCE_POINT,
-  SHINCHITOSE_SURFACE_EXTENT_M,
-} from "./data/shinchitose";
 import { calculateShinchitoseRestriction } from "./calculator/shinchitose";
 export { calculateShinchitoseRestriction };
 
-import {
-  HAKODATE_REFERENCE_POINT,
-  RADIUS_OF_OUTER_HORIZONTAL_SURFACE as HAKODATE_OUTER_RADIUS,
-} from "./data/hakodate";
 import { calculateHakodateRestriction } from "./calculator/hakodate";
 export { calculateHakodateRestriction };
 
-import {
-  MIYAZAKI_REFERENCE_POINT,
-  RADIUS_OF_OUTER_HORIZONTAL_SURFACE as MIYAZAKI_OUTER_RADIUS,
-} from "./data/miyazaki";
 import { calculateMiyazakiRestriction } from "./calculator/miyazaki";
 export { calculateMiyazakiRestriction };
 
-import {
-  ITAMI_REFERENCE_POINT,
-  RADIUS_OF_OUTER_HORIZONTAL_SURFACE as ITAMI_OUTER_RADIUS,
-} from "./data/itami";
 import { calculateItamiRestriction } from "./calculator/itami";
 export { calculateItamiRestriction };
 
-import {
-  NIIGATA_REFERENCE_POINT,
-  NIIGATA_SURFACE_EXTENT_M,
-} from "./data/niigata";
 import { calculateNiigataRestriction } from "./calculator/niigata";
 export { calculateNiigataRestriction };
 
-import {
-  CENTRAIR_REFERENCE_POINT,
-  RADIUS_OF_OUTER_HORIZONTAL_SURFACE as CENTRAIR_OUTER_RADIUS,
-} from "./data/centrair";
 import { calculateCentrairRestriction } from "./calculator/centrair";
 export { calculateCentrairRestriction };
 
-import {
-  NAGASAKI_REFERENCE_POINT,
-  RADIUS_OF_OUTER_HORIZONTAL_SURFACE as NAGASAKI_OUTER_RADIUS,
-} from "./data/nagasaki";
 import { calculateNagasakiRestriction } from "./calculator/nagasaki";
 export { calculateNagasakiRestriction };
 
-import {
-  KUMAMOTO_REFERENCE_POINT,
-  RADIUS_OF_OUTER_HORIZONTAL_SURFACE as KUMAMOTO_OUTER_RADIUS,
-} from "./data/kumamoto";
 import { calculateKumamotoRestriction } from "./calculator/kumamoto";
 export { calculateKumamotoRestriction };
 
-/**
- * クリック位置に応じて羽田・成田・関西・中部・福岡・松山・仙台・八尾・新千歳・函館・新潟・長崎・熊本・那覇の高さ制限を計算する
- * いずれの範囲外の場合は items が空
- */
-export function calculateAirportRestriction(
-  lat: number,
-  lng: number,
-  gmaps: typeof google.maps
-): AirportRestrictionResult {
-  if (!gmaps?.geometry) {
-    return { items: [], error: true };
-  }
-  const g = gmaps;
-  const point = new g.LatLng(lat, lng);
-
-  const hanedaRef = new g.LatLng(HANEDA_REFERENCE_POINT.lat, HANEDA_REFERENCE_POINT.lng);
-  const naritaRef = new g.LatLng(NARITA_REFERENCE_POINT.lat, NARITA_REFERENCE_POINT.lng);
-  const kansaiRef = new g.LatLng(KANSAI_REFERENCE_POINT.lat, KANSAI_REFERENCE_POINT.lng);
-  const centrairRef = new g.LatLng(
-    CENTRAIR_REFERENCE_POINT.lat,
-    CENTRAIR_REFERENCE_POINT.lng
-  );
-  const fukuokaRef = new g.LatLng(FUKUOKA_REFERENCE_POINT.lat, FUKUOKA_REFERENCE_POINT.lng);
-  const matsuyamaRef = new g.LatLng(MATSUYAMA_REFERENCE_POINT.lat, MATSUYAMA_REFERENCE_POINT.lng);
-  const sendaiRef = new g.LatLng(SENDAI_REFERENCE_POINT.lat, SENDAI_REFERENCE_POINT.lng);
-  const yaoRef = new g.LatLng(YAO_REFERENCE_POINT.lat, YAO_REFERENCE_POINT.lng);
-  const shinchitoseRef = new g.LatLng(
-    SHINCHITOSE_REFERENCE_POINT.lat,
-    SHINCHITOSE_REFERENCE_POINT.lng
-  );
-  const hakodateRef = new g.LatLng(
-    HAKODATE_REFERENCE_POINT.lat,
-    HAKODATE_REFERENCE_POINT.lng
-  );
-  const niigataRef = new g.LatLng(
-    NIIGATA_REFERENCE_POINT.lat,
-    NIIGATA_REFERENCE_POINT.lng
-  );
-  const nagasakiRef = new g.LatLng(NAGASAKI_REFERENCE_POINT.lat, NAGASAKI_REFERENCE_POINT.lng);
-  const kumamotoRef = new g.LatLng(
-    KUMAMOTO_REFERENCE_POINT.lat,
-    KUMAMOTO_REFERENCE_POINT.lng
-  );
-  const nahaRef = new g.LatLng(NAHA_REFERENCE_POINT.lat, NAHA_REFERENCE_POINT.lng);
-  const miyazakiRef = new g.LatLng(
-    MIYAZAKI_REFERENCE_POINT.lat,
-    MIYAZAKI_REFERENCE_POINT.lng
-  );
-  const itamiRef = new g.LatLng(
-    ITAMI_REFERENCE_POINT.lat,
-    ITAMI_REFERENCE_POINT.lng
-  );
-
-  const distToHaneda = g.geometry.spherical.computeDistanceBetween(point, hanedaRef);
-  const distToNarita = g.geometry.spherical.computeDistanceBetween(point, naritaRef);
-  const distToKansai = g.geometry.spherical.computeDistanceBetween(point, kansaiRef);
-  const distToCentrair = g.geometry.spherical.computeDistanceBetween(point, centrairRef);
-  const distToFukuoka = g.geometry.spherical.computeDistanceBetween(point, fukuokaRef);
-  const distToMatsuyama = g.geometry.spherical.computeDistanceBetween(point, matsuyamaRef);
-  const distToSendai = g.geometry.spherical.computeDistanceBetween(point, sendaiRef);
-  const distToYao = g.geometry.spherical.computeDistanceBetween(point, yaoRef);
-  const distToShinchitose = g.geometry.spherical.computeDistanceBetween(point, shinchitoseRef);
-  const distToHakodate = g.geometry.spherical.computeDistanceBetween(point, hakodateRef);
-  const distToNiigata = g.geometry.spherical.computeDistanceBetween(point, niigataRef);
-  const distToNagasaki = g.geometry.spherical.computeDistanceBetween(point, nagasakiRef);
-  const distToKumamoto = g.geometry.spherical.computeDistanceBetween(point, kumamotoRef);
-  const distToNaha = g.geometry.spherical.computeDistanceBetween(point, nahaRef);
-  const distToMiyazaki = g.geometry.spherical.computeDistanceBetween(point, miyazakiRef);
-  const distToItami = g.geometry.spherical.computeDistanceBetween(point, itamiRef);
-
-  const HANEDA_OUTER = OUTER_HORIZONTAL_SURFACE_RADIUS_M;
-
-  if (distToHaneda <= HANEDA_OUTER) {
-    return calculateHanedaRestriction(lat, lng, gmaps);
-  }
-  if (distToNarita <= NARITA_OUTER_RADIUS) {
-    return calculateNaritaRestriction(lat, lng, gmaps);
-  }
-  if (distToKansai <= KANSAI_OUTER_RADIUS) {
-    const kansai = calculateKansaiRestriction(lat, lng, gmaps);
-    if (kansai.error || kansai.items.length > 0) return kansai;
-  }
-  if (distToItami <= ITAMI_OUTER_RADIUS) {
-    return calculateItamiRestriction(lat, lng, gmaps);
-  }
-  if (distToCentrair <= CENTRAIR_OUTER_RADIUS) {
-    const centrair = calculateCentrairRestriction(lat, lng, gmaps);
-    if (centrair.error || centrair.items.length > 0) return centrair;
-  }
-  if (distToFukuoka <= FUKUOKA_OUTER_RADIUS) {
-    const fukuoka = calculateFukuokaRestriction(lat, lng, gmaps);
-    if (fukuoka.error || fukuoka.items.length > 0) return fukuoka;
-  }
-  if (distToMatsuyama <= MATSUYAMA_OUTER_RADIUS) {
-    const matsuyama = calculateMatsuyamaRestriction(lat, lng, gmaps);
-    if (matsuyama.error || matsuyama.items.length > 0) return matsuyama;
-  }
-  if (distToSendai <= SENDAI_OUTER_RADIUS) {
-    const sendai = calculateSendaiRestriction(lat, lng, gmaps);
-    if (sendai.error || sendai.items.length > 0) return sendai;
-  }
-  if (distToYao <= YAO_SURFACE_EXTENT_M) {
-    const yao = calculateYaoRestriction(lat, lng, gmaps);
-    if (yao.error || yao.items.length > 0) return yao;
-  }
-  if (distToShinchitose <= SHINCHITOSE_SURFACE_EXTENT_M) {
-    const shinchitose = calculateShinchitoseRestriction(lat, lng, gmaps);
-    if (shinchitose.error || shinchitose.items.length > 0) return shinchitose;
-  }
-  if (distToHakodate <= HAKODATE_OUTER_RADIUS) {
-    const hakodate = calculateHakodateRestriction(lat, lng, gmaps);
-    if (hakodate.error || hakodate.items.length > 0) return hakodate;
-  }
-  if (distToNiigata <= NIIGATA_SURFACE_EXTENT_M) {
-    const niigata = calculateNiigataRestriction(lat, lng, gmaps);
-    if (niigata.error || niigata.items.length > 0) return niigata;
-  }
-  if (distToNagasaki <= NAGASAKI_OUTER_RADIUS) {
-    const nagasaki = calculateNagasakiRestriction(lat, lng, gmaps);
-    if (nagasaki.error || nagasaki.items.length > 0) return nagasaki;
-  }
-  if (distToKumamoto <= KUMAMOTO_OUTER_RADIUS) {
-    const kumamoto = calculateKumamotoRestriction(lat, lng, gmaps);
-    if (kumamoto.error || kumamoto.items.length > 0) return kumamoto;
-  }
-  if (distToNaha <= NAHA_OUTER_RADIUS) {
-    const naha = calculateNahaRestriction(lat, lng, gmaps);
-    if (naha.error || naha.items.length > 0) return naha;
-  }
-  if (distToMiyazaki <= MIYAZAKI_OUTER_RADIUS) {
-    const miyazaki = calculateMiyazakiRestriction(lat, lng, gmaps);
-    if (miyazaki.error || miyazaki.items.length > 0) return miyazaki;
-  }
-  return { items: [] };
-}
+import { calculateAirportRestriction } from "./calculator/dispatcher";
+export { calculateAirportRestriction };
