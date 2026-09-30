@@ -38,7 +38,6 @@ import {
 import { MapGeometry } from "./MapGeometry";
 import { fromLocalXY } from "./geometry/math";
 import {
-  NAME_UNSET,
   AREA_NAME_NONE,
   SELECT_ZOOM_DESKTOP,
   SELECT_ZOOM_MOBILE,
@@ -103,9 +102,7 @@ import {
 } from "./djiNfz";
 import type { DjiNfzEntryHit, GeoJsonFeature } from "./djiNfz";
 
-// 本番用のCatalogのベースURL
-const CATALOG =
-  String(import.meta.env.VITE_CATALOG_BASE_URL || "").replace(/\/+$/, "") + "/";
+import { loadAreasPoints } from "./loadAreaPoints";
 
 /** =========================
  *  Component
@@ -1969,9 +1966,6 @@ export default function MapView({ onLoaded }: Props) {
   const getGMaps = () =>
     (window as any).google.maps as unknown as typeof google.maps;
 
-  const isFiniteNumber = (v: unknown): v is number =>
-    typeof v === "number" && Number.isFinite(v);
-
   /** 指定の全オーバーレイ（ジオメトリ側）を削除 */
   const clearGeometryOverlays = () => {
     geomRef.current?.clearOverlays();
@@ -2008,65 +2002,6 @@ export default function MapView({ onLoaded }: Props) {
   useEffect(() => {
     syncMarkersVisibilityForZoom();
   }, [overlayVisibility.companyMarkers, syncMarkersVisibilityForZoom]);
-
-  /** =========================
-   *  Data loading
-   *  ========================= */
-  async function loadAreasPoints(): Promise<Point[]> {
-    try {
-      const resp = await fetch(CATALOG + "areas.json", {
-        mode: "cors",
-        cache: "no-store",
-      });
-      if (!resp.ok) throw new Error(`areas.json ${resp.status}`);
-      const areasJson: any[] = await resp.json();
-
-      const points: Point[] = (areasJson ?? [])
-        .map((a) => {
-          const lat = a?.representative_coordinate?.lat;
-          const lon =
-            a?.representative_coordinate?.lon ??
-            a?.representative_coordinate?.lng;
-          if (!isFiniteNumber(lat) || !isFiniteNumber(lon)) return null;
-
-          const areaName =
-            typeof a?.areaName === "string" && a.areaName.trim()
-              ? a.areaName
-              : NAME_UNSET;
-          if (import.meta.env.DEV && areaName === NAME_UNSET) {
-            console.warn("[areas] areaName missing for areaUuid=", a?.areaUuid);
-          }
-
-          return {
-            name: areaName,
-            areaName,
-            lat: Number(lat),
-            lng: Number(lon),
-            areaUuid:
-              typeof a?.areaUuid === "string"
-                ? a.areaUuid
-                : typeof a?.uuid === "string"
-                  ? a.uuid
-                  : undefined,
-          } as Point;
-        })
-        .filter((p): p is Point => !!p);
-
-      if (import.meta.env.DEV)
-        console.debug("[map] areas points=", points.length);
-      return points;
-    } catch (e) {
-      console.warn("loadAreasPoints() fallback to local dev data.", e);
-      return [
-        {
-          name: "エリアが登録されていません。",
-          lat: 35.6861,
-          lng: 139.4077,
-          areaName: "エリアが登録されていません。",
-        },
-      ];
-    }
-  }
 
   /** =========================
    *  Marker rendering
