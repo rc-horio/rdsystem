@@ -102,6 +102,7 @@ import {
 } from "./djiNfz";
 import type { DjiNfzEntryHit, GeoJsonFeature } from "./djiNfz";
 
+import { getGMaps } from "./getGMaps";
 import { loadAreasPoints } from "./loadAreaPoints";
 
 /** =========================
@@ -1962,9 +1963,6 @@ export default function MapView({ onLoaded }: Props) {
   /** =========================
    *  Utils
    *  ========================= */
-
-  const getGMaps = () =>
-    (window as any).google.maps as unknown as typeof google.maps;
 
   /** 指定の全オーバーレイ（ジオメトリ側）を削除 */
   const clearGeometryOverlays = () => {
