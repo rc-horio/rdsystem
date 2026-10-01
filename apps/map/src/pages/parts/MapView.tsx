@@ -69,15 +69,14 @@ import {
   buildAreaRemarksFromRestrictions,
 } from "./airportRestriction";
 import {
-  createAllAirportRestrictionOverlays,
   setRestrictionOverlaysMap,
   type RestrictionOverlay,
 } from "./airportRestriction/overlays";
+import { useAirportRestrictionLayer } from "./useAirportRestrictionLayer";
 
 import { usePlaceSearch } from "./usePlaceSearch";
 
 import {
-  buildDjiNfzPopupHtml,
   collectDjiNfzEntriesAtPoint,
   lookupDjiNfzEntriesAt,
 } from "./djiNfz";
@@ -1178,68 +1177,9 @@ export default function MapView({ onLoaded }: Props) {
   const clearSelectedMarkerRef = useRef<() => void>(() => {});
   const changingPositionRef = useRef(false);
 
-  const openRestrictionInfoAt = useCallback((latLng: google.maps.LatLng) => {
-    if (
-      measurementModeRef.current ||
-      addingAreaModeRef.current ||
-      changingPositionRef.current
-    ) {
-      return;
-    }
-
-    const map = mapRef.current;
-    const gmaps = (window as any).google.maps as typeof google.maps | undefined;
-    if (!map || !gmaps) return;
-
-    if (airportHeightRestrictionModeRef.current) {
-      infoRef.current?.close();
-      djiNfzInfoRef.current?.close();
-      try {
-        const result = calculateAirportRestriction(
-          latLng.lat(),
-          latLng.lng(),
-          gmaps
-        );
-        const html = buildAirportHeightRestrictionPopupHtml({
-          airportResult: result,
-        });
-        const info = airportHeightRestrictionInfoRef.current;
-        if (info) {
-          info.setContent(html);
-          info.setPosition(latLng);
-          info.open(map);
-        }
-      } catch {
-        const html = buildAirportHeightRestrictionPopupHtml({
-          airportResult: { items: [], error: true },
-        });
-        const info = airportHeightRestrictionInfoRef.current;
-        if (info) {
-          info.setContent(html);
-          info.setPosition(latLng);
-          info.open(map);
-        }
-      }
-      return;
-    }
-
-    if (!overlayVisibilityRef.current.djiNfz || !map.data) return;
-
-    const entries = collectDjiNfzEntriesAtPoint(map, latLng);
-    if (entries.length === 0) return;
-
-    infoRef.current?.close();
-    airportHeightRestrictionInfoRef.current?.close();
-    const info = djiNfzInfoRef.current;
-    if (info) {
-      info.setContent(buildDjiNfzPopupHtml(entries));
-      info.setPosition(latLng);
-      info.open(map);
-    }
-  }, []);
-
-  const openRestrictionInfoAtRef = useRef(openRestrictionInfoAt);
-  openRestrictionInfoAtRef.current = openRestrictionInfoAt;
+  const openRestrictionInfoAtRef = useRef<(latLng: google.maps.LatLng) => void>(
+    () => {}
+  );
 
   const [isChangingPosition, setIsChangingPosition] = useState(false);
   const changePositionInfoRef = useRef<google.maps.InfoWindow | null>(null);
@@ -2518,24 +2458,21 @@ export default function MapView({ onLoaded }: Props) {
     };
   }, [measurementMode, cancelMeasurementMode]);
 
-  // 空港高さ制限モード: 吹き出しクリアと全空港制限表面の表示
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!airportHeightRestrictionMode) {
-      airportHeightRestrictionInfoRef.current?.close();
-      setRestrictionOverlaysMap(airportRestrictionOverlaysRef.current, null);
-      return;
-    }
-    if (!map || !mapReady) return;
-    if (airportRestrictionOverlaysRef.current.length === 0) {
-      airportRestrictionOverlaysRef.current =
-        createAllAirportRestrictionOverlays(getGMaps());
-    }
-    setRestrictionOverlaysMap(airportRestrictionOverlaysRef.current, map);
-    return () => {
-      setRestrictionOverlaysMap(airportRestrictionOverlaysRef.current, null);
-    };
-  }, [airportHeightRestrictionMode, mapReady]);
+  useAirportRestrictionLayer({
+    mapRef,
+    mapReady,
+    airportHeightRestrictionMode,
+    airportHeightRestrictionModeRef,
+    airportHeightRestrictionInfoRef,
+    airportRestrictionOverlaysRef,
+    openRestrictionInfoAtRef,
+    measurementModeRef,
+    addingAreaModeRef,
+    changingPositionRef,
+    infoRef,
+    djiNfzInfoRef,
+    overlayVisibilityRef,
+  });
 
   // 測定モード切替時にジオメトリオーバーレイのクリック可否・カーソルを更新
   useEffect(() => {
