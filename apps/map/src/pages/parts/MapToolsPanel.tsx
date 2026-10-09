@@ -210,6 +210,10 @@ export default function MapToolsPanel({
               <span>矢印</span>
             </label>
             <label className="map-tools-panel__checkbox">
+              <input type="checkbox" checked={overlayVisibility.directLine} onChange={handleOverlayChange("directLine")} aria-label="直距離" />
+              <span>直距離</span>
+            </label>
+            <label className="map-tools-panel__checkbox">
               <input type="checkbox" checked={overlayVisibility.labels} onChange={handleOverlayChange("labels")} aria-label="ラベル" />
               <span>ラベル</span>
             </label>

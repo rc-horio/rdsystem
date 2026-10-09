@@ -12,7 +12,9 @@ export type OverlayVisibility = {
   audience: boolean;
   /** 矢印（線） */
   arrows: boolean;
-  /** 矢印の距離ラベル */
+  /** 離着陸基準点から飛行中心への直線 */
+  directLine: boolean;
+  /** 距離ラベル（直角矢印と直線） */
   labels: boolean;
   /** 飛行エリアの直径延長線 */
   diameterLines: boolean;
@@ -29,6 +31,7 @@ export const DEFAULT_OVERLAY_VISIBILITY: OverlayVisibility = {
   safety: true,
   audience: true,
   arrows: true,
+  directLine: true,
   labels: true,
   diameterLines: true,
   djiNfz: false,
@@ -38,11 +41,12 @@ export const DEFAULT_OVERLAY_VISIBILITY: OverlayVisibility = {
 /** 他社図の初期表示。飛行・離着陸・観客は出し、数値を断言する補助は消す */
 export const OTHER_FIGURE_OVERLAY_PATCH: Pick<
   OverlayVisibility,
-  "safety" | "referencePoint" | "arrows" | "labels" | "diameterLines"
+  "safety" | "referencePoint" | "arrows" | "directLine" | "labels" | "diameterLines"
 > = {
   safety: false,
   referencePoint: false,
   arrows: false,
+  directLine: false,
   labels: false,
   diameterLines: true,
 };

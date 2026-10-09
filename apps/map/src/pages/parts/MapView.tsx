@@ -2295,6 +2295,7 @@ export default function MapView({ onLoaded }: Props) {
           safety: current.safety,
           referencePoint: current.referencePoint,
           arrows: current.arrows,
+          directLine: current.directLine,
           labels: current.labels,
           diameterLines: current.diameterLines,
         };
@@ -2305,6 +2306,7 @@ export default function MapView({ onLoaded }: Props) {
             safety: true,
             referencePoint: true,
             arrows: true,
+            directLine: true,
             labels: true,
             diameterLines: true,
           }

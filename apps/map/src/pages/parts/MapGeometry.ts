@@ -9,7 +9,7 @@ import { RectEditor } from "./geometry/RectEditor";
 import { AudienceEditor } from "./geometry/AudienceEditor";
 import { toLocalXY, fromLocalXY } from "./geometry/math";
 
-type ArrowKind = "depth" | "perp";
+type ArrowKind = "depth" | "perp" | "direct";
 
 /** =========================
  *  Geometry Controller
@@ -21,10 +21,13 @@ export class MapGeometry {
 
     private arrow2Ref: google.maps.Polyline | null = null;
     private arrow3Ref: google.maps.Polyline | null = null;
+    /** 基準点から飛行中心への直線 */
+    private directLineRef: google.maps.Polyline | null = null;
 
     // --- 矢印ラベル ---
     private arrow2Label: google.maps.Marker | null = null;
     private arrow3Label: google.maps.Marker | null = null;
+    private directLineLabel: google.maps.Marker | null = null;
 
     // 矢印ラベル用：三角形の重心
     private arrowTriangleCentroid: google.maps.LatLng | null = null;
@@ -207,6 +210,7 @@ export class MapGeometry {
             onCenterChanged: (center) => {
                 const from = this.pickReferenceCorner(this.currentGeomRef?.takeoffArea);
                 this.updateRightAngleArrowPaths(from, center);
+                this.updateDirectLine(from, center);
                 // 中心が変更されたときも距離を再計算
                 const distance = this.calculateFlightToAudienceDistance(center);
                 setDetailBarMetrics({
@@ -253,6 +257,7 @@ export class MapGeometry {
                         ? (this.currentGeomRef!.flightArea!.center as LngLat)
                         : undefined;
                 this.updateRightAngleArrowPaths(refPoint, to);
+                this.updateDirectLine(refPoint, to);
             },
             // Shift+ドラッグ時: depth矢印を固定し、perp矢印の長さだけ編集（基準点をperp方向にのみ移動）
             constrainRefPointForShiftDrag: (
@@ -533,10 +538,12 @@ export class MapGeometry {
         this.audienceEditor.clear();
         this.arrow2Ref = null;
         this.arrow3Ref = null;
+        this.directLineRef = null;
 
         // ラベルもクリア
         if (this.arrow2Label) { this.arrow2Label.setMap(null); this.arrow2Label = null; }
         if (this.arrow3Label) { this.arrow3Label.setMap(null); this.arrow3Label = null; }
+        if (this.directLineLabel) { this.directLineLabel.setMap(null); this.directLineLabel = null; }
 
         // 重心もリセット
         this.arrowTriangleCentroid = null;
@@ -738,6 +745,8 @@ export class MapGeometry {
                 this.arrow3Ref = line3;
                 line3.getPath().forEach((p: google.maps.LatLng) => bounds.extend(p));
             }
+
+            this.updateDirectLine(from, to);
         }
 
         const shouldFit = opts?.fit ?? true;
@@ -774,6 +783,8 @@ export class MapGeometry {
 
         if (this.arrow2Label) this.arrow2Label.setMap(v.labels && v.arrows && map ? map : null);
         if (this.arrow3Label) this.arrow3Label.setMap(v.labels && v.arrows && map ? map : null);
+
+        this.applyDirectLineVisibility();
     }
 
     /** オーバーレイ表示状態を取得・設定 */
@@ -1105,6 +1116,7 @@ export class MapGeometry {
         toLatLng: google.maps.LatLng,
         distance: number,
         kind: ArrowKind,
+        positionOverride?: google.maps.LatLng,
     ) {
         const gmaps = this.getGMaps();
         const map = this.getMap();
@@ -1114,11 +1126,11 @@ export class MapGeometry {
         const baseLatLng = gmaps.geometry.spherical.interpolate(fromLatLng, toLatLng, 0.5);
         const text = `${distance.toFixed(0)}m`;
 
-        // デフォルトは中点
-        let labelLatLng = baseLatLng;
+        // デフォルトは中点。直線は呼び出し側で垂直方向へずらした位置を渡す
+        let labelLatLng = positionOverride ?? baseLatLng;
 
         // 三角形の重心がわかっていれば、「重心 → 中点」の方向に外側へ押し出す
-        if (this.arrowTriangleCentroid) {
+        if (!positionOverride && this.arrowTriangleCentroid) {
             // 三角形の中心から見て、ラベルを置きたい中点の方向
             const headingFromCenter = gmaps.geometry.spherical.computeHeading(
                 this.arrowTriangleCentroid,
@@ -1138,7 +1150,9 @@ export class MapGeometry {
         const className =
             kind === "depth"
                 ? "arrow-label arrow-label--depth"
-                : "arrow-label arrow-label--perp";
+                : kind === "direct"
+                    ? "arrow-label arrow-label--direct"
+                    : "arrow-label arrow-label--perp";
 
         const ensureLabel = (
             current: google.maps.Marker | null
@@ -1164,6 +1178,8 @@ export class MapGeometry {
 
         if (kind === "depth") {
             this.arrow2Label = ensureLabel(this.arrow2Label);
+        } else if (kind === "direct") {
+            this.directLineLabel = ensureLabel(this.directLineLabel);
         } else {
             this.arrow3Label = ensureLabel(this.arrow3Label);
         }
@@ -1175,6 +1191,58 @@ export class MapGeometry {
         if (this.arrow2Label) { this.arrow2Label.setMap(null); this.arrow2Label = null; }
         if (this.arrow3Label) { this.arrow3Label.setMap(null); this.arrow3Label = null; }
         this.arrowTriangleCentroid = null;
+    }
+
+    private applyDirectLineVisibility() {
+        const v = this.overlayVisibilityRef;
+        const map = this.getMap();
+        if (this.directLineRef) this.directLineRef.setMap(v.directLine && map ? map : null);
+        if (this.directLineLabel) this.directLineLabel.setMap(v.directLine && v.labels && map ? map : null);
+    }
+
+    private clearDirectLine() {
+        if (this.directLineRef) { this.directLineRef.setMap(null); this.directLineRef = null; }
+        if (this.directLineLabel) { this.directLineLabel.setMap(null); this.directLineLabel = null; }
+    }
+
+    /** 直線ラベルを、線に垂直・折れ点の反対側へ 16m ずらす */
+    private computeDirectLineLabelPosition(
+        pFrom: google.maps.LatLng,
+        pTo: google.maps.LatLng,
+        corner: LngLat | null,
+    ): google.maps.LatLng {
+        const gmaps = this.getGMaps();
+        const mid = gmaps.geometry.spherical.interpolate(pFrom, pTo, 0.5);
+        const heading = gmaps.geometry.spherical.computeHeading(pFrom, pTo);
+        const sideA = gmaps.geometry.spherical.computeOffset(mid, 16, heading + 90);
+        const sideB = gmaps.geometry.spherical.computeOffset(mid, 16, heading - 90);
+        if (!corner) return sideA;
+
+        const pCorner = this.latLng(corner[1], corner[0]);
+        const distA = gmaps.geometry.spherical.computeDistanceBetween(sideA, pCorner);
+        const distB = gmaps.geometry.spherical.computeDistanceBetween(sideB, pCorner);
+        return distA >= distB ? sideA : sideB;
+    }
+
+    /** 基準点 → 飛行中心の直線。直角の折れ点がなくても描く */
+    private updateDirectLine(from?: LngLat, to?: LngLat) {
+        if (!from || !to) { this.clearDirectLine(); return; }
+
+        const gmaps = this.getGMaps();
+        const pFrom = this.latLng(from[1], from[0]);
+        const pTo = this.latLng(to[1], to[0]);
+
+        if (!this.directLineRef) {
+            this.directLineRef = this.createArrowPolyline([pFrom, pTo]);
+        } else {
+            this.directLineRef.setPath([pFrom, pTo]);
+        }
+
+        const distance = gmaps.geometry.spherical.computeDistanceBetween(pFrom, pTo);
+        const corner = this.computeRightAngleCorner(from, to);
+        const labelPos = this.computeDirectLineLabelPosition(pFrom, pTo, corner);
+        this.updateDistanceLabel(pFrom, pTo, distance, "direct", labelPos);
+        this.applyDirectLineVisibility();
     }
 
     // 矢印2と3: パス更新（中心/基準点の変更時に呼ぶ）
