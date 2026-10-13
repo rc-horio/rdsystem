@@ -42,7 +42,6 @@ import {
   readScheduleAreaName,
   readScheduleAreaUuid,
 } from "./scheduleAreaLink";
-import { PREFECTURES } from "./constants/events";
 import {
   EMPTY_CONSIDERING_INFO,
   AREA_AXIS_CHOICE_LABEL,
@@ -54,11 +53,9 @@ import {
   SALES_STATUS_FILTER_ORDER,
   EMPTY_AREA_AXIS_FILTER,
   areaKindFlagList,
-  areaMatchesKindFilter,
   canonicalConsideringStatus,
   getAreaKindFlags,
   hasConsideringContent,
-  isAreaAxisFilterActive,
   isAreaClassified,
   isEmptyOtherRecord,
   salesFilterSummary,
@@ -113,11 +110,11 @@ import type { AreaSortDir, AreaSortType } from "./sideListSort";
 import {
   AREA_SORT_DEFAULT_DIR,
   areaSortDirLabel,
-  getDroneCountGroupLabel,
-  getDroneCountGroupOrder,
-  getUpdatedAtGroup,
-  getUpdatedAtGroupOrder,
+  groupAreasByDroneCount,
+  groupAreasByPrefecture,
+  groupAreasByUpdatedAt,
   revealAreaInSidebarList,
+  selectVisibleAreaGroups,
 } from "./sideListSort";
 
 // サイドバーの基本コンポーネント
@@ -1809,131 +1806,23 @@ function SideListBarBase({
   }, [salesFilterOpen]);
 
   // 表示する areaGroups をフィルタ・ソートする
-  const visibleAreaGroups = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    let filtered = areaGroups;
-    
-    // フィルター条件（指定なし＝問わない。あり/なしはその軸の有無）
-    if (isAreaAxisFilterActive(axisFilter)) {
-      filtered = filtered.filter(({ indices }) => {
-        const firstIdx = indices[0];
-        const firstPoint = points[firstIdx];
-        if (!firstPoint?.areaUuid) return false;
-        return areaMatchesKindFilter(kindCache[firstPoint.areaUuid], axisFilter);
-      });
-    }
-    
-    // 検索フィルタリング
-    if (q) {
-      filtered = filtered.filter(({ area, indices }) => {
-        // 表示名（上書きがあればそれを検索対象に含める）
-        const label = (areaLabelOverrides[area] ?? area).toLowerCase();
-        if (label.includes(q)) return true;
-        
-        // 都道府県名でも検索
-        // このエリアグループに属する最初のポイントの areaUuid を取得
-        const firstIdx = indices[0];
-        const firstPoint = points[firstIdx];
-        if (firstPoint?.areaUuid) {
-          const prefecture = prefectureCache[firstPoint.areaUuid];
-          if (prefecture && prefecture.toLowerCase().includes(q)) {
-            return true;
-          }
-        }
-        
-        return false;
-      });
-    }
-    
-    // ソート
-    const dirSign = sortDir === "desc" ? -1 : 1;
-    if (sortType === "name") {
-      filtered = [...filtered].sort((a, b) => {
-        const nameA = (areaLabelOverrides[a.area] ?? a.area).localeCompare(
-          areaLabelOverrides[b.area] ?? b.area,
-          "ja"
-        );
-        return nameA * dirSign;
-      });
-    } else if (sortType === "updated") {
-      filtered = [...filtered].sort((a, b) => {
-        const firstIdxA = a.indices[0];
-        const firstIdxB = b.indices[0];
-        const pointA = points[firstIdxA];
-        const pointB = points[firstIdxB];
-        
-        const updatedAtA = pointA?.areaUuid ? updatedAtCache[pointA.areaUuid] || "" : "";
-        const updatedAtB = pointB?.areaUuid ? updatedAtCache[pointB.areaUuid] || "" : "";
-        
-        if (!updatedAtA && !updatedAtB) return 0;
-        if (!updatedAtA) return 1;
-        if (!updatedAtB) return -1;
-        
-        return updatedAtA.localeCompare(updatedAtB) * dirSign;
-      });
-    } else if (sortType === "prefecture") {
-      const getPrefectureOrder = (prefecture: string): number => {
-        if (!prefecture || prefecture.trim() === "" || prefecture === "未選択") {
-          return 9999;
-        }
-        const index = PREFECTURES.indexOf(prefecture);
-        if (index === -1) {
-          return 9998;
-        }
-        return index;
-      };
-      
-      filtered = [...filtered].sort((a, b) => {
-        const firstIdxA = a.indices[0];
-        const firstIdxB = b.indices[0];
-        const pointA = points[firstIdxA];
-        const pointB = points[firstIdxB];
-        
-        const prefectureA = pointA?.areaUuid ? prefectureCache[pointA.areaUuid] || "" : "";
-        const prefectureB = pointB?.areaUuid ? prefectureCache[pointB.areaUuid] || "" : "";
-        
-        const orderA = getPrefectureOrder(prefectureA);
-        const orderB = getPrefectureOrder(prefectureB);
-        const missingA = orderA >= 9998;
-        const missingB = orderB >= 9998;
-        if (missingA !== missingB) return missingA ? 1 : -1;
-
-        if (orderA !== orderB) {
-          return (orderA - orderB) * dirSign;
-        }
-        
-        const nameA = (areaLabelOverrides[a.area] ?? a.area).localeCompare(
-          areaLabelOverrides[b.area] ?? b.area,
-          "ja"
-        );
-        return nameA;
-      });
-    } else if (sortType === "droneCount") {
-      filtered = [...filtered].sort((a, b) => {
-        const firstIdxA = a.indices[0];
-        const firstIdxB = b.indices[0];
-        const pointA = points[firstIdxA];
-        const pointB = points[firstIdxB];
-
-        const countA = pointA?.areaUuid ? droneCountCache[pointA.areaUuid] : undefined;
-        const countB = pointB?.areaUuid ? droneCountCache[pointB.areaUuid] : undefined;
-        const missingA = countA == null;
-        const missingB = countB == null;
-        if (missingA !== missingB) return missingA ? 1 : -1;
-        if (missingA && missingB) {
-          return (areaLabelOverrides[a.area] ?? a.area).localeCompare(
-            areaLabelOverrides[b.area] ?? b.area,
-            "ja"
-          );
-        }
-
-        if (countA !== countB) return ((countA ?? 0) - (countB ?? 0)) * dirSign;
-        return 0;
-      });
-    }
-    
-    return filtered;
-  }, [areaGroups, searchQuery, areaLabelOverrides, points, prefectureCache, updatedAtCache, kindCache, droneCountCache, sortType, sortDir, axisFilter]);
+  const visibleAreaGroups = useMemo(
+    () =>
+      selectVisibleAreaGroups({
+        areaGroups,
+        searchQuery,
+        axisFilter,
+        points,
+        kindCache,
+        areaLabelOverrides,
+        prefectureCache,
+        updatedAtCache,
+        droneCountCache,
+        sortType,
+        sortDir,
+      }),
+    [areaGroups, searchQuery, areaLabelOverrides, points, prefectureCache, updatedAtCache, kindCache, droneCountCache, sortType, sortDir, axisFilter]
+  );
 
   // フィルタ結果を地図に通知（未分類は地図に出さない）
   useEffect(() => {
@@ -1960,130 +1849,43 @@ function SideListBarBase({
   }, [kindCache]);
 
   // 都道府県順ソート時にグループ化する
-  const groupedByPrefecture = useMemo(() => {
-    if (sortType !== "prefecture") {
-      return null; // 都道府県順以外はグループ化しない
-    }
-
-    const groups: Array<{ prefecture: string; areas: typeof visibleAreaGroups }> = [];
-    const unselectedAreas: typeof visibleAreaGroups = [];
-
-    visibleAreaGroups.forEach((areaGroup) => {
-      const firstIdx = areaGroup.indices[0];
-      const firstPoint = points[firstIdx];
-      const prefecture = firstPoint?.areaUuid
-        ? prefectureCache[firstPoint.areaUuid] || ""
-        : "";
-
-      // PREFECTURESリストに完全一致する場合のみ都道府県グループに入れる
-      // 単位なし（「鹿児島」など）や空文字、「未選択」は未選択グループに入れる
-      if (
-        !prefecture ||
-        prefecture.trim() === "" ||
-        prefecture === "未選択" ||
-        !PREFECTURES.includes(prefecture)
-      ) {
-        unselectedAreas.push(areaGroup);
-      } else {
-        let group = groups.find((g) => g.prefecture === prefecture);
-        if (!group) {
-          group = { prefecture, areas: [] };
-          groups.push(group);
-        }
-        group.areas.push(areaGroup);
-      }
-    });
-
-    // 都道府県の順序でソート
-    groups.sort((a, b) => {
-      const indexA = PREFECTURES.indexOf(a.prefecture);
-      const indexB = PREFECTURES.indexOf(b.prefecture);
-      if (indexA === -1) return 1;
-      if (indexB === -1) return -1;
-      const diff = indexA - indexB;
-      return sortDir === "desc" ? -diff : diff;
-    });
-
-    // 未選択グループを最後に追加
-    if (unselectedAreas.length > 0) {
-      groups.push({ prefecture: "未選択", areas: unselectedAreas });
-    }
-
-    return groups;
-  }, [visibleAreaGroups, sortType, sortDir, points, prefectureCache]);
+  const groupedByPrefecture = useMemo(
+    () =>
+      groupAreasByPrefecture({
+        visibleAreaGroups,
+        sortType,
+        sortDir,
+        points,
+        prefectureCache,
+      }),
+    [visibleAreaGroups, sortType, sortDir, points, prefectureCache]
+  );
 
   // 更新日順ソート時にグループ化する
-  const groupedByUpdatedAt = useMemo(() => {
-    if (sortType !== "updated") {
-      return null; // 更新日順以外はグループ化しない
-    }
-
-    const groups: Array<{ groupLabel: string; areas: typeof visibleAreaGroups }> = [];
-
-    visibleAreaGroups.forEach((areaGroup) => {
-      const firstIdx = areaGroup.indices[0];
-      const firstPoint = points[firstIdx];
-      const updatedAt = firstPoint?.areaUuid
-        ? updatedAtCache[firstPoint.areaUuid] || ""
-        : "";
-
-      const groupLabel = getUpdatedAtGroup(updatedAt);
-      let group = groups.find((g) => g.groupLabel === groupLabel);
-      if (!group) {
-        group = { groupLabel, areas: [] };
-        groups.push(group);
-      }
-      group.areas.push(areaGroup);
-    });
-
-    // 更新日グループの順序でソート（新しいものが上）
-    groups.sort((a, b) => {
-      const unknownA = a.groupLabel === "Unknown";
-      const unknownB = b.groupLabel === "Unknown";
-      if (unknownA !== unknownB) return unknownA ? 1 : -1;
-      const orderA = getUpdatedAtGroupOrder(a.groupLabel);
-      const orderB = getUpdatedAtGroupOrder(b.groupLabel);
-      const diff = orderA - orderB;
-      return sortDir === "desc" ? diff : -diff;
-    });
-
-    return groups;
-  }, [visibleAreaGroups, sortType, sortDir, points, updatedAtCache]);
+  const groupedByUpdatedAt = useMemo(
+    () =>
+      groupAreasByUpdatedAt({
+        visibleAreaGroups,
+        sortType,
+        sortDir,
+        points,
+        updatedAtCache,
+      }),
+    [visibleAreaGroups, sortType, sortDir, points, updatedAtCache]
+  );
 
   // 機体数順ソート時にグループ化する
-  const groupedByDroneCount = useMemo(() => {
-    if (sortType !== "droneCount") {
-      return null;
-    }
-
-    const groups: Array<{ groupLabel: string; areas: typeof visibleAreaGroups }> = [];
-
-    visibleAreaGroups.forEach((areaGroup) => {
-      const firstIdx = areaGroup.indices[0];
-      const firstPoint = points[firstIdx];
-      const count = firstPoint?.areaUuid ? droneCountCache[firstPoint.areaUuid] : undefined;
-      const groupLabel = getDroneCountGroupLabel(count);
-
-      let group = groups.find((g) => g.groupLabel === groupLabel);
-      if (!group) {
-        group = { groupLabel, areas: [] };
-        groups.push(group);
-      }
-      group.areas.push(areaGroup);
-    });
-
-    groups.sort((a, b) => {
-      const unsetA = a.groupLabel === "未設定";
-      const unsetB = b.groupLabel === "未設定";
-      if (unsetA !== unsetB) return unsetA ? 1 : -1;
-      const orderA = getDroneCountGroupOrder(a.groupLabel);
-      const orderB = getDroneCountGroupOrder(b.groupLabel);
-      const diff = orderA - orderB;
-      return sortDir === "desc" ? diff : -diff;
-    });
-
-    return groups;
-  }, [visibleAreaGroups, sortType, sortDir, points, droneCountCache]);
+  const groupedByDroneCount = useMemo(
+    () =>
+      groupAreasByDroneCount({
+        visibleAreaGroups,
+        sortType,
+        sortDir,
+        points,
+        droneCountCache,
+      }),
+    [visibleAreaGroups, sortType, sortDir, points, droneCountCache]
+  );
 
   // エリアアイテムのコンテンツをレンダリングする関数（グループ化時と通常時で共通）
   const renderAreaItemContent = (area: string, indices: number[]) => {

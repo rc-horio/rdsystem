@@ -1,3 +1,12 @@
+import type { Point } from "@/features/types";
+import { PREFECTURES } from "./constants/events";
+import {
+  areaMatchesKindFilter,
+  isAreaAxisFilterActive,
+  type AreaAxisFilter,
+  type AreaKindFlags,
+} from "./detailBar/helpers";
+
 export type AreaSortType = "name" | "prefecture" | "updated" | "droneCount";
 export type AreaSortDir = "asc" | "desc";
 
@@ -114,3 +123,318 @@ export const getUpdatedAtGroupOrder = (group: string): number => {
   if (group === "Future") return -1;
   return 998;
 };
+
+export type SidebarAreaGroup = { area: string; indices: number[] };
+
+export function selectVisibleAreaGroups(args: {
+    areaGroups: SidebarAreaGroup[],
+    searchQuery: string,
+    axisFilter: AreaAxisFilter,
+    points: Point[],
+    kindCache: Record<string, AreaKindFlags>,
+    areaLabelOverrides: Record<string, string>,
+    prefectureCache: Record<string, string>,
+    updatedAtCache: Record<string, string>,
+    droneCountCache: Record<string, number | undefined>,
+    sortType: AreaSortType,
+    sortDir: AreaSortDir,
+}): SidebarAreaGroup[] {
+  const {
+    areaGroups,
+    searchQuery,
+    axisFilter,
+    points,
+    kindCache,
+    areaLabelOverrides,
+    prefectureCache,
+    updatedAtCache,
+    droneCountCache,
+    sortType,
+    sortDir,
+  } = args;
+  const q = searchQuery.trim().toLowerCase();
+  let filtered = areaGroups;
+  
+  // フィルター条件（指定なし＝問わない。あり/なしはその軸の有無）
+  if (isAreaAxisFilterActive(axisFilter)) {
+    filtered = filtered.filter(({ indices }) => {
+      const firstIdx = indices[0];
+      const firstPoint = points[firstIdx];
+      if (!firstPoint?.areaUuid) return false;
+      return areaMatchesKindFilter(kindCache[firstPoint.areaUuid], axisFilter);
+    });
+  }
+  
+  // 検索フィルタリング
+  if (q) {
+    filtered = filtered.filter(({ area, indices }) => {
+      // 表示名（上書きがあればそれを検索対象に含める）
+      const label = (areaLabelOverrides[area] ?? area).toLowerCase();
+      if (label.includes(q)) return true;
+      
+      // 都道府県名でも検索
+      // このエリアグループに属する最初のポイントの areaUuid を取得
+      const firstIdx = indices[0];
+      const firstPoint = points[firstIdx];
+      if (firstPoint?.areaUuid) {
+        const prefecture = prefectureCache[firstPoint.areaUuid];
+        if (prefecture && prefecture.toLowerCase().includes(q)) {
+          return true;
+        }
+      }
+      
+      return false;
+    });
+  }
+  
+  // ソート
+  const dirSign = sortDir === "desc" ? -1 : 1;
+  if (sortType === "name") {
+    filtered = [...filtered].sort((a, b) => {
+      const nameA = (areaLabelOverrides[a.area] ?? a.area).localeCompare(
+        areaLabelOverrides[b.area] ?? b.area,
+        "ja"
+      );
+      return nameA * dirSign;
+    });
+  } else if (sortType === "updated") {
+    filtered = [...filtered].sort((a, b) => {
+      const firstIdxA = a.indices[0];
+      const firstIdxB = b.indices[0];
+      const pointA = points[firstIdxA];
+      const pointB = points[firstIdxB];
+      
+      const updatedAtA = pointA?.areaUuid ? updatedAtCache[pointA.areaUuid] || "" : "";
+      const updatedAtB = pointB?.areaUuid ? updatedAtCache[pointB.areaUuid] || "" : "";
+      
+      if (!updatedAtA && !updatedAtB) return 0;
+      if (!updatedAtA) return 1;
+      if (!updatedAtB) return -1;
+      
+      return updatedAtA.localeCompare(updatedAtB) * dirSign;
+    });
+  } else if (sortType === "prefecture") {
+    const getPrefectureOrder = (prefecture: string): number => {
+      if (!prefecture || prefecture.trim() === "" || prefecture === "未選択") {
+        return 9999;
+      }
+      const index = PREFECTURES.indexOf(prefecture);
+      if (index === -1) {
+        return 9998;
+      }
+      return index;
+    };
+    
+    filtered = [...filtered].sort((a, b) => {
+      const firstIdxA = a.indices[0];
+      const firstIdxB = b.indices[0];
+      const pointA = points[firstIdxA];
+      const pointB = points[firstIdxB];
+      
+      const prefectureA = pointA?.areaUuid ? prefectureCache[pointA.areaUuid] || "" : "";
+      const prefectureB = pointB?.areaUuid ? prefectureCache[pointB.areaUuid] || "" : "";
+      
+      const orderA = getPrefectureOrder(prefectureA);
+      const orderB = getPrefectureOrder(prefectureB);
+      const missingA = orderA >= 9998;
+      const missingB = orderB >= 9998;
+      if (missingA !== missingB) return missingA ? 1 : -1;
+
+      if (orderA !== orderB) {
+        return (orderA - orderB) * dirSign;
+      }
+      
+      const nameA = (areaLabelOverrides[a.area] ?? a.area).localeCompare(
+        areaLabelOverrides[b.area] ?? b.area,
+        "ja"
+      );
+      return nameA;
+    });
+  } else if (sortType === "droneCount") {
+    filtered = [...filtered].sort((a, b) => {
+      const firstIdxA = a.indices[0];
+      const firstIdxB = b.indices[0];
+      const pointA = points[firstIdxA];
+      const pointB = points[firstIdxB];
+
+      const countA = pointA?.areaUuid ? droneCountCache[pointA.areaUuid] : undefined;
+      const countB = pointB?.areaUuid ? droneCountCache[pointB.areaUuid] : undefined;
+      const missingA = countA == null;
+      const missingB = countB == null;
+      if (missingA !== missingB) return missingA ? 1 : -1;
+      if (missingA && missingB) {
+        return (areaLabelOverrides[a.area] ?? a.area).localeCompare(
+          areaLabelOverrides[b.area] ?? b.area,
+          "ja"
+        );
+      }
+
+      if (countA !== countB) return ((countA ?? 0) - (countB ?? 0)) * dirSign;
+      return 0;
+    });
+  }
+  
+  return filtered;
+}
+
+export function groupAreasByPrefecture(args: {
+    visibleAreaGroups: SidebarAreaGroup[],
+    sortType: AreaSortType,
+    sortDir: AreaSortDir,
+    points: Point[],
+    prefectureCache: Record<string, string>,
+}): Array<{ prefecture: string; areas: SidebarAreaGroup[] }> | null {
+  const {
+    visibleAreaGroups,
+    sortType,
+    sortDir,
+    points,
+    prefectureCache,
+  } = args;
+  if (sortType !== "prefecture") {
+    return null; // 都道府県順以外はグループ化しない
+  }
+
+  const groups: Array<{ prefecture: string; areas: SidebarAreaGroup[] }> = [];
+  const unselectedAreas: SidebarAreaGroup[] = [];
+
+  visibleAreaGroups.forEach((areaGroup) => {
+    const firstIdx = areaGroup.indices[0];
+    const firstPoint = points[firstIdx];
+    const prefecture = firstPoint?.areaUuid
+      ? prefectureCache[firstPoint.areaUuid] || ""
+      : "";
+
+    // PREFECTURESリストに完全一致する場合のみ都道府県グループに入れる
+    // 単位なし（「鹿児島」など）や空文字、「未選択」は未選択グループに入れる
+    if (
+      !prefecture ||
+      prefecture.trim() === "" ||
+      prefecture === "未選択" ||
+      !PREFECTURES.includes(prefecture)
+    ) {
+      unselectedAreas.push(areaGroup);
+    } else {
+      let group = groups.find((g) => g.prefecture === prefecture);
+      if (!group) {
+        group = { prefecture, areas: [] };
+        groups.push(group);
+      }
+      group.areas.push(areaGroup);
+    }
+  });
+
+  // 都道府県の順序でソート
+  groups.sort((a, b) => {
+    const indexA = PREFECTURES.indexOf(a.prefecture);
+    const indexB = PREFECTURES.indexOf(b.prefecture);
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    const diff = indexA - indexB;
+    return sortDir === "desc" ? -diff : diff;
+  });
+
+  // 未選択グループを最後に追加
+  if (unselectedAreas.length > 0) {
+    groups.push({ prefecture: "未選択", areas: unselectedAreas });
+  }
+
+  return groups;
+}
+
+export function groupAreasByUpdatedAt(args: {
+    visibleAreaGroups: SidebarAreaGroup[],
+    sortType: AreaSortType,
+    sortDir: AreaSortDir,
+    points: Point[],
+    updatedAtCache: Record<string, string>,
+}): Array<{ groupLabel: string; areas: SidebarAreaGroup[] }> | null {
+  const {
+    visibleAreaGroups,
+    sortType,
+    sortDir,
+    points,
+    updatedAtCache,
+  } = args;
+  if (sortType !== "updated") {
+    return null; // 更新日順以外はグループ化しない
+  }
+
+  const groups: Array<{ groupLabel: string; areas: SidebarAreaGroup[] }> = [];
+
+  visibleAreaGroups.forEach((areaGroup) => {
+    const firstIdx = areaGroup.indices[0];
+    const firstPoint = points[firstIdx];
+    const updatedAt = firstPoint?.areaUuid
+      ? updatedAtCache[firstPoint.areaUuid] || ""
+      : "";
+
+    const groupLabel = getUpdatedAtGroup(updatedAt);
+    let group = groups.find((g) => g.groupLabel === groupLabel);
+    if (!group) {
+      group = { groupLabel, areas: [] };
+      groups.push(group);
+    }
+    group.areas.push(areaGroup);
+  });
+
+  // 更新日グループの順序でソート（新しいものが上）
+  groups.sort((a, b) => {
+    const unknownA = a.groupLabel === "Unknown";
+    const unknownB = b.groupLabel === "Unknown";
+    if (unknownA !== unknownB) return unknownA ? 1 : -1;
+    const orderA = getUpdatedAtGroupOrder(a.groupLabel);
+    const orderB = getUpdatedAtGroupOrder(b.groupLabel);
+    const diff = orderA - orderB;
+    return sortDir === "desc" ? diff : -diff;
+  });
+
+  return groups;
+}
+
+export function groupAreasByDroneCount(args: {
+    visibleAreaGroups: SidebarAreaGroup[],
+    sortType: AreaSortType,
+    sortDir: AreaSortDir,
+    points: Point[],
+    droneCountCache: Record<string, number | undefined>,
+}): Array<{ groupLabel: string; areas: SidebarAreaGroup[] }> | null {
+  const {
+    visibleAreaGroups,
+    sortType,
+    sortDir,
+    points,
+    droneCountCache,
+  } = args;
+  if (sortType !== "droneCount") {
+    return null;
+  }
+
+  const groups: Array<{ groupLabel: string; areas: SidebarAreaGroup[] }> = [];
+
+  visibleAreaGroups.forEach((areaGroup) => {
+    const firstIdx = areaGroup.indices[0];
+    const firstPoint = points[firstIdx];
+    const count = firstPoint?.areaUuid ? droneCountCache[firstPoint.areaUuid] : undefined;
+    const groupLabel = getDroneCountGroupLabel(count);
+
+    let group = groups.find((g) => g.groupLabel === groupLabel);
+    if (!group) {
+      group = { groupLabel, areas: [] };
+      groups.push(group);
+    }
+    group.areas.push(areaGroup);
+  });
+
+  groups.sort((a, b) => {
+    const unsetA = a.groupLabel === "未設定";
+    const unsetB = b.groupLabel === "未設定";
+    if (unsetA !== unsetB) return unsetA ? 1 : -1;
+    const orderA = getDroneCountGroupOrder(a.groupLabel);
+    const orderB = getDroneCountGroupOrder(b.groupLabel);
+    const diff = orderA - orderB;
+    return sortDir === "desc" ? diff : -diff;
+  });
+
+  return groups;
+}
