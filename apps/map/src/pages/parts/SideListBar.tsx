@@ -527,76 +527,70 @@ function SideListBarBase({
 
   // 保存
   const handleSave = async () => {
-    const hasDeletedAreas = deletedAreas.size > 0;
-
-    // --- ① 編集対象も削除対象もない場合はエラー ---
-    if (!activeKey && !hasDeletedAreas) {
+    const saveWithoutTarget = () => {
       window.alert("保存対象のエリアを選択してください。");
-      return;
-    }
+    };
 
-    setIsSaving(true);
-    try {
-
+    const saveDeletedAreasOnly = async () => {
       // --- ② 「削除だけ保存する」パス（どのエリアも選択していない）---
-      if (!activeKey && hasDeletedAreas) {
-        const deletedAreaNames = Array.from(deletedAreas);
-        let allOk = true;
-        for (const areaName of deletedAreaNames) {
-          const areaUuid = getAreaUuidByAreaName(areaName);
-          if (!areaUuid) continue;
+      const deletedAreaNames = Array.from(deletedAreas);
+      let allOk = true;
+      for (const areaName of deletedAreaNames) {
+        const areaUuid = getAreaUuidByAreaName(areaName);
+        if (!areaUuid) continue;
 
-          const raw = await fetchRawAreaInfo(areaUuid);
-          const historyPairs: Array<{ projectUuid: string; scheduleUuid: string }> =
-            Array.isArray(raw?.history)
-              ? raw.history.flatMap((h: any) => {
-                  const projectUuid =
-                    typeof h?.projectuuid === "string" ? h.projectuuid : null;
-                  const scheduleUuid =
-                    typeof h?.scheduleuuid === "string" ? h.scheduleuuid : null;
-                  return projectUuid && scheduleUuid
-                    ? [{ projectUuid, scheduleUuid }]
-                    : [];
-                })
-              : [];
+        const raw = await fetchRawAreaInfo(areaUuid);
+        const historyPairs: Array<{ projectUuid: string; scheduleUuid: string }> =
+          Array.isArray(raw?.history)
+            ? raw.history.flatMap((h: any) => {
+                const projectUuid =
+                  typeof h?.projectuuid === "string" ? h.projectuuid : null;
+                const scheduleUuid =
+                  typeof h?.scheduleuuid === "string" ? h.scheduleuuid : null;
+                return projectUuid && scheduleUuid
+                  ? [{ projectUuid, scheduleUuid }]
+                  : [];
+              })
+            : [];
 
-          for (const { projectUuid, scheduleUuid } of historyPairs) {
-            try {
-              await clearScheduleAreaRef({ projectUuid, scheduleUuid });
-            } catch (e) {
-              console.warn("[save] clear schedule for deleted area failed", e);
-              allOk = false;
-            }
-          }
-
-          const okDel = await deleteAreaFromCatalog(areaUuid);
-          if (!okDel) {
-            console.error("[save] deleteAreaFromCatalog failed", areaUuid);
-            allOk = false;
-            continue;
-          }
-
+        for (const { projectUuid, scheduleUuid } of historyPairs) {
           try {
-            const okRemove = await removeAreasListEntryByUuid(areaUuid);
-            if (!okRemove) {
-              console.warn("[save] removeAreasListEntryByUuid failed", areaUuid);
-            }
+            await clearScheduleAreaRef({ projectUuid, scheduleUuid });
           } catch (e) {
-            console.error("[save] removeAreasListEntryByUuid failed", areaUuid, e);
-            window.alert(FETCH_AREAS_LIST_ERROR_MSG);
+            console.warn("[save] clear schedule for deleted area failed", e);
             allOk = false;
-            break;
           }
         }
 
-        // deletedAreas はクリアしない。areas:reload で points が更新されるまで
-        // 削除済みエリアを非表示に保つため。points 更新後に useEffect でクリーンアップ
-        window.dispatchEvent(new Event("areas:reload"));
-        window.dispatchEvent(new Event(EV_GEOMETRY_SAVE_COMPLETE));
-        window.alert(allOk ? "削除を保存しました" : "一部の削除ができませんでした。しばらく時間をおいて、もう一度お試しください。");
-        return;
+        const okDel = await deleteAreaFromCatalog(areaUuid);
+        if (!okDel) {
+          console.error("[save] deleteAreaFromCatalog failed", areaUuid);
+          allOk = false;
+          continue;
+        }
+
+        try {
+          const okRemove = await removeAreasListEntryByUuid(areaUuid);
+          if (!okRemove) {
+            console.warn("[save] removeAreasListEntryByUuid failed", areaUuid);
+          }
+        } catch (e) {
+          console.error("[save] removeAreasListEntryByUuid failed", areaUuid, e);
+          window.alert(FETCH_AREAS_LIST_ERROR_MSG);
+          allOk = false;
+          break;
+        }
       }
 
+      // deletedAreas はクリアしない。areas:reload で points が更新されるまで
+      // 削除済みエリアを非表示に保つため。points 更新後に useEffect でクリーンアップ
+      window.dispatchEvent(new Event("areas:reload"));
+      window.dispatchEvent(new Event(EV_GEOMETRY_SAVE_COMPLETE));
+      window.alert(allOk ? "削除を保存しました" : "一部の削除ができませんでした。しばらく時間をおいて、もう一度お試しください。");
+      return;
+    };
+
+    const saveEditedArea = async () => {
       // --- ③ ここから下は「編集保存」用の既存ロジック（activeKey 必須） ---
       // （0）保存対象のエリアを選択しているか確認
       if (!activeKey) {
@@ -1181,6 +1175,23 @@ function SideListBarBase({
       }
 
       window.alert(okAreas && !figureFailed ? "保存しました" : SAVE_TIMEOUT);
+    };
+
+    const hasDeletedAreas = deletedAreas.size > 0;
+
+    // --- ① 編集対象も削除対象もない場合はエラー ---
+    if (!activeKey && !hasDeletedAreas) {
+      saveWithoutTarget();
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      if (!activeKey && hasDeletedAreas) {
+        await saveDeletedAreasOnly();
+        return;
+      }
+      await saveEditedArea();
     } catch (e) {
       console.error("[save] 保存処理中にエラー:", e);
       window.alert(
