@@ -16,7 +16,7 @@ type Props = {
   displayLabel: string;
   editing: boolean;
   editingTempName: string;
-  editingInputRef: RefObject<HTMLInputElement | null>;
+  editingInputRef: RefObject<HTMLInputElement>;
   points: Point[];
   kindCache: Record<string, AreaKindFlags>;
   onActivate: (area: string) => void;

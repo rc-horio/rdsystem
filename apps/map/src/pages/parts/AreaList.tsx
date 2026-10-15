@@ -24,7 +24,7 @@ type Props = {
   areaLabelOverrides: Record<string, string>;
   editingAreaKey: string | null;
   editingTempName: string;
-  editingInputRef: RefObject<HTMLInputElement | null>;
+  editingInputRef: RefObject<HTMLInputElement>;
   points: Point[];
   kindCache: Record<string, AreaKindFlags>;
   onActivate: (area: string) => void;

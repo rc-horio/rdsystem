@@ -26,7 +26,7 @@ type Props = {
   setAxisFilter: Dispatch<SetStateAction<AreaAxisFilter>>;
   salesFilterOpen: boolean;
   setSalesFilterOpen: Dispatch<SetStateAction<boolean>>;
-  salesFilterRef: RefObject<HTMLDivElement | null>;
+  salesFilterRef: RefObject<HTMLDivElement>;
   searchQuery: string;
   setSearchQuery: Dispatch<SetStateAction<string>>;
 };
