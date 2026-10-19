@@ -53,10 +53,9 @@ export function ProjectSearchControls({
 
   return (
     <div
-      className="space-y-3 border-b border-slate-600 bg-slate-900 px-3 py-3"
+      className="space-y-3 bg-slate-900 px-3 py-3"
       role="search"
       aria-label="案件の並べ替えとフィルター"
-      onMouseDown={(e) => e.preventDefault()}
     >
       <div>
         <p className="mb-1.5 text-[11px] text-slate-400">並べ替え</p>

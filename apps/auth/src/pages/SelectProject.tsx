@@ -13,7 +13,7 @@ import {
   extractProjectDeleteKeys,
 } from "@/lib/catalogApi";
 import { v4 as uuidv4 } from "uuid";
-import { FullHeightSelect, ProjectSearchControls } from "@/components";
+import { ProjectSearchControls } from "@/components";
 import type {
   ProjectFilterKey,
   ProjectSortDir,
@@ -192,6 +192,8 @@ export default function SelectProject() {
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [showPreparingModal, setShowPreparingModal] = useState(false);
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const [projectQuery, setProjectQuery] = useState("");
 
   const modes = ["Hub", "Map", "ストックコンテンツ"] as const;
   const [modeIndex, setModeIndex] = useState(0);
@@ -297,11 +299,45 @@ export default function SelectProject() {
     [listedProjects]
   );
 
+  const visibleProjectOptions = useMemo(() => {
+    const q = projectQuery.trim().toLowerCase();
+    if (!q) return projectOptions;
+    return projectOptions.filter((o) => o.label.toLowerCase().includes(q));
+  }, [projectOptions, projectQuery]);
+
+  const selectedLabel = useMemo(() => {
+    const meta = projects.find((p) => p.projectId === selectedProject);
+    if (!meta) return "";
+    return `${meta.projectId.slice(0, 6)}-${meta.projectName}`;
+  }, [projects, selectedProject]);
+
   useEffect(() => {
     if (!selectedProject) return;
     const visible = listedProjects.some((p) => p.projectId === selectedProject);
     if (!visible) setSelectedProject("");
   }, [selectedProject, listedProjects]);
+
+  useEffect(() => {
+    if (mode !== "Hub") setShowProjectModal(false);
+  }, [mode]);
+
+  useEffect(() => {
+    if (!showProjectModal) return;
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key === "Escape") setShowProjectModal(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showProjectModal]);
+
+  const openProjectModal = () => {
+    setProjectQuery("");
+    setShowProjectModal(true);
+  };
+
+  const chooseProject = (projectId: string) => {
+    setSelectedProject(projectId);
+  };
 
   useEffect(() => {
     (async () => {
@@ -545,7 +581,7 @@ export default function SelectProject() {
   return (
     <>
       {/* ===== SP（モバイル） ===== */}
-      <div className="md:hidden min-h-dvh bg-linear-to-br from-slate-950 to-slate-900 pt-safe pb-safe px-safe relative">
+      <div className="md:hidden min-h-dvh bg-linear-to-br from-slate-950 to-slate-900 pt-safe pb-safe px-safe relative select-none caret-transparent [&_button:not(:disabled)]:cursor-pointer">
         <BrandHeader />
 
         {/* 右上にログアウト */}
@@ -582,23 +618,17 @@ export default function SelectProject() {
                 <p className="w-full text-center text-red-400">{error}</p>
               ) : mode === "Hub" ? (
                 <div className="w-full">
-                  <div className="w-10/12 max-w-80 mx-auto mt-2">
-                    <label className="block space-y-1">
-                      <FullHeightSelect
-                        options={projectOptions}
-                        value={selectedProject}
-                        onChange={setSelectedProject}
-                        placeholder="-- Select a project --"
-                        fullHeight={false}
-                        menuToolbar={renderSearchControls()}
-                        isLoading={resolvingCatalogFlags}
-                        noOptionsMessage={
-                          resolvingCatalogFlags
-                            ? "読込中…"
-                            : "該当する案件がありません"
-                        }
-                      />
-                    </label>
+                  <div className="mx-auto mt-2 w-10/12 max-w-80 space-y-10 text-center">
+                    <button
+                      type="button"
+                      onClick={openProjectModal}
+                      className="flex w-full cursor-pointer items-center justify-center px-3 py-2 text-center text-lg text-slate-300 underline-offset-4 hover:text-slate-100 hover:underline"
+                    >
+                      select project
+                    </button>
+                    <p className="min-h-5 truncate text-sm text-slate-100">
+                      {selectedLabel}
+                    </p>
                   </div>
                 </div>
               ) : (
@@ -610,35 +640,7 @@ export default function SelectProject() {
               )}
             </div>
 
-            {/* ボタン群 */}
-            <div className="space-y-3">
-              {mode === "Hub" && (
-                <div className="flex items-center justify-center gap-6 text-sm">
-                  <button
-                    type="button"
-                    onClick={openCreateModal}
-                    className="text-slate-300 cursor-pointer active:scale-95 transition hover:text-white"
-                  >
-                    create project
-                  </button>
-                  <span className="text-slate-600" aria-hidden>
-                    /
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleDeleteClick}
-                    disabled={deleting || !selectedProject}
-                    className={
-                      "text-slate-300 cursor-pointer active:scale-95 transition " +
-                      (selectedProject && !deleting
-                        ? "hover:text-white"
-                        : "opacity-40 cursor-not-allowed")
-                    }
-                  >
-                    {deleting ? "削除中…" : "delete project"}
-                  </button>
-                </div>
-              )}
+            <div className="space-y-3 pt-8">
               <button
                 type="button"
                 onClick={handleJoin}
@@ -652,7 +654,7 @@ export default function SelectProject() {
       </div>
 
       {/* ===== PC（md以上） ===== */}
-      <div className="hidden md:block min-h-screen bg-linear-to-br from-slate-950 to-slate-900 relative">
+      <div className="hidden md:block min-h-screen bg-linear-to-br from-slate-950 to-slate-900 relative select-none caret-transparent [&_button:not(:disabled)]:cursor-pointer">
         <BrandHeader />
 
         {/* 右上にログアウト */}
@@ -669,7 +671,7 @@ export default function SelectProject() {
           <div className="w-full max-w-md space-y-6 p-10">
             {/* モード切替 */}
             <div
-              className="flex items-center justify-center text-white font-semibold tracking-wide"
+              className="flex items-center justify-center text-white font-semibold tracking-wide select-none caret-transparent"
               contentEditable={false}
             >
               <button
@@ -697,22 +699,17 @@ export default function SelectProject() {
                 <p className="w-full text-center text-red-400">{error}</p>
               ) : mode === "Hub" ? (
                 <div className="w-full">
-                  <div className="mt-2">
-                    <label className="block space-y-1">
-                      <FullHeightSelect
-                        options={projectOptions}
-                        value={selectedProject}
-                        onChange={setSelectedProject}
-                        placeholder="-- Select a project --"
-                        menuToolbar={renderSearchControls()}
-                        isLoading={resolvingCatalogFlags}
-                        noOptionsMessage={
-                          resolvingCatalogFlags
-                            ? "読込中…"
-                            : "該当する案件がありません"
-                        }
-                      />
-                    </label>
+                  <div className="mt-2 space-y-10 text-center">
+                    <button
+                      type="button"
+                      onClick={openProjectModal}
+                      className="flex w-full cursor-pointer items-center justify-center px-3 py-2 text-center text-lg text-slate-300 underline-offset-4 hover:text-slate-100 hover:underline"
+                    >
+                      select project
+                    </button>
+                    <p className="min-h-5 truncate text-sm text-slate-100">
+                      {selectedLabel}
+                    </p>
                   </div>
                 </div>
               ) : (
@@ -724,35 +721,7 @@ export default function SelectProject() {
               )}
             </div>
 
-            {/* ボタン群 */}
-            <div className="space-y-3">
-              {mode === "Hub" && (
-                <div className="flex items-center justify-center gap-6 text-sm">
-                  <button
-                    type="button"
-                    onClick={openCreateModal}
-                    className="text-slate-300 cursor-pointer active:scale-95 transition hover:text-white"
-                  >
-                    create project
-                  </button>
-                  <span className="text-slate-600" aria-hidden>
-                    /
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleDeleteClick}
-                    disabled={deleting || !selectedProject}
-                    className={
-                      "text-slate-300 cursor-pointer active:scale-95 transition " +
-                      (selectedProject && !deleting
-                        ? "hover:text-white"
-                        : "opacity-40 cursor-not-allowed")
-                    }
-                  >
-                    {deleting ? "削除中…" : "delete project"}
-                  </button>
-                </div>
-              )}
+            <div className="space-y-3 pt-8">
               <button
                 type="button"
                 onClick={handleJoin}
@@ -767,7 +736,7 @@ export default function SelectProject() {
 
       {/* ---- ストックコンテンツ 準備中モーダル（VITE_STOCK_READY=false 時） ---- */}
       {showPreparingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 [&_button:not(:disabled)]:cursor-pointer">
           <div
             role="dialog"
             aria-modal="true"
@@ -798,9 +767,127 @@ export default function SelectProject() {
         </div>
       )}
 
+      {showProjectModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 [&_button:not(:disabled)]:cursor-pointer"
+          onClick={() => setShowProjectModal(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="案件を選択"
+            className="flex h-[min(80dvh,40rem)] w-[min(96vw,56rem)] flex-col overflow-hidden rounded-xl border border-slate-700 bg-slate-950 shadow-xl md:flex-row"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex max-h-[42%] shrink-0 flex-col overflow-y-auto bg-slate-900 md:max-h-none md:h-full md:w-64">
+              {renderSearchControls()}
+              <div className="mt-auto flex items-center gap-3 px-3 py-3 text-sm">
+                <button
+                  type="button"
+                  onClick={openCreateModal}
+                  className="text-slate-300 hover:text-white"
+                >
+                  create project
+                </button>
+                <span className="text-slate-600" aria-hidden>
+                  /
+                </span>
+                <button
+                  type="button"
+                  onClick={handleDeleteClick}
+                  disabled={deleting || !selectedProject}
+                  className={
+                    "text-slate-300 " +
+                    (selectedProject && !deleting
+                      ? "hover:text-white"
+                      : "cursor-not-allowed opacity-40")
+                  }
+                >
+                  {deleting ? "削除中…" : "delete project"}
+                </button>
+              </div>
+            </div>
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+              <div className="flex items-center gap-2 px-3 py-2">
+                <div className="relative min-w-0 flex-1">
+                  <input
+                    value={projectQuery}
+                    onChange={(e) => setProjectQuery(e.target.value)}
+                    placeholder="案件名で検索"
+                    className="w-full rounded-md border border-transparent bg-slate-900 py-1.5 pl-3 pr-8 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-red-600"
+                  />
+                  {projectQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setProjectQuery("")}
+                      className="absolute top-1/2 right-1 flex size-6 -translate-y-1/2 items-center justify-center text-base leading-none text-slate-400"
+                      aria-label="検索をクリア"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowProjectModal(false)}
+                  className="flex size-8 shrink-0 items-center justify-center text-lg leading-none text-slate-300"
+                  aria-label="閉じる"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                {resolvingCatalogFlags && visibleProjectOptions.length > 0 && (
+                  <p className="px-3 pt-2 text-[11px] text-slate-500">読込中…</p>
+                )}
+                {visibleProjectOptions.length === 0 ? (
+                  <p className="px-3 py-3 text-sm text-slate-400">
+                    {resolvingCatalogFlags
+                      ? "読込中…"
+                      : "該当する案件がありません"}
+                  </p>
+                ) : (
+                  <ul>
+                    {visibleProjectOptions.map((p) => {
+                      const selected = p.value === selectedProject;
+                      return (
+                        <li key={p.value}>
+                          <button
+                            type="button"
+                            onClick={() => chooseProject(p.value)}
+                            className={
+                              "block w-full truncate px-3 py-2.5 text-left text-sm " +
+                              (selected
+                                ? "bg-slate-800 text-white"
+                                : "text-slate-200 hover:bg-slate-800")
+                            }
+                          >
+                            {p.label}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+              <div className="flex justify-end px-3 py-3">
+                <button
+                  type="button"
+                  onClick={() => setShowProjectModal(false)}
+                  disabled={!selectedProject}
+                  className="rounded-md bg-red-600 px-3 py-1 text-xs font-semibold text-white shadow hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ---- Create / Duplicate Modal（共通） ---- */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 [&_button:not(:disabled)]:cursor-pointer">
           <div
             role="dialog"
             aria-modal="true"
