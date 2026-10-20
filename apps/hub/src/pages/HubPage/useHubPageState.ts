@@ -729,7 +729,6 @@ export function useHubPageState() {
       }))
     );
 
-    const currentUuid = id || projectData?.project?.uuid || "";
     const currentProjectId = projectData?.project?.id || "";
     const displayName = await getUserDisplayName();
     const body = buildIndexJsonFromState(
