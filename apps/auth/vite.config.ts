@@ -26,11 +26,14 @@ export default defineConfig({
       "/__catalog-write": {
         target: "https://u64h3yye227qjsnem7yyydakpu0vpkxn.lambda-url.ap-northeast-1.on.aws",
         changeOrigin: true,
+        // この PC の Node が Lambda 証明書を検証できず、書き込みが 500 になるため
+        secure: false,
         rewrite: (path) => path.replace(/^\/__catalog-write/, ""),
       },
       "/__catalog-delete": {
         target: "https://xfrtw5rsebwcgc6hyvhtvdlor40ornnm.lambda-url.ap-northeast-1.on.aws",
         changeOrigin: true,
+        secure: false,
         rewrite: (path) => path.replace(/^\/__catalog-delete/, ""),
       },
     },
