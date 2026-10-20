@@ -29,6 +29,7 @@ export default function MobileLayout(props: any) {
     requestDeleteCurrent,
     openAddScheduleModal,
     removeAt,
+    otherProjectIds,
   } = props;
 
   // Operation の更新を反映する
@@ -78,6 +79,7 @@ export default function MobileLayout(props: any) {
         isSaving={isSaving}
         projectLostDeal={Boolean(projectData?.project?.lostDeal)}
         projectLostDealReason={String(projectData?.project?.lostDealReason ?? "")}
+        otherProjectIds={otherProjectIds}
       />
       {/* タブバー（SP・横スクロール） */}
       <nav className="md:hidden mt-2 mb-2" role="tablist" aria-label="機能タブ">

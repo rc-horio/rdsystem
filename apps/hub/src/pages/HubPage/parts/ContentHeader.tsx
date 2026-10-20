@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { HeaderMeta } from "./TopBar";
 import {
   DisplayOrInput,
@@ -29,6 +29,7 @@ export function ContentHeader({
   isSaving,
   projectLostDeal,
   projectLostDealReason,
+  otherProjectIds = [],
 }: {
   eventDisplay: string;
   eventId: string;
@@ -48,10 +49,16 @@ export function ContentHeader({
   /** index.json project.lostDeal */
   projectLostDeal: boolean;
   projectLostDealReason: string;
+  otherProjectIds?: string[];
 }) {
-  if (!isMobile) return null;
-
   const [idError, setIdError] = useState("");
+
+  useEffect(() => {
+    const trimmed = String(eventId ?? "").trim();
+    setIdError(trimmed ? validateProjectId(eventId, otherProjectIds) : "");
+  }, [eventId, otherProjectIds]);
+
+  if (!isMobile) return null;
 
   const updateCurrent = (patch: Partial<ScheduleDetail>) => {
     if (!selectedId) return;
@@ -149,19 +156,18 @@ export function ContentHeader({
             value={eventId}
             onChange={(e) => {
               const val = e.target.value.toLowerCase();
-              setIdError(validateProjectId(val));
               setProjectData((prev: any) => ({
                 ...prev,
                 project: { ...prev?.project, id: val },
               }));
             }}
             className={`ml-auto w-[200px] md:w-[280px] text-lg md:text-xl leading-7 md:leading-8 truncate ${
-              idError ? "border border-red-500 rounded-md" : ""
+              edit && idError ? "border border-red-500 rounded-md" : ""
             }`}
             placeholder="案件IDを入力"
           />
         </div>
-        {idError && (
+        {edit && idError && (
           <p className="text-[11px] text-red-400 text-right mt-0.5">
             {idError}
           </p>
