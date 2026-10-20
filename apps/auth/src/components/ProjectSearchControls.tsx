@@ -145,8 +145,8 @@ export function ProjectSearchControls({
           }
         />
         <div>
-          <p className="mb-1.5 text-[11px] text-slate-400">ワード</p>
-          <div className="flex flex-wrap gap-2" role="group" aria-label="ワード">
+          <p className="mb-1.5 text-[11px] text-slate-400">タグ</p>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="タグ">
             {FILTERS.map((f) => (
               <button
                 key={f.key}

@@ -7,7 +7,7 @@ import React, {
   useState,
 } from "react";
 import type { PhotoItem, ScheduleDetail } from "@/features/hub/types/resource";
-import { ButtonRed, Modal } from "@/components";
+import { ButtonRed, DividerRed, Modal, SectionTitle } from "@/components";
 import { catalogPublicUrlFromKey } from "@/features/hub/utils/catalogPublicUrl";
 
 const PHOTO_MEMO_LINE_PX = 20;
@@ -57,7 +57,7 @@ function SummaryField({
   if (!edit) {
     return (
       <div>
-        <div className="mb-1 text-xs text-slate-300">{label}</div>
+        <SectionTitle title={label} />
         <div
           className="ui-field-shell whitespace-pre-wrap wrap-break-word text-slate-200"
           style={{
@@ -74,7 +74,7 @@ function SummaryField({
 
   return (
     <div>
-      <div className="mb-1 text-xs text-slate-300">{label}</div>
+      <SectionTitle title={label} />
       <textarea
         rows={SUMMARY_EDIT_ROWS}
         value={value}
@@ -87,6 +87,197 @@ function SummaryField({
           minHeight: SUMMARY_EDIT_ROWS * SUMMARY_LINE_PX,
         }}
       />
+    </div>
+  );
+}
+
+const SEED_WORDS = ["草刈り", "トラブル", "パレット", "ブルーシート"];
+/** レイアウト確認用。実際の件数はまだ数えない */
+const DUMMY_WORD_DELETE_COUNT = 2;
+
+function ScheduleWordsField({
+  edit,
+  selectedId,
+  words,
+  draft,
+  attached,
+  onDraftChange,
+  onAdd,
+  onToggle,
+  onAskDelete,
+}: {
+  edit: boolean;
+  selectedId: string | null;
+  words: string[];
+  draft: string;
+  attached: string[];
+  onDraftChange: (v: string) => void;
+  onAdd: () => void;
+  onToggle: (word: string) => void;
+  onAskDelete: (word: string) => void;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (edit) return;
+    setAdding(false);
+    setDeleting(false);
+  }, [edit]);
+
+  useEffect(() => {
+    if (!adding) return;
+    inputRef.current?.focus();
+  }, [adding]);
+
+  const closeAdding = () => {
+    setAdding(false);
+    onDraftChange("");
+  };
+
+  const startAdding = () => {
+    setDeleting(false);
+    setAdding(true);
+  };
+
+  const startDeleting = () => {
+    closeAdding();
+    setDeleting(true);
+  };
+
+  const trimmedDraft = draft.trim();
+  const duplicate = trimmedDraft !== "" && words.includes(trimmedDraft);
+
+  const submit = () => {
+    if (!trimmedDraft || duplicate) return;
+    onAdd();
+    setAdding(false);
+  };
+
+  if (!edit) {
+    return (
+      <div>
+        <SectionTitle title="タグ" />
+        {attached.length > 0 ? (
+          <p className="flex flex-wrap text-sm text-slate-200">
+            {attached.map((word, index) => (
+              <span key={word} className="max-w-full shrink-0 wrap-break-word">
+                {word}
+                {index < attached.length - 1 ? "、" : ""}
+              </span>
+            ))}
+          </p>
+        ) : (
+          <p className="text-sm text-slate-400">タグは登録されていません</p>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <SectionTitle title="タグ" />
+      <ul className="flex flex-wrap gap-x-4 gap-y-1">
+        {words.map((word) => {
+          const checked = attached.includes(word);
+          return (
+            <li
+              key={word}
+              className={`flex max-w-full shrink-0 items-center ${
+                deleting ? "gap-1" : "gap-2"
+              }`}
+            >
+              {deleting ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => onAskDelete(word)}
+                    aria-label={`${word}を削除`}
+                    className="inline-flex h-4 shrink-0 cursor-pointer items-center text-sm leading-none text-slate-300 hover:text-white"
+                  >
+                    ×
+                  </button>
+                  <span className="wrap-break-word text-sm text-slate-200">
+                    {word}
+                  </span>
+                </>
+              ) : (
+                <label className="flex min-w-0 cursor-pointer select-none items-center gap-2 text-sm text-slate-200">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={!selectedId}
+                    onChange={() => onToggle(word)}
+                    className="h-4 w-4 shrink-0 accent-red-600 disabled:opacity-50"
+                  />
+                  <span className="wrap-break-word">{word}</span>
+                </label>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+        {adding ? (
+          <div className="flex flex-col items-start gap-1">
+            <div className="flex items-center gap-2">
+              <input
+                ref={inputRef}
+                type="text"
+                value={draft}
+                onChange={(e) => onDraftChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    closeAdding();
+                    return;
+                  }
+                  if (e.key !== "Enter") return;
+                  e.preventDefault();
+                  submit();
+                }}
+                className="ui-input w-48 max-w-full focus:border-(--ui-border) focus:ring-0"
+              />
+              <ButtonRed
+                type="button"
+                onClick={submit}
+                disabled={!trimmedDraft || duplicate}
+                className="h-9 shrink-0 px-4"
+              >
+                追加
+              </ButtonRed>
+              <button
+                type="button"
+                onClick={closeAdding}
+                className="cursor-pointer text-sm text-slate-300 hover:text-white"
+              >
+                完了
+              </button>
+            </div>
+            {duplicate && (
+              <p className="text-xs text-red-400">このタグは既に存在します</p>
+            )}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={startAdding}
+            className="cursor-pointer text-sm text-slate-300 hover:text-white"
+          >
+            ＋ 追加
+          </button>
+        )}
+        {words.length > 0 && (
+          <button
+            type="button"
+            onClick={() => (deleting ? setDeleting(false) : startDeleting())}
+            className="cursor-pointer text-sm text-slate-300 hover:text-white"
+          >
+            {deleting ? "完了" : "－ 削除"}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -206,6 +397,52 @@ export default function SitePhotosTab({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [isConverting, setIsConverting] = useState(false);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
+  const [words, setWords] = useState<string[]>(SEED_WORDS);
+  const [wordDraft, setWordDraft] = useState("");
+  const [wordsBySchedule, setWordsBySchedule] = useState<
+    Record<string, string[]>
+  >({});
+  const attachedWords = useMemo(() => {
+    if (!selectedId) return [];
+    const picked = new Set(wordsBySchedule[selectedId] ?? []);
+    return words.filter((word) => picked.has(word));
+  }, [selectedId, words, wordsBySchedule]);
+
+  const addWord = () => {
+    const next = wordDraft.trim();
+    if (!next) return;
+    setWords((prev) => (prev.includes(next) ? prev : [...prev, next]));
+    setWordDraft("");
+  };
+
+  const toggleWord = (word: string) => {
+    if (!selectedId) return;
+    setWordsBySchedule((prev) => {
+      const current = prev[selectedId] ?? [];
+      const has = current.includes(word);
+      return {
+        ...prev,
+        [selectedId]: has
+          ? current.filter((item) => item !== word)
+          : [...current, word],
+      };
+    });
+  };
+
+  const confirmDeleteWord = (target: string) => {
+    const ok = window.confirm(
+      `「${target}」を削除します。${DUMMY_WORD_DELETE_COUNT}件の案件から外れます。`
+    );
+    if (!ok) return;
+    setWords((prev) => prev.filter((word) => word !== target));
+    setWordsBySchedule((prev) => {
+      const next: Record<string, string[]> = {};
+      for (const [id, list] of Object.entries(prev)) {
+        next[id] = list.filter((word) => word !== target);
+      }
+      return next;
+    });
+  };
 
   const photos: PhotoItem[] = useMemo(
     () =>
@@ -351,7 +588,7 @@ export default function SitePhotosTab({
   };
 
   return (
-    <div className="space-y-6">
+    <div>
       <div className="space-y-4">
         {SUMMARY_FIELDS.map((field) => (
           <SummaryField
@@ -364,36 +601,24 @@ export default function SitePhotosTab({
           />
         ))}
       </div>
+      <DividerRed />
+      <ScheduleWordsField
+        edit={edit}
+        selectedId={selectedId}
+        words={words}
+        draft={wordDraft}
+        attached={attachedWords}
+        onDraftChange={setWordDraft}
+        onAdd={addWord}
+        onToggle={toggleWord}
+        onAskDelete={confirmDeleteWord}
+      />
+      <DividerRed />
 
-      {edit && (
-        <div className="md:w-56">
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/*,.heic"
-            multiple
-            onChange={handleSelectFiles}
-            className="hidden"
-          />
-          <ButtonRed
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            disabled={isConverting}
-            className="w-full h-10 disabled:opacity-60"
-          >
-            {isConverting ? "変換中..." : "写真を追加"}
-          </ButtonRed>
-          <div className="mt-2 text-[11px] leading-4 text-slate-400">
-            ※HEIC形式はiPhoneからのアップロードのみ対応
-          </div>
-        </div>
-      )}
-
-      {/* 写真一覧 */}
+      <div>
+        <SectionTitle title="写真" />
       {photos.length === 0 ? (
-        <div className="rounded-xl border border-slate-700/60 bg-slate-800/30 p-6 text-slate-300">
-          まだ写真がありません。
-        </div>
+        <p className="text-sm text-slate-400">まだ写真がありません。</p>
       ) : (
         <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {photos.map((p, i) => {
@@ -443,6 +668,30 @@ export default function SitePhotosTab({
           })}
         </ul>
       )}
+        {edit && (
+          <div className="mt-4 ml-auto w-full md:w-56">
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/*,.heic"
+              multiple
+              onChange={handleSelectFiles}
+              className="hidden"
+            />
+            <ButtonRed
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              disabled={isConverting}
+              className="w-full h-10 disabled:opacity-60"
+            >
+              {isConverting ? "変換中..." : "写真を追加"}
+            </ButtonRed>
+            <div className="mt-2 text-[11px] leading-4 text-slate-400">
+              ※HEIC形式はiPhoneからのアップロードのみ対応
+            </div>
+          </div>
+        )}
+      </div>
       {/* プレビュー（既存） */}
       {previewOpen && photos[previewIndex] && (
         <Modal
