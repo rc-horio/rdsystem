@@ -1,3 +1,4 @@
+import { useState } from "react";
 import clsx from "clsx";
 
 export type ProjectSortType = "date" | "droneCount";
@@ -20,9 +21,46 @@ const FILTERS: { key: ProjectFilterKey; label: string }[] = [
   { key: "takeoffBox", label: "離発着ボックス" },
 ];
 
+const MODEL_OPTIONS = ["EMO", "FYLO", "Hula", "RiFF", "TAKE"];
+const WORD_OPTIONS = ["草刈り", "トラブル", "パレット", "ブルーシート"];
+
 function sortDirLabel(type: ProjectSortType, dir: ProjectSortDir) {
   if (type === "droneCount") return dir === "desc" ? "多い順" : "少ない順";
   return dir === "desc" ? "新しい順" : "古い順";
+}
+
+function ChecklistFilter({
+  label,
+  options,
+  selected,
+  onToggleValue,
+}: {
+  label: string;
+  options: string[];
+  selected: string[];
+  onToggleValue: (value: string) => void;
+}) {
+  return (
+    <div>
+      <p className="mb-1.5 text-[11px] text-slate-400">{label}</p>
+      <div className="flex flex-wrap gap-2" role="group" aria-label={label}>
+        {options.map((name) => {
+          const checked = selected.includes(name);
+          return (
+            <button
+              key={name}
+              type="button"
+              aria-pressed={checked}
+              onClick={() => onToggleValue(name)}
+              className={chipClass(checked)}
+            >
+              {name}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function chipClass(on: boolean) {
@@ -50,6 +88,20 @@ export function ProjectSearchControls({
   onFilterToggle: (key: ProjectFilterKey) => void;
 }) {
   const otherDir: ProjectSortDir = sortDir === "desc" ? "asc" : "desc";
+  const [models, setModels] = useState<string[]>([]);
+  const [words, setWords] = useState<string[]>([]);
+
+  const toggleValue = (
+    current: string[],
+    value: string,
+    options: string[],
+    setCurrent: (next: string[]) => void
+  ) => {
+    const next = new Set(current);
+    if (next.has(value)) next.delete(value);
+    else next.add(value);
+    setCurrent(options.filter((name) => next.has(name)));
+  };
 
   return (
     <div
@@ -82,20 +134,45 @@ export function ProjectSearchControls({
           </button>
         </div>
       </div>
-      <div>
-        <p className="mb-1.5 text-[11px] text-slate-400">フィルター</p>
-        <div className="flex flex-wrap gap-2" role="group" aria-label="フィルター">
-          {FILTERS.map((f) => (
-            <button
-              key={f.key}
-              type="button"
-              aria-pressed={filters[f.key]}
-              onClick={() => onFilterToggle(f.key)}
-              className={chipClass(filters[f.key])}
-            >
-              {f.label}
-            </button>
-          ))}
+      <div className="space-y-3">
+        <p className="text-[11px] text-slate-400">フィルター</p>
+        <ChecklistFilter
+          label="機種"
+          options={MODEL_OPTIONS}
+          selected={models}
+          onToggleValue={(value) =>
+            toggleValue(models, value, MODEL_OPTIONS, setModels)
+          }
+        />
+        <div>
+          <p className="mb-1.5 text-[11px] text-slate-400">ワード</p>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="ワード">
+            {FILTERS.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                aria-pressed={filters[f.key]}
+                onClick={() => onFilterToggle(f.key)}
+                className={chipClass(filters[f.key])}
+              >
+                {f.label}
+              </button>
+            ))}
+            {WORD_OPTIONS.map((name) => {
+              const checked = words.includes(name);
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  aria-pressed={checked}
+                  onClick={() => toggleValue(words, name, WORD_OPTIONS, setWords)}
+                  className={chipClass(checked)}
+                >
+                  {name}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>
