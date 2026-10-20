@@ -37,3 +37,8 @@ export function validateProjectId(id: string, usedIds: string[] = []): string {
 
     return "";
 }
+
+export function validateProjectName(name: string): string {
+    if (!String(name ?? "").trim()) return "案件名を入力してください";
+    return "";
+}

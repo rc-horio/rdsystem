@@ -405,10 +405,8 @@ export default function SelectProject() {
 
   const confirmCreate = () => {
     if (creatingRef.current || deletingRef.current) return;
-    if (!newId.trim()) {
-      setIdError("IDを入力してください");
-      return;
-    }
+    const trimmedName = newName.trim();
+    if (!trimmedName || !newId.trim()) return;
     const err = validateProjectId(newId);
     setIdError(err);
     if (err) return;
@@ -420,7 +418,7 @@ export default function SelectProject() {
     const qp = new URLSearchParams({ source: "s3", init: "1" });
     qp.set("uuid", newUuid);
 
-    if (newName.trim()) qp.set("name", newName.trim());
+    qp.set("name", trimmedName);
     qp.set("projectId", newId);
 
     const yyFromId = (() => {
@@ -435,7 +433,7 @@ export default function SelectProject() {
         const row: ListRow = {
           uuid: newUuid,
           projectId: newId,
-          projectName: newName.trim() || newId,
+          projectName: trimmedName,
         };
         const updated = await upsertProjectList(row);
         setProjects(updated as ProjectMeta[]);
@@ -445,7 +443,7 @@ export default function SelectProject() {
           project: {
             uuid: newUuid,
             id: newId,
-            name: newName.trim() || newId,
+            name: trimmedName,
             updated_at: new Date().toISOString(),
             updated_by: "テストユーザー",
           },
@@ -970,7 +968,7 @@ export default function SelectProject() {
                   onChange={(e) => {
                     const val = e.target.value.toLowerCase();
                     setNewId(val);
-                    setIdError(val ? validateProjectId(val) : "");
+                    setIdError(val.trim() ? validateProjectId(val) : "");
                   }}
                   className={`w-full rounded-lg border px-3 py-2 text-slate-100 bg-slate-900/60 placeholder:text-slate-500 outline-none transition ${
                     idError
@@ -998,7 +996,7 @@ export default function SelectProject() {
                 <button
                   type="button"
                   onClick={confirmCreate}
-                  disabled={!!idError || !newId}
+                  disabled={!!idError || !newName.trim() || !newId.trim()}
                   className="px-4 py-2 rounded-lg bg-red-600 text-white font-semibold shadow hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   決定

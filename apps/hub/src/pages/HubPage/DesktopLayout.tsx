@@ -31,6 +31,7 @@ export default function DesktopLayout(props: any) {
     requestDeleteCurrent,
     openAddScheduleModal,
     removeAt,
+    otherProjectIds,
   } = props;
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -80,6 +81,7 @@ export default function DesktopLayout(props: any) {
             onDeleteCurrent={requestDeleteCurrent}
             openAddScheduleModal={openAddScheduleModal}
             isSaving={isSaving}
+            otherProjectIds={otherProjectIds}
           />
         </aside>
 

@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { useToast } from "@/components/Toast";
+import { validateProjectId, validateProjectName } from "@/components";
 import { getAuditHeaders, getUserDisplayName } from "@/lib/auditHeaders";
 import type { ScheduleDetail } from "@/features/hub/types/resource";
 import {
@@ -35,6 +36,20 @@ const DELETE_API = String(import.meta.env.VITE_HUB_PHOTO_DELETE_URL || "").repla
 const AREAS_BASE_URL = `${CATALOG}/areas`;
 
 const deepClone = <T>(v: T): T => JSON.parse(JSON.stringify(v));
+
+const PROJECT_LIST_CHECK_ERROR =
+  "プロジェクト一覧を確認できませんでした。しばらく待ってから、もう一度保存してください。";
+
+async function fetchOtherProjectIds(currentUuid: string): Promise<string[]> {
+  const listRes = await fetch(`${CATALOG}/projects.json`, { cache: "no-store" });
+  if (!listRes.ok) throw new Error(PROJECT_LIST_CHECK_ERROR);
+  const list = await listRes.json();
+  if (!Array.isArray(list)) throw new Error(PROJECT_LIST_CHECK_ERROR);
+  return list
+    .filter((row) => row && row.uuid !== currentUuid)
+    .map((row) => String(row.projectId || "").toLowerCase())
+    .filter(Boolean);
+}
 
 function collapseSpacingOnSchedules(list: ScheduleDetail[]): ScheduleDetail[] {
   return list.map((s) => {
@@ -92,6 +107,7 @@ export function useHubPageState() {
   const [schedules, setSchedules] = useState<ScheduleDetail[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [otherProjectIds, setOtherProjectIds] = useState<string[]>([]);
   const [localFileHandle, setLocalFileHandle] =
     useState<FileSystemFileHandle | null>(null);
   const [showAddScheduleModal, setShowAddScheduleModal] = useState(false);
@@ -578,7 +594,54 @@ export function useHubPageState() {
   };
 
 
+  useEffect(() => {
+    if (source === "local") {
+      setOtherProjectIds([]);
+      return;
+    }
+    const currentUuid = id || "";
+    let cancelled = false;
+    (async () => {
+      try {
+        const ids = await fetchOtherProjectIds(currentUuid);
+        if (!cancelled) setOtherProjectIds(ids);
+      } catch {
+        if (!cancelled) setOtherProjectIds([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, source]);
+
   const handleSave = async () => {
+    const projectName = String(
+      projectData?.project?.name ?? projectData?.event?.name ?? ""
+    );
+    const nameErr = validateProjectName(projectName);
+    if (nameErr) {
+      alert(nameErr);
+      return;
+    }
+
+    const projectIdRaw = String(
+      projectData?.project?.id ?? projectData?.event?.id ?? ""
+    ).trim();
+    const currentUuid = id || projectData?.project?.uuid || "";
+    let takenIds: string[] = [];
+    if (source !== "local") {
+      try {
+        takenIds = await fetchOtherProjectIds(currentUuid);
+      } catch {
+        alert(PROJECT_LIST_CHECK_ERROR);
+        return;
+      }
+    }
+    const idErr = validateProjectId(projectIdRaw, takenIds);
+    if (idErr) {
+      alert(idErr);
+      return;
+    }
 
     // 日付・スケジュール名が入力されていなければ無効
     const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -1079,6 +1142,7 @@ export function useHubPageState() {
     setSelectedId,
     currentSchedule,
     isSaving,
+    otherProjectIds,
     handleSave,
     updateSchedule,
     requestDeleteCurrent,

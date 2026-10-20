@@ -1,5 +1,5 @@
 import clsx from "clsx";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   DividerRed,
   DisplayOrInput,
@@ -7,6 +7,7 @@ import {
   DeleteItemButton,
   ScheduleList,
   validateProjectId,
+  validateProjectName,
 } from "@/components";
 import type { ScheduleDetail } from "@/features/hub/types/resource";
 import { ProjectSelectDropdown } from "./ProjectSelectDropdown";
@@ -24,6 +25,7 @@ export function Sidebar({
   onDeleteCurrent,
   openAddScheduleModal,
   isSaving,
+  otherProjectIds = [],
 }: {
   activeTab: "リソース" | "エリア" | "オペレーション" | "現場記録";
   setActiveTab: (t: any) => void;
@@ -40,6 +42,7 @@ export function Sidebar({
   onDeleteCurrent: () => void;
   openAddScheduleModal: () => void;
   isSaving: boolean;
+  otherProjectIds?: string[];
   projectId?: string | null;
   year?: string | null;
 }) {
@@ -66,11 +69,18 @@ export function Sidebar({
 
   // バリデーション用state
   const [idError, setIdError] = useState("");
+  const nameError = edit ? validateProjectName(projectName) : "";
+
+  useEffect(() => {
+    if (!projectId) return;
+    setIdError(validateProjectId(projectId, otherProjectIds));
+  }, [projectId, otherProjectIds]);
 
   // 共通のクラス名を作成して整理
   const inputClassNames = clsx(
     "w-full text-base text-center py-2",
-    !edit && "cursor-default caret-transparent select-none"
+    !edit && "cursor-default caret-transparent select-none",
+    nameError && "border border-red-500 rounded-md"
   );
   const idInputClassNames = clsx(
     inputClassNames,
@@ -148,6 +158,9 @@ export function Sidebar({
             className={inputClassNames}
             placeholder="案件名を入力"
           />
+          {nameError && (
+            <p className="text-xs text-red-400 text-center mt-1">{nameError}</p>
+          )}
         </div>
 
         {/* 案件ID */}
@@ -158,7 +171,7 @@ export function Sidebar({
             value={projectId}
             onChange={(e) => {
               const val = e.target.value.toLowerCase();
-              setIdError(validateProjectId(val));
+              setIdError(validateProjectId(val, otherProjectIds));
               setProjectData((prev: any) => ({
                 ...prev,
                 project: { ...(prev?.project ?? {}), id: val },
