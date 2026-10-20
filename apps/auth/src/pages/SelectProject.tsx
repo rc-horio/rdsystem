@@ -188,6 +188,11 @@ export default function SelectProject() {
   const [idError, setIdError] = useState("");
   const [dupSourceId, setDupSourceId] = useState("");
 
+  useEffect(() => {
+    const ids = projects.map((p) => p.projectId.toLowerCase());
+    setIdError(newId.trim() ? validateProjectId(newId, ids) : "");
+  }, [newId, projects]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -407,7 +412,7 @@ export default function SelectProject() {
     if (creatingRef.current || deletingRef.current) return;
     const trimmedName = newName.trim();
     if (!trimmedName || !newId.trim()) return;
-    const err = validateProjectId(newId);
+    const err = validateProjectId(newId, usedIds);
     setIdError(err);
     if (err) return;
 
@@ -965,11 +970,7 @@ export default function SelectProject() {
                 </span>
                 <input
                   value={newId}
-                  onChange={(e) => {
-                    const val = e.target.value.toLowerCase();
-                    setNewId(val);
-                    setIdError(val.trim() ? validateProjectId(val) : "");
-                  }}
+                  onChange={(e) => setNewId(e.target.value.toLowerCase())}
                   className={`w-full rounded-lg border px-3 py-2 text-slate-100 bg-slate-900/60 placeholder:text-slate-500 outline-none transition ${
                     idError
                       ? "border-red-500 focus:ring-2 focus:ring-red-500"
