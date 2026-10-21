@@ -212,6 +212,7 @@ export function useHubPageState() {
       photosResults: "",
       photosSite: "",
       photosRetrospective: "",
+      words: [],
       cancelled: false,
       cancelledReason: "",
     };

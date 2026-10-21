@@ -188,6 +188,8 @@ export interface ScheduleDetail {
   photosSite?: string;
   /** 現場記録：振り返り。未設定時は photosMemo を出す */
   photosRetrospective?: string;
+  /** このスケジュールに付けたタグ。共有一覧の日本語をそのまま持つ */
+  words?: string[];
   /** 中止（index.json のスケジュールに保存） */
   cancelled?: boolean;
   /** 中止理由（1行メモ） */

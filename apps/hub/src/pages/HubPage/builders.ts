@@ -24,6 +24,17 @@ export function normalizeIndexJsonForProjectLostDeal(data: any): any {
   };
 }
 
+function normalizeScheduleWords(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const words: string[] = [];
+  for (const item of raw) {
+    const word = String(item ?? "").trim();
+    if (!word || words.includes(word)) continue;
+    words.push(word);
+  }
+  return words;
+}
+
 /* ===== APIデータ → スケジュール（表示用） ===== */
 export function buildSchedulesFromProjectData(pd: any): ScheduleDetail[] {
   if (!pd?.schedules) return [];
@@ -168,6 +179,7 @@ export function buildSchedulesFromProjectData(pd: any): ScheduleDetail[] {
       photosResults,
       photosSite,
       photosRetrospective,
+      words: normalizeScheduleWords(sch?.words),
       cancelled: Boolean(sch?.cancelled),
       cancelledReason: String(sch?.cancelledReason ?? ""),
     };
@@ -224,6 +236,7 @@ export function buildIndexJsonFromState(
       photosResults: s.photosResults ?? "",
       photosSite: s.photosSite ?? "",
       photosRetrospective: s.photosRetrospective ?? "",
+      words: normalizeScheduleWords(s.words),
       cancelled: Boolean(s.cancelled),
       cancelledReason: String(s.cancelledReason ?? ""),
       resources: {

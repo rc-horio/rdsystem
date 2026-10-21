@@ -10,6 +10,11 @@ import type { PhotoItem, ScheduleDetail } from "@/features/hub/types/resource";
 import { ButtonRed, DividerRed, Modal, SectionTitle } from "@/components";
 import { catalogPublicUrlFromKey } from "@/features/hub/utils/catalogPublicUrl";
 
+const CATALOG = String(import.meta.env.VITE_CATALOG_BASE_URL || "").replace(
+  /\/+$/,
+  ""
+);
+
 const PHOTO_MEMO_LINE_PX = 20;
 const SUMMARY_LINE_PX = 20;
 const SUMMARY_EDIT_ROWS = 8;
@@ -91,9 +96,19 @@ function SummaryField({
   );
 }
 
-const SEED_WORDS = ["草刈り", "トラブル", "パレット", "ブルーシート"];
 /** レイアウト確認用。実際の件数はまだ数えない */
 const DUMMY_WORD_DELETE_COUNT = 2;
+
+function normalizeWords(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const words: string[] = [];
+  for (const item of raw) {
+    const word = String(item ?? "").trim();
+    if (!word || words.includes(word)) continue;
+    words.push(word);
+  }
+  return words;
+}
 
 function ScheduleWordsField({
   edit,
@@ -397,36 +412,74 @@ export default function SitePhotosTab({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [isConverting, setIsConverting] = useState(false);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
-  const [words, setWords] = useState<string[]>(SEED_WORDS);
+  const [catalogWords, setCatalogWords] = useState<string[]>([]);
+  const [addedWords, setAddedWords] = useState<string[]>([]);
+  const [hiddenWords, setHiddenWords] = useState<string[]>([]);
   const [wordDraft, setWordDraft] = useState("");
-  const [wordsBySchedule, setWordsBySchedule] = useState<
-    Record<string, string[]>
-  >({});
+  const scheduleWords = normalizeWords(currentSchedule?.words);
+  const words = useMemo(() => {
+    const hidden = new Set(hiddenWords);
+    const saved = normalizeWords(currentSchedule?.words);
+    const list = catalogWords.filter((word) => !hidden.has(word));
+    for (const word of addedWords) {
+      if (hidden.has(word) || list.includes(word)) continue;
+      list.push(word);
+    }
+    for (const word of saved) {
+      if (hidden.has(word) || list.includes(word)) continue;
+      list.push(word);
+    }
+    return list;
+  }, [catalogWords, addedWords, hiddenWords, currentSchedule?.words]);
   const attachedWords = useMemo(() => {
-    if (!selectedId) return [];
-    const picked = new Set(wordsBySchedule[selectedId] ?? []);
-    return words.filter((word) => picked.has(word));
-  }, [selectedId, words, wordsBySchedule]);
+    const picked = new Set(scheduleWords);
+    const visible = words.filter((word) => picked.has(word));
+    const rest = scheduleWords.filter((word) => !visible.includes(word));
+    return [...visible, ...rest];
+  }, [scheduleWords, words]);
+
+  useEffect(() => {
+    if (!CATALOG) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${CATALOG}/words.json`, { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        setCatalogWords(normalizeWords(data));
+      } catch {
+        // 読めないときは候補を空のままにする
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const addWord = () => {
     const next = wordDraft.trim();
     if (!next) return;
-    setWords((prev) => (prev.includes(next) ? prev : [...prev, next]));
+    setHiddenWords((prev) => prev.filter((word) => word !== next));
+    setAddedWords((prev) => (prev.includes(next) ? prev : [...prev, next]));
     setWordDraft("");
   };
 
   const toggleWord = (word: string) => {
     if (!selectedId) return;
-    setWordsBySchedule((prev) => {
-      const current = prev[selectedId] ?? [];
-      const has = current.includes(word);
-      return {
-        ...prev,
-        [selectedId]: has
-          ? current.filter((item) => item !== word)
-          : [...current, word],
-      };
-    });
+    setSchedules((prev) =>
+      prev.map((schedule) => {
+        if (schedule.id !== selectedId) return schedule;
+        const current = normalizeWords(schedule.words);
+        const has = current.includes(word);
+        return {
+          ...schedule,
+          words: has
+            ? current.filter((item) => item !== word)
+            : [...current, word],
+        };
+      })
+    );
   };
 
   const confirmDeleteWord = (target: string) => {
@@ -434,14 +487,8 @@ export default function SitePhotosTab({
       `「${target}」を削除します。${DUMMY_WORD_DELETE_COUNT}件の案件から外れます。`
     );
     if (!ok) return;
-    setWords((prev) => prev.filter((word) => word !== target));
-    setWordsBySchedule((prev) => {
-      const next: Record<string, string[]> = {};
-      for (const [id, list] of Object.entries(prev)) {
-        next[id] = list.filter((word) => word !== target);
-      }
-      return next;
-    });
+    setAddedWords((prev) => prev.filter((word) => word !== target));
+    setHiddenWords((prev) => (prev.includes(target) ? prev : [...prev, target]));
   };
 
   const photos: PhotoItem[] = useMemo(
