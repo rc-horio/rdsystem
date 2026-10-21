@@ -68,6 +68,7 @@ interface ProjectMeta {
   hasFlash?: boolean;
   hasFireworks?: boolean;
   models?: string[];
+  words?: string[];
 }
 
 type ListRow = {
@@ -218,6 +219,8 @@ export default function SelectProject() {
     takeoffBox: false,
   });
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
+  const [wordOptions, setWordOptions] = useState<string[]>([]);
+  const [selectedWords, setSelectedWords] = useState<string[]>([]);
   const modelOptions = useMemo(() => projectModelOptions(projects), [projects]);
 
   const renderSearchControls = () => (
@@ -227,6 +230,8 @@ export default function SelectProject() {
       filters={filters}
       modelOptions={modelOptions}
       selectedModels={selectedModels}
+      wordOptions={wordOptions}
+      selectedWords={selectedWords}
       onSortTypeChange={(next) => {
         setSortType(next);
         setSortDir(PROJECT_SORT_DEFAULT_DIR[next]);
@@ -243,6 +248,14 @@ export default function SelectProject() {
           return modelOptions.filter((name) => next.has(name));
         })
       }
+      onWordToggle={(value) =>
+        setSelectedWords((prev) => {
+          const next = new Set(prev);
+          if (next.has(value)) next.delete(value);
+          else next.add(value);
+          return wordOptions.filter((name) => next.has(name));
+        })
+      }
     />
   );
 
@@ -253,13 +266,13 @@ export default function SelectProject() {
   const listedProjects = useMemo(() => {
     const filtered = projects.filter(
       (p) =>
-        projectMatchesFilters(p, filters) &&
+        projectMatchesFilters(p, filters, selectedWords) &&
         projectMatchesModels(p, selectedModels)
     );
     if (sortType === "date") return sortProjectsByEventDate(filtered, sortDir);
     if (sortType === "droneCount") return sortProjectsByDroneCount(filtered, sortDir);
     return filtered;
-  }, [projects, filters, selectedModels, sortType, sortDir]);
+  }, [projects, filters, selectedModels, selectedWords, sortType, sortDir]);
 
   const needBoxFlags = filters.takeoffBox;
   const needFlashFlags = filters.flash;
@@ -377,6 +390,35 @@ export default function SelectProject() {
         setLoading(false);
       }
     })();
+  }, []);
+
+  useEffect(() => {
+    const base = String(import.meta.env.VITE_CATALOG_BASE_URL || "").replace(
+      /\/+$/,
+      ""
+    );
+    if (!base) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${base}/words.json`, { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled || !Array.isArray(data)) return;
+        const words: string[] = [];
+        for (const item of data) {
+          const word = String(item ?? "").trim();
+          if (!word || words.includes(word)) continue;
+          words.push(word);
+        }
+        setWordOptions(words);
+      } catch {
+        // 読めないときは語のチップを出さない
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const inferYearFromId = (pid: string) => {

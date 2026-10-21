@@ -114,18 +114,36 @@ export function projectMatchesModels(
   return selected.some((name) => have.has(name));
 }
 
+function wordSet(raw: unknown): Set<string> {
+  const words = new Set<string>();
+  if (!Array.isArray(raw)) return words;
+  for (const item of raw) {
+    const name = String(item ?? "").trim();
+    if (name) words.add(name);
+  }
+  return words;
+}
+
+/** タグ未選択なら全件。選択中はフラッシュ、花火、離発着ボックス、語のどれかがある案件だけ */
 export function projectMatchesFilters(
   project: {
     hasFlash?: boolean;
     hasFireworks?: boolean;
     usesTakeoffLandingBox?: boolean;
+    words?: unknown;
   },
-  filters: { flash: boolean; fireworks: boolean; takeoffBox: boolean }
+  filters: { flash: boolean; fireworks: boolean; takeoffBox: boolean },
+  selectedWords: string[]
 ): boolean {
-  const anyOn = filters.flash || filters.fireworks || filters.takeoffBox;
+  const anyOn =
+    filters.flash ||
+    filters.fireworks ||
+    filters.takeoffBox ||
+    selectedWords.length > 0;
   if (!anyOn) return true;
   if (filters.flash && Boolean(project.hasFlash)) return true;
   if (filters.fireworks && Boolean(project.hasFireworks)) return true;
   if (filters.takeoffBox && Boolean(project.usesTakeoffLandingBox)) return true;
-  return false;
+  const have = wordSet(project.words);
+  return selectedWords.some((name) => have.has(name));
 }

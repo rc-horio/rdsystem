@@ -1,4 +1,3 @@
-import { useState } from "react";
 import clsx from "clsx";
 
 export type ProjectSortType = "date" | "droneCount";
@@ -20,8 +19,6 @@ const FILTERS: { key: ProjectFilterKey; label: string }[] = [
   { key: "fireworks", label: "花火" },
   { key: "takeoffBox", label: "離発着ボックス" },
 ];
-
-const WORD_OPTIONS = ["草刈り", "トラブル", "パレット", "ブルーシート"];
 
 function sortDirLabel(type: ProjectSortType, dir: ProjectSortDir) {
   if (type === "droneCount") return dir === "desc" ? "多い順" : "少ない順";
@@ -77,35 +74,28 @@ export function ProjectSearchControls({
   filters,
   modelOptions,
   selectedModels,
+  wordOptions,
+  selectedWords,
   onSortTypeChange,
   onSortDirChange,
   onFilterToggle,
   onModelToggle,
+  onWordToggle,
 }: {
   sortType: ProjectSortType;
   sortDir: ProjectSortDir;
   filters: Record<ProjectFilterKey, boolean>;
   modelOptions: string[];
   selectedModels: string[];
+  wordOptions: string[];
+  selectedWords: string[];
   onSortTypeChange: (v: ProjectSortType) => void;
   onSortDirChange: (v: ProjectSortDir) => void;
   onFilterToggle: (key: ProjectFilterKey) => void;
   onModelToggle: (value: string) => void;
+  onWordToggle: (value: string) => void;
 }) {
   const otherDir: ProjectSortDir = sortDir === "desc" ? "asc" : "desc";
-  const [words, setWords] = useState<string[]>([]);
-
-  const toggleValue = (
-    current: string[],
-    value: string,
-    options: string[],
-    setCurrent: (next: string[]) => void
-  ) => {
-    const next = new Set(current);
-    if (next.has(value)) next.delete(value);
-    else next.add(value);
-    setCurrent(options.filter((name) => next.has(name)));
-  };
 
   return (
     <div
@@ -160,14 +150,14 @@ export function ProjectSearchControls({
                 {f.label}
               </button>
             ))}
-            {WORD_OPTIONS.map((name) => {
-              const checked = words.includes(name);
+            {wordOptions.map((name) => {
+              const checked = selectedWords.includes(name);
               return (
                 <button
                   key={name}
                   type="button"
                   aria-pressed={checked}
-                  onClick={() => toggleValue(words, name, WORD_OPTIONS, setWords)}
+                  onClick={() => onWordToggle(name)}
                   className={chipClass(checked)}
                 >
                   {name}
