@@ -168,6 +168,7 @@ export default function DesktopLayout(props: any) {
               setSchedules={setSchedules}
               projectId={id}
               year={YEAR}
+              schedules={schedules}
               removeAt={removeAt}
             />
           </section>

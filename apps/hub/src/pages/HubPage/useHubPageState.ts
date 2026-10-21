@@ -19,6 +19,10 @@ import {
   projectMaxDroneCount,
   projectUsesTakeoffLandingBox,
 } from "@/features/hub/utils/projectListFlags";
+import {
+  appendCatalogWords,
+  getPendingCatalogWords,
+} from "@/features/hub/utils/wordsCatalog";
 
 // 環境変数からCatalogのベースURLを取得
 const CATALOG = String(import.meta.env.VITE_CATALOG_BASE_URL || "").replace(/\/+$/, "");
@@ -831,6 +835,11 @@ export function useHubPageState() {
       }
       if (!res.ok || data?.error) throw new Error(data?.error ?? raw ?? `Request failed: ${res.status}`);
 
+      const pendingWords = getPendingCatalogWords();
+      const wordsSaved = pendingWords.length
+        ? await appendCatalogWords(pendingWords)
+        : true;
+
       // 🟢 projects.json も同期（projectId / projectName 変更時）
       // fetch 失敗時は上書きしない（既存データ消失を防ぐ）
       try {
@@ -941,8 +950,14 @@ export function useHubPageState() {
         }
       }
 
-      // ✅ S3 保存フローが最後まで成功した場合のトースト
-      toast.showToast("保存しました。");
+      if (wordsSaved) {
+        toast.showToast("保存しました。");
+      } else {
+        toast.showToast(
+          "案件は保存しました。タグの共有一覧は更新できませんでした。もう一度保存してください。",
+          "error"
+        );
+      }
     } catch (e) {
       console.error(e);
       toast.showToast("保存ができませんでした。しばらく時間をおいて、もう一度お試しください。", "error");

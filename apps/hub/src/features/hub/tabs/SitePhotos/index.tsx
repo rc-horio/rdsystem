@@ -9,11 +9,15 @@ import React, {
 import type { PhotoItem, ScheduleDetail } from "@/features/hub/types/resource";
 import { ButtonRed, DividerRed, Modal, SectionTitle } from "@/components";
 import { catalogPublicUrlFromKey } from "@/features/hub/utils/catalogPublicUrl";
-
-const CATALOG = String(import.meta.env.VITE_CATALOG_BASE_URL || "").replace(
-  /\/+$/,
-  ""
-);
+import {
+  countProjectsWithWord,
+  removeWordFromAllProjects,
+} from "@/features/hub/utils/sharedWordDelete";
+import {
+  fetchCatalogWords,
+  setPendingCatalogWords,
+  subscribeCatalogWords,
+} from "@/features/hub/utils/wordsCatalog";
 
 const PHOTO_MEMO_LINE_PX = 20;
 const SUMMARY_LINE_PX = 20;
@@ -96,9 +100,6 @@ function SummaryField({
   );
 }
 
-/** レイアウト確認用。実際の件数はまだ数えない */
-const DUMMY_WORD_DELETE_COUNT = 2;
-
 function normalizeWords(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
   const words: string[] = [];
@@ -120,6 +121,7 @@ function ScheduleWordsField({
   onAdd,
   onToggle,
   onAskDelete,
+  deleteBusy,
 }: {
   edit: boolean;
   selectedId: string | null;
@@ -130,6 +132,7 @@ function ScheduleWordsField({
   onAdd: () => void;
   onToggle: (word: string) => void;
   onAskDelete: (word: string) => void;
+  deleteBusy: boolean;
 }) {
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -208,8 +211,9 @@ function ScheduleWordsField({
                   <button
                     type="button"
                     onClick={() => onAskDelete(word)}
+                    disabled={deleteBusy}
                     aria-label={`${word}を削除`}
-                    className="inline-flex h-4 shrink-0 cursor-pointer items-center text-sm leading-none text-slate-300 hover:text-white"
+                    className="inline-flex h-4 shrink-0 cursor-pointer items-center text-sm leading-none text-slate-300 hover:text-white disabled:cursor-default disabled:opacity-50"
                   >
                     ×
                   </button>
@@ -373,6 +377,7 @@ interface Props {
   removeAt: (idx: number) => Promise<void> | void;
   projectId?: string | null;
   year?: string | null;
+  schedules: ScheduleDetail[];
 }
 
 // HEICをJPEGに変換する関数
@@ -408,11 +413,14 @@ export default function SitePhotosTab({
   selectedId,
   setSchedules,
   removeAt,
+  projectId,
+  schedules,
 }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [isConverting, setIsConverting] = useState(false);
   const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [catalogWords, setCatalogWords] = useState<string[]>([]);
+  const [wordDeleteBusy, setWordDeleteBusy] = useState(false);
   const [addedWords, setAddedWords] = useState<string[]>([]);
   const [hiddenWords, setHiddenWords] = useState<string[]>([]);
   const [wordDraft, setWordDraft] = useState("");
@@ -439,23 +447,33 @@ export default function SitePhotosTab({
   }, [scheduleWords, words]);
 
   useEffect(() => {
-    if (!CATALOG) return;
     let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(`${CATALOG}/words.json`, { cache: "no-store" });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (cancelled) return;
-        setCatalogWords(normalizeWords(data));
-      } catch {
-        // 読めないときは候補を空のままにする
-      }
-    })();
+    void fetchCatalogWords().then((loaded) => {
+      if (cancelled || loaded === null) return;
+      setCatalogWords(loaded);
+    });
+    const unsubscribe = subscribeCatalogWords((loaded) => {
+      if (cancelled) return;
+      setCatalogWords(loaded);
+      setAddedWords((prev) => prev.filter((word) => !loaded.includes(word)));
+    });
     return () => {
       cancelled = true;
+      unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    setAddedWords([]);
+    setHiddenWords([]);
+    setWordDraft("");
+    setPendingCatalogWords([]);
+  }, [projectId]);
+
+  useEffect(() => {
+    setPendingCatalogWords(addedWords);
+    return () => setPendingCatalogWords([]);
+  }, [addedWords]);
 
   const addWord = () => {
     const next = wordDraft.trim();
@@ -482,13 +500,50 @@ export default function SitePhotosTab({
     );
   };
 
-  const confirmDeleteWord = (target: string) => {
-    const ok = window.confirm(
-      `「${target}」を削除します。${DUMMY_WORD_DELETE_COUNT}件の案件から外れます。`
+  const stripWordFromSchedules = (target: string) => {
+    setSchedules((prev) =>
+      prev.map((schedule) => {
+        const current = normalizeWords(schedule.words);
+        if (!current.includes(target)) return schedule;
+        return {
+          ...schedule,
+          words: current.filter((word) => word !== target),
+        };
+      })
     );
-    if (!ok) return;
-    setAddedWords((prev) => prev.filter((word) => word !== target));
-    setHiddenWords((prev) => (prev.includes(target) ? prev : [...prev, target]));
+  };
+
+  const confirmDeleteWord = async (target: string) => {
+    if (wordDeleteBusy) return;
+    setWordDeleteBusy(true);
+    try {
+      const count = await countProjectsWithWord(target, {
+        uuid: projectId,
+        schedules,
+      });
+      if (count === null) {
+        alert(
+          "案件の数を確認できませんでした。しばらく待ってから、もう一度お試しください。"
+        );
+        return;
+      }
+      const ok = window.confirm(
+        `「${target}」を削除します。${count}件の案件から外れます。`
+      );
+      if (!ok) return;
+      const result = await removeWordFromAllProjects(target, projectId);
+      if (result.openProjectCleared || result.ok) stripWordFromSchedules(target);
+      if (!result.ok) {
+        alert(
+          "タグを削除できませんでした。しばらく待ってから、もう一度お試しください。"
+        );
+        return;
+      }
+      setAddedWords((prev) => prev.filter((word) => word !== target));
+      setHiddenWords((prev) => prev.filter((word) => word !== target));
+    } finally {
+      setWordDeleteBusy(false);
+    }
   };
 
   const photos: PhotoItem[] = useMemo(
@@ -658,7 +713,8 @@ export default function SitePhotosTab({
         onDraftChange={setWordDraft}
         onAdd={addWord}
         onToggle={toggleWord}
-        onAskDelete={confirmDeleteWord}
+        onAskDelete={(word) => void confirmDeleteWord(word)}
+        deleteBusy={wordDeleteBusy}
       />
       <DividerRed />
 
