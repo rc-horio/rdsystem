@@ -387,7 +387,7 @@ export default function SelectProject() {
   };
 
   const chooseProject = (projectId: string) => {
-    setSelectedProject(projectId);
+    setSelectedProject((prev) => (prev === projectId ? "" : projectId));
   };
 
   useEffect(() => {
@@ -859,7 +859,7 @@ export default function SelectProject() {
           >
             <div className="flex max-h-[42%] shrink-0 flex-col overflow-y-auto bg-slate-900 md:max-h-none md:h-full md:w-64">
               {renderSearchControls()}
-              <div className="mt-auto flex items-center gap-3 px-3 py-3 text-sm">
+              <div className="mt-auto flex items-center justify-center gap-3 px-3 py-3 text-sm">
                 <button
                   type="button"
                   onClick={openCreateModal}
