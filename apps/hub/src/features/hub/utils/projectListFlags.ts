@@ -58,6 +58,36 @@ export function projectHasFlash(
   );
 }
 
+/** 各スケジュールの area.drone_count.model。空白は除き、同じ文字は一度だけ */
+export function projectModels(
+  schedules: Pick<ScheduleDetail, "area">[] | null | undefined
+): string[] {
+  const models: string[] = [];
+  for (const schedule of schedules ?? []) {
+    const model = String(schedule?.area?.drone_count?.model ?? "").trim();
+    if (!model || models.includes(model)) continue;
+    models.push(model);
+  }
+  return models;
+}
+
+/** 各スケジュールに付いているタグ。中止したスケジュールも含む */
+export function projectWords(
+  schedules: Pick<ScheduleDetail, "words">[] | null | undefined
+): string[] {
+  const words: string[] = [];
+  for (const schedule of schedules ?? []) {
+    const raw = schedule?.words;
+    if (!Array.isArray(raw)) continue;
+    for (const item of raw) {
+      const word = String(item ?? "").trim();
+      if (!word || words.includes(word)) continue;
+      words.push(word);
+    }
+  }
+  return words;
+}
+
 /** どれかの日のオペレーションに花火があれば true */
 export function projectHasFireworks(
   schedules: Pick<ScheduleDetail, "operation">[] | null | undefined

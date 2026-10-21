@@ -17,7 +17,9 @@ import {
   projectHasFireworks,
   projectHasFlash,
   projectMaxDroneCount,
+  projectModels,
   projectUsesTakeoffLandingBox,
+  projectWords,
 } from "@/features/hub/utils/projectListFlags";
 import {
   appendCatalogWords,
@@ -869,6 +871,8 @@ export function useHubPageState() {
             droneCount: projectMaxDroneCount(schedulesAfterUpload) ?? 0,
             hasFlash: projectHasFlash(schedulesAfterUpload),
             hasFireworks: projectHasFireworks(schedulesAfterUpload),
+            models: projectModels(schedulesAfterUpload),
+            words: projectWords(schedulesAfterUpload),
           };
           if (idx >= 0) {
             list[idx] = updatedRow;
