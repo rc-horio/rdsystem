@@ -256,6 +256,20 @@ export default function SelectProject() {
           return wordOptions.filter((name) => next.has(name));
         })
       }
+      canClear={
+        filters.flash ||
+        filters.fireworks ||
+        filters.takeoffBox ||
+        selectedModels.length > 0 ||
+        selectedWords.length > 0 ||
+        projectQuery.length > 0
+      }
+      onClear={() => {
+        setFilters({ flash: false, fireworks: false, takeoffBox: false });
+        setSelectedModels([]);
+        setSelectedWords([]);
+        setProjectQuery("");
+      }}
     />
   );
 

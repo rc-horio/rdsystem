@@ -81,6 +81,8 @@ export function ProjectSearchControls({
   onFilterToggle,
   onModelToggle,
   onWordToggle,
+  canClear,
+  onClear,
 }: {
   sortType: ProjectSortType;
   sortDir: ProjectSortDir;
@@ -94,12 +96,14 @@ export function ProjectSearchControls({
   onFilterToggle: (key: ProjectFilterKey) => void;
   onModelToggle: (value: string) => void;
   onWordToggle: (value: string) => void;
+  canClear: boolean;
+  onClear: () => void;
 }) {
   const otherDir: ProjectSortDir = sortDir === "desc" ? "asc" : "desc";
 
   return (
     <div
-      className="space-y-3 bg-slate-900 px-3 py-3"
+      className="space-y-10 bg-slate-900 px-3 py-3"
       role="search"
       aria-label="案件の並べ替えとフィルター"
     >
@@ -129,7 +133,21 @@ export function ProjectSearchControls({
         </div>
       </div>
       <div className="space-y-3">
-        <p className="text-[11px] text-slate-400">フィルター</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[11px] text-slate-400">フィルター</p>
+          <button
+            type="button"
+            onClick={onClear}
+            disabled={!canClear}
+            className={
+              canClear
+                ? "text-[11px] text-slate-300 hover:text-white"
+                : "cursor-not-allowed text-[11px] text-slate-600"
+            }
+          >
+            クリア
+          </button>
+        </div>
         <ChecklistFilter
           label="機種"
           options={modelOptions}
