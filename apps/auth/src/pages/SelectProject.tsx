@@ -27,6 +27,8 @@ import {
 import {
   indexProjectCatalogFlags,
   projectMatchesFilters,
+  projectMatchesModels,
+  projectModelOptions,
 } from "@/lib/projectIndexFlags";
 
 // 環境変数からHub・Map・ストックコンテンツのベースURLを取得
@@ -65,6 +67,7 @@ interface ProjectMeta {
   droneCount?: number;
   hasFlash?: boolean;
   hasFireworks?: boolean;
+  models?: string[];
 }
 
 type ListRow = {
@@ -214,12 +217,16 @@ export default function SelectProject() {
     fireworks: false,
     takeoffBox: false,
   });
+  const [selectedModels, setSelectedModels] = useState<string[]>([]);
+  const modelOptions = useMemo(() => projectModelOptions(projects), [projects]);
 
   const renderSearchControls = () => (
     <ProjectSearchControls
       sortType={sortType}
       sortDir={sortDir}
       filters={filters}
+      modelOptions={modelOptions}
+      selectedModels={selectedModels}
       onSortTypeChange={(next) => {
         setSortType(next);
         setSortDir(PROJECT_SORT_DEFAULT_DIR[next]);
@@ -227,6 +234,14 @@ export default function SelectProject() {
       onSortDirChange={setSortDir}
       onFilterToggle={(key) =>
         setFilters((prev) => ({ ...prev, [key]: !prev[key] }))
+      }
+      onModelToggle={(value) =>
+        setSelectedModels((prev) => {
+          const next = new Set(prev);
+          if (next.has(value)) next.delete(value);
+          else next.add(value);
+          return modelOptions.filter((name) => next.has(name));
+        })
       }
     />
   );
@@ -236,11 +251,15 @@ export default function SelectProject() {
   const navigate = useNavigate();
 
   const listedProjects = useMemo(() => {
-    const filtered = projects.filter((p) => projectMatchesFilters(p, filters));
+    const filtered = projects.filter(
+      (p) =>
+        projectMatchesFilters(p, filters) &&
+        projectMatchesModels(p, selectedModels)
+    );
     if (sortType === "date") return sortProjectsByEventDate(filtered, sortDir);
     if (sortType === "droneCount") return sortProjectsByDroneCount(filtered, sortDir);
     return filtered;
-  }, [projects, filters, sortType, sortDir]);
+  }, [projects, filters, selectedModels, sortType, sortDir]);
 
   const needBoxFlags = filters.takeoffBox;
   const needFlashFlags = filters.flash;

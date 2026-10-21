@@ -21,7 +21,6 @@ const FILTERS: { key: ProjectFilterKey; label: string }[] = [
   { key: "takeoffBox", label: "離発着ボックス" },
 ];
 
-const MODEL_OPTIONS = ["EMO", "FYLO", "Hula", "RiFF", "TAKE"];
 const WORD_OPTIONS = ["草刈り", "トラブル", "パレット", "ブルーシート"];
 
 function sortDirLabel(type: ProjectSortType, dir: ProjectSortDir) {
@@ -76,19 +75,24 @@ export function ProjectSearchControls({
   sortType,
   sortDir,
   filters,
+  modelOptions,
+  selectedModels,
   onSortTypeChange,
   onSortDirChange,
   onFilterToggle,
+  onModelToggle,
 }: {
   sortType: ProjectSortType;
   sortDir: ProjectSortDir;
   filters: Record<ProjectFilterKey, boolean>;
+  modelOptions: string[];
+  selectedModels: string[];
   onSortTypeChange: (v: ProjectSortType) => void;
   onSortDirChange: (v: ProjectSortDir) => void;
   onFilterToggle: (key: ProjectFilterKey) => void;
+  onModelToggle: (value: string) => void;
 }) {
   const otherDir: ProjectSortDir = sortDir === "desc" ? "asc" : "desc";
-  const [models, setModels] = useState<string[]>([]);
   const [words, setWords] = useState<string[]>([]);
 
   const toggleValue = (
@@ -138,11 +142,9 @@ export function ProjectSearchControls({
         <p className="text-[11px] text-slate-400">フィルター</p>
         <ChecklistFilter
           label="機種"
-          options={MODEL_OPTIONS}
-          selected={models}
-          onToggleValue={(value) =>
-            toggleValue(models, value, MODEL_OPTIONS, setModels)
-          }
+          options={modelOptions}
+          selected={selectedModels}
+          onToggleValue={onModelToggle}
         />
         <div>
           <p className="mb-1.5 text-[11px] text-slate-400">タグ</p>

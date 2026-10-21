@@ -81,6 +81,39 @@ export function indexProjectCatalogFlags(data: Record<string, unknown> | null) {
   };
 }
 
+const PROJECT_MODEL_SEED = ["EMO", "FYLO", "Hula", "RiFF", "TAKE"];
+
+/** 固定の5機種のあと、保存済み models にだけある名前を初めて出た順で足す */
+export function projectModelOptions(
+  projects: { models?: unknown }[] | null | undefined
+): string[] {
+  const options = [...PROJECT_MODEL_SEED];
+  for (const project of projects ?? []) {
+    if (!Array.isArray(project?.models)) continue;
+    for (const item of project.models) {
+      const name = String(item ?? "").trim();
+      if (!name || options.includes(name)) continue;
+      options.push(name);
+    }
+  }
+  return options;
+}
+
+/** 機種未選択なら全件。選択中は models にそのいずれかがある案件だけ */
+export function projectMatchesModels(
+  project: { models?: unknown },
+  selected: string[]
+): boolean {
+  if (selected.length === 0) return true;
+  if (!Array.isArray(project.models)) return false;
+  const have = new Set<string>();
+  for (const item of project.models) {
+    const name = String(item ?? "").trim();
+    if (name) have.add(name);
+  }
+  return selected.some((name) => have.has(name));
+}
+
 export function projectMatchesFilters(
   project: {
     hasFlash?: boolean;
