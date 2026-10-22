@@ -23,6 +23,7 @@ import { PROJECT_SORT_DEFAULT_DIR } from "@/components/ProjectSearchControls";
 import {
   sortProjectsByDroneCount,
   sortProjectsByEventDate,
+  withDroneCountHeadings,
 } from "@/lib/sortProjectsForDropdown";
 import {
   indexProjectCatalogFlags,
@@ -356,6 +357,7 @@ export default function SelectProject() {
     value: p.projectId,
     label: `${p.projectId.slice(0, 6)}-${p.projectName}`,
     uuid: p.uuid,
+    droneCount: p.droneCount,
   });
 
   const projectOptions = useMemo(
@@ -368,6 +370,15 @@ export default function SelectProject() {
     if (!q) return projectOptions;
     return projectOptions.filter((o) => projectQueryHits(q, o));
   }, [projectOptions, projectQuery]);
+
+  const projectListRows = useMemo(() => {
+    if (sortType !== "droneCount") {
+      return visibleProjectOptions.map(
+        (item) => ({ kind: "item" as const, item })
+      );
+    }
+    return withDroneCountHeadings(visibleProjectOptions);
+  }, [sortType, visibleProjectOptions]);
 
   const selectedLabel = useMemo(() => {
     const meta = projects.find((p) => p.projectId === selectedProject);
@@ -939,7 +950,19 @@ export default function SelectProject() {
                   </p>
                 ) : (
                   <ul>
-                    {visibleProjectOptions.map((p) => {
+                    {projectListRows.map((row) => {
+                      if (row.kind === "heading") {
+                        return (
+                          <li
+                            key={`drone-count-heading:${row.label}`}
+                            aria-label={row.label}
+                            className="pointer-events-none select-none whitespace-pre px-3 pt-2 pb-0.5 text-[11px] leading-normal text-white/60 first:pt-1"
+                          >
+                            {`-  ${row.label}`}
+                          </li>
+                        );
+                      }
+                      const p = row.item;
                       const selected = p.value === selectedProject;
                       return (
                         <li key={p.value}>
@@ -947,7 +970,8 @@ export default function SelectProject() {
                             type="button"
                             onClick={() => chooseProject(p.value)}
                             className={
-                              "block w-full truncate px-3 py-2.5 text-left text-sm " +
+                              "block w-full truncate py-2.5 text-left text-sm " +
+                              (sortType === "droneCount" ? "pr-3 pl-6 " : "px-3 ") +
                               (selected
                                 ? "bg-slate-800 text-white"
                                 : "text-slate-200 hover:bg-slate-800")

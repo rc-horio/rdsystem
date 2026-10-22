@@ -129,6 +129,58 @@ export function sortProjectsByDroneCount<T extends WithDroneCount>(
 }
 
 /**
+ * 機体数の区分。RD Map の getDroneCountGroupLabel と同じ境界。
+ * null / undefined は未設定。0 は「0」。
+ */
+export function droneCountGroupLabel(count: number | null | undefined): string {
+  if (count === undefined || count === null) return "未設定";
+  if (count === 0) return "0";
+  if (count <= 100) return "~100";
+  if (count <= 200) return "~200";
+  if (count <= 300) return "~300";
+  if (count <= 400) return "~400";
+  if (count <= 500) return "~500";
+  if (count <= 600) return "~600";
+  if (count <= 700) return "~700";
+  if (count <= 800) return "~800";
+  if (count <= 900) return "~900";
+  if (count <= 1000) return "~1000";
+  if (count <= 1500) return "~1500";
+  if (count <= 2000) return "~2000";
+  if (count <= 2500) return "~2500";
+  if (count <= 3000) return "~3000";
+  if (count <= 3500) return "~3500";
+  if (count <= 4000) return "~4000";
+  if (count <= 4500) return "~4500";
+  if (count <= 5000) return "~5000";
+  return "5000~";
+}
+
+export type DroneCountListRow<T> =
+  | { kind: "heading"; label: string }
+  | { kind: "item"; item: T };
+
+/**
+ * 機体数で並び済みの一覧に、区分が変わったところだけ見出しを挟む。
+ * 空の区分は出さない。並び順は変えない（未設定はソート側で末尾）。
+ */
+export function withDroneCountHeadings<T extends { droneCount?: number | null }>(
+  items: readonly T[]
+): DroneCountListRow<T>[] {
+  const rows: DroneCountListRow<T>[] = [];
+  let previous: string | undefined;
+  for (const item of items) {
+    const label = droneCountGroupLabel(item.droneCount);
+    if (label !== previous) {
+      rows.push({ kind: "heading", label });
+      previous = label;
+    }
+    rows.push({ kind: "item", item });
+  }
+  return rows;
+}
+
+/**
  * プルダウン表示用: アクティブ（cutoff 以降）を日付昇順、Old を日付降順で結合。
  */
 export function sortProjectsForDropdown<T extends WithProjectId>(
