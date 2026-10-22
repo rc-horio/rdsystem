@@ -9,6 +9,7 @@ import {
   buildIndexJsonFromState,
   buildSchedulesFromProjectData,
   normalizeIndexJsonForProjectLostDeal,
+  scheduleLinksForSave,
 } from "./builders";
 import { v4 as uuid } from "uuid";
 import { collapseUniformSpacing } from "@/features/hub/utils/spacing";
@@ -733,6 +734,7 @@ export function useHubPageState() {
           typeof s.id === "string" && s.id.trim().length > 0
             ? s.id
             : uuid(),
+        links: scheduleLinksForSave(s.links),
       }))
     );
 
@@ -800,7 +802,10 @@ export function useHubPageState() {
     try {
       // ① blob 画像をまとめて S3 へ（S3 URL に置換済みの schedules を得る）
       const schedulesAfterUpload = collapseSpacingOnSchedules(
-        await uploadStagedPhotosIfAny(schedules)
+        (await uploadStagedPhotosIfAny(schedules)).map((s) => ({
+          ...s,
+          links: scheduleLinksForSave(s.links),
+        }))
       );
 
       // ② JSON を構築（置換後の schedules を使う）

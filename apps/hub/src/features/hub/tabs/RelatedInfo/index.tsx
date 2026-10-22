@@ -43,6 +43,7 @@ function slackAppHref(url: string): string | null {
 
 const fieldShell =
   "flex h-9 min-w-0 items-center rounded border-[0.5px] border-[#707070] px-3 text-sm";
+const labelWidth = "w-28 shrink-0 sm:w-36";
 
 export default function RelatedInfoTab({
   edit,
@@ -95,7 +96,7 @@ export default function RelatedInfoTab({
           <>
             {fixed.map((row) => (
               <div key={row.key} className="flex min-w-0 items-center gap-2">
-                <span className="w-28 shrink-0 text-sm text-slate-300 sm:w-36">
+                <span className={`${labelWidth} text-sm text-slate-300`}>
                   {row.label}
                 </span>
                 <UrlValue
@@ -106,10 +107,10 @@ export default function RelatedInfoTab({
             ))}
             {extras.map((row) => (
               <div key={row.key} className="flex min-w-0 items-center gap-2">
-                <span className={`${fieldShell} flex-1 text-slate-200`}>
+                <span className={`${fieldShell} ${labelWidth} text-slate-200`}>
                   <span className="truncate">{row.name}</span>
                 </span>
-                <UrlValue url={row.url} className="flex-2" />
+                <UrlValue url={row.url} />
               </div>
             ))}
           </>
@@ -135,19 +136,21 @@ export default function RelatedInfoTab({
         <ul className="space-y-5">
           {links.extras.map((extra, index) => (
             <li key={index} className="flex min-w-0 items-center gap-2">
-              <InputBox
-                value={extra.name}
-                placeholder="名前"
-                aria-label="リンクの名前"
-                onChange={(e) => patchExtra(index, { name: e.target.value })}
-                className="min-w-0 flex-1"
-              />
+              <div className={labelWidth}>
+                <InputBox
+                  value={extra.name}
+                  placeholder="名前"
+                  aria-label="リンクの名前"
+                  onChange={(e) => patchExtra(index, { name: e.target.value })}
+                  className="min-w-0"
+                />
+              </div>
               <InputBox
                 value={extra.url}
                 placeholder="https://"
                 aria-label="リンクのURL"
                 onChange={(e) => patchExtra(index, { url: e.target.value })}
-                className="min-w-0 flex-2"
+                className="min-w-0 flex-1"
               />
               <button
                 type="button"
@@ -227,7 +230,7 @@ function LinkField({
 }) {
   return (
     <div className="flex min-w-0 items-center gap-2">
-      <span className="w-28 shrink-0 text-sm text-slate-300 sm:w-36">
+      <span className={`${labelWidth} text-sm text-slate-300`}>
         {label}
       </span>
       <InputBox

@@ -2,6 +2,8 @@
 import { v4 as uuid } from "uuid";
 import type {
   ScheduleDetail,
+  ScheduleLinkExtra,
+  ScheduleLinks,
   PeopleGroup,
   Person,
   PhotoItem,
@@ -22,6 +24,24 @@ export function normalizeIndexJsonForProjectLostDeal(data: any): any {
     ...data,
     project: { ...p, lostDeal: true },
   };
+}
+
+/** 保存するリンク。空のその他行は捨て、URL は trim した文字列のまま残す */
+export function scheduleLinksForSave(raw: unknown): ScheduleLinks {
+  const src = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const text = (value: unknown) => (typeof value === "string" ? value.trim() : "");
+  const extras: ScheduleLinkExtra[] = [];
+  if (Array.isArray(src.extras)) {
+    for (const item of src.extras) {
+      if (!item || typeof item !== "object") continue;
+      const row = item as Record<string, unknown>;
+      const name = text(row.name);
+      const url = text(row.url);
+      if (!name && !url) continue;
+      extras.push({ name, url });
+    }
+  }
+  return { slack: text(src.slack), drive: text(src.drive), extras };
 }
 
 function normalizeScheduleWords(raw: unknown): string[] {
@@ -182,6 +202,7 @@ export function buildSchedulesFromProjectData(pd: any): ScheduleDetail[] {
       words: normalizeScheduleWords(sch?.words),
       cancelled: Boolean(sch?.cancelled),
       cancelledReason: String(sch?.cancelledReason ?? ""),
+      links: scheduleLinksForSave(sch?.links),
     };
   });
 }
@@ -239,6 +260,7 @@ export function buildIndexJsonFromState(
       words: normalizeScheduleWords(s.words),
       cancelled: Boolean(s.cancelled),
       cancelledReason: String(s.cancelledReason ?? ""),
+      links: scheduleLinksForSave(s.links),
       resources: {
         drones: (s.resource?.drones ?? []).map((d: any) => ({
           model: d.model ?? "",
