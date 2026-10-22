@@ -92,6 +92,18 @@ const toSlug = (s: string) =>
 const FETCH_LIST_ERROR_MSG =
   "プロジェクト一覧の取得に失敗しました。ネットワークを確認して、しばらく待ってから再試行してください。";
 
+/** 検索欄。表示ラベルと案件IDは部分一致。uuid は8文字以上の16進だけ */
+function projectQueryHits(
+  query: string,
+  option: { value: string; label: string; uuid: string }
+): boolean {
+  if (option.label.toLowerCase().includes(query)) return true;
+  if (option.value.toLowerCase().includes(query)) return true;
+  const compact = query.replace(/-/g, "");
+  if (compact.length < 8 || !/^[0-9a-f]+$/.test(compact)) return false;
+  return option.uuid.replace(/-/g, "").toLowerCase().includes(compact);
+}
+
 async function upsertProjectList(row: ListRow): Promise<ListRow[]> {
   let list: ListRow[] = [];
   try {
@@ -343,6 +355,7 @@ export default function SelectProject() {
   const toProjectOption = (p: ProjectMeta) => ({
     value: p.projectId,
     label: `${p.projectId.slice(0, 6)}-${p.projectName}`,
+    uuid: p.uuid,
   });
 
   const projectOptions = useMemo(
@@ -353,7 +366,7 @@ export default function SelectProject() {
   const visibleProjectOptions = useMemo(() => {
     const q = projectQuery.trim().toLowerCase();
     if (!q) return projectOptions;
-    return projectOptions.filter((o) => o.label.toLowerCase().includes(q));
+    return projectOptions.filter((o) => projectQueryHits(q, o));
   }, [projectOptions, projectQuery]);
 
   const selectedLabel = useMemo(() => {
