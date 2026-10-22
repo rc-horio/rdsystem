@@ -171,6 +171,18 @@ export interface PhotoItem {
   memo?: string;
 }
 
+export interface ScheduleLinkExtra {
+  name: string;
+  url: string;
+}
+
+/** スケジュールのリンク。Slack と Googleドライブは固定枠 */
+export interface ScheduleLinks {
+  slack: string;
+  drive: string;
+  extras: ScheduleLinkExtra[];
+}
+
 export interface ScheduleDetail {
   id: string;
   label: string;
@@ -194,4 +206,6 @@ export interface ScheduleDetail {
   cancelled?: boolean;
   /** 中止理由（1行メモ） */
   cancelledReason?: string;
+  /** このスケジュールのリンク。未保存の入力もここへ持つ */
+  links?: ScheduleLinks;
 }

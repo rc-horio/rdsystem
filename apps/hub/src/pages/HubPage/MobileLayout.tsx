@@ -198,7 +198,11 @@ export default function MobileLayout(props: any) {
         </section>
 
         <section hidden={activeTab !== "関連情報"}>
-          <RelatedInfoTab />
+          <RelatedInfoTab
+            edit={edit}
+            currentSchedule={currentSchedule}
+            updateSchedule={updateSchedule}
+          />
         </section>
       </div>
     </div>
