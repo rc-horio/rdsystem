@@ -100,9 +100,9 @@ export function useHubPageState() {
   const initTab = q.get("tab") || "";
   const initScheduleUuid = q.get("scheduleUuid") || "";
 
-  const validTabs = ["リソース", "エリア", "オペレーション", "現場記録"] as const;
+  const validTabs = ["リソース", "エリア", "オペレーション", "現場記録", "関連情報"] as const;
   const [activeTab, setActiveTab] = useState<
-    "リソース" | "エリア" | "オペレーション" | "現場記録"
+    "リソース" | "エリア" | "オペレーション" | "現場記録" | "関連情報"
   >(
     validTabs.includes(initTab as (typeof validTabs)[number])
       ? (initTab as (typeof validTabs)[number])

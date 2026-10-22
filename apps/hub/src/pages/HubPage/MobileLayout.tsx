@@ -4,6 +4,7 @@ import ResourceTab from "@/features/hub/tabs/Resource";
 import OperationTab from "@/features/hub/tabs/Operation";
 import AreaInfoTab from "@/features/hub/tabs/AreaInfo";
 import SitePhotosTab from "@/features/hub/tabs/SitePhotos";
+import RelatedInfoTab from "@/features/hub/tabs/RelatedInfo";
 
 export default function MobileLayout(props: any) {
   const {
@@ -102,6 +103,7 @@ export default function MobileLayout(props: any) {
                 "エリア",
                 "オペレーション",
                 "現場記録",
+                "関連情報",
               ] as const
             ).map((t) => {
               const active = activeTab === t;
@@ -193,6 +195,10 @@ export default function MobileLayout(props: any) {
             schedules={schedules}
             removeAt={removeAt}
           />
+        </section>
+
+        <section hidden={activeTab !== "関連情報"}>
+          <RelatedInfoTab />
         </section>
       </div>
     </div>

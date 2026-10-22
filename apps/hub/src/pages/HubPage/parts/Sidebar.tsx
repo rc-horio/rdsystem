@@ -27,7 +27,7 @@ export function Sidebar({
   isSaving,
   otherProjectIds = [],
 }: {
-  activeTab: "リソース" | "エリア" | "オペレーション" | "現場記録";
+  activeTab: "リソース" | "エリア" | "オペレーション" | "現場記録" | "関連情報";
   setActiveTab: (t: any) => void;
   edit: boolean;
   setEdit: (v: boolean) => void;
@@ -51,6 +51,7 @@ export function Sidebar({
     "エリア",
     "オペレーション",
     "現場記録",
+    "関連情報",
   ] as const;
 
   const projectName =

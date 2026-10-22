@@ -6,6 +6,7 @@ import ResourceTab from "@/features/hub/tabs/Resource";
 import OperationTab from "@/features/hub/tabs/Operation";
 import AreaInfoTab from "@/features/hub/tabs/AreaInfo";
 import SitePhotosTab from "@/features/hub/tabs/SitePhotos";
+import RelatedInfoTab from "@/features/hub/tabs/RelatedInfo";
 
 const SIDEBAR_W = "22.5rem";
 
@@ -171,6 +172,10 @@ export default function DesktopLayout(props: any) {
               schedules={schedules}
               removeAt={removeAt}
             />
+          </section>
+
+          <section hidden={activeTab !== "関連情報"}>
+            <RelatedInfoTab />
           </section>
         </div>
       </main>
