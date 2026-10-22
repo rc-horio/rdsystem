@@ -4,6 +4,7 @@ import type {
   ScheduleLinkExtra,
   ScheduleLinks,
 } from "@/features/hub/types/resource";
+import { inspectScheduleLinks } from "@/features/hub/utils/scheduleLinks";
 
 function readLinks(schedule: ScheduleDetail | null | undefined): ScheduleLinks {
   const links = schedule?.links;
@@ -119,23 +120,29 @@ export default function RelatedInfoTab({
     );
   }
 
+  const inspected = inspectScheduleLinks(links);
+
   return (
     <div className="min-w-0 space-y-5">
       <SectionTitle title="リンク" />
       <LinkField
         label="Slack"
         value={links.slack}
+        error={inspected.slackError}
         onChange={(url) => write({ ...links, slack: url })}
       />
       <LinkField
         label="Googleドライブ"
         value={links.drive}
+        error={inspected.driveError}
         onChange={(url) => write({ ...links, drive: url })}
       />
       {links.extras.length > 0 && (
         <ul className="space-y-5">
-          {links.extras.map((extra, index) => (
-            <li key={index} className="flex min-w-0 items-center gap-2">
+          {links.extras.map((extra, index) => {
+            const fieldError = inspected.extraErrors[index];
+            return (
+            <li key={index} className="flex min-w-0 items-start gap-2">
               <div className={labelWidth}>
                 <InputBox
                   value={extra.name}
@@ -144,14 +151,18 @@ export default function RelatedInfoTab({
                   onChange={(e) => patchExtra(index, { name: e.target.value })}
                   className="min-w-0"
                 />
+                <FieldError message={fieldError?.name ?? null} />
               </div>
-              <InputBox
-                value={extra.url}
-                placeholder="https://"
-                aria-label="リンクのURL"
-                onChange={(e) => patchExtra(index, { url: e.target.value })}
-                className="min-w-0 flex-1"
-              />
+              <div className="min-w-0 flex-1">
+                <InputBox
+                  value={extra.url}
+                  placeholder="https://"
+                  aria-label="リンクのURL"
+                  onChange={(e) => patchExtra(index, { url: e.target.value })}
+                  className="min-w-0"
+                />
+                <FieldError message={fieldError?.url ?? null} />
+              </div>
               <button
                 type="button"
                 onClick={() =>
@@ -166,7 +177,8 @@ export default function RelatedInfoTab({
                 ×
               </button>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
       <div className="flex justify-end">
@@ -219,27 +231,37 @@ function UrlValue({
   );
 }
 
+function FieldError({ message }: { message: string | null }) {
+  if (!message) return null;
+  return <p className="mt-1 text-xs text-red-400">{message}</p>;
+}
+
 function LinkField({
   label,
   value,
+  error,
   onChange,
 }: {
   label: string;
   value: string;
+  error: string | null;
   onChange: (url: string) => void;
 }) {
   return (
-    <div className="flex min-w-0 items-center gap-2">
-      <span className={`${labelWidth} text-sm text-slate-300`}>
+    <div className="flex min-w-0 items-start gap-2">
+      <span className={`${labelWidth} pt-2 text-sm text-slate-300`}>
         {label}
       </span>
-      <InputBox
-        value={value}
-        placeholder="https://"
-        aria-label={`${label}のURL`}
-        onChange={(e) => onChange(e.target.value)}
-        className="min-w-0 flex-1"
-      />
+      <div className="min-w-0 flex-1">
+        <InputBox
+          value={value}
+          placeholder="https://"
+          aria-label={`${label}のURL`}
+          onChange={(e) => onChange(e.target.value)}
+          className="min-w-0"
+        />
+        <FieldError message={error} />
+      </div>
     </div>
   );
 }

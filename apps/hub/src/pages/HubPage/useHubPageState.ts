@@ -9,8 +9,11 @@ import {
   buildIndexJsonFromState,
   buildSchedulesFromProjectData,
   normalizeIndexJsonForProjectLostDeal,
-  scheduleLinksForSave,
 } from "./builders";
+import {
+  inspectScheduleLinks,
+  scheduleLinksForSave,
+} from "@/features/hub/utils/scheduleLinks";
 import { v4 as uuid } from "uuid";
 import { collapseUniformSpacing } from "@/features/hub/utils/spacing";
 import { catalogPublicUrlFromKey } from "@/features/hub/utils/catalogPublicUrl";
@@ -726,9 +729,29 @@ export function useHubPageState() {
 
     if (!schedules.length) return;
 
+    const linkChecks = schedules.map((s) => inspectScheduleLinks(s.links));
+    if (linkChecks.some((check) => check.hasError)) {
+      const bad = schedules.filter((_, index) => linkChecks[index].hasError);
+      const first = bad[0];
+      if (first?.id) setSelectedId(first.id);
+      setActiveTab("関連情報");
+      const names = bad
+        .slice(0, 5)
+        .map((s) => String(s.label ?? "").trim() || "名称未設定");
+      alert(
+        `リンクを確認してください。\n${names.join("\n")}` +
+          (bad.length > 5 ? `\n...他 ${bad.length - 5}件` : "")
+      );
+      return;
+    }
+    const schedulesWithLinks = schedules.map((s, index) => ({
+      ...s,
+      links: linkChecks[index].links,
+    }));
+
     // 🟢 新しいスケジュール（idが未設定 or 空）のUUID自動生成
     const normalizedSchedules = collapseSpacingOnSchedules(
-      schedules.map((s) => ({
+      schedulesWithLinks.map((s) => ({
         ...s,
         id:
           typeof s.id === "string" && s.id.trim().length > 0
@@ -802,7 +825,7 @@ export function useHubPageState() {
     try {
       // ① blob 画像をまとめて S3 へ（S3 URL に置換済みの schedules を得る）
       const schedulesAfterUpload = collapseSpacingOnSchedules(
-        (await uploadStagedPhotosIfAny(schedules)).map((s) => ({
+        (await uploadStagedPhotosIfAny(schedulesWithLinks)).map((s) => ({
           ...s,
           links: scheduleLinksForSave(s.links),
         }))
