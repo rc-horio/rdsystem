@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { parseCSV } from "@/lib/parseCsv";
+import { parseMotifCsv } from "@/lib/motifCsv";
 import { ASSETS_BASE } from "@/lib/assetsBase";
 import type { MotifData } from "@/types/stock";
 
@@ -10,49 +10,26 @@ function toTimestamp(str: string): number {
   return Number.isFinite(t) ? t : 0;
 }
 
-function parseMotifData(csvArray: string[][]): MotifData[] {
-  const [, ...rows] = csvArray;
-  return rows
-    .map(
-      ([
-        id,
-        date,
-        name,
-        ,
-        droneType,
-        h,
-        w,
-        d,
-        len,
-        truncate,
-        season,
-        category,
-        popular,
-      ]) => {
-        const rawId = id?.trim() || "";
-        const safeId = rawId ? String(rawId).padStart(4, "0") : "";
-        const rawName = name?.trim() || "";
-        const safeName = rawName && rawName !== "-" ? rawName : "";
-        const fileName = [safeId, safeName].filter(Boolean).join("_");
-
-        return {
-          skip: fileName === "",
-          id: safeId || "-",
-          dateValue: toTimestamp(date || ""),
-          motifName: safeName || "-",
-          planeNum: truncate || "-",
-          droneType: droneType || "-",
-          fileName,
-          height: h || "-",
-          width: w || "-",
-          depth: d || "-",
-          length: len || "-",
-          season: season || "-",
-          category: category || "-",
-          popular: popular || "-",
-        };
-      }
-    )
+function parseMotifData(text: string): MotifData[] {
+  return parseMotifCsv(text)
+    .map((row) => {
+      return {
+        skip: row.fileName === "",
+        id: row.id || "-",
+        dateValue: toTimestamp(row.date),
+        motifName: row.name || "-",
+        planeNum: row.planeNum,
+        droneType: row.droneType,
+        fileName: row.fileName,
+        height: row.height,
+        width: row.width,
+        depth: row.depth,
+        length: row.length,
+        season: row.season,
+        category: row.category,
+        popular: "-",
+      };
+    })
     .filter((m) => {
       if (m.skip) return false;
       const values = Object.values({
@@ -76,8 +53,7 @@ export function useMotifData() {
     fetch(`${ASSETS_BASE}/csv/motifs.csv`)
       .then((r) => r.text())
       .then((text) => {
-        const parsed = parseCSV(text);
-        setData(parseMotifData(parsed));
+        setData(parseMotifData(text));
       })
       .catch(() => {
         setError("データの読み込みができませんでした。しばらく時間をおいて、もう一度お試しください。");

@@ -1,6 +1,6 @@
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
-import { parseCSV } from "./parseCsv";
+import { parseMotifCsv } from "./motifCsv";
 import { PDF_TEMPLATE } from "./pdfTemplate";
 import { ASSETS_BASE } from "./assetsBase";
 import { systemError, E301_PDF_EXPORT } from "./errorMessages";
@@ -8,20 +8,17 @@ import { systemError, E301_PDF_EXPORT } from "./errorMessages";
 async function fetchMotifMap(signal?: AbortSignal): Promise<Map<string, { planeNum: string; width: string; height: string; depth: string; length: string }>> {
   const res = await fetch(`${ASSETS_BASE}/csv/motifs.csv`, { signal });
   const text = await res.text();
-  const rows = parseCSV(text).slice(1);
   const map = new Map();
-  rows.forEach(
-    ([id, , name, , , h, w, d, len, truncate]: string[]) => {
-      const file = `${String(id).padStart(4, "0")}_${name}`;
-      map.set(file, {
-        planeNum: truncate || "-",
-        width: w || "-",
-        height: h || "-",
-        depth: d || "-",
-        length: len || "-",
-      });
-    }
-  );
+  parseMotifCsv(text).forEach((row) => {
+    if (!row.fileName) return;
+    map.set(row.fileName, {
+      planeNum: row.planeNum,
+      width: row.width,
+      height: row.height,
+      depth: row.depth,
+      length: row.length,
+    });
+  });
   return map;
 }
 
